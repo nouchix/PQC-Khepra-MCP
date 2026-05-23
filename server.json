@@ -1,0 +1,47 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.nouchix/pqc-khepra-mcp",
+  "description": "Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. Air-gappable. Zero token costs. Flat annual licensing. Run ert_scan to get a Godfather Report with dollar-denominated business impact. The only MCP compliance server that runs on your metal.",
+  "repository": {
+    "url": "https://github.com/nouchix/PQC-Khepra-MCP",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp:1.0.0",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "KHEPRA_LICENSE_KEY",
+          "description": "License key for KHEPRA MCP Server. Obtain at https://nouchix.com or email sales@nouchix.com.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "KHEPRA_MODE",
+          "description": "Deployment mode: sovereign (air-gapped, default), ironbank (DoD/IC), edge, hybrid.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "KHEPRA_HOME",
+          "description": "Data directory for compliance databases and generated reports. Default: /var/lib/khepra.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "KHEPRA_LOG_DIR",
+          "description": "Log output directory. Default: /var/log/khepra.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
