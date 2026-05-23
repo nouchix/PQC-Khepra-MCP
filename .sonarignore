@@ -1,0 +1,10 @@
+node_modules/
+KHEPRA_VERIFICATION_RESTORE/
+vendor/
+.git/
+dist/
+.next/
+bin/
+.claude/
+tools/spiderfoot/
+data/cve-database/

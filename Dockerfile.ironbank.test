@@ -1,0 +1,163 @@
+# Test Dockerfile for KHEPRA Protocol - Using Public UBI9
+# This is for local testing ONLY - Iron Bank submission uses Dockerfile.ironbank
+#
+# Module: github.com/EtherVerseCodeMate/giza-cyber-shield
+# SPDX-License-Identifier: Proprietary
+
+# Use public Red Hat UBI9 for testing (Iron Bank uses registry1.dso.mil)
+ARG BASE_IMAGE=registry.access.redhat.com/ubi9/ubi-minimal
+ARG BASE_TAG=9.3
+
+# ============================================================================
+# STAGE 1: Builder (Offline Build Environment)
+# ============================================================================
+FROM ${BASE_IMAGE}:${BASE_TAG} AS builder
+
+# Metadata for builder stage
+LABEL stage="builder"
+LABEL maintainer="Souhimbou D. Kone <souhimbou.d.kone.mil@army.mil>"
+LABEL description="KHEPRA Protocol - Builder Stage (TEST)"
+
+# Build arguments
+ARG VERSION=1.0.0
+ARG BUILD_DATE
+ARG VCS_REF
+ARG TELEMETRY_PRIVATE_KEY=""
+
+# Switch to root for package installation
+USER root
+
+# Install build dependencies
+RUN microdnf install -y \
+    ca-certificates \
+    git \
+    golang \
+    && microdnf clean all \
+    && rm -rf /var/cache/yum
+
+# Set Go environment for static binary compilation
+ENV GOPATH=/go \
+    GOCACHE=/go/cache \
+    GOMODCACHE=/go/pkg/mod \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    GO111MODULE=on
+
+# Create non-root build user (security requirement)
+RUN useradd -m -u 1001 -g 0 -s /sbin/nologin builder && \
+    mkdir -p /go /build && \
+    chown -R 1001:0 /go /build
+
+# Set working directory
+WORKDIR /build
+
+# Copy go.mod and go.sum first (Docker layer caching)
+COPY --chown=1001:0 go.mod go.sum ./
+
+# Copy vendored dependencies
+COPY --chown=1001:0 vendor/ ./vendor/
+
+# Copy source tree (proprietary code excluded by .dockerignore)
+COPY --chown=1001:0 . .
+
+# Switch to build user (non-root)
+USER 1001
+
+# Verify vendored dependencies match go.sum
+RUN go mod verify
+
+# Build sonar (security scanner with embedded AdinKhepra PQC telemetry key)
+RUN go build \
+    -mod=vendor \
+    -trimpath \
+    -ldflags="-s -w \
+    -X main.VERSION=${VERSION} \
+    -X main.BUILD_DATE=${BUILD_DATE} \
+    -X main.VCS_REF=${VCS_REF} \
+    -X main.telemetryPrivateKey=${TELEMETRY_PRIVATE_KEY} \
+    -extldflags '-static'" \
+    -tags=netgo \
+    -o sonar \
+    ./cmd/sonar/main.go
+
+# Verify binary was built
+RUN ls -lh /build/sonar && file /build/sonar
+
+# ============================================================================
+# STAGE 2: Runtime (Minimal Attack Surface)
+# ============================================================================
+FROM ${BASE_IMAGE}:${BASE_TAG}
+
+# Metadata for runtime image
+LABEL name="khepra-test" \
+    vendor="NouchiX SecRed Knowledge Inc." \
+    version="${VERSION}" \
+    summary="KHEPRA Protocol - PQC Cybersecurity Platform (TEST)" \
+    description="Test build using public UBI9 (production uses Iron Bank)"
+
+# Build arguments
+ARG VERSION=1.0.0
+
+# Switch to root for runtime setup
+USER root
+
+# Install runtime dependencies
+RUN microdnf install -y \
+    ca-certificates \
+    tzdata \
+    shadow-utils \
+    && microdnf clean all \
+    && rm -rf /var/cache/yum
+
+# Create non-root runtime user
+RUN useradd -r -u 1001 -g 0 -s /sbin/nologin -c "KHEPRA Runtime User" khepra && \
+    mkdir -p \
+    /var/lib/khepra \
+    /var/log/khepra \
+    /etc/khepra \
+    /app/docs \
+    && chown -R 1001:0 \
+    /var/lib/khepra \
+    /var/log/khepra \
+    /etc/khepra \
+    /app/docs \
+    && chmod -R g=u \
+    /var/lib/khepra \
+    /var/log/khepra \
+    /etc/khepra \
+    /app/docs
+
+# Copy binary from builder stage
+COPY --from=builder --chown=1001:0 /build/sonar /usr/local/bin/sonar
+
+# Copy public compliance CSVs (Option C: Partial Exposure)
+COPY --chown=1001:0 docs/CCI_to_NIST53.csv /app/docs/CCI_to_NIST53.csv
+COPY --chown=1001:0 docs/NIST53_to_171.csv /app/docs/NIST53_to_171.csv
+
+# Make binary executable
+RUN chmod +x /usr/local/bin/sonar
+
+# Verify binary can execute
+RUN /usr/local/bin/sonar --help || echo "Sonar ready"
+
+# Switch to non-root user for runtime
+USER 1001
+
+# Set working directory
+WORKDIR /var/lib/khepra
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD ["/usr/local/bin/sonar", "--help"] || exit 1
+
+# Set environment variables
+ENV KHEPRA_VERSION=${VERSION} \
+    KHEPRA_MODE=community \
+    KHEPRA_HOME=/var/lib/khepra \
+    KHEPRA_LOG_DIR=/var/log/khepra \
+    KHEPRA_CONFIG_DIR=/etc/khepra
+
+# Default entrypoint
+ENTRYPOINT ["/usr/local/bin/sonar"]
+CMD ["--help"]

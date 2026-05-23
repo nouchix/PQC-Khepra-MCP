@@ -1,0 +1,230 @@
+# Phantom Network Stack - Docker Compose Configuration
+#
+# Quick deployment for GitLab + Phantom Node + Mobile Builder
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose ps                 # Check status
+#   docker-compose logs -f phantom    # View phantom logs
+#   docker-compose down               # Stop all services
+#
+# Services:
+#   - gitlab: Self-hosted GitLab CE (optional - comment out if using GitHub)
+#   - phantom-node: Phantom Network node
+#   - mobile-builder: gomobile build environment
+#   - postgres: Database for phantom metadata (optional)
+
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════════════════════════
+  # GitLab CE (Self-Hosted Git)
+  #
+  # Optional: Comment out this entire section if using GitHub (spectralplasma)
+  # Uncomment to enable self-hosted GitLab
+  # ═══════════════════════════════════════════════════════════════════
+
+  # gitlab:
+  #   image: gitlab/gitlab-ce:latest
+  #   container_name: phantom-gitlab
+  #   hostname: gitlab.khepra.internal
+  #   restart: always
+  #   ports:
+  #     - "443:443"   # HTTPS
+  #     - "80:80"     # HTTP
+  #     - "2222:22"   # SSH (using 2222 to avoid conflict with host SSH)
+  #   volumes:
+  #     - gitlab-config:/etc/gitlab
+  #     - gitlab-logs:/var/log/gitlab
+  #     - gitlab-data:/var/opt/gitlab
+  #   shm_size: '256m'
+  #   environment:
+  #     GITLAB_OMNIBUS_CONFIG: |
+  #       external_url 'https://gitlab.khepra.internal'
+  #       gitlab_rails['gitlab_shell_ssh_port'] = 2222
+  #   networks:
+  #     - phantom-network
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost/-/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Phantom Network Node
+  #
+  # Core phantom node for invisible mesh networking
+  # ═══════════════════════════════════════════════════════════════════
+
+  phantom-node:
+    build:
+      context: .
+      dockerfile: Dockerfile.phantom
+    container_name: phantom-node
+    restart: always
+    ports:
+      - "8080:8080"   # Phantom API
+      - "9090:9090"   # Metrics (Prometheus)
+    volumes:
+      - ./pkg:/app/pkg
+      - phantom-keys:/root/.khepra/keys
+      - phantom-data:/app/data
+    environment:
+      # Phantom configuration
+      - PHANTOM_SYMBOL=Eban                    # Adinkra symbol (Eban, Fawohodie, Nkyinkyim, Dwennimmen)
+      - PHANTOM_NETWORK_MODE=stealth           # Network mode: stealth, normal
+      - PHANTOM_CARRIER=JPEG                   # Carrier: JPEG, HTTP, DNS, WebRTC
+      - PHANTOM_ROTATION_PERIOD=5m             # Address rotation period
+
+      # Security
+      - PHANTOM_ENABLE_METRICS=true            # Prometheus metrics
+      - PHANTOM_LOG_LEVEL=info                 # Log level: debug, info, warn, error
+
+      # Optional: PostgreSQL connection
+      # - DATABASE_URL=postgres://phantom:phantom@postgres:5432/phantom
+    networks:
+      - phantom-network
+    depends_on:
+      # - gitlab
+      - postgres
+    command: /app/phantom-node --symbol Eban --mode stealth
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Mobile Builder (gomobile)
+  #
+  # Compiles Go packages to Android (.aar) and iOS (.framework)
+  # ═══════════════════════════════════════════════════════════════════
+
+  mobile-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.mobile
+    container_name: phantom-mobile-builder
+    restart: "no"  # One-shot build, doesn't need to restart
+    volumes:
+      - ./pkg:/app/pkg
+      - ./phantom-mobile:/app/phantom-mobile
+      - mobile-output:/app/output
+    environment:
+      - GOMOBILE_TARGET=android  # or: ios, android,ios
+    networks:
+      - phantom-network
+    command: >
+      bash -c "
+        echo 'Building Phantom Mobile libraries...' &&
+        gomobile bind -target=android -o /app/output/phantom_mobile.aar ./pkg/phantom &&
+        echo '✅ Android library: /app/output/phantom_mobile.aar' &&
+        ls -lh /app/output/
+      "
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PostgreSQL Database
+  #
+  # Stores phantom metadata (peers, messages, keys)
+  # ═══════════════════════════════════════════════════════════════════
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: phantom-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_DB: phantom
+      POSTGRES_USER: phantom
+      POSTGRES_PASSWORD: phantom_secure_password_change_me
+    networks:
+      - phantom-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phantom"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Prometheus (Metrics)
+  #
+  # Optional: Monitors phantom node metrics
+  # ═══════════════════════════════════════════════════════════════════
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: phantom-prometheus
+    restart: always
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - phantom-network
+    profiles:
+      - monitoring  # Start with: docker-compose --profile monitoring up -d
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Grafana (Dashboard)
+  #
+  # Optional: Visualizes phantom metrics from Prometheus
+  # ═══════════════════════════════════════════════════════════════════
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: phantom-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=phantom_admin_change_me
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - phantom-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring  # Start with: docker-compose --profile monitoring up -d
+
+# ═══════════════════════════════════════════════════════════════════
+# Volumes
+# ═══════════════════════════════════════════════════════════════════
+
+volumes:
+  # GitLab volumes (uncomment if using GitLab)
+  # gitlab-config:
+  # gitlab-logs:
+  # gitlab-data:
+
+  # Phantom volumes
+  phantom-keys:
+  phantom-data:
+  mobile-output:
+
+  # Database volumes
+  postgres-data:
+
+  # Monitoring volumes
+  prometheus-data:
+  grafana-data:
+
+# ═══════════════════════════════════════════════════════════════════
+# Networks
+# ═══════════════════════════════════════════════════════════════════
+
+networks:
+  phantom-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16  # Private network for phantom containers

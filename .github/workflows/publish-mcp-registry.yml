@@ -1,0 +1,100 @@
+name: Publish KHEPRA MCP Registry Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Server/package version to publish"
+        required: true
+        default: "1.0.0"
+      publish_registry:
+        description: "Publish server.json to the MCP Registry after pushing OCI image"
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "mcp-v*"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-push-publish:
+    name: Build OCI image and optionally publish registry metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve package metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#mcp-v}"
+          fi
+          OWNER_LC="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE="ghcr.io/${OWNER_LC}/khepra-mcp"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push MCP OCI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.mcp
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Render server.json for release version
+        shell: bash
+        run: |
+          jq \
+            --arg version "${{ steps.meta.outputs.version }}" \
+            --arg image "${{ steps.meta.outputs.tag }}" \
+            '.version = $version | .packages[0].version = $version | .packages[0].identifier = $image' \
+            server.json > /tmp/server.json
+          mv /tmp/server.json server.json
+
+      - name: Validate rendered server.json
+        shell: bash
+        run: jq -e '.name and .version and .packages[0].registryType == "oci" and .packages[0].identifier' server.json
+
+      - name: Install mcp-publisher
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_registry }}
+        shell: bash
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/mcp-publisher
+          mcp-publisher --help
+
+      - name: Publish to MCP Registry
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_registry }}
+        shell: bash
+        run: |
+          mcp-publisher login github-oidc
+          mcp-publisher publish
