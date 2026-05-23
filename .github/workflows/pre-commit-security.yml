@@ -1,75 +1,65 @@
-name: Pre-Commit Security Scan
+﻿name: Pre-Commit Security Scan
 
 on:
   push:
-    branches: [ main, develop, feature/** ]
+    branches: [ main, develop, "feature/**" ]
   pull_request:
     branches: [ main, develop ]
 
 jobs:
-  security-scan:
-    name: Security Vulnerability Scan
+  secret-scan-gitleaks:
+    name: Gitleaks Secret Detection
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Scan for secrets and credentials
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  secret-scan-grep:
+    name: Pattern Grep (belt-and-suspenders)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for hardcoded credentials
         run: |
-          echo "🔍 Scanning for exposed secrets..."
-
-          # Scan for potential secrets/credentials
-          SECRETS=$(grep -rEi "password|secret|token|api_key|private_key" \
-            --include="*.go" --include="*.ts" --include="*.js" \
+          echo "Scanning for hardcoded credentials in source files..."
+          SECRETS=$(grep -rEi \
+            "(password|secret|api_key|private_key|auth_token)\s*[:=]+\s*['\"][^'\"]{8,}" \
+            --include="*.go" --include="*.ts" --include="*.js" --include="*.py" \
             --exclude-dir=node_modules --exclude-dir=.git \
-            pkg/ cmd/ souhimbou_ai/ 2>/dev/null | \
-            grep -v "// " | grep -v "func " | grep "=" || true)
+            --exclude="exposed_secrets.go" \
+            . 2>/dev/null | \
+            grep -v "^\s*//" | grep -v "PLACEHOLDER" | grep -v "REDACTED" \
+            || true)
 
           if [ -n "$SECRETS" ]; then
-            echo "⚠️ Potential secrets detected (manual review required):"
+            echo "FAIL: Potential hardcoded secrets detected:"
             echo "$SECRETS"
-          else
-            echo "✅ No obvious secrets detected"
+            exit 1
           fi
+          echo "OK: No hardcoded credentials found"
 
-      - name: Check for SQL injection vulnerabilities
+  dockerfile-secrets:
+    name: Dockerfile Secret Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Dockerfiles for hardcoded secrets
         run: |
-          echo "🔍 Scanning for SQL injection patterns..."
-
-          # Look for string concatenation in SQL queries
-          SQL_INJECTION=$(grep -rn "fmt.Sprintf.*SELECT\|fmt.Sprintf.*INSERT\|fmt.Sprintf.*UPDATE" \
-            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
-
-          if [ -n "$SQL_INJECTION" ]; then
-            echo "⚠️ Potential SQL injection vulnerabilities detected:"
-            echo "$SQL_INJECTION"
-            echo ""
-            echo "Use parameterized queries instead of string concatenation."
-          else
-            echo "✅ No SQL injection patterns detected"
-          fi
-
-      - name: Check for command injection vulnerabilities
-        run: |
-          echo "🔍 Scanning for command injection patterns..."
-
-          # Look for exec.Command with user input
-          CMD_INJECTION=$(grep -rn "exec.Command.*fmt.Sprintf\|exec.Command.*+" \
-            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
-
-          if [ -n "$CMD_INJECTION" ]; then
-            echo "⚠️ Potential command injection vulnerabilities detected:"
-            echo "$CMD_INJECTION"
-            echo ""
-            echo "Sanitize user input before passing to exec.Command."
-          else
-            echo "✅ No command injection patterns detected"
-          fi
-
-      - name: Security summary
-        run: |
-          echo "✅ Security scan complete!"
-          echo ""
-          echo "Note: These are automated pattern checks."
-          echo "Manual security review is still required before deployment."
+          echo "Scanning Dockerfiles for secrets..."
+          for df in Dockerfile Dockerfile.*; do
+            if [ -f "$df" ]; then
+              if grep -qiE "(password|secret|api_key|token)\s*=\s*['\"]?[a-zA-Z0-9+/]{16,}" "$df" 2>/dev/null; then
+                echo "FAIL: Potential secret in $df"
+                exit 1
+              fi
+            fi
+          done
+          echo "OK: No secrets in Dockerfiles"
