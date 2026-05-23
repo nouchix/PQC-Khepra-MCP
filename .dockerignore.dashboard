@@ -1,0 +1,64 @@
+# Docker ignore for Next.js Dashboard build
+# Exclude Go backend and large directories
+
+# Go backend (not needed for Next.js)
+vendor/
+pkg/
+cmd/
+bin/
+*.go
+go.mod
+go.sum
+
+# Python services
+services/
+.venv/
+venv/
+__pycache__/
+*.py
+*.pyc
+
+# Large data files
+data/
+models/
+*.db
+*.sqlite
+*.pt
+*.pth
+
+# Git (large history)
+.git/
+
+# Infrastructure
+deploy/
+aws-govcloud/
+*.tf
+
+# Keys and secrets
+keys/
+telemetry-keys/
+*.pem
+*.key
+
+# Documentation
+docs/
+*.md
+
+# Other large directories
+tools/
+souhimbou_ai/
+adinkhepra-telemetry-server/
+supabase/
+
+# Test files
+*_test.go
+*.test.js
+
+# Build artifacts
+.next/
+out/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db

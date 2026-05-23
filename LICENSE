@@ -1,0 +1,213 @@
+KHEPRA MASTER LICENSE AGREEMENT (v3.0)
+================================================================================
+
+This MASTER LICENSE AGREEMENT ("Agreement") is a binding legal contract between 
+SecRed Knowledge Inc. dba NouchiX ("Licensor"), a Delaware Corporation, and the 
+entity or individual accessing the Software ("Licensee").
+
+RELATIONSHIP TO GOVERNMENT CONTRACTS:
+If Licensee is a United States Government entity or operating under a prime contract 
+for the Government, SECTION 3 (U.S. GOVERNMENT RIGHTS) specifically supersedes any 
+conflicting commercial terms, in accordance with DFARS 227.7202-3.
+
+================================================================================
+1. DEFINITIONS
+================================================================================
+
+1.1 "Software" means the KHEPRA protocol binaries, source code (where applicable), 
+    logic, and documentation, including but not limited to:
+    (a) "Khepra Core" (khepra.exe) - The cryptographic engine.
+    (b) "Sonar Agent" (sonar.exe) - The diagnostic sensor.
+    (c) "Adinkra PQC" - The underlying cryptographic libraries.
+
+1.2 "Symbolic Attestation Logic" means the proprietary algorithms, heuristic 
+    models, and risk scoring methodologies embedded within the Software. 
+    THIS LOGIC IS A TRADE SECRET OF LICENSOR.
+
+1.3 "Authorized Use" means:
+    (a) For "Khepra-Edge": Deployment on air-gapped systems pursuant to a specific Purchase Order.
+    (b) For "Khepra-Hybrid": Deployment on corporate networks for internal auditing.
+    (c) For "Khepra-Sovereign": Deployment within a dedicated Virtual Private Cloud (VPC).
+
+================================================================================
+2. COMMERCIAL LICENSE GRANT
+================================================================================
+
+2.1 LICENSE. Subject to payment of applicable fees, Licensor grants Licensee a 
+    non-exclusive, non-transferable, non-sublicensable, limited license to install 
+    and execute the Software solely for Licensee's Internal Business Purposes.
+
+2.2 RESTRICTIONS. Licensee SHALL NOT, and shall not permit any third party to:
+    (a) Reverse engineer, decompile, disassemble, or derive source code from the 
+        Software, especially the "Symbolic Attestation Logic";
+    (b) Modify, translate, or create derivative works of the Software;
+    (c) Remove any proprietary notices, labels, or "Poetic Obfuscation" markers;
+    (d) Publish benchmarks or performance analysis without prior written consent;
+    (e) Use the Software to build a competitive product or service;
+    (f) Circumvent any license keys, encryption, or "Tier 0" protections.
+
+2.3 RESERVATION OF RIGHTS. The Software is licensed, not sold. Licensor retains 
+    all ownership, intellectual property rights, and title to the Software.
+
+================================================================================
+3. U.S. GOVERNMENT RIGHTS (DFARS COMPLIANCE)
+================================================================================
+
+3.1 COMMERCIAL COMPUTER SOFTWARE. The Software is "Commercial Computer Software" 
+    and "Commercial Computer Software Documentation" as defined in FAR 2.101 
+    and DFARS 252.227-7014(a)(1).
+
+3.2 RESTRICTED RIGHTS. Use, duplication, or disclosure by the U.S. Government 
+    is subject to RESTRICTED RIGHTS as set forth in subparagraph (b)(3) of the 
+    Rights in Noncommercial Computer Software and Noncommercial Computer Software 
+    Documentation clause at DFARS 252.227-7014.
+
+    ----------------------------------------------------------------------------
+                             RESTRICTED RIGHTS LEGEND
+    Use, duplication, or disclosure by the Government is subject to restrictions 
+    as set forth in paragraph (b)(3) of the Rights in Noncommercial Computer 
+    Software and Noncommercial Computer Software Documentation clause at 
+    DFARS 252.227-7014.
+
+    Manufacturer: SecRed Knowledge Inc. dba NouchiX
+                  401 New Karner Rd, Suite 301, Albany, NY 12205
+    ----------------------------------------------------------------------------
+
+3.3 TECHNICAL DATA. No "Unlimited Rights" or "Government Purpose Rights" are 
+    granted in the Technical Data or Software. All Logic provided is proprietary 
+    and confidential.
+
+================================================================================
+4. CONFIDENTIALITY & TRADE SECRETS
+================================================================================
+
+4.1 The Licensee acknowledges that the Software contains valuable Trade Secrets 
+    of the Licensor, including the AdinKhepra-PQC Lattice structures and the 
+    Symbolic Attestation Logic.
+
+4.2 Licensee agrees to hold such Confidential Information in strict confidence 
+    and take all reasonable steps to ensure that Confidential Information is not 
+    disclosed or distributed by its employees or agents in violation of this 
+    Agreement.
+
+================================================================================
+5. EXPORT CONTROL
+================================================================================
+
+5.1 The Software is subject to the Export Administration Regulations (EAR) of 
+    the United States.
+    
+    EXPORT CONTROL CLASSIFICATION NUMBER (ECCN): 5D992 (Mass Market / Anti-Terrorism)
+
+5.2 Licensee shall not export, re-export, or transfer the Software to any 
+    country involved in the production of nuclear, chemical, or biological weapons, 
+    or to any entity on the U.S. Treasury Department's Specially Designated 
+    Nationals (SDN) List.
+
+================================================================================
+6. WARRANTY DISCLAIMER & LIABILITY
+================================================================================
+
+6.1 "AS IS" WARRANTY. THE SOFTWARE IS PROVIDED "AS IS". LICENSOR DISCLAIMS ALL 
+    WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR A 
+    PARTICULAR PURPOSE. NO WARRANTY IS MADE THAT THE SOFTWARE IS QUANTUM-PROOF 
+    IN PERPETUITY.
+
+6.2 LIMITATION OF LIABILITY. IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY 
+    INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES. LICENSOR'S TOTAL 
+    LIABILITY SHALL NOT EXCEED THE FEES PAID BY LICENSEE IN THE 12 MONTHS 
+    PRECEDING THE CLAIM.
+
+================================================================================
+7. TERM AND TERMINATION
+================================================================================
+
+7.1 This Agreement is effective until terminated.
+7.2 Licensor may terminate this Agreement immediately if Licensee breaches any 
+    provision causing harm to Licensor's Intellectual Property rights.
+7.3 Upon termination, Licensee must destroy all copies of the Software and 
+    confirm destruction in writing.
+
+================================================================================
+8. PROPRIETARY ALGORITHMS & FEDERAL PROTECTIONS
+================================================================================
+
+8.1 RESTRICTED RIGHTS NOTICE. This software contains proprietary post-quantum 
+    cryptographic algorithms developed by NouchiX SecRed Knowledge Inc., 
+    representing significant research and development investment ($45M+).
+
+8.2 FEDERAL PROTECTION. This software is protected under multiple Federal statutes:
+    (a) Economic Espionage Act (18 U.S.C. 1831-1839): Trade secret protection 
+        for proprietary lattice reduction algorithms. Violations carry penalties 
+        up to $5,000,000 fine and 10 years imprisonment.
+    (b) DMCA Anti-Circumvention (17 U.S.C. 1201): Prohibition on circumvention 
+        of license validation mechanisms.
+    (c) DoD FAR Supplement (DFARS 252.227-7013, 252.227-7015): Restricted rights 
+        in technical data and computer software.
+
+8.3 PROHIBITED ACTIVITIES. The following activities are STRICTLY PROHIBITED and 
+    constitute breach of contract and/or Federal crimes:
+    (a) Reverse Engineering: Decompilation, disassembly, or reverse engineering 
+        of cryptographic library components.
+    (b) Algorithm Extraction: Analysis, extraction, or replication of proprietary 
+        lattice reduction algorithms.
+    (c) License Circumvention: Modification, bypass, or circumvention of license 
+        validation mechanisms.
+    (d) Unauthorized Redistribution: Distribution of binaries outside of 
+        authorized DoD networks or installations.
+    (e) Signature Removal: Removal or modification of digital signatures or 
+        copyright notices.
+    (f) Unauthorized Derivative Works: Creation of derivative works without 
+        explicit written permission.
+
+8.4 AUTHORIZED USE. This software is licensed ONLY for use on:
+    (a) DoD networks with active license validation via telemetry.souhimbou.org.
+    (b) Systems registered with valid DoD contract authorization.
+    (c) Installations with cryptographically-signed machine IDs.
+    (d) Government-owned and contractor-operated (GOCO) facilities under DoD 
+        authority.
+    
+    License Validation: Premium cryptographic features require online validation. 
+    Failure to maintain license compliance will result in automatic fallback to 
+    community edition with open-source cryptography only.
+
+8.5 VIOLATION CONSEQUENCES. Unauthorized use, reverse engineering, or IP theft 
+    may result in:
+    (a) Civil Liability (18 U.S.C. 1836): Injunctive relief, treble damages, 
+        attorney fees, and exemplary damages.
+    (b) Criminal Prosecution (18 U.S.C. 1832): Federal felony charges, 
+        fines up to $5,000,000, imprisonment up to 10 years, and asset forfeiture.
+    (c) Administrative Actions: Contract termination, suspension and debarment 
+        from Federal contracting, referral to DoD Inspector General, Security 
+        clearance revocation, DCAA audit.
+
+================================================================================
+9. LICENSE ENFORCEMENT & TELEMETRY
+================================================================================
+
+9.1 TELEMETRY BEACON. Licensee acknowledges and agrees that the Software may 
+    transmit periodic anonymous telemetry beacons ("Heartbeats") to Licensor's 
+    secure servers (telemetry.souhimbou.org) for the sole purposes of:
+    (a) Validating license status and feature entitlement.
+    (b) Detecting unauthorized tampering or license circumvention.
+    (c) Monitoring cryptographic inventory for PQC transition compliance.
+    (d) Ensuring the integrity of the Khepra Lattice.
+
+9.2 AIR-GAPPED ENVIRONMENTS (SCIF). For deployments in Sensitive Compartmented 
+    Information Facilities (SCIF) or other air-gapped environments where 
+    online telemetry is prohibited:
+    (a) Licensee must utilize the "Offline License Validation" mechanism via 
+        cryptographically signed license files.
+    (b) Licensee agrees to perform manual periodic audits using the "Sonar" 
+        agent and submit cryptographically signed compliance reports to 
+        Licensor via secure offline channels.
+    (c) Failure to submit annual offline audit reports may result in 
+        termination of the license.
+
+================================================================================
+ENTIRE AGREEMENT
+================================================================================
+This Agreement constitutes the entire agreement between the parties relative to 
+the subject matter hereof.
+
+(c) 2024-2026 SecRed Knowledge Inc. All Rights Reserved.

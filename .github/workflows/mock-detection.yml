@@ -1,0 +1,109 @@
+name: Mock Pattern Detection
+
+on:
+  push:
+    paths:
+      - 'souhimbou_ai/SouHimBou.AI/supabase/functions/**'
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+  pull_request:
+    paths:
+      - 'souhimbou_ai/SouHimBou.AI/supabase/functions/**'
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+
+jobs:
+  detect-mocks:
+    name: Detect Mock Patterns
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Math.random() in Supabase functions
+        run: |
+          echo "🔍 Scanning Supabase functions for Math.random()..."
+
+          MATCHES=$(grep -rn "Math\.random" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null || true)
+
+          if [ -n "$MATCHES" ]; then
+            echo "❌ FAIL: Found Math.random() in Supabase functions:"
+            echo "$MATCHES"
+            echo ""
+            echo "📋 Math.random() should be replaced with:"
+            echo "  - crypto.getRandomValues() for security-sensitive random"
+            echo "  - crypto.randomUUID() for unique IDs"
+            echo "  - Database queries for real data"
+            echo "  - Deterministic values based on input"
+            exit 1
+          else
+            echo "✅ PASS: No Math.random() found in Supabase functions"
+          fi
+
+      - name: Check for mock data patterns
+        run: |
+          echo "🔍 Scanning for mock/simulation patterns..."
+
+          # Patterns that indicate mock data
+          PATTERNS=(
+            "// Simulate"
+            "// Mock"
+            "generateMock"
+            "simulateData"
+            "fakeData"
+            "dummyData"
+          )
+
+          FOUND_ISSUES=false
+
+          for pattern in "${PATTERNS[@]}"; do
+            MATCHES=$(grep -rn "$pattern" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null || true)
+            if [ -n "$MATCHES" ]; then
+              echo "⚠️  WARNING: Found pattern '$pattern':"
+              echo "$MATCHES"
+              echo ""
+            fi
+          done
+
+          echo "✅ Mock pattern scan complete"
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "🔍 Scanning for potential hardcoded secrets..."
+
+          # Check for common secret patterns (excluding test files)
+          SECRETS_FOUND=false
+
+          # API keys (excluding placeholders and env vars)
+          if grep -rn "apiKey\s*[:=]\s*['\"][a-zA-Z0-9_-]{20,}['\"]" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null | grep -v "env.get" | grep -v "process.env"; then
+            echo "❌ Potential hardcoded API key found"
+            SECRETS_FOUND=true
+          fi
+
+          # Bearer tokens
+          if grep -rn "Bearer [a-zA-Z0-9_.-]{20,}" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null | grep -v "Authorization.*Bearer.*\$"; then
+            echo "❌ Potential hardcoded Bearer token found"
+            SECRETS_FOUND=true
+          fi
+
+          if [ "$SECRETS_FOUND" = true ]; then
+            echo "⚠️  Review the above for potential secrets"
+          else
+            echo "✅ PASS: No obvious hardcoded secrets detected"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "═══════════════════════════════════════════════════"
+          echo "  Mock Detection Scan Complete"
+          echo "═══════════════════════════════════════════════════"
+          echo ""
+          echo "This workflow ensures TRL 10 readiness by detecting:"
+          echo "  • Math.random() mock patterns"
+          echo "  • Simulation/mock comments"
+          echo "  • Hardcoded secrets"
+          echo ""
+          echo "All Supabase Edge Functions should use real data sources."

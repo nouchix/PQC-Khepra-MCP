@@ -1,0 +1,359 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Khepra Protocol - ECS Services (Deploy after infrastructure stack)'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: khepra-protocol
+    Description: Must match the infrastructure stack
+
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+
+  APIImageTag:
+    Type: String
+    Default: latest
+    Description: Docker image tag for API service
+
+  DashboardImageTag:
+    Type: String
+    Default: latest
+    Description: Docker image tag for Dashboard service
+
+  APIDesiredCount:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    Description: Desired number of API tasks
+
+  DashboardDesiredCount:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    Description: Desired number of Dashboard tasks
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+
+Resources:
+  #============================================================================
+  # CLOUDWATCH LOG GROUPS
+  #============================================================================
+  APILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}/api
+      RetentionInDays: 90
+      KmsKeyId:
+        Fn::ImportValue: !Sub ${ProjectName}-KMS-Key-ARN
+
+  DashboardLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}/dashboard
+      RetentionInDays: 90
+      KmsKeyId:
+        Fn::ImportValue: !Sub ${ProjectName}-KMS-Key-ARN
+
+  #============================================================================
+  # ECS TASK DEFINITIONS
+  #============================================================================
+  APITaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-api
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '512'
+      Memory: '1024'
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub ${ProjectName}-ECS-Execution-Role
+      TaskRoleArn:
+        Fn::ImportValue: !Sub ${ProjectName}-ECS-Task-Role
+      ContainerDefinitions:
+        - Name: api
+          Image: !Sub
+            - '${RepoUri}:${Tag}'
+            - RepoUri:
+                Fn::ImportValue: !Sub ${ProjectName}-API-ECR-URI
+              Tag: !Ref APIImageTag
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: PYTHONUNBUFFERED
+              Value: '1'
+            - Name: PORT
+              Value: '8080'
+            - Name: FEATURE_DIM
+              Value: '128'
+            - Name: HIDDEN_DIM
+              Value: '64'
+            - Name: LATENT_DIM
+              Value: '32'
+            - Name: MODEL_PATH
+              Value: /app/models/souhimbou_v1.pt
+            - Name: ENVIRONMENT
+              Value: !Ref Environment
+          Secrets:
+            - Name: SUPABASE_URL
+              ValueFrom: !Sub
+                - '${SecretArn}:SUPABASE_URL::'
+                - SecretArn:
+                    Fn::ImportValue: !Sub ${ProjectName}-API-Secrets-ARN
+            - Name: SUPABASE_ANON_KEY
+              ValueFrom: !Sub
+                - '${SecretArn}:SUPABASE_ANON_KEY::'
+                - SecretArn:
+                    Fn::ImportValue: !Sub ${ProjectName}-API-Secrets-ARN
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Sub
+                - '${SecretArn}:OPENAI_API_KEY::'
+                - SecretArn:
+                    Fn::ImportValue: !Sub ${ProjectName}-API-Secrets-ARN
+            - Name: XAI_API_KEY
+              ValueFrom: !Sub
+                - '${SecretArn}:XAI_API_KEY::'
+                - SecretArn:
+                    Fn::ImportValue: !Sub ${ProjectName}-API-Secrets-ARN
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref APILogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: api
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8080/ || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
+
+  DashboardTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-dashboard
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub ${ProjectName}-ECS-Execution-Role
+      TaskRoleArn:
+        Fn::ImportValue: !Sub ${ProjectName}-ECS-Task-Role
+      ContainerDefinitions:
+        - Name: dashboard
+          Image: !Sub
+            - '${RepoUri}:${Tag}'
+            - RepoUri:
+                Fn::ImportValue: !Sub ${ProjectName}-Dashboard-ECR-URI
+              Tag: !Ref DashboardImageTag
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: PORT
+              Value: '3000'
+            - Name: NEXT_PUBLIC_API_URL
+              Value: !Sub
+                - 'http://${ALBDns}/api'
+                - ALBDns:
+                    Fn::ImportValue: !Sub ${ProjectName}-ALB-DNS
+          Secrets:
+            - Name: NEXT_PUBLIC_SUPABASE_URL
+              ValueFrom: !Sub
+                - '${SecretArn}:SUPABASE_URL::'
+                - SecretArn:
+                    Fn::ImportValue: !Sub ${ProjectName}-API-Secrets-ARN
+            - Name: NEXT_PUBLIC_SUPABASE_ANON_KEY
+              ValueFrom: !Sub
+                - '${SecretArn}:SUPABASE_ANON_KEY::'
+                - SecretArn:
+                    Fn::ImportValue: !Sub ${ProjectName}-API-Secrets-ARN
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref DashboardLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: dashboard
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:3000/ || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+
+  #============================================================================
+  # ECS SERVICES
+  #============================================================================
+  APIService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-api
+      Cluster:
+        Fn::ImportValue: !Sub ${ProjectName}-ECS-Cluster
+      TaskDefinition: !Ref APITaskDefinition
+      DesiredCount: !Ref APIDesiredCount
+      LaunchType: FARGATE
+      EnableExecuteCommand: true
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::ImportValue: !Sub ${ProjectName}-ECS-SG
+          Subnets:
+            - !Select
+              - 0
+              - !Split
+                - ','
+                - Fn::ImportValue: !Sub ${ProjectName}-Private-Subnets
+            - !Select
+              - 1
+              - !Split
+                - ','
+                - Fn::ImportValue: !Sub ${ProjectName}-Private-Subnets
+      LoadBalancers:
+        - ContainerName: api
+          ContainerPort: 8080
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${ProjectName}-API-TG-ARN
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-api-service
+
+  DashboardService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-dashboard
+      Cluster:
+        Fn::ImportValue: !Sub ${ProjectName}-ECS-Cluster
+      TaskDefinition: !Ref DashboardTaskDefinition
+      DesiredCount: !Ref DashboardDesiredCount
+      LaunchType: FARGATE
+      EnableExecuteCommand: true
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - Fn::ImportValue: !Sub ${ProjectName}-ECS-SG
+          Subnets:
+            - !Select
+              - 0
+              - !Split
+                - ','
+                - Fn::ImportValue: !Sub ${ProjectName}-Private-Subnets
+            - !Select
+              - 1
+              - !Split
+                - ','
+                - Fn::ImportValue: !Sub ${ProjectName}-Private-Subnets
+      LoadBalancers:
+        - ContainerName: dashboard
+          ContainerPort: 3000
+          TargetGroupArn:
+            Fn::ImportValue: !Sub ${ProjectName}-Dashboard-TG-ARN
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-dashboard-service
+
+  #============================================================================
+  # AUTO SCALING
+  #============================================================================
+  APIScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: IsProduction
+    Properties:
+      MaxCapacity: 10
+      MinCapacity: 2
+      ResourceId: !Sub
+        - service/${ClusterName}/${ServiceName}
+        - ClusterName:
+            Fn::ImportValue: !Sub ${ProjectName}-ECS-Cluster
+          ServiceName: !GetAtt APIService.Name
+      RoleARN: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  APIScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: IsProduction
+    Properties:
+      PolicyName: !Sub ${ProjectName}-api-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref APIScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70.0
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  DashboardScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: IsProduction
+    Properties:
+      MaxCapacity: 6
+      MinCapacity: 2
+      ResourceId: !Sub
+        - service/${ClusterName}/${ServiceName}
+        - ClusterName:
+            Fn::ImportValue: !Sub ${ProjectName}-ECS-Cluster
+          ServiceName: !GetAtt DashboardService.Name
+      RoleARN: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  DashboardScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: IsProduction
+    Properties:
+      PolicyName: !Sub ${ProjectName}-dashboard-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref DashboardScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70.0
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+Outputs:
+  APIServiceArn:
+    Description: API Service ARN
+    Value: !Ref APIService
+
+  DashboardServiceArn:
+    Description: Dashboard Service ARN
+    Value: !Ref DashboardService
+
+  APIServiceName:
+    Description: API Service Name
+    Value: !GetAtt APIService.Name
+
+  DashboardServiceName:
+    Description: Dashboard Service Name
+    Value: !GetAtt DashboardService.Name

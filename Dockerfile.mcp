@@ -1,0 +1,45 @@
+# syntax=docker/dockerfile:1
+
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /src
+
+RUN apk add --no-cache git
+
+COPY go.mod go.sum ./
+COPY vendor/ ./vendor/
+COPY pkg/ ./pkg/
+COPY cmd/ ./cmd/
+
+ARG VERSION=1.0.0
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath \
+    -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildDate=${BUILD_DATE} -X main.Commit=${VCS_REF}" \
+    -o /out/khepra-mcp \
+    ./cmd/khepra-mcp
+
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata \
+ && addgroup -g 10001 -S khepra \
+ && adduser -u 10001 -S -G khepra -h /var/lib/khepra khepra
+
+WORKDIR /app
+
+COPY --from=builder /out/khepra-mcp /usr/local/bin/khepra-mcp
+COPY manifest.json /app/manifest.json
+
+ENV KHEPRA_MANIFEST_PATH=/app/manifest.json
+ENV PHANTOM_SYMBOL=Eban
+
+LABEL org.opencontainers.image.title="KHEPRA MCP Server" \
+      org.opencontainers.image.description="Post-quantum MCP security layer for signed agent tool calls and audit evidence." \
+      org.opencontainers.image.source="https://github.com/EtherVerseCodeMate/giza-cyber-shield" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      io.modelcontextprotocol.server.name="io.github.etherversecodemate/khepra-mcp"
+
+USER khepra
+
+ENTRYPOINT ["/usr/local/bin/khepra-mcp"]

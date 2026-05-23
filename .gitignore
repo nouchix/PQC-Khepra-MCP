@@ -1,0 +1,72 @@
+bin/
+dist/
+vendor/
+*.exe
+*.log
+/soc2-audit
+.vscode/
+
+# Private Documentation
+#docs/INTEGRATION_ROADMAP.md
+#docs/INTEL_REPORT_2025_12.md
+#docs/SURVIVAL_STRATEGY.md
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist-ssr
+*.local
+
+# Editor directories and files
+!.vscode/extensions.json
+
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.next/
+
+# Security Artifacts
+keys/
+test_fire/
+
+# Internal
+docs/internal/
+
+
+# Large Assets
+pkg/llm/ollama/blobs/
+pkg/llm/*/blobs/
+pkg/llm/*/blobs/
+*.kpkg
+*.tar.gz
+
+# CVE Database (fetched on demand via `make fetch-cve` or build)
+# Run: make fetch-cve OR data/cve-database/fetch-cve-data.sh
+data/cve-database/cve-data/
+
+
+
+# Build output binaries (go build ./cmd/... drops these in repo root)
+/sonar
+/khepra
+/adinkhepra
+
+# Temporary / Garbage
+NUL
+.claude/
+demo-snapshot.json
+*.tmp
+ANONYMOUS_GIT_*.md
+pkg/llm/ollama/manifests/registry.ollama.ai/library/gemma3/4b
+.vercel
+.env*.local

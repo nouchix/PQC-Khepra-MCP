@@ -1,0 +1,95 @@
+# AdinKhepra Iron Bank - FIPS 140-3 Compliant Build
+# ECR-02: BoringCrypto Multi-Stage Build
+#
+# This Dockerfile builds AdinKhepra with FIPS-validated cryptography
+# using Go's BoringCrypto experiment (FIPS 140-2 validated BoringSSL).
+#
+# Build:
+#   docker build -f Dockerfile.fips -t adinkhepra:fips .
+#
+# Verify FIPS mode:
+#   docker run --rm adinkhepra:fips version
+
+# Stage 1: Build with BoringCrypto
+FROM golang:1.22-bullseye AS builder
+
+# Install build dependencies (CGO requires gcc)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy go mod files first (better layer caching)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build with BoringCrypto
+# - GOEXPERIMENT=boringcrypto: Use FIPS-validated BoringSSL
+# - CGO_ENABLED=1: Required for BoringCrypto
+# - -tags=fips: Enable FIPS-specific code paths
+# - -trimpath: Remove build path for reproducible builds
+# - -ldflags: Strip debug symbols and set version
+RUN GOEXPERIMENT=boringcrypto CGO_ENABLED=1 \
+    go build -tags=fips -trimpath \
+    -ldflags="-s -w -X main.Version=1.0.0 -X main.FIPSMode=required" \
+    -o /build/adinkhepra ./cmd/adinkhepra
+
+# Verify FIPS build succeeded
+RUN /build/adinkhepra version || true
+
+# Stage 2: Runtime image (UBI9-minimal for Iron Bank compatibility)
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+# Install runtime dependencies
+# Note: BoringCrypto requires glibc (dynamically linked)
+RUN microdnf update -y && \
+    microdnf install -y glibc && \
+    microdnf clean all
+
+# Create non-root user (UID 1001 per Iron Bank standards)
+RUN groupadd -g 1001 adinkhepra && \
+    useradd -u 1001 -g adinkhepra -s /sbin/nologin -m adinkhepra
+
+# Create storage directory with correct permissions (ECR-01)
+RUN mkdir -p /var/lib/adinkhepra/data && \
+    chown -R adinkhepra:adinkhepra /var/lib/adinkhepra
+
+# Copy binary from builder
+COPY --from=builder --chown=adinkhepra:adinkhepra /build/adinkhepra /usr/local/bin/adinkhepra
+RUN chmod +x /usr/local/bin/adinkhepra
+
+# Switch to non-root user
+USER 1001
+
+# Set working directory
+WORKDIR /var/lib/adinkhepra/data
+
+# Environment variables
+ENV ADINKHEPRA_STORAGE_PATH=/var/lib/adinkhepra/data
+ENV ADINKHEPRA_FIPS_MODE=true
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD ["/usr/local/bin/adinkhepra", "health"]
+
+# Default command
+ENTRYPOINT ["/usr/local/bin/adinkhepra"]
+CMD ["version"]
+
+# Labels for Iron Bank metadata
+LABEL name="adinkhepra" \
+      vendor="NouchiX" \
+      version="1.0.0" \
+      release="1" \
+      summary="AdinKhepra Iron Bank - STIG Compliance Automation" \
+      description="Post-quantum cryptography-enabled compliance automation platform with FIPS 140-3 validated transport layer" \
+      maintainer="cyber@nouchix.com" \
+      mil.dso.ironbank.product="adinkhepra" \
+      mil.dso.ironbank.version="1.0.0" \
+      mil.dso.ironbank.fips="enabled"

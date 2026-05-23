@@ -1,0 +1,81 @@
+# Docker ignore for Phantom Network Stack
+# Include only necessary files for real Adinkhepra implementation
+
+# Exclude ALL large directories by default
+*
+
+# Include Dockerfiles and compose files
+!Dockerfile*
+!docker-compose*.yml
+!hardening_manifest.yaml
+!LICENSE
+!README.md
+!CHANGELOG.md
+
+# Include source code and dependencies
+!go.mod
+!go.sum
+!vendor/
+!pkg/
+!cmd/
+
+# CRITICAL: Exclude large cached model files (12GB+)
+pkg/llm/ollama/blobs/
+pkg/llm/ollama/models/
+pkg/llm/mock/
+**/blobs/
+**/*.gguf
+**/*.safetensors
+**/*.bin
+
+# Include scripts for testing
+!scripts/functional-test.sh
+!scripts/fips-test.sh
+
+# Include documentation files used in Dockerfile
+!docs/CCI_to_NIST53.csv
+!docs/NIST53_to_171.csv
+!docs/NIST53_to_172.csv
+
+# Include ML service, models, data, and entrypoint for Fly.io
+!services/ml_anomaly/
+!models/
+!top_secret_intel/
+!entrypoint.sh
+
+# Explicit excludes (large or sensitive items)
+.git/
+node_modules/
+bin/
+dist/
+build/
+souhimbou_ai/
+ironbank-upload/
+adinkhepra-asaf-ironbank/
+adinkhepra-telemetry-server/
+tools/
+deploy/
+aws-govcloud/
+data/
+keys/
+telemetry-keys/
+.venv/
+venv/
+__pycache__/
+.next/
+out/
+memory/
+tests/
+
+# Large binaries and logs
+*.exe
+*.dll
+*.so
+*.dylib
+*.db
+*.sqlite
+*.pem
+*.key
+*.log
+*.tmp
+

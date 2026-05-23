@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref",
+        "xjknkjbrjgljuovaazeu"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
+    "khepra-mcp": {
+      "command": "go",
+      "args": [
+        "run",
+        "./cmd/khepra-mcp/main.go"
+      ],
+      "env": {
+        "KHEPRA_SERVICE_SECRET": "${KHEPRA_SERVICE_SECRET}",
+        "SUPABASE_URL": "https://xjknkjbrjgljuovaazeu.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}",
+        "MCP_PQC_ENABLED": "true"
+      }
+    }
+  }
+}

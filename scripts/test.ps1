@@ -1,0 +1,3 @@
+# PowerShell test runner: run Go tests without cache
+$ErrorActionPreference = 'Stop'
+& go test -count=1 ./...

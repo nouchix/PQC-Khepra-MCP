@@ -1,0 +1,119 @@
+name: Validate Build Artifacts
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'pkg/**'
+      - 'ironbank-upload/pkg/**'
+      - 'adinkhepra-asaf-ironbank/pkg/**'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'pkg/**'
+      - 'ironbank-upload/pkg/**'
+      - 'adinkhepra-asaf-ironbank/pkg/**'
+
+jobs:
+  validate-sync:
+    name: Validate Build Artifact Synchronization
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded security keys
+        run: |
+          echo "🔍 Scanning for hardcoded security keys..."
+
+          # Check for hardcoded keys that were fixed in Sprint 0
+          HARDCODED_KEYS=$(grep -r "khepra-dev-key\|aaru-realm-key\|aten-realm-key" \
+            pkg/ ironbank-upload/pkg/ adinkhepra-asaf-ironbank/pkg/ 2>/dev/null || true)
+
+          if [ -n "$HARDCODED_KEYS" ]; then
+            echo "❌ CRITICAL: Hardcoded security keys detected!"
+            echo "$HARDCODED_KEYS"
+            echo ""
+            echo "These hardcoded keys were removed in Sprint 0 and must not be reintroduced."
+            exit 1
+          fi
+
+          echo "✅ No hardcoded keys found"
+
+      - name: Validate critical file synchronization
+        run: |
+          echo "🔍 Validating build artifact synchronization..."
+
+          # List of critical files that must be identical across build directories
+          CRITICAL_FILES=(
+            "sekhem/aaru.go"
+            "sekhem/aten.go"
+          )
+
+          DIVERGENCE_FOUND=false
+
+          for file in "${CRITICAL_FILES[@]}"; do
+            echo "Checking $file..."
+
+            # Check ironbank-upload sync
+            if [ -f "pkg/$file" ] && [ -f "ironbank-upload/pkg/$file" ]; then
+              if ! diff -q "pkg/$file" "ironbank-upload/pkg/$file" > /dev/null; then
+                echo "❌ DIVERGENCE: pkg/$file != ironbank-upload/pkg/$file"
+                DIVERGENCE_FOUND=true
+              fi
+            fi
+
+            # Check adinkhepra-asaf-ironbank sync
+            if [ -f "pkg/$file" ] && [ -f "adinkhepra-asaf-ironbank/pkg/$file" ]; then
+              if ! diff -q "pkg/$file" "adinkhepra-asaf-ironbank/pkg/$file" > /dev/null; then
+                echo "❌ DIVERGENCE: pkg/$file != adinkhepra-asaf-ironbank/pkg/$file"
+                DIVERGENCE_FOUND=true
+              fi
+            fi
+          done
+
+          if [ "$DIVERGENCE_FOUND" = true ]; then
+            echo ""
+            echo "❌ BUILD ARTIFACT DIVERGENCE DETECTED!"
+            echo ""
+            echo "The files in pkg/ differ from copies in build directories."
+            echo "This can cause security fixes to be bypassed in production builds."
+            echo ""
+            echo "To fix this, run:"
+            echo "  cp pkg/sekhem/aaru.go ironbank-upload/pkg/sekhem/"
+            echo "  cp pkg/sekhem/aten.go ironbank-upload/pkg/sekhem/"
+            echo "  cp pkg/sekhem/aaru.go adinkhepra-asaf-ironbank/pkg/sekhem/"
+            echo "  cp pkg/sekhem/aten.go adinkhepra-asaf-ironbank/pkg/sekhem/"
+            exit 1
+          fi
+
+          echo "✅ All critical files synchronized"
+
+      - name: Scan for mock/stub patterns in production code
+        run: |
+          echo "🔍 Scanning for mock/stub patterns..."
+
+          # Scan for dangerous mock fallback patterns in Supabase functions
+          MOCK_PATTERNS=$(grep -r "generateMock\|return mockData\|if.*!.*apiKey.*return.*mock" \
+            souhimbou_ai/SouHimBou.AI/supabase/functions/ 2>/dev/null || true)
+
+          if [ -n "$MOCK_PATTERNS" ]; then
+            echo "⚠️ WARNING: Mock data patterns detected in Supabase functions!"
+            echo "$MOCK_PATTERNS"
+            echo ""
+            echo "Mock data should fail loudly, not silently return fake data."
+            # Warning only, not failing build (for gradual migration)
+          else
+            echo "✅ No mock fallback patterns found"
+          fi
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ All validation checks passed!"
+          echo ""
+          echo "Validated:"
+          echo "  - No hardcoded security keys"
+          echo "  - Build artifacts synchronized"
+          echo "  - Mock pattern scan complete"
