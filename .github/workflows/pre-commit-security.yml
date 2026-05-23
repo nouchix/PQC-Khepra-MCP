@@ -1,0 +1,75 @@
+name: Pre-Commit Security Scan
+
+on:
+  push:
+    branches: [ main, develop, feature/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan for secrets and credentials
+        run: |
+          echo "🔍 Scanning for exposed secrets..."
+
+          # Scan for potential secrets/credentials
+          SECRETS=$(grep -rEi "password|secret|token|api_key|private_key" \
+            --include="*.go" --include="*.ts" --include="*.js" \
+            --exclude-dir=node_modules --exclude-dir=.git \
+            pkg/ cmd/ souhimbou_ai/ 2>/dev/null | \
+            grep -v "// " | grep -v "func " | grep "=" || true)
+
+          if [ -n "$SECRETS" ]; then
+            echo "⚠️ Potential secrets detected (manual review required):"
+            echo "$SECRETS"
+          else
+            echo "✅ No obvious secrets detected"
+          fi
+
+      - name: Check for SQL injection vulnerabilities
+        run: |
+          echo "🔍 Scanning for SQL injection patterns..."
+
+          # Look for string concatenation in SQL queries
+          SQL_INJECTION=$(grep -rn "fmt.Sprintf.*SELECT\|fmt.Sprintf.*INSERT\|fmt.Sprintf.*UPDATE" \
+            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
+
+          if [ -n "$SQL_INJECTION" ]; then
+            echo "⚠️ Potential SQL injection vulnerabilities detected:"
+            echo "$SQL_INJECTION"
+            echo ""
+            echo "Use parameterized queries instead of string concatenation."
+          else
+            echo "✅ No SQL injection patterns detected"
+          fi
+
+      - name: Check for command injection vulnerabilities
+        run: |
+          echo "🔍 Scanning for command injection patterns..."
+
+          # Look for exec.Command with user input
+          CMD_INJECTION=$(grep -rn "exec.Command.*fmt.Sprintf\|exec.Command.*+" \
+            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
+
+          if [ -n "$CMD_INJECTION" ]; then
+            echo "⚠️ Potential command injection vulnerabilities detected:"
+            echo "$CMD_INJECTION"
+            echo ""
+            echo "Sanitize user input before passing to exec.Command."
+          else
+            echo "✅ No command injection patterns detected"
+          fi
+
+      - name: Security summary
+        run: |
+          echo "✅ Security scan complete!"
+          echo ""
+          echo "Note: These are automated pattern checks."
+          echo "Manual security review is still required before deployment."

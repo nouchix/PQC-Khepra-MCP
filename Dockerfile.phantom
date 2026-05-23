@@ -1,0 +1,71 @@
+# Dockerfile for Phantom Network Node - REAL IMPLEMENTATION
+#
+# This builds the actual Phantom Node with:
+# - Adinkhepra-PQC lattice signatures
+# - Merkaba White Box encryption
+# - Spectral Fingerprint address derivation
+# - Automatic key rotation
+
+FROM golang:1.22-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git gcc musl-dev
+
+# Set working directory
+WORKDIR /build
+
+# Initialize Go module
+RUN go mod init khepra-protocol
+
+# Copy the real Adinkra package (required for crypto)
+COPY pkg/adinkra/ ./pkg/adinkra/
+
+# Copy the phantom-node source
+COPY cmd/phantom-node/ ./cmd/phantom-node/
+
+# Download dependencies and tidy
+RUN go mod tidy
+
+# Build phantom-node binary
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -a -installsuffix cgo \
+    -ldflags="-w -s -X main.Version=1.0.0-adinkhepra" \
+    -o phantom-node \
+    ./cmd/phantom-node/
+
+# =============================================================================
+# Runtime Image
+# =============================================================================
+
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates curl tzdata
+
+# Create non-root user
+RUN addgroup -g 1000 phantom && \
+    adduser -D -u 1000 -G phantom phantom
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /build/phantom-node /app/phantom-node
+
+# Create directories for keys and data
+RUN mkdir -p /app/data/lattice /root/.khepra/keys && \
+    chown -R phantom:phantom /app
+
+# Expose ports
+EXPOSE 8080
+EXPOSE 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Run as non-root (commented for now as we need /root/.khepra access)
+# USER phantom
+
+# Default command
+CMD ["/app/phantom-node"]

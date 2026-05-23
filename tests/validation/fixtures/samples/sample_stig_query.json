@@ -1,0 +1,63 @@
+{
+  "request": {
+    "stigId": "RHEL-08-010010",
+    "operation": "query_stigs",
+    "includeProcessTimeline": true,
+    "assetId": "asset_test_001"
+  },
+  "expected_response": {
+    "stigId": "RHEL-08-010010",
+    "title": "RHEL 8 must disable USB storage",
+    "severity": "CAT_II",
+    "complexity": "MEDIUM",
+    "decomposedRules": [
+      {
+        "id": "rule_001",
+        "description": "Verify USB storage is disabled in kernel modules",
+        "testable": true,
+        "automatable": true
+      },
+      {
+        "id": "rule_002",
+        "description": "Ensure usbcore.autosuspend is set correctly",
+        "testable": true,
+        "automatable": true
+      }
+    ],
+    "roleMappings": [
+      "System Administrator: Disable USB storage kernel module",
+      "Security Officer: Verify USB storage policy enforcement"
+    ],
+    "complianceStatus": "VIOLATION",
+    "processTimeline": [
+      {
+        "id": "evt_001_sample",
+        "timestamp": "2026-02-15T10:30:00Z",
+        "pid": 1234,
+        "processName": "cmd.exe",
+        "type": "FILE",
+        "action": "CREATE",
+        "target": "C:\\temp\\usb_mount.exe",
+        "cmmcControl": "SI.L2-3.14.6",
+        "stigControl": "RHEL-08-010010",
+        "complianceStatus": "VIOLATION",
+        "severity": "HIGH"
+      }
+    ],
+    "dataClassification": "PUBLIC"
+  },
+  "test_scenarios": {
+    "stig_reader": {
+      "should_see": ["stigId", "title", "severity", "complexity", "decomposedRules"],
+      "should_not_see": ["roleMappings", "processTimeline"]
+    },
+    "stig_analyst": {
+      "should_see": ["stigId", "title", "severity", "roleMappings", "complianceStatus"],
+      "should_not_see": ["processTimeline"]
+    },
+    "stig_admin": {
+      "should_see": ["stigId", "title", "severity", "roleMappings", "complianceStatus", "processTimeline"],
+      "should_not_see": []
+    }
+  }
+}

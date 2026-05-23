@@ -1,0 +1,105 @@
+# AdinKhepra STIG Validation System - Build & Test Makefile
+
+.PHONY: all test-stig build-community build-premium build-hsm clean help
+
+# Default target
+all: build-community
+
+# Build community edition (default for Iron Bank)
+build-community:
+	@echo "Building Community Edition (Cloudflare CIRCL)..."
+	go build -tags community -o bin/sonar-community.exe ./cmd/sonar
+	@echo "✅ Community edition built: bin/sonar-community.exe"
+
+# Build premium edition
+build-premium:
+	@echo "Building Premium Edition (proprietary PQC)..."
+	go build -tags premium -o bin/sonar-premium.exe ./cmd/sonar
+	@echo "✅ Premium edition built: bin/sonar-premium.exe"
+
+# Build HSM edition
+build-hsm:
+	@echo "Building HSM Edition (hardware security)..."
+	go build -tags "premium,hsm" -o bin/sonar-hsm.exe ./cmd/sonar
+	@echo "✅ HSM edition built: bin/sonar-hsm.exe"
+
+# Build STIG test suite
+build-test:
+	@echo "Building STIG validation test suite..."
+	go build -o bin/stig-test.exe ./cmd/stig-test
+	@echo "✅ STIG test suite built: bin/stig-test.exe"
+
+# Run STIG validation test suite
+test-stig: build-test
+	@echo ""
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo "  Running STIG Validation Test Suite"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo ""
+	./bin/stig-test.exe
+
+# Verify database integrity
+verify-db:
+	@echo "Verifying compliance database..."
+	@wc -l pkg/stig/data/*.csv
+	@echo ""
+	@echo "Expected totals:"
+	@echo "  STIG_CCI_Map.csv:    28,639 rows"
+	@echo "  CCI_to_NIST53.csv:    7,433 rows"
+	@echo "  NIST53_to_171.csv:      123 rows"
+	@echo "  Total:               36,195 rows"
+
+# Run Go tests
+test-unit:
+	@echo "Running unit tests..."
+	go test -v ./pkg/stig/...
+	go test -v ./pkg/crypto/...
+
+# Build all editions
+build-all: build-community build-premium build-hsm
+	@echo ""
+	@echo "✅ All editions built successfully!"
+	@ls -lh bin/
+
+# Clean build artifacts
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -f bin/sonar-*.exe
+	rm -f bin/stig-test.exe
+	rm -f test_*.csv
+	rm -f test_*.txt
+	@echo "✅ Clean complete"
+
+# Format code
+fmt:
+	@echo "Formatting code..."
+	go fmt ./...
+	@echo "✅ Format complete"
+
+# Run linter
+lint:
+	@echo "Running linter..."
+	golangci-lint run ./...
+
+# Show help
+help:
+	@echo "AdinKhepra STIG Validation System - Makefile"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  make build-community   - Build community edition (Cloudflare CIRCL)"
+	@echo "  make build-premium     - Build premium edition (proprietary PQC)"
+	@echo "  make build-hsm         - Build HSM edition (hardware security)"
+	@echo "  make build-all         - Build all editions"
+	@echo "  make build-test        - Build STIG test suite"
+	@echo "  make test-stig         - Run STIG validation test suite"
+	@echo "  make verify-db         - Verify compliance database integrity"
+	@echo "  make test-unit         - Run unit tests"
+	@echo "  make clean             - Clean build artifacts"
+	@echo "  make fmt               - Format code"
+	@echo "  make lint              - Run linter"
+	@echo "  make help              - Show this help message"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  1. make verify-db      # Verify database"
+	@echo "  2. make test-stig      # Run validation tests"
+	@echo "  3. make build-all      # Build all editions"

@@ -1,0 +1,46 @@
+# Dockerfile for Phantom Mobile Builder
+#
+# Provides gomobile environment for building Android/iOS libraries
+
+FROM golang:1.25-bookworm
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    wget \
+    unzip \
+    openjdk-17-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Android SDK
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
+    cd $ANDROID_HOME/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip && \
+    unzip commandlinetools-linux-9477386_latest.zip && \
+    mv cmdline-tools latest && \
+    rm commandlinetools-linux-9477386_latest.zip
+
+# Accept Android SDK licenses
+RUN yes | sdkmanager --licenses
+
+# Install Android build tools
+RUN sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" "ndk;25.2.9519653"
+
+# Install gomobile
+RUN go install golang.org/x/mobile/cmd/gomobile@latest && \
+    gomobile init
+
+# Set working directory
+WORKDIR /app
+
+# Environment variables
+ENV ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
+ENV GOMOBILE_TARGET=android
+
+# Default command
+CMD ["bash"]
