@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: '44 0 * * 5'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # fixes Node.js 20 deprecation warning
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -25,21 +28,19 @@ jobs:
           - language: go
             build-mode: manual
           - language: javascript-typescript
-            build-mode: autobuild
+            build-mode: none          # autobuild is NOT supported for JS/TS in CodeQL 2.25+
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Go setup ──────────────────────────────────────────────────────────
       - name: Set up Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache: false        # CodeQL manages its own cache
+          cache: false
 
-      # ── Initialize CodeQL ─────────────────────────────────────────────────
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -47,40 +48,22 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
 
-      # ── Manual build (Go only) ────────────────────────────────────────────
       - name: Build Go binaries
         if: matrix.build-mode == 'manual'
         shell: bash
         run: |
-          echo "==> Downloading Go module dependencies"
-          GOFLAGS="-mod=mod" go mod download
+          if [ ! -f go.mod ]; then
+            echo "No go.mod found — skipping build (repo may be empty)"
+            exit 0
+          fi
+
+          echo "==> Downloading dependencies"
+          go mod download all
           go mod verify
 
-          echo "==> Building adinkhepra"
-          CGO_ENABLED=0 GOOS=linux go build \
-            -ldflags="-s -w" \
-            -o bin/adinkhepra \
-            ./cmd/adinkhepra/...
+          echo "==> Building all packages"
+          CGO_ENABLED=0 GOOS=linux go build ./...
 
-          echo "==> Building agent"
-          CGO_ENABLED=0 GOOS=linux go build \
-            -ldflags="-s -w" \
-            -o bin/agent \
-            ./cmd/agent/...
-
-          echo "==> Building sonar"
-          CGO_ENABLED=0 GOOS=linux go build \
-            -ldflags="-s -w" \
-            -o bin/sonar \
-            ./cmd/sonar/...
-
-          echo "==> Building khepra-mcp"
-          CGO_ENABLED=0 GOOS=linux go build \
-            -ldflags="-s -w" \
-            -o bin/khepra-mcp \
-            ./cmd/khepra-mcp/...
-
-      # ── Analyze ───────────────────────────────────────────────────────────
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
