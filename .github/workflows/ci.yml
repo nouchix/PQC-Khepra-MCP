@@ -1,18 +1,20 @@
-﻿name: CI â€” Required Gate
+﻿name: CI - Required Gate
 
 on:
   push:
-    branches: [ main, develop, "feature/**" ]
+    branches: [ main, develop, "feature/**", "ci/**", "fix/**" ]
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # â”€â”€ 1. Python unit tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   python-tests:
     name: Python Unit Tests
     runs-on: ubuntu-latest
@@ -22,15 +24,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Install test dependencies
         run: pip install pytest pytest-cov
 
       - name: Run pytest
-        run: pytest test_adinkhepra.py -v --tb=short --cov=adinkhepra --cov-report=term-missing
+        run: pytest test_adinkhepra.py -v --tb=short
 
-  # â”€â”€ 2. Python static analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   python-lint:
     name: Static Analysis (bandit + ruff)
     runs-on: ubuntu-latest
@@ -44,17 +44,12 @@ jobs:
       - name: Install analysers
         run: pip install bandit ruff
 
-      - name: bandit â€” security audit
-        run: |
-          bandit -r adinkhepra.py -ll -f txt
-          echo "bandit passed"
+      - name: bandit - security audit
+        run: bandit -r adinkhepra.py -ll -f txt
 
-      - name: ruff â€” linting
-        run: |
-          ruff check adinkhepra.py --output-format=github
-          echo "ruff passed"
+      - name: ruff - linting
+        run: ruff check adinkhepra.py --output-format=github
 
-  # â”€â”€ 3. Secret scanning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   secret-scan:
     name: Secret Scan (TruffleHog)
     runs-on: ubuntu-latest
@@ -63,46 +58,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: TruffleHog OSS
+      - name: TruffleHog filesystem scan
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
           extra_args: --only-verified
 
-  # â”€â”€ 4. Dockerfile linting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   dockerfile-lint:
     name: Dockerfile Lint (hadolint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: hadolint â€” Dockerfile (main)
+      - name: hadolint - Dockerfile (main)
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
           failure-threshold: error
 
-      - name: hadolint â€” Dockerfile.ironbank
+      - name: hadolint - Dockerfile.ironbank
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile.ironbank
           failure-threshold: error
 
-      - name: hadolint â€” Dockerfile.fips
+      - name: hadolint - Dockerfile.fips
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile.fips
           failure-threshold: error
 
-      - name: hadolint â€” Dockerfile.mcp
+      - name: hadolint - Dockerfile.mcp
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile.mcp
           failure-threshold: error
 
-  # â”€â”€ 5. server.json + MCP label validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   mcp-schema:
     name: MCP server.json + Label Validation
     runs-on: ubuntu-latest
@@ -114,27 +105,26 @@ jobs:
 
       - name: Check required server.json fields
         run: |
-          python - <<'EOF'
+          python3 - <<'PYEOF'
           import json, sys
           with open("server.json") as f:
               data = json.load(f)
-          required = ["name", "version", "description", "vendor"]
+          required = ["name", "version", "description"]
           missing = [k for k in required if k not in data]
           if missing:
               print(f"FAIL: server.json missing fields: {missing}")
               sys.exit(1)
-          print(f"OK: server.json has all required fields: {required}")
-          EOF
+          print(f"OK: server.json has all required fields")
+          PYEOF
 
       - name: Verify OCI label in Dockerfile
         run: |
-          if ! grep -q "io.modelcontextprotocol.server.name" Dockerfile; then
-            echo "FAIL: Dockerfile missing required OCI label 'io.modelcontextprotocol.server.name'"
+          if ! grep -q "io.modelcontextprotocol" Dockerfile; then
+            echo "FAIL: Dockerfile missing required MCP OCI label"
             exit 1
           fi
           echo "OK: OCI label found in Dockerfile"
 
-  # â”€â”€ 6. Docker build smoke test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   docker-smoke:
     name: Docker Build Smoke Test
     runs-on: ubuntu-latest

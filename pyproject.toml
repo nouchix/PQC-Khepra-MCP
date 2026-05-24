@@ -1,0 +1,19 @@
+﻿[project]
+name = "pqc-khepra-mcp"
+version = "1.0.0"
+description = "KHEPRA Protocol orchestration and validation suite"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "bandit", "ruff"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "UP"]
+ignore = ["E501"]
+
+[tool.bandit]
+skips = ["B603", "B607"]

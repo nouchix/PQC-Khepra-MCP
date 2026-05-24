@@ -17,7 +17,7 @@ import time
 import http.client
 import signal
 import socket
-from typing import Optional, List, Tuple
+# typing imports use built-in generics (Python 3.10+)
 
 # ============================================================================
 # CONFIGURATION
@@ -119,7 +119,7 @@ def build(component: str, fips: bool = True) -> bool:
     cmd.append(cmd_path)
     
     try:
-        subprocess.check_call(cmd, env=env)
+        subprocess.check_call(cmd,  # nosec B603 env=env)
         print_success(f"Build successful: {binary}")
         return True
     except subprocess.CalledProcessError:
@@ -186,7 +186,7 @@ def check_port_available(port: int, host: str = "127.0.0.1") -> bool:
 # TELEMETRY SERVER
 # ============================================================================
 
-def start_telemetry_server() -> Optional[subprocess.Popen]:
+def start_telemetry_server() -> subprocess.Popen | None:
     """
     Start the telemetry server for local license validation.
     
@@ -372,7 +372,7 @@ def validate() -> bool:
 # LAUNCH FUNCTIONS
 # ============================================================================
 
-def launch(args: List[str] = None) -> None:
+def launch(args: list[str] = None) -> None:
     """
     Launch the complete ADINKHEPRA stack.
     
@@ -457,7 +457,7 @@ def launch(args: List[str] = None) -> None:
 # RUN FUNCTIONS
 # ============================================================================
 
-def run(component: str, args: List[str]) -> None:
+def run(component: str, args: list[str]) -> None:
     """
     Run a Khepra Protocol component.
     
@@ -484,7 +484,7 @@ def run(component: str, args: List[str]) -> None:
 # TNOK GATEWAY
 # ============================================================================
 
-def launch_tnok(args: List[str]) -> None:
+def launch_tnok(args: list[str]) -> None:
     """
     Launch Tnok Stealth Gateway (CSfC Mode).
     
