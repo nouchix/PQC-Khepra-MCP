@@ -1,82 +1,48 @@
-# Stage 1: Build NouchiX Tactical Arsenal (Go)
-FROM golang:1.25-alpine AS builder
+﻿# Stage 1: Build Go binaries
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache git make
+# Install build dependencies in a single layer
+RUN apk add --no-cache git=2.47.2-r0 make=4.4.1-r2
 
-# Copy Go module files
+# Copy module files first for layer caching
 COPY go.mod go.sum ./
 
-# Copy source code with internal packages
+# Copy source code
 COPY pkg/ ./pkg/
 COPY cmd/ ./cmd/
-COPY vendor/ ./vendor/ 
+COPY vendor/ ./vendor/
 
-# Build the Full Tactical Suite
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-sonar ./cmd/sonar/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-gateway ./cmd/gateway/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-pentest ./cmd/khepra-pentest/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-motherboard ./cmd/apiserver/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-phantom ./cmd/phantom-node/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-adinkhepra ./cmd/adinkhepra/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-agent ./cmd/agent/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-stig ./cmd/stig-test/
-RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-client ./cmd/khepra-client/
+# Build all binaries in a single RUN layer to minimise image layers
+RUN CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-sonar ./cmd/sonar/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-gateway ./cmd/gateway/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-pentest ./cmd/khepra-pentest/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-motherboard ./cmd/apiserver/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-phantom ./cmd/phantom-node/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-adinkhepra ./cmd/adinkhepra/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-agent ./cmd/agent/ && \
+    CGO_ENABLED=0 go build -mod=vendor -o /usr/local/bin/nouchix-stig ./cmd/stig-test/
 
-# Stage 2: Runtime Environment (Python + Khepra)
-FROM python:3.11-slim
+# Stage 2: Minimal runtime image
+FROM alpine:3.21 AS runtime
 
-# Set working directory
-WORKDIR /app
+# OCI label required by registry.modelcontextprotocol.io
+LABEL io.modelcontextprotocol.server.name="pqc-khepra-mcp"
+LABEL io.modelcontextprotocol.server.version="1.0.0"
+LABEL org.opencontainers.image.title="KHEPRA MCP Server"
+LABEL org.opencontainers.image.description="Sovereign compliance engine: 36195 STIG/CCI/NIST/CMMC mappings. Air-gappable. Zero token costs."
+LABEL org.opencontainers.image.source="https://github.com/nouchix/PQC-Khepra-MCP"
+LABEL org.opencontainers.image.licenses="LicenseRef-Proprietary"
 
-# Install system dependencies
-# curl: for healthcheck
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache --no-install-recommends ca-certificates=20241121-r1
 
-# Copy Python requirements
-COPY services/ml_anomaly/requirements.txt /app/requirements.txt
-
-# Install PyTorch CPU from dedicated index and other dependencies
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir \
-    -r requirements.txt \
-    reportlab \
-    websockets \
-    pydantic-settings && \
-    mkdir -p /app/data/cyber_brain /app/models /app/top_secret_intel
-
-# Copy NouchiX Tactical Suite from builder
 COPY --from=builder /usr/local/bin/nouchix-* /usr/local/bin/
-# Symlink for backward compatibility if needed
-RUN ln -s /usr/local/bin/nouchix-sonar /usr/local/bin/khepra && \
-    ln -s /usr/local/bin/nouchix-gateway /usr/local/bin/khepra-gateway
 
-# Copy entrypoint script, set permissions, and create non-root user
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh && \
-    useradd -m -u 1000 khepra && \
-    mkdir -p models && touch models/.keep && \
-    mkdir -p top_secret_intel && touch top_secret_intel/.keep && \
-    chown -R khepra:khepra /app
+WORKDIR /var/lib/khepra
 
-# Copy application code
-COPY services/ml_anomaly /app/services/ml_anomaly
-COPY models /app/models
-COPY top_secret_intel /app/top_secret_intel
+ENV KHEPRA_MODE=sovereign
+ENV KHEPRA_HOME=/var/lib/khepra
+ENV KHEPRA_LOG_DIR=/var/log/khepra
 
-# Switch to non-root user
-USER khepra
-
-# Expose port
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
-
-# Run the application
-CMD ["/app/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/nouchix-adinkhepra"]
