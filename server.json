@@ -2,6 +2,10 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.nouchix/pqc-khepra-mcp",
   "description": "Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. Air-gappable. Zero token costs. Flat annual licensing. Run ert_scan to get a Godfather Report with dollar-denominated business impact. The only MCP compliance server that runs on your metal.",
+  "vendor": {
+    "name": "NouchiX / SecRed Knowledge Inc.",
+    "url": "https://nouchix.com"
+  },
   "repository": {
     "url": "https://github.com/nouchix/PQC-Khepra-MCP",
     "source": "github"

@@ -1,4 +1,4 @@
-﻿name: CI â€” Required Gate
+name: CI â€” Required Gate
 
 on:
   push:
@@ -100,7 +100,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile.mcp
-          failure-threshold: error
+          failure-threshold: warning
 
   # â”€â”€ 5. server.json + MCP label validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   mcp-schema:
