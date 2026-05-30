@@ -1,27 +1,17 @@
 {
+  "_comment": "KHEPRA MCP Client Config — SOVEREIGN / AIR-GAP MODE. For SaaS (Fly.io+Supabase), use .mcp.saas.json instead.",
   "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref",
-        "xjknkjbrjgljuovaazeu"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
-      }
-    },
     "khepra-mcp": {
+      "_comment": "Local source build — sovereign mode. No Supabase, no outbound network beyond LAN targets.",
       "command": "go",
       "args": [
         "run",
         "./cmd/khepra-mcp/main.go"
       ],
       "env": {
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_NETWORK_POLICY": "lan",
         "KHEPRA_SERVICE_SECRET": "${KHEPRA_SERVICE_SECRET}",
-        "SUPABASE_URL": "https://xjknkjbrjgljuovaazeu.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}",
         "MCP_PQC_ENABLED": "true"
       }
     }

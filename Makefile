@@ -87,14 +87,64 @@ fetch-cve:
 	@echo "[ADINKHEPRA] CVE data fetch complete."
 
 # Quick CVE update (CISA KEV only - fastest, most critical)
+# SOVEREIGN/IRONBANK MODE: This target is BLOCKED. Use 'make bundle-cve' on a
+# connected system, transfer the bundle, then extract on the sovereign system.
 .PHONY: fetch-cve-quick
 fetch-cve-quick:
+	@if [ "$(KHEPRA_MODE)" = "sovereign" ] || [ "$(KHEPRA_MODE)" = "ironbank" ]; then \
+		echo "[ERROR] fetch-cve-quick blocked: KHEPRA_MODE=$(KHEPRA_MODE) — no outbound network permitted."; \
+		echo "[ERROR] To update CVE data for a sovereign system:"; \
+		echo "[ERROR]   1. On a connected system: make bundle-cve"; \
+		echo "[ERROR]   2. Transfer dist/cve-bundle-*.tar.gz to the sovereign system"; \
+		echo "[ERROR]   3. On sovereign system: tar -xzf cve-bundle-*.tar.gz -C data/"; \
+		exit 1; \
+	fi
 	@echo "[ADINKHEPRA] Quick fetch: CISA Known Exploited Vulnerabilities..."
 	@mkdir -p $(CVE_DATA_DIR)/cisa-kev
-	@curl -s -o $(CVE_DATA_DIR)/cisa-kev/known_exploited_vulnerabilities.json \
-		"https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
-	@echo "Last updated: $$(date)" > $(CVE_DATA_DIR)/cisa-kev/last-updated.txt
+	@curl -sf -o $(CVE_DATA_DIR)/cisa-kev/known_exploited_vulnerabilities.json \
+		"https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json" \
+		|| (echo "[ERROR] CVE fetch failed — check network connectivity"; exit 1)
+	@echo "Last updated: $$(date -u +%Y-%m-%dT%H:%M:%SZ)" > $(CVE_DATA_DIR)/cisa-kev/last-updated.txt
 	@echo "[ADINKHEPRA] CISA KEV updated."
+
+# Bundle CVE data for offline / sovereign transfer
+# Run on a connected system, then transfer the .tar.gz to sovereign bare metal.
+.PHONY: bundle-cve
+bundle-cve: check-cve
+	@mkdir -p dist
+	$(eval BUNDLE_DATE := $(shell date +%Y%m%d))
+	@tar -czf dist/cve-bundle-$(BUNDLE_DATE).tar.gz -C data cve-database/
+	@sha256sum dist/cve-bundle-$(BUNDLE_DATE).tar.gz > dist/cve-bundle-$(BUNDLE_DATE).tar.gz.sha256
+	@echo "[ADINKHEPRA] CVE bundle: dist/cve-bundle-$(BUNDLE_DATE).tar.gz"
+	@echo "[ADINKHEPRA] SHA256:     dist/cve-bundle-$(BUNDLE_DATE).tar.gz.sha256"
+	@echo "[ADINKHEPRA] Transfer to sovereign system, then:"
+	@echo "[ADINKHEPRA]   tar -xzf cve-bundle-$(BUNDLE_DATE).tar.gz -C data/"
+
+# Prepare Docker image + Ollama model bundle for true air-gap transfer.
+# Run on a connected system with Docker + Ollama installed.
+# Transfer dist/airgap-images-*.tar.gz and dist/airgap-models-*.tar.gz to sovereign system.
+.PHONY: airgap-prepare
+airgap-prepare:
+	@echo "[AIRGAP] Pulling images for offline bundling..."
+	@mkdir -p dist
+	$(eval BUNDLE_DATE := $(shell date +%Y%m%d))
+	docker pull ollama/ollama:latest
+	docker pull postgres:16-alpine
+	docker pull redis:7-alpine
+	docker pull nginx:1.25-alpine
+	@echo "[AIRGAP] Saving Docker images to dist/airgap-images-$(BUNDLE_DATE).tar.gz..."
+	docker save ollama/ollama:latest postgres:16-alpine redis:7-alpine nginx:1.25-alpine \
+		| gzip > dist/airgap-images-$(BUNDLE_DATE).tar.gz
+	@echo "[AIRGAP] Pulling Ollama model deepseek-r1 for bundling..."
+	ollama pull deepseek-r1
+	@echo "[AIRGAP] Bundling Ollama model files..."
+	tar -czf dist/airgap-models-$(BUNDLE_DATE).tar.gz -C ~/.ollama models/
+	sha256sum dist/airgap-images-$(BUNDLE_DATE).tar.gz dist/airgap-models-$(BUNDLE_DATE).tar.gz \
+		> dist/airgap-bundle-$(BUNDLE_DATE).sha256
+	@echo "[AIRGAP] Done. Transfer to sovereign system:"
+	@echo "[AIRGAP]   docker load < dist/airgap-images-$(BUNDLE_DATE).tar.gz"
+	@echo "[AIRGAP]   tar -xzf dist/airgap-models-$(BUNDLE_DATE).tar.gz -C ~/.ollama/"
+
 
 # Build with CVE data validation
 .PHONY: build-with-cve
