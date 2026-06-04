@@ -8,6 +8,10 @@
 #   docker-compose logs -f phantom    # View phantom logs
 #   docker-compose down               # Stop all services
 #
+# Required environment variables (copy .env.example to .env and fill in):
+#   POSTGRES_PASSWORD      - Strong random password for PostgreSQL
+#   GRAFANA_ADMIN_PASSWORD - Strong random password for Grafana admin
+#
 # Services:
 #   - gitlab: Self-hosted GitLab CE (optional - comment out if using GitHub)
 #   - phantom-node: Phantom Network node
@@ -17,12 +21,12 @@
 version: '3.8'
 
 services:
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
   # GitLab CE (Self-Hosted Git)
   #
   # Optional: Comment out this entire section if using GitHub (spectralplasma)
   # Uncomment to enable self-hosted GitLab
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
 
   # gitlab:
   #   image: gitlab/gitlab-ce:latest
@@ -50,11 +54,11 @@ services:
   #     timeout: 10s
   #     retries: 5
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
   # Phantom Network Node
   #
   # Core phantom node for invisible mesh networking
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
 
   phantom-node:
     build:
@@ -82,6 +86,12 @@ services:
 
       # Optional: PostgreSQL connection
       # - DATABASE_URL=postgres://phantom:phantom@postgres:5432/phantom
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     networks:
       - phantom-network
     depends_on:
@@ -94,11 +104,11 @@ services:
       timeout: 10s
       retries: 3
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
   # Mobile Builder (gomobile)
   #
   # Compiles Go packages to Android (.aar) and iOS (.framework)
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
 
   mobile-builder:
     build:
@@ -112,6 +122,10 @@ services:
       - mobile-output:/app/output
     environment:
       - GOMOBILE_TARGET=android  # or: ios, android,ios
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - phantom-network
     command: >
@@ -122,25 +136,29 @@ services:
         ls -lh /app/output/
       "
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
   # PostgreSQL Database
   #
   # Stores phantom metadata (peers, messages, keys)
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
 
   postgres:
     image: postgres:16-alpine
     container_name: phantom-postgres
     restart: always
-    ports:
-      - "5432:5432"
+    # Port intentionally not exposed to host — accessible within phantom-network only.
+    # To connect from host for debugging: docker exec -it phantom-postgres psql -U phantom
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_DB: phantom
       POSTGRES_USER: phantom
-      POSTGRES_PASSWORD: phantom_secure_password_change_me
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - phantom-network
     healthcheck:
@@ -149,21 +167,23 @@ services:
       timeout: 5s
       retries: 5
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
   # Prometheus (Metrics)
   #
   # Optional: Monitors phantom node metrics
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
 
   prometheus:
     image: prom/prometheus:latest
     container_name: phantom-prometheus
     restart: always
-    ports:
-      - "9091:9090"
+    # Port intentionally not exposed to host — bind to localhost only if debugging needed.
+    # Metrics may reveal internal topology; keep off public interfaces.
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
+    security_opt:
+      - no-new-privileges:true
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -172,11 +192,11 @@ services:
     profiles:
       - monitoring  # Start with: docker-compose --profile monitoring up -d
 
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
   # Grafana (Dashboard)
   #
   # Optional: Visualizes phantom metrics from Prometheus
-  # ═══════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════
 
   grafana:
     image: grafana/grafana:latest
@@ -187,8 +207,10 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=phantom_admin_change_me
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
+    security_opt:
+      - no-new-privileges:true
     networks:
       - phantom-network
     depends_on:
@@ -196,9 +218,9 @@ services:
     profiles:
       - monitoring  # Start with: docker-compose --profile monitoring up -d
 
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 # Volumes
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 
 volumes:
   # GitLab volumes (uncomment if using GitLab)
@@ -218,9 +240,9 @@ volumes:
   prometheus-data:
   grafana-data:
 
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 # Networks
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 
 networks:
   phantom-network:
