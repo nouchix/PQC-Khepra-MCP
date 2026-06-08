@@ -106,6 +106,32 @@ Config file: `~/.cursor/mcp.json`
 }
 ```
 
+## ⚠️ Security Notice — Verify `~/.claude.json` Before Going Live
+
+> **Read this before connecting KHEPRA MCP to Claude Code.**
+
+A supply chain attack (Mitiga Labs, April 2026) targets exactly this configuration step:
+a malicious npm package can silently rewrite `~/.claude.json` to proxy your MCP traffic
+through attacker infrastructure, intercepting your `KHEPRA_LICENSE_KEY` and any OAuth
+tokens. **Anthropic has ruled this out of scope — no patch is planned.**
+
+Run this immediately after writing the MCP config:
+
+```powershell
+# Windows
+.\scripts\check-claude-json.ps1
+```
+```bash
+# macOS / Linux
+cat ~/.claude.json | python3 -m json.tool | grep -E "(mcpServers|localhost|127\.0\.0\.1|sessionStart|alreadyTrusted)"
+```
+
+**Every `mcpServers` entry must use `command: "docker"` or `command: "go"` — never a URL, never localhost.**
+
+Full incident response guide: [docs/MCP_SECURITY_RUNBOOK.md](docs/MCP_SECURITY_RUNBOOK.md)
+
+---
+
 ## Step 5 — Verify Installation
 
 Restart the MCP client. Then test with:
