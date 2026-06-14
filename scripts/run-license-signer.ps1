@@ -8,7 +8,7 @@
 param(
     [string]$KeyPath = "",
     [string]$Token = "",
-    [string]$TelemetryUrl = "https://telemetry.souhimbou.org",
+    [string]$TelemetryUrl = "https://telemetry.souhimbou.ai",
     [int]$PollInterval = 30
 )
 
@@ -58,7 +58,7 @@ if (-not $Token) {
     Write-Host "❌ Admin token not provided!" -ForegroundColor Red
     Write-Host "   Get a token by running:" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host '   curl -X POST https://telemetry.souhimbou.org/admin/login \' -ForegroundColor Gray
+    Write-Host '   curl -X POST https://telemetry.souhimbou.ai/admin/login \' -ForegroundColor Gray
     Write-Host '     -H "Content-Type: application/json" \' -ForegroundColor Gray
     Write-Host '     -d "{\"username\":\"admin\",\"password\":\"your-password\"}"' -ForegroundColor Gray
     Write-Host ""

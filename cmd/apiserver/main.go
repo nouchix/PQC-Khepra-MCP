@@ -19,7 +19,7 @@
 //   TLS_DOMAIN                - Domain for Let's Encrypt (required when TLS enabled)
 //   CERT_CACHE_DIR             - Directory for certificate cache
 //   DEBUG                     - Enable debug mode (default: false)
-//   TELEMETRY_URL             - Telemetry server URL (default: https://telemetry.souhimbou.org)
+//   TELEMETRY_URL             - Telemetry server URL (default: https://telemetry.souhimbou.ai)
 //
 //   ASAF_ALLOW_EVAL_WITHOUT_LICENSE - If "true", allow scan_type eval/basic when license invalid (public funnel; set on Fly with care)
 //
@@ -173,7 +173,7 @@ func parseConfig() (*serverConfig, map[string]interface{}) {
 	tlsDomain := flag.String("tls-domain", "", "Domain for Let's Encrypt (required when TLS enabled)")
 	certCacheDir := flag.String("cert-cache", "/var/cache/khepra-certs", "Certificate cache directory")
 	debug := flag.Bool("debug", false, "Enable debug mode")
-	telemetryURL := flag.String("telemetry-url", "https://telemetry.souhimbou.org", "Telemetry server URL")
+	telemetryURL := flag.String("telemetry-url", "https://telemetry.souhimbou.ai", "Telemetry server URL")
 	flag.Parse()
 
 	// Environment variable overrides
@@ -288,10 +288,10 @@ func initServices(cfg *serverConfig, flags map[string]interface{}, dagStore dag.
 			"https://adinkhepra.com",
 			"https://www.adinkhepra.com",
 			"https://adinkhepra.dev",
-			"https://souhimbou.org",
-			"https://www.souhimbou.org",
-			"https://gateway.souhimbou.org",
-			"https://telemetry.souhimbou.org",
+			"https://souhimbou.ai",
+			"https://www.souhimbou.ai",
+			"https://gateway.souhimbou.ai",
+			"https://telemetry.souhimbou.ai",
 			// Local development
 			"http://localhost:3000",
 			"http://localhost:5173",

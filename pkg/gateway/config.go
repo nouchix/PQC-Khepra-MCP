@@ -251,7 +251,7 @@ func DefaultConfig() *Config {
 			JWTIssuer:             "khepra-gateway",
 			JWTAudience:           "khepra-services",
 			JWTMaxAge:             24 * time.Hour,
-			LicenseServerURL:      "https://telemetry.souhimbou.org",
+			LicenseServerURL:      "https://telemetry.souhimbou.ai",
 		},
 
 		Anomaly: AnomalyConfig{

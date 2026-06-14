@@ -21,7 +21,7 @@ type TelemetryClient struct {
 
 // TelemetryConfig holds telemetry server configuration
 type TelemetryConfig struct {
-	ServerURL     string        // e.g., "https://telemetry.souhimbou.org"
+	ServerURL     string        // e.g., "https://telemetry.souhimbou.ai"
 	EnrollmentKey string        // Enrollment token for auto-registration
 	Timeout       time.Duration // HTTP timeout (default: 10s)
 	MaxRetries    int           // Retry count for failed requests
@@ -89,7 +89,7 @@ func NewTelemetryClient(config TelemetryConfig) *TelemetryClient {
 	if config.ServerURL == "" {
 		config.ServerURL = os.Getenv("ADINKHEPRA_TELEMETRY_SERVER")
 		if config.ServerURL == "" {
-			config.ServerURL = "https://telemetry.souhimbou.org"
+			config.ServerURL = "https://telemetry.souhimbou.ai"
 		}
 	}
 
