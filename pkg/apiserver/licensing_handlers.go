@@ -320,7 +320,7 @@ func (s *Server) handleTelemetryStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"status":             status,
-		"telemetry_server":   "https://telemetry.souhimbou.org",
+		"telemetry_server":   "https://telemetry.souhimbou.ai",
 		"machine_id":         s.licMgr.GetMachineID(),
 		"mode":               os.Getenv("KHEPRA_MODE"),
 		"license_valid":      full.Valid,

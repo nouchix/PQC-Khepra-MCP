@@ -49,8 +49,8 @@ func (l *SimpleLogger) Errorf(format string, args ...interface{}) {
 
 // License validation configuration
 const (
-	ValidationURL     = "https://telemetry.souhimbou.org/license/validate"
-	HeartbeatURL      = "https://telemetry.souhimbou.org/license/heartbeat"
+	ValidationURL     = "https://telemetry.souhimbou.ai/license/validate"
+	HeartbeatURL      = "https://telemetry.souhimbou.ai/license/heartbeat"
 	ValidationTimeout = 10 * time.Second
 	HeartbeatInterval = 1 * time.Hour
 )

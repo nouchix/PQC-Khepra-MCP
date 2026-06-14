@@ -106,7 +106,7 @@ func initializeAgent(token string) {
 func setupLicensing(token string, _ dag.Store) (*license.Manager, *license.LicenseManager, *license.DAGLicenseEnforcer) {
 	licenseServer := os.Getenv("KHEPRA_LICENSE_SERVER")
 	if licenseServer == "" {
-		licenseServer = "https://telemetry.souhimbou.org"
+		licenseServer = "https://telemetry.souhimbou.ai"
 	}
 
 	m, err := license.NewManager(licenseServer)

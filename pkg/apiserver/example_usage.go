@@ -25,7 +25,7 @@ import (
 //	    dagStore := dag.GlobalDAG()
 //
 //	    // Initialize license manager
-//	    licMgr, err := license.NewManager("https://telemetry.souhimbou.org")
+//	    licMgr, err := license.NewManager("https://telemetry.souhimbou.ai")
 //	    if err != nil {
 //	        log.Fatalf("Failed to create license manager: %v", err)
 //	    }
@@ -79,7 +79,7 @@ func ExampleUsage() {
 	dagStore := dag.GlobalDAG()
 
 	// Initialize license manager
-	licMgr, err := license.NewManager("https://telemetry.souhimbou.org")
+	licMgr, err := license.NewManager("https://telemetry.souhimbou.ai")
 	if err != nil {
 		log.Fatalf("Failed to create license manager: %v", err)
 	}
