@@ -161,7 +161,7 @@ export const RemediationWorkflowBuilder = () => {
 
   const executeWorkflow = async (workflowId: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
         body: {
           action: 'execute_remediation_workflow',
           workflow_id: workflowId,

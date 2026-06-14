@@ -245,7 +245,7 @@ export const useSessionSecurity = () => {
   // Refresh session token
   const refreshSession = useCallback(async () => {
     try {
-      const { _data, error } = await supabase.auth.refreshSession();
+      const { data: _data, error } = await supabase.auth.refreshSession();
       if (error) throw error;
       
       updateActivity();

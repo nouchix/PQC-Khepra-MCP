@@ -33,7 +33,7 @@ export const SecurityClearanceManager = () => {
   const { profile, isAdmin: _isProfileAdmin } = useUserProfile();
   const { currentClearance } = useSecurityClearance();
   const { toast } = useToast();
-  const { isAdmin: hasAdminRole, _hasRole } = useUserRoles();
+  const { isAdmin: hasAdminRole, hasRole: _hasRole } = useUserRoles();
   
   // Use secure role system instead of profile-based check
   const isAdmin = () => hasAdminRole() || profile?.master_admin || false;

@@ -18,7 +18,7 @@ import {
 const UserTierManager = () => {
   const { toast } = useToast();
   const { isMasterAdmin, switchUserTier, getAllUsers, loading } = useUserTierManagement();
-  const { _hasRole, isAdmin } = useUserRoles();
+  const { hasRole: _hasRole, isAdmin } = useUserRoles();
   const [users, setUsers] = useState<UserTierInfo[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [selectedTiers, setSelectedTiers] = useState<Record<string, string>>({});

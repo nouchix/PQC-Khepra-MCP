@@ -196,7 +196,12 @@ func downloadWithProgress(url, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[WARN] file close error: %v", cerr)
+		}
+	}()
 
 	total := resp.ContentLength
 	var downloaded int64

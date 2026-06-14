@@ -170,7 +170,7 @@ export const AgenticComplianceOrchestrator: React.FC = () => {
     try {
       setOrchestrationStatus('running');
       
-      const { _data, error } = await supabase.functions.invoke('agentic-compliance-orchestrator', {
+      const { data: _data, error } = await supabase.functions.invoke('agentic-compliance-orchestrator', {
         body: {
           action: 'start_orchestration',
           organization_id: 'current' // This would be dynamic

@@ -27,7 +27,7 @@ const EnterpriseAgentDashboard: React.FC = () => {
     suspendAgent 
   } = useEnterpriseAgents();
   
-  const { _toast } = useToast();
+  const { toast: _toast } = useToast();
   const [selectedAgent, setSelectedAgent] = useState<EnterpriseAgent | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [performanceData, setPerformanceData] = useState<any>(null);

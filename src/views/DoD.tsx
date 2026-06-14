@@ -28,7 +28,7 @@ export default function DoD() {
   const { toast } = useToast();
   const { currentOrganization } = useOrganizationContext();
   const organizationId = currentOrganization?.id || '';
-  const { currentClearance, _hasAccess } = useSecurityClearance('CONFIDENTIAL');
+  const { currentClearance, hasAccess: _hasAccess } = useSecurityClearance('CONFIDENTIAL');
   
   const [activeTab, setActiveTab] = useState('overview');
   const [isInitializing, setIsInitializing] = useState(false);

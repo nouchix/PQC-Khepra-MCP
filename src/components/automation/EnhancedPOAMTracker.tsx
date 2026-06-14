@@ -179,7 +179,7 @@ export const EnhancedPOAMTracker = () => {
 
   const updateRealTimeMetrics = async () => {
     try {
-      const { _data, error } = await supabase.functions.invoke('automated-remediation', {
+      const { data: _data, error } = await supabase.functions.invoke('automated-remediation', {
         body: { 
           action: 'update_real_time_metrics',
           poam_ids: poamItems.map(item => item.id)
@@ -203,7 +203,7 @@ export const EnhancedPOAMTracker = () => {
 
   const triggerAutomation = async (ruleId: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('automated-remediation', {
+      const { data: _data, error } = await supabase.functions.invoke('automated-remediation', {
         body: { 
           action: 'trigger_automation_rule',
           rule_id: ruleId
@@ -235,7 +235,7 @@ export const EnhancedPOAMTracker = () => {
 
   const generateAIRecommendations = async (poamId: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: { 
           action: 'generate_poam_recommendations',
           poam_id: poamId

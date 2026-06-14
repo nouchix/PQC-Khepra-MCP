@@ -75,7 +75,7 @@ export const ContinuousSTIGMonitoring: React.FC = () => {
     try {
       setScanning(true);
       
-      const { _data, error } = await supabase.functions.invoke('stig-compliance-monitor', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-compliance-monitor', {
         body: {
           organization_id: 'default',
           scan_type: 'full',

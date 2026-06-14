@@ -100,7 +100,7 @@ export const STIGAnalyticsDashboard = () => {
 
   const generateReport = async (reportType: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
         body: {
           action: 'generate_compliance_report',
           organization_id: currentOrganization?.id,

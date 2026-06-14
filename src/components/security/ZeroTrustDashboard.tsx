@@ -41,7 +41,7 @@ export const ZeroTrustDashboard = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const { _toast } = useToast();
+  const { toast: _toast } = useToast();
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
 

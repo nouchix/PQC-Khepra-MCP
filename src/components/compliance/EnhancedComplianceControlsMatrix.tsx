@@ -169,7 +169,7 @@ export const EnhancedComplianceControlsMatrix: React.FC = () => {
         description: "Analyzing compliance gaps and generating recommendations...",
       });
 
-      const { _data, error } = await supabase.functions.invoke('ai-compliance-analyzer', {
+      const { data: _data, error } = await supabase.functions.invoke('ai-compliance-analyzer', {
         body: { 
           organization_id: 'current', // This would be dynamic in real implementation
           analysis_type: 'comprehensive'

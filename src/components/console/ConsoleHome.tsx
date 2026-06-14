@@ -17,9 +17,9 @@ import { InteractiveTourOverlay } from '@/components/onboarding/InteractiveTourO
 
 export const ConsoleHome: React.FC = () => {
   const navigate = useNavigate();
-  const { _currentOrganization } = useOrganizationContext();
+  const { currentOrganization: _currentOrganization } = useOrganizationContext();
   const { showContextMenu, ContextMenuComponent } = useContextMenu();
-  const { trackEvent, _analytics } = useWorkflowAnalytics();
+  const { trackEvent, analytics: _analytics } = useWorkflowAnalytics();
   const [isExecutiveMode, setIsExecutiveMode] = useState(false);
   const [currentView, setCurrentView] = useState('home');
   const [assetStats, setAssetStats] = useState<any>(null);

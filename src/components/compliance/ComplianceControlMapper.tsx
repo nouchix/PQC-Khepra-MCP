@@ -91,7 +91,7 @@ export const ComplianceControlMapper: React.FC = () => {
 
     try {
       // Enhanced AI-powered cross-framework mapping
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'cross_framework_mapping',
           frameworks: selectedFrameworks,

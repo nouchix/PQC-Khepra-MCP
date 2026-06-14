@@ -179,7 +179,7 @@ export const AgenticComplianceArchitect: React.FC = () => {
 
   const triggerComplianceScan = async () => {
     try {
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'compliance_scan',
           mode: activeMode,
@@ -219,7 +219,7 @@ export const AgenticComplianceArchitect: React.FC = () => {
 
       updateGapStatus(gap.id, 'remediating');
 
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'execute_remediation',
           controlId: gap.controlId,

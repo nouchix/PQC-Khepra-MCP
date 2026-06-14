@@ -189,7 +189,7 @@ export const STIGsConnector: React.FC = () => {
     setScanInProgress(true);
     
     try {
-      const { _data, error } = await supabase.functions.invoke('environment-discovery-scanner', {
+      const { data: _data, error } = await supabase.functions.invoke('environment-discovery-scanner', {
         body: {
           scan_type: 'comprehensive',
           include_stig_mapping: true
@@ -221,7 +221,7 @@ export const STIGsConnector: React.FC = () => {
 
   const implementSTIGRule = async (stigId: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('stig-implementation-engine', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-implementation-engine', {
         body: {
           stig_id: stigId,
           action: 'implement',

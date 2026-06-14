@@ -23,7 +23,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 
 export const SecurityDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const { _user } = useAuth();
+  const { user: _user } = useAuth();
   const { currentOrganization } = useOrganization();
 
   // Real security metrics

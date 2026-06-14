@@ -405,7 +405,12 @@ func (c *ControlLayer) logToFile(event *AuditEvent) {
 		log.Printf("[CONTROL] Failed to open log file: %v", err)
 		return
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (CWE-390 / Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[CONTROL] Failed to close log file: %v", cerr)
+		}
+	}()
 
 	if _, err := f.WriteString(string(data) + "\n"); err != nil {
 		log.Printf("[CONTROL] Failed to write to log file: %v", err)
