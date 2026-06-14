@@ -7,11 +7,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Shield, CheckCircle, AlertTriangle, Search, Bot, FileText, Settings } from 'lucide-react';
+
+import { Shield, CheckCircle, Search, Bot } from 'lucide-react';
 import { useSTIGCodex } from '@/hooks/useSTIGCodex';
 import { useOrganization } from '@/hooks/useOrganization';
 

@@ -5,10 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { 
-  Activity, Cpu, MemoryStick, HardDrive, Network, 
-  AlertTriangle, TrendingUp, Gauge, Zap, RefreshCw
-} from 'lucide-react';
+import { Activity, Cpu, MemoryStick, HardDrive, Network, AlertTriangle, TrendingUp, Gauge, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface SystemMetrics {

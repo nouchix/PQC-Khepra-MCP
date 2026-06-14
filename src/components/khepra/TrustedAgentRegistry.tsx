@@ -8,12 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Shield, Users, Key, Award, AlertTriangle, CheckCircle, 
-  Plus, RefreshCw, Eye, Settings, Zap, Clock
-} from 'lucide-react';
-import { TrustedAgentRegistry, AgentRegistration, PostQuantumKeyPair } from '@/khepra/registry/TrustedAgentRegistry';
-import { AdinkraAlgebraicEngine } from '@/khepra/aae/AdinkraEngine';
+import { Shield, Users, Key, AlertTriangle, CheckCircle, Plus, RefreshCw, Eye } from 'lucide-react';
+import { TrustedAgentRegistry, AgentRegistration } from '@/khepra/registry/TrustedAgentRegistry';
+
 import { useToast } from '@/hooks/use-toast';
 
 export const TrustedAgentRegistryComponent = () => {
@@ -155,7 +152,7 @@ export const TrustedAgentRegistryComponent = () => {
       const registration = registrations.find(r => r.agentId === agentId);
       if (!registration) return;
 
-      const keyPair = await TrustedAgentRegistry.generatePostQuantumKeys('dilithium5', registration.culturalContext);
+      const _keyPair = await TrustedAgentRegistry.generatePostQuantumKeys('dilithium5', registration.culturalContext);
       
       // In a real implementation, this would update the registration with new keys
       toast({

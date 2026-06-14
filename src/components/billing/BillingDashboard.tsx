@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Crown, Zap, Building2, RefreshCw, Clock, CheckCircle, CreditCard, BarChart3 } from "lucide-react";
+import { Crown, Zap, Building2, RefreshCw, CheckCircle, CreditCard, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -66,18 +66,18 @@ const BillingDashboard = () => {
     {
       id: "enterprise",
       name: "Enterprise",
-      price: "Contact Sales",
+      price: "Advisory",
       tier: "enterprise",
-      description: "Full platform with custom deployment options",
+      description: "Evidence-first compliance advisory + readiness scope alignment.",
       icon: Building2,
       features: [
         "Everything in Plus",
-        "M-XDR Core platform",
-        "SOAR automation", 
-        "AI-powered threat hunting",
+        "ADINKHEPRA evidence packaging",
+        "Assessor-oriented evidence mapping",
+        "Optional attestation seal workflows",
         "Dedicated enclave/on-prem",
-        "FedRAMP/FIPS compliance",
-        "24/7 dedicated support",
+        "CMMC / NIST 800-171 alignment",
+        "Priority advisory support",
         "Custom SLAs"
       ],
       color: "gold"
@@ -247,7 +247,7 @@ const BillingDashboard = () => {
                 >
                   {plan.isFree ? "Current Plan" : 
                    isCurrentPlan ? "Manage Plan" : 
-                   (plan.tier === 'enterprise' ? 'Contact Sales' : `Upgrade to ${plan.name}`)}
+                   (plan.tier === 'enterprise' ? 'Book Advisory Call' : `Upgrade to ${plan.name}`)}
                 </Button>
               </CardContent>
             </Card>

@@ -8,10 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Code, Plus, TestTube, Download, Upload, Settings, 
-  Zap, Cpu, Database, Cloud, Network, Shield
-} from 'lucide-react';
+import { Code, Plus, TestTube, Download, Upload, Settings, Zap, Cpu, Database, Network, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ConnectorTemplate {

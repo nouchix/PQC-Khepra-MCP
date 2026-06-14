@@ -3,18 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Smartphone, 
-  Monitor, 
-  Laptop, 
-  Shield, 
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Eye,
-  Lock
-} from 'lucide-react';
+import { Smartphone, Monitor, Shield, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -136,7 +125,7 @@ const ZeroTrustDeviceAssessment = () => {
 
   const performDeviceAssessment = async () => {
     // Simulate comprehensive device assessment
-    const assessment = {
+    const _assessment = {
       trustScore: 85,
       behavioralScore: 78,
       validationResult: 'passed' as const,

@@ -10,31 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Shield, 
-  Activity, 
-  Zap, 
-  Brain, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp,
-  Eye,
-  Settings,
-  FileText,
-  Globe,
-  Server,
-  Network,
-  Search,
-  Plus,
-  RefreshCw,
-  Command,
-  Target,
-  Lock,
-  Users
-} from 'lucide-react';
+
+import { Shield, Activity, Zap, Brain, AlertTriangle, CheckCircle, Clock, Eye, Globe, Server, Search, RefreshCw, Command } from 'lucide-react';
 
 // Import all STIG-related components and hooks
 import { STIGCodexDashboard } from '@/components/stig-codex/STIGCodexDashboard';
@@ -51,7 +28,7 @@ export default function DoD() {
   const { toast } = useToast();
   const { currentOrganization } = useOrganizationContext();
   const organizationId = currentOrganization?.id || '';
-  const { currentClearance, hasAccess } = useSecurityClearance('CONFIDENTIAL');
+  const { currentClearance, _hasAccess } = useSecurityClearance('CONFIDENTIAL');
   
   const [activeTab, setActiveTab] = useState('overview');
   const [isInitializing, setIsInitializing] = useState(false);

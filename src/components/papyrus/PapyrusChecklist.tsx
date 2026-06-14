@@ -1,24 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Scroll, 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle, 
-  Zap, 
-  Shield, 
-  BookOpen,
-  Sparkles,
-  RefreshCw,
-  Brain,
-  Target
-} from 'lucide-react';
+import { Scroll, CheckCircle2, Clock, AlertTriangle, Zap, Shield, Sparkles, RefreshCw, Brain, Target } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationContext } from '@/components/OrganizationProvider';
 import { supabase } from '@/integrations/supabase/client';

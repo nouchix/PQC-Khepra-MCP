@@ -7,17 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  FileText, 
-  Download, 
-  Calendar, 
-  BarChart3, 
-  Shield, 
-  AlertTriangle,
-  TrendingUp,
-  Clock,
-  CheckCircle
-} from 'lucide-react';
+import { FileText, Download, Calendar, BarChart3, Shield, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
 import { ComplianceMetrics } from '@/hooks/useSTIGCompliance';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -115,7 +105,7 @@ export const STIGComplianceReports: React.FC<STIGComplianceReportsProps> = ({
     try {
       setGenerating(true);
       
-      const { data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
+      const { _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
         body: {
           action: 'generate_report',
           organization_id: organizationId,

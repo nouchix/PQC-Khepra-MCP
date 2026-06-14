@@ -2,16 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  HelpCircle, 
-  ExternalLink, 
-  BookOpen, 
-  Play, 
-  Settings,
-  ChevronRight,
-  Lightbulb,
-  Zap
-} from 'lucide-react';
+import { HelpCircle, ExternalLink, BookOpen, ChevronRight, Lightbulb, Zap } from 'lucide-react';
 
 interface GuideMenuItem {
   label: string;

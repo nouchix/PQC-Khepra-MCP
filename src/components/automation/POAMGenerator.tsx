@@ -3,18 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  FileText,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Users,
-  Download,
-  RefreshCw,
-  Settings,
-  Calendar,
-  Target
-} from "lucide-react";
+import { FileText, AlertTriangle, CheckCircle, Clock, Users, Download, RefreshCw, Calendar, Target } from "lucide-react";
 import { useComplianceFrameworks } from "@/hooks/useComplianceFrameworks";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,7 +89,7 @@ export const POAMGenerator = () => {
     setGenerating(true);
     try {
       // Call automated-remediation function to generate updated POAM
-      const { data, error } = await supabase.functions.invoke('automated-remediation', {
+      const { _data, error } = await supabase.functions.invoke('automated-remediation', {
         body: {
           action: 'generate_poam',
           framework: selectedFramework || 'cmmc-2.0'

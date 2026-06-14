@@ -6,11 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Brain, Zap, Target, TrendingUp, AlertTriangle, CheckCircle, 
-  Clock, Globe, Shield, Activity, BarChart3, MapPin,
-  Play, RefreshCw, Eye, Lightbulb
-} from 'lucide-react';
+import { Brain, Zap, Target, TrendingUp, AlertTriangle, CheckCircle, Clock, BarChart3, Play, RefreshCw, Lightbulb } from 'lucide-react';
 import { useAIThreatAnalyzer, AnalysisRequest } from '@/hooks/useAIThreatAnalyzer';
 import { formatDistanceToNow } from 'date-fns';
 

@@ -1,27 +1,15 @@
-import { useState, useEffect } from 'react';
+
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { MVP1Dashboard } from '@/components/compliance/MVP1Dashboard';
 import { DashboardToggle } from '@/components/DashboardToggle';
-import { TermsAcceptance } from '@/components/legal/TermsAcceptance';
 import { PapyrusGenie } from '@/components/onboarding/PapyrusGenie';
 import GuidedTour from '@/components/GuidedTour';
-import { useUserAgreements } from '@/hooks/useUserAgreements';
-import { useAuth } from '@/hooks/useAuth';
+import { DemoBanner } from '@/components/dashboard/DemoBanner';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { DEMO_METRICS } from '@/lib/demoData';
 
 const STIGDashboard = () => {
-  const { user } = useAuth();
-  const { hasAcceptedAll, checkAgreementStatus } = useUserAgreements();
-  const [showTerms, setShowTerms] = useState(false);
-
-  useEffect(() => {
-    if (user && !hasAcceptedAll) {
-      checkAgreementStatus(user.id).then(accepted => {
-        if (!accepted) {
-          setShowTerms(true);
-        }
-      });
-    }
-  }, [user, hasAcceptedAll, checkAgreementStatus]);
+  const demoMode = useDemoMode();
 
   const tabs = [
     { id: 'stig-dashboard', title: 'Dashboard', path: '/stig-dashboard', isActive: true },
@@ -43,21 +31,14 @@ const STIGDashboard = () => {
         rightContent: <DashboardToggle />
       }}
     >
-      <MVP1Dashboard />
+      {demoMode.isDemoMode && <DemoBanner demoMode={demoMode} />}
 
-      {/* Required Legal Terms Modal - Triggered if not yet accepted */}
-      <TermsAcceptance
-        open={showTerms}
-        onOpenChange={setShowTerms}
-        onAccepted={() => {
-          setShowTerms(false);
-        }}
+      <MVP1Dashboard
+        demoMetrics={demoMode.isDemoMode ? DEMO_METRICS : undefined}
+        onGatedAction={demoMode.isDemoMode ? demoMode.openConnectDialog : undefined}
       />
 
-      {/* Proactive AI Assistant */}
       <PapyrusGenie />
-
-      {/* Guided Tour - triggered by ?tour=true from onboarding */}
       <GuidedTour />
     </ConsoleLayout>
   );

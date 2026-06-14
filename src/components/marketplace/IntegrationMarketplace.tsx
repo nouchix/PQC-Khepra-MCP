@@ -4,18 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, 
-  Star, 
-  Download, 
-  Shield, 
-  Database, 
-  Cloud, 
-  Zap,
-  CheckCircle,
-  ExternalLink,
-  Filter
-} from 'lucide-react';
+import { Search, Star, Download, Shield, Database, Cloud, Zap, CheckCircle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Integration {

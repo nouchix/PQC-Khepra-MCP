@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
+import { TrendingUp, DollarSign, AlertCircle } from "lucide-react";
 
 const ExecutiveSovereignty = () => {
     // Mock data - will be replaced with API calls

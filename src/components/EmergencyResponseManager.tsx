@@ -4,10 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  AlertTriangle, Shield, RotateCcw, CheckCircle, Clock, 
-  Activity, Zap, Eye, PlayCircle, StopCircle
-} from 'lucide-react';
+import { AlertTriangle, Shield, RotateCcw, CheckCircle, Activity, Zap, Eye, PlayCircle, StopCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';

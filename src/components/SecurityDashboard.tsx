@@ -41,7 +41,7 @@ export const SecurityDashboard = () => {
   };
 
   const activeAlerts = alerts.filter(alert => !alert.resolved);
-  const resolvedAlerts = alerts.filter(alert => alert.resolved);
+  const _resolvedAlerts = alerts.filter(alert => alert.resolved);
 
   if (loading) {
     return (

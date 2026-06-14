@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { STIGCodexOrchestrator, CodexAgent, SwarmTask } from '@/services/STIGCodexOrchestrator';
 import { ChatGPTCodexIntegration, PolymorphicAPI } from '@/services/ChatGPTCodexIntegration';
-import { PolymorphicSchemaEngine, AdaptiveSchema } from '@/services/PolymorphicSchemaEngine';
+import { AdaptiveSchema } from '@/services/PolymorphicSchemaEngine';
 
 export interface CodexSwarmState {
   agents: CodexAgent[];

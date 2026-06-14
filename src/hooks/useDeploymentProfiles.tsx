@@ -1,13 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  IndustryType, 
-  DeploymentProfile, 
-  OrganizationDeploymentSettings,
-  INDUSTRY_DEPLOYMENT_TEMPLATES,
-  DeploymentHistoryEntry
-} from '@/types/deployment';
+import { IndustryType, OrganizationDeploymentSettings, INDUSTRY_DEPLOYMENT_TEMPLATES, DeploymentHistoryEntry } from '@/types/deployment';
 
 interface TrustMetrics {
   currentScore: number;

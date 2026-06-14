@@ -3,21 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Globe, 
-  Cloud, 
-  Zap, 
-  HardDrive, 
-  Network,
-  CheckCircle,
-  AlertTriangle,
-  Info,
-  Shield,
-  Download,
-  Upload,
-  Settings
-} from 'lucide-react';
+
+import { Globe, Cloud, Zap, HardDrive, Network, CheckCircle, AlertTriangle, Info, Shield, Download, Settings } from 'lucide-react';
 
 interface DeploymentVector {
   id: string;

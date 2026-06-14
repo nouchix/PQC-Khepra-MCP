@@ -4,12 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Globe, Key, Shield, Webhook, CheckCircle, AlertCircle } from 'lucide-react';
+import {  Globe, Shield, Webhook, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface KipSettings {
   kipUrl: string;

@@ -1,22 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { 
-  Brain, 
-  MessageSquare, 
-  X, 
-  Send, 
-  Lightbulb,
-  Shield,
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Minimize2,
-  Maximize2
-} from 'lucide-react';
+import { Brain, X, Send, Info, Minimize2, Maximize2 } from 'lucide-react';
 import { AdinkraSymbolDisplay } from '../AdinkraSymbolDisplay';
 
 interface Message {

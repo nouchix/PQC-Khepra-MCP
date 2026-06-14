@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Search, Filter, Bot, CheckCircle, AlertTriangle, Clock, Zap } from "lucide-react";
+import { Shield, Search, Bot, CheckCircle, AlertTriangle, Clock, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -169,7 +169,7 @@ export const EnhancedComplianceControlsMatrix: React.FC = () => {
         description: "Analyzing compliance gaps and generating recommendations...",
       });
 
-      const { data, error } = await supabase.functions.invoke('ai-compliance-analyzer', {
+      const { _data, error } = await supabase.functions.invoke('ai-compliance-analyzer', {
         body: { 
           organization_id: 'current', // This would be dynamic in real implementation
           analysis_type: 'comprehensive'

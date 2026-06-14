@@ -6,25 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useExecutiveAI } from '@/hooks/useExecutiveAI';
-import { 
-  CheckCircle2, 
-  Shield, 
-  Users, 
-  FileText, 
-  Zap, 
-  Target,
-  ArrowRight,
-  ChevronRight,
-  X,
-  Play,
-  UserCheck,
-  Building,
-  Settings,
-  Activity,
-  AlertTriangle,
-  Brain
-} from 'lucide-react';
-import { useNavigate } from '@/lib/router-compat';
+import { CheckCircle2, Shield, Users, FileText, Zap, Target, ArrowRight, ChevronRight, X, Play, UserCheck, Settings, Activity, Brain } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface TourStep {
@@ -208,7 +191,7 @@ export const RoleBasedTour = ({ open, onClose, onComplete }: RoleBasedTourProps)
     }
   };
 
-  const handleNext = () => {
+  const _handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {

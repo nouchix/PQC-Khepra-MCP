@@ -4,10 +4,7 @@ import { CustomConnectorBuilder } from '@/components/infrastructure/CustomConnec
 import { PerformanceMonitor } from '@/components/infrastructure/PerformanceMonitor';
 import { InfrastructureDiscovery } from '@/components/InfrastructureDiscovery';
 import { PageLayout } from '@/components/PageLayout';
-import { 
-  Database, Code, Activity, Search, 
-  Server, Cloud, Network, Zap
-} from 'lucide-react';
+import { Database, Code, Activity, Search } from 'lucide-react';
 
 export default function InfrastructureDashboard() {
   return (

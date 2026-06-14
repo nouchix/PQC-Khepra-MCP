@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Settings, Trash2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Link, Zap, Shield, Users, MessageSquare } from 'lucide-react';
+import { Plus, Settings, RefreshCw, CheckCircle, XCircle, AlertTriangle, Link, Zap, Shield, Users, MessageSquare } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface OrganizationIntegration {
@@ -122,7 +122,7 @@ export const EnterpriseIntegrationsHub = () => {
 
   const syncIntegration = async (integrationId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
+      const { _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
         body: {
           action: 'sync_integration',
           integration_id: integrationId,

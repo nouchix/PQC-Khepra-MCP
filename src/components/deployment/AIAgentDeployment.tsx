@@ -21,7 +21,7 @@ import {
   Globe
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+
 import { useOrganization } from '@/hooks/useOrganization';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

@@ -3,28 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Shield, 
-  Lock, 
-  Activity, 
-  FileText, 
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Users,
-  Eye,
-  ShieldCheck,
-  Settings,
-  BookOpen,
-  Search,
-  Target,
-  Plus
-} from 'lucide-react';
+import { Shield, Lock, Activity, FileText, AlertTriangle, CheckCircle2, TrendingUp, Users, Eye, ShieldCheck, Settings, BookOpen, Target, Plus } from 'lucide-react';
 import EnhancedMFAManager from '@/components/security/EnhancedMFAManager';
 import SessionSecurityManager from '@/components/security/SessionSecurityManager';
 import SecurityEventsDashboard from '@/components/security/SecurityEventsDashboard';
 import { ComplianceFrameworkManager } from '@/components/compliance/ComplianceFrameworkManager';
-import { ComplianceControlsMatrix } from '@/components/compliance/ComplianceControlsMatrix';
+
 import { ComplianceAuditReport } from '@/components/compliance/ComplianceAuditReport';
 import { FeatureGateEnhanced } from '@/components/FeatureGateEnhanced';
 import { UsageTracker } from '@/components/UsageTracker';
@@ -39,7 +23,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 
 export const SecurityDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { currentOrganization } = useOrganization();
 
   // Real security metrics
@@ -66,7 +50,7 @@ export const SecurityDashboard = () => {
     setMetricsLoading(true);
     try {
       // Load security events
-      const { data: eventsData, count: eventsCount } = await supabase
+      const { data: _eventsData, count: eventsCount } = await supabase
         .from('security_events')
         .select('*', { count: 'exact' })
         .eq('resolved', false)

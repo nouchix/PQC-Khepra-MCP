@@ -6,17 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Zap, 
-  GitBranch, 
-  Shield, 
-  RotateCcw, 
-  Database, 
-  Workflow, 
-  Network,
-  CloudSnow,
-  Activity
-} from 'lucide-react';
+import { Zap, Shield, RotateCcw, Database, Workflow, Network, CloudSnow, Activity } from 'lucide-react';
 
 interface IntegrationPattern {
   id: string;

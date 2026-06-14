@@ -5,10 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import {
-  Zap, Settings, CheckCircle, Clock, AlertTriangle,
-  Play, Pause, RotateCcw, Shield, Cpu, Database
-} from 'lucide-react';
+import { Zap, Settings, CheckCircle, Clock, Play, Pause, RotateCcw, Shield, Cpu, Database } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';

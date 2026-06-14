@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+
 import { CheckCircle, Shield, Database, Cloud, Loader2 } from 'lucide-react';
 import type { DeepScanResults } from '@/services/DeepAssetScanService';
 

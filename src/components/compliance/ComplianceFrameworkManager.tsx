@@ -21,7 +21,7 @@ const CMMC_FRAMEWORKS = [
   { id: 'fedramp-high', name: 'FedRAMP High', description: 'Federal Risk and Authorization Management Program', controls: 325 }
 ];
 
-const SECURITY_DOMAINS = [
+const _SECURITY_DOMAINS = [
   'Access Control', 'Awareness and Training', 'Audit and Accountability', 'Configuration Management',
   'Identification and Authentication', 'Incident Response', 'Maintenance', 'Media Protection',
   'Personnel Security', 'Physical and Environmental Protection', 'Risk Assessment', 'Security Assessment',

@@ -180,7 +180,7 @@ export class TrustedAgentRegistry {
     }
 
     // Verify challenge response with cultural context
-    const challengeResponse = AdinkraAlgebraicEngine.generateFingerprint(
+    const _challengeResponse = AdinkraAlgebraicEngine.generateFingerprint(
       `${challenge}:${registration.agentId}:${registration.culturalContext}`,
       ['Eban', 'Nyame']
     );

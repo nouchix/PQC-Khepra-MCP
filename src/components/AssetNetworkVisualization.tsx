@@ -2,21 +2,7 @@ import { useEffect, useRef, useState, useCallback, ComponentType } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Monitor, 
-  Router, 
-  Database, 
-  Globe, 
-  Server, 
-  Laptop,
-  Smartphone,
-  Printer,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Zap
-} from 'lucide-react';
+import { Monitor, Router, Database, Globe, Server, Laptop, Smartphone, Printer, Shield, AlertTriangle } from 'lucide-react';
 import type { SecurityAsset } from '@/services/ProductionSecurityService';
 import { useKhepraProtection } from '@/hooks/useKhepraProtection';
 

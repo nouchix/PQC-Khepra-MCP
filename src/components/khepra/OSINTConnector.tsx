@@ -3,12 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
+
 import { Separator } from '@/components/ui/separator';
-import { 
-  Globe, Database, Shield, Activity, AlertTriangle, 
-  CheckCircle, Clock, Server, Network, Zap, Eye
-} from 'lucide-react';
+import { Globe, Database, Shield, Activity, AlertTriangle, CheckCircle, Clock, Network, Zap, Eye } from 'lucide-react';
 import { AdinkraAlgebraicEngine } from '@/khepra/aae/AdinkraEngine';
 
 interface OSINTSource {

@@ -5,33 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Shield,
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Eye,
-  Zap,
-  Network,
-  Database,
-  Cpu,
-  HardDrive,
-  Users,
-  Globe,
-  Lock,
-  Brain,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  RefreshCw,
-  Settings,
-  Download,
-  Upload,
-  Play,
-  Pause,
-  RotateCcw
-} from 'lucide-react';
+import { Shield, Activity, AlertTriangle, CheckCircle, Clock, Eye, Zap, Network, Cpu, Brain, TrendingUp, Minus, RefreshCw, Settings } from 'lucide-react';
 import { AdinkraSymbolDisplay } from '../AdinkraSymbolDisplay';
 
 interface DeploymentStatus {

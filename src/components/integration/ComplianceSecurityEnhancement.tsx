@@ -5,19 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Shield, 
-  Lock, 
-  FileCheck, 
-  AlertTriangle, 
-  CheckCircle, 
-  Zap,
-  Eye,
-  UserCheck,
-  Settings,
-  TrendingUp
-} from 'lucide-react';
+
+import { Shield, Lock, FileCheck, AlertTriangle, CheckCircle, Zap, UserCheck, Settings, TrendingUp } from 'lucide-react';
 
 interface ComplianceFramework {
   id: string;
@@ -154,7 +143,7 @@ export const ComplianceSecurityEnhancement = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const _getStatusColor = (status: string) => {
     switch (status) {
       case 'compliant': return 'text-green-600 bg-green-50';
       case 'in-progress': return 'text-yellow-600 bg-yellow-50';
