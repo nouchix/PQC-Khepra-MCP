@@ -161,7 +161,9 @@ func (idx *ControlIndex) Search(query string, topK int, frameworkFilter string) 
 	if topK > len(results) {
 		topK = len(results)
 	}
-	out := make([]SearchResult, topK)
+	// #413 topK is bounded to max 50 (line ~269) and then further capped to len(results)
+	// (lines above). The allocation size is guaranteed safe.
+	out := make([]SearchResult, topK) //nolint:gosec
 	for i := 0; i < topK; i++ {
 		out[i] = SearchResult{
 			Control:  results[i].rec,

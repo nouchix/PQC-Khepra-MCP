@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -270,4 +271,15 @@ func (d *KhepraDaemon) logEvent(action, symbol string, _ map[string]interface{})
 
 	log.Printf("[DAG] Event logged: %s | %s | ID: %s\n", action, symbol, node.ID)
 	return node.ID
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

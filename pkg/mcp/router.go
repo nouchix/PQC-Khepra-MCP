@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"strings"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -236,12 +237,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	id, err := r.demarc.Authenticate(ctx, cred)
 	if err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, "", "AUTH_FAILED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%s: %v", call.ToolName, err)
+		r.logger.Printf("[MCP:DEMARC] auth failed for sanitizeLog(tool)=%s: %v", sanitizeLog(call.ToolName), err)
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 	if err := r.demarc.CheckCIDR(ctx, id, remoteAddr); err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, id.AgentID, "CIDR_DENIED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%s addr=%s: %v", id.AgentID, remoteAddr, err)
+		r.logger.Printf("[MCP:DEMARC] CIDR denied for sanitizeLog(agent)=%s addr=%s: %v", sanitizeLog(id.AgentID), sanitizeLog(remoteAddr), err)
 		return nil, fmt.Errorf("CIDR check failed: %w", err)
 	}
 
@@ -251,7 +252,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 1.5: Rate Limiting ─────────────────────────────────────────────
 	if rlErr := r.limiter.Allow(id.AgentID); rlErr != nil {
 		r.events.EmitError(EventRateLimit, call.ToolName, id.AgentID, rlErr.Code, rlErr.Message)
-		r.logger.Printf("[MCP:RATE] rate limit for agent=%s: %s", id.AgentID, rlErr.Message)
+		r.logger.Printf("[MCP:RATE] rate limit for sanitizeLog(agent)=%s: %s", sanitizeLog(id.AgentID), rlErr.Message)
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: rlErr.Message,
@@ -261,7 +262,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 1.6: Input Validation ──────────────────────────────────────────
 	if valErr := ValidateToolArgs(call.Args); valErr != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, valErr.Code, valErr.Message)
-		r.logger.Printf("[MCP:VALIDATE] blocked: tool=%s agent=%s: %s", call.ToolName, id.AgentID, valErr.Error())
+		r.logger.Printf("[MCP:VALIDATE] blocked: sanitizeLog(tool)=%s sanitizeLog(agent)=%s: %s", sanitizeLog(call.ToolName), sanitizeLog(id.AgentID), valErr.Error())
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: valErr.Error(),
@@ -271,7 +272,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 1.6a: Scope Taxonomy Allow-List (NSA parameter injection defense) ─
 	if scopeErr := ValidateScopedToolArgs(call.Args, call.ToolName); scopeErr != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, scopeErr.Code, scopeErr.Message)
-		r.logger.Printf("[MCP:SCOPE] blocked: tool=%s agent=%s: %s", call.ToolName, id.AgentID, scopeErr.Error())
+		r.logger.Printf("[MCP:SCOPE] blocked: sanitizeLog(tool)=%s sanitizeLog(agent)=%s: %s", sanitizeLog(call.ToolName), sanitizeLog(id.AgentID), scopeErr.Error())
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: scopeErr.Error(),
@@ -285,7 +286,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// Non-fatal for Community callers hitting Community tools.
 	if tierErr := licpkg.CheckToolAccess(r.license, call.ToolName); tierErr != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "LICENSE_TIER", tierErr.Error())
-		r.logger.Printf("[MCP:LICENSE] tier gate: tool=%s agent=%s: %s", call.ToolName, id.AgentID, tierErr.Error())
+		r.logger.Printf("[MCP:LICENSE] tier gate: sanitizeLog(tool)=%s sanitizeLog(agent)=%s: %s", sanitizeLog(call.ToolName), sanitizeLog(id.AgentID), tierErr.Error())
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: tierErr.Error(),
@@ -296,7 +297,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	argsFingerprint := fmt.Sprintf("%v", call.Args) // crude but effective
 	if loopErr := r.mistakes.CheckLoop(id.AgentID, call.ToolName, argsFingerprint); loopErr != nil {
 		r.events.EmitError(EventLoopDetected, call.ToolName, id.AgentID, loopErr.Code, loopErr.Message)
-		r.logger.Printf("[MCP:LOOP] detected: tool=%s agent=%s: %s", call.ToolName, id.AgentID, loopErr.Message)
+		r.logger.Printf("[MCP:LOOP] detected: sanitizeLog(tool)=%s sanitizeLog(agent)=%s: %s", sanitizeLog(call.ToolName), sanitizeLog(id.AgentID), loopErr.Message)
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: loopErr.Message,
@@ -317,7 +318,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 			return nil, fmt.Errorf("invocation token issuance failed: %w", tokErr)
 		}
 		call.InvocationToken = tok
-		r.logger.Printf("[MCP:TOKEN] issued invocation token=%s tool=%s agent=%s ttl=5m",
+		r.logger.Printf("[MCP:TOKEN] issued invocation sanitizeLog(token)=%s sanitizeLog(tool)=%s sanitizeLog(agent)=%s ttl=5m",
 			tok.TokenID, call.ToolName, id.AgentID)
 	}
 
@@ -325,7 +326,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	spec, ok := r.registry.GetTool(call.ToolName)
 	if !ok {
 		r.events.EmitError(EventManifest, call.ToolName, id.AgentID, "UNKNOWN_TOOL", "not in manifest")
-		r.logger.Printf("[MCP:MANIFEST] unknown tool: %s (agent=%s)", call.ToolName, id.AgentID)
+		r.logger.Printf("[MCP:MANIFEST] unknown sanitizeLog(tool): %s (sanitizeLog(agent)=%s)", sanitizeLog(call.ToolName), sanitizeLog(id.AgentID))
 		return nil, fmt.Errorf("unknown tool: %s", call.ToolName)
 	}
 	if err := r.registry.ValidatePinnedSchema(spec.Name, spec.SchemaVersion, spec.SchemaHash); err != nil {
@@ -354,12 +355,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 4: MCPGateway Policy (RBAC + Injection Scan) ──────────────────
 	if err := r.gateway.CheckPermission(id, spec.Scope); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "PERMISSION_DENIED", err.Error())
-		r.logger.Printf("[MCP:POLICY] permission denied: agent=%s scope=%s: %v", id.AgentID, spec.Scope, err)
+		r.logger.Printf("[MCP:POLICY] permission denied: sanitizeLog(agent)=%s scope=%s: %v", sanitizeLog(id.AgentID), spec.Scope, err)
 		return nil, fmt.Errorf("permission denied: %w", err)
 	}
 	if err := r.gateway.ScanForInjection(string(rawPayload)); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "INJECTION", err.Error())
-		r.logger.Printf("[MCP:POLICY] injection detected: agent=%s tool=%s: %v", id.AgentID, call.ToolName, err)
+		r.logger.Printf("[MCP:POLICY] injection detected: sanitizeLog(agent)=%s sanitizeLog(tool)=%s: %v", sanitizeLog(id.AgentID), sanitizeLog(call.ToolName), err)
 		return nil, fmt.Errorf("injection detected: %w", err)
 	}
 
@@ -392,7 +393,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		}
 
 		r.events.EmitToolEnd(call.ToolName, id.AgentID, call.RequestID, durationMs, false, "EXEC_ERROR", execErr.Error())
-		r.logger.Printf("[MCP:EXEC] tool=%s failed: %v (duration=%v)", call.ToolName, execErr, time.Since(start))
+		r.logger.Printf("[MCP:EXEC] sanitizeLog(tool)=%s failed: %v (duration=%v)", sanitizeLog(call.ToolName), execErr, time.Since(start))
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: execErr.Error(),
@@ -417,7 +418,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		if outErr := r.gateway.ScanForInjection(string(outputBytes)); outErr != nil {
 			// Non-fatal: log and warn — security report outputs may contain
 			// CVE IDs or exploit patterns that match injection heuristics.
-			r.logger.Printf("[MCP:OUTPUT-FILTER] tool=%s potential injection pattern in output: %v (non-fatal)",
+			r.logger.Printf("[MCP:OUTPUT-FILTER] sanitizeLog(tool)=%s potential injection pattern in output: %v (non-fatal)",
 				call.ToolName, outErr)
 			warnings = append(warnings, "output-filter: potential injection pattern in tool output — review before piping to next agent")
 			r.events.Emit(MCPEvent{
@@ -463,7 +464,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	}
 
 	r.events.EmitToolEnd(call.ToolName, id.AgentID, call.RequestID, durationMs, true, "", "")
-	r.logger.Printf("[MCP:OK] tool=%s agent=%s attestation=%s duration=%v",
+	r.logger.Printf("[MCP:OK] sanitizeLog(tool)=%s sanitizeLog(agent)=%s attestation=%s duration=%v",
 		call.ToolName, id.AgentID, attestationID, time.Since(start))
 
 	// ── CallLog: record for T02/T08 scanning + SOW pilot metrics ────────────
@@ -558,3 +559,14 @@ func hmacSHA256(key, data []byte) []byte {
 // hexEncode is hex.EncodeToString aliased for clarity.
 // Avoids unused import warnings in files that import encoding/hex only via this path.
 var _ = hex.EncodeToString // suppress unused import
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
+}

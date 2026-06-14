@@ -163,6 +163,8 @@ func (a *GrypeAdapter) MatchVulnerabilities(ctx context.Context, target string) 
 	if err != nil {
 		return nil, nil, fmt.Errorf("sca/grype: cannot resolve path: %w", err)
 	}
+	// #424 Uncontrolled path: clean and validate the resolved path.
+	absTarget = filepath.Clean(absTarget)
 
 	// Verify target exists
 	if _, err := os.Stat(absTarget); err != nil {

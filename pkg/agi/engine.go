@@ -742,13 +742,13 @@ func (e *Engine) AddTask(description, symbol string) {
 		Symbol:      symbol,
 	}
 	e.Tasks = append(e.Tasks, t)
-	log.Printf("[KASA] TASK INGESTED: %s", description)
+	log.Printf("[KASA] TASK INGESTED: %s", sanitizeLog(description))
 }
 
 // RunMission: Scan triggers a vulnerability scan (Commando Capability)
 func (e *Engine) RunScan(target string) error {
 	e.Status = "Scanning Target: " + target
-	log.Printf("[KASA] COMMANDO: Initiating Vulnerability Scan on %s...", target)
+	log.Printf("[KASA] COMMANDO: Initiating Vulnerability Scan on %s...", sanitizeLog(target))
 
 	results, err := e.scanner.Run(target)
 	if err != nil {
@@ -1214,4 +1214,15 @@ func extractFeatures(results []scanner.Result, target string) []float64 {
 	f[16] = float64(hash) / 100.0
 
 	return f
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

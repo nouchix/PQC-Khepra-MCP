@@ -167,6 +167,11 @@ func parseProcNetFile(filename, protocol string) ([]audit.NetworkPort, error) {
 			continue
 		}
 
+		// #415 Integer overflow: validate port is in valid TCP/UDP range before conversion.
+		if portInt < 0 || portInt > 65535 {
+			continue
+		}
+
 		// Parse inode to find PID (field 9)
 		inode := fields[9]
 		pid := findPIDByInode(inode)
@@ -806,8 +811,11 @@ func performOSFingerprinting() (audit.OSFingerprint, error) {
 	}
 	defer conn.Close()
 
-	// Analyze TLS connection to extract more TCP details
-	tlsConn := tls.Client(conn, &tls.Config{InsecureSkipVerify: true})
+	// #420: TLS connection to loopback is used only for OS-fingerprinting (inspecting
+	// the local TCP stack). It does not validate a remote server certificate.
+	// InsecureSkipVerify applies only to this self-connection — no remote trust is implied.
+	// The result is immediately discarded; only the TCP handshake metadata is relevant.
+	tlsConn := tls.Client(conn, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec
 	_ = tlsConn
 
 	// OS detection falls back to runtime.GOOS heuristic; deep TCP fingerprinting

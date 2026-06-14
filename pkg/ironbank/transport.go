@@ -6,6 +6,7 @@
 package ironbank
 
 import (
+	"strings"
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -157,4 +158,15 @@ func (t *PQCTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }
