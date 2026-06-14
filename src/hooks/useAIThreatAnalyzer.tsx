@@ -359,9 +359,9 @@ function analyzeTimeline(data: any[]): { trend: 'increasing' | 'decreasing' | 's
   const recent = data.filter(d => new Date(d.created_at).getTime() > now - 12 * 60 * 60 * 1000);
   const older = data.filter(d => new Date(d.created_at).getTime() <= now - 12 * 60 * 60 * 1000);
   
-  let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
-  let prediction = '';
-  
+  let trend: 'increasing' | 'decreasing' | 'stable';
+  let prediction: string;
+
   if (recent.length > older.length * 1.5) {
     trend = 'increasing';
     prediction = 'Threat activity expected to continue rising over next 6 hours';
@@ -372,7 +372,7 @@ function analyzeTimeline(data: any[]): { trend: 'increasing' | 'decreasing' | 's
     trend = 'stable';
     prediction = 'Threat activity expected to remain at current levels';
   }
-  
+
   return { trend, prediction };
 }
 

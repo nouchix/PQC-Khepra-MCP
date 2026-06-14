@@ -243,9 +243,22 @@ export const EnhancedMFAManager = () => {
     setLoading(true);
     try {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      // Rejection sampling: discard bytes ≥ floor(256/36)*36 = 252 to eliminate
+      // modulo bias, ensuring each character is equally likely. (CWE-338, alert #2)
+      const unbiasedRandomChar = (): string => {
+        const limit = Math.floor(256 / chars.length) * chars.length; // 252
+        const buf = new Uint8Array(1);
+        let b: number;
+        do {
+          crypto.getRandomValues(buf);
+          b = buf[0];
+        } while (b >= limit);
+        return chars[b % chars.length];
+      };
       const codes = Array.from({ length: 5 }, () => {
-        const randomBytes = crypto.getRandomValues(new Uint8Array(8));
-        return Array.from(randomBytes).map(b => chars[b % chars.length]).join('');
+        let code = '';
+        for (let i = 0; i < 8; i++) code += unbiasedRandomChar();
+        return code;
       });
       
       await supabase

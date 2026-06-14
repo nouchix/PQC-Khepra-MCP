@@ -219,7 +219,7 @@ export const NVIDIAFlare = () => {
             disabled={loading}
             className="bg-purple-600/20 border-purple-500/30 text-purple-400 hover:bg-purple-600/40"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4" data-spinning={loading || undefined} style={loading ? { animation: 'spin 1s linear infinite' } : undefined} />
           </Button>
         </CardTitle>
       </CardHeader>
