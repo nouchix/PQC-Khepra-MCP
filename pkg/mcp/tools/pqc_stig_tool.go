@@ -8,22 +8,22 @@
 //
 // Control Coverage (CNSA 2.0 / FIPS 203/204/205):
 //
-//   CAT I — Critical (Algorithm Approval + Key Strength):
-//     PQC-010010  NIST-approved PQC algorithm enforcement (ML-KEM/ML-DSA/SLH-DSA only)
-//     PQC-010020  ML-DSA key strength (Level 3 / ML-DSA-65 minimum for CUI)
-//     PQC-010030  ML-KEM key strength (Level 3 / ML-KEM-768 minimum for CUI)
-//     PQC-010040  Deprecated PQC algorithm prohibition (Rainbow, SIKE, NTRU-fail, etc.)
+//	CAT I — Critical (Algorithm Approval + Key Strength):
+//	  PQC-010010  NIST-approved PQC algorithm enforcement (ML-KEM/ML-DSA/SLH-DSA only)
+//	  PQC-010020  ML-DSA key strength (Level 3 / ML-DSA-65 minimum for CUI)
+//	  PQC-010030  ML-KEM key strength (Level 3 / ML-KEM-768 minimum for CUI)
+//	  PQC-010040  Deprecated PQC algorithm prohibition (Rainbow, SIKE, NTRU-fail, etc.)
 //
-//   CAT II — High (Hybrid Crypto + Key Protection):
-//     PQC-020010  Hybrid classical+PQC during CNSA 2.0 transition period
-//     PQC-020020  PQC private key protection at rest (HSM preferred)
-//     PQC-020030  Constant-time PQC implementation (side-channel resistance)
-//     PQC-020040  PQC certificate chain presence
+//	CAT II — High (Hybrid Crypto + Key Protection):
+//	  PQC-020010  Hybrid classical+PQC during CNSA 2.0 transition period
+//	  PQC-020020  PQC private key protection at rest (HSM preferred)
+//	  PQC-020030  Constant-time PQC implementation (side-channel resistance)
+//	  PQC-020040  PQC certificate chain presence
 //
-//   CAT III — Medium (Audit + Documentation + Coverage):
-//     PQC-030010  PQC algorithm usage logging for quantum readiness audits
-//     PQC-030020  Key rotation procedure documentation for PQC keys
-//     PQC-030030  PQC coverage for both signing AND encryption
+//	CAT III — Medium (Audit + Documentation + Coverage):
+//	  PQC-030010  PQC algorithm usage logging for quantum readiness audits
+//	  PQC-030020  Key rotation procedure documentation for PQC keys
+//	  PQC-030030  PQC coverage for both signing AND encryption
 //
 // DISA has no PQC STIG as of mid-2026. This baseline fills the gap for DoD
 // contractors, C3PAOs, and FedRAMP system owners requiring quantum evidence today.
@@ -153,9 +153,13 @@ func HandlePQCSTIG(ctx context.Context, call mcp.MCPToolCall) (any, []string, er
 	var displayFindings []PQCSTIGFinding
 	switch profile {
 	case "quick":
-		// Quick: only CAT I failures + manual review items
+		// Quick: CAT I and CAT II failures + all manual review items
+		// (CAT III omitted to keep quick output concise for daily checks)
 		for _, f := range findings {
-			if f.Category == "CAT I" && f.Status != "Pass" {
+			if f.Status == "Pass" || f.Status == "Not Applicable" {
+				continue
+			}
+			if f.Category == "CAT I" || f.Category == "CAT II" || f.Status == "Manual Review Required" {
 				displayFindings = append(displayFindings, f)
 			}
 		}
@@ -180,9 +184,9 @@ func HandlePQCSTIG(ctx context.Context, call mcp.MCPToolCall) (any, []string, er
 		Profile:    profile,
 
 		// Scores
-		ComplianceScore:  score,
-		ReadinessLevel:   readinessLevel,
-		Verdict:          verdict,
+		ComplianceScore: score,
+		ReadinessLevel:  readinessLevel,
+		Verdict:         verdict,
 
 		// Finding counts
 		TotalControls: len(findings),
@@ -216,13 +220,13 @@ func HandlePQCSTIG(ctx context.Context, call mcp.MCPToolCall) (any, []string, er
 // PQCSTIGResponse is the structured output from pqc_stig.
 type PQCSTIGResponse struct {
 	// Standard identification
-	Standard  string    `json:"standard"`
-	Authority string    `json:"authority"`
-	FIPSBasis []string  `json:"fips_basis"`
-	CNSABasis string    `json:"cnsa_basis"`
+	Standard   string    `json:"standard"`
+	Authority  string    `json:"authority"`
+	FIPSBasis  []string  `json:"fips_basis"`
+	CNSABasis  string    `json:"cnsa_basis"`
 	AssessedAt time.Time `json:"assessed_at"`
-	Target    string    `json:"target"`
-	Profile   string    `json:"profile"`
+	Target     string    `json:"target"`
+	Profile    string    `json:"profile"`
 
 	// Compliance scoring
 	ComplianceScore float64 `json:"compliance_score"`
