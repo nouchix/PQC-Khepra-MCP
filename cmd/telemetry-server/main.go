@@ -55,8 +55,8 @@ func loadConfig() (*serverConfig, error) {
 	cfg := &serverConfig{
 		ListenAddr: envOrDefault("TELEMETRY_ADDR", ":8443"),
 		DBPath:     envOrDefault("TELEMETRY_DB", "/var/lib/khepra-telemetry/beacons.db"),
-		TLSCertFile: envOrDefault("TLS_CERT", "/etc/letsencrypt/live/telemetry.souhimbou.org/fullchain.pem"),
-		TLSKeyFile:  envOrDefault("TLS_KEY", "/etc/letsencrypt/live/telemetry.souhimbou.org/privkey.pem"),
+		TLSCertFile: envOrDefault("TLS_CERT", "/etc/letsencrypt/live/telemetry.souhimbou.ai/fullchain.pem"),
+		TLSKeyFile:  envOrDefault("TLS_KEY", "/etc/letsencrypt/live/telemetry.souhimbou.ai/privkey.pem"),
 		CRLCurrentCID: os.Getenv("KHEPRA_CRL_CID"),
 	}
 

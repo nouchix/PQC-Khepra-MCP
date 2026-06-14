@@ -161,7 +161,7 @@ conflicting commercial terms, in accordance with DFARS 227.7202-3.
         explicit written permission.
 
 8.4 AUTHORIZED USE. This software is licensed ONLY for use on:
-    (a) DoD networks with active license validation via telemetry.souhimbou.org.
+    (a) DoD networks with active license validation via telemetry.souhimbou.ai.
     (b) Systems registered with valid DoD contract authorization.
     (c) Installations with cryptographically-signed machine IDs.
     (d) Government-owned and contractor-operated (GOCO) facilities under DoD 
@@ -187,7 +187,7 @@ conflicting commercial terms, in accordance with DFARS 227.7202-3.
 
 9.1 TELEMETRY BEACON. Licensee acknowledges and agrees that the Software may 
     transmit periodic anonymous telemetry beacons ("Heartbeats") to Licensor's 
-    secure servers (telemetry.souhimbou.org) for the sole purposes of:
+    secure servers (telemetry.souhimbou.ai) for the sole purposes of:
     (a) Validating license status and feature entitlement.
     (b) Detecting unauthorized tampering or license circumvention.
     (c) Monitoring cryptographic inventory for PQC transition compliance.

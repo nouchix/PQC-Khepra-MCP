@@ -40,7 +40,7 @@ const (
 
 	// defaultSovereignURL is the self-hosted telemetry server for sovereign deployments.
 	// Override with KHEPRA_SOVEREIGN_TELEMETRY_URL.
-	defaultSovereignURL = "https://telemetry.souhimbou.org/beacon"
+	defaultSovereignURL = "https://telemetry.souhimbou.ai/beacon"
 
 	// defaultLegacyURL is the original telemetry endpoint (kept for backwards compat).
 	defaultLegacyURL = "https://telemetry.khepra.io/beacon"

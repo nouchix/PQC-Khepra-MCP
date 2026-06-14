@@ -55,7 +55,7 @@ func EnrollDevice(organization, email, stripeSessionID string, licMgr *license.M
 	// Use the production telemetry server URL provided by the user
 	serverURL := os.Getenv("ADINKHEPRA_TELEMETRY_SERVER")
 	if serverURL == "" {
-		serverURL = "https://telemetry.souhimbou.org/enroll"
+		serverURL = "https://telemetry.souhimbou.ai/enroll"
 	}
 
 	fmt.Printf("[KHEPRA] Enrolling device with %s...\n", serverURL)

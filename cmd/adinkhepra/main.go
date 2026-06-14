@@ -809,7 +809,7 @@ func crackCmd(args []string) {
 //   2. Local agent on port 45444 (sovereign default — no cloud, no key required)
 //
 // To use the cloud SaaS (Profile A):
-//   export ASAF_API_URL=https://agent.souhimbou.org
+//   export ASAF_API_URL=https://agent.souhimbou.ai
 //   export ASAF_API_KEY=<your-key>
 func asafAPIURL() string {
 	if v := os.Getenv("ASAF_API_URL"); v != "" {
@@ -883,7 +883,7 @@ func scanCmd(args []string, mode string) {
 		fmt.Printf("    Step 1: .\\adinkhepra-windows-amd64.exe run          (start local agent)\n")
 		fmt.Printf("    Step 2: .\\adinkhepra-windows-amd64.exe scan --target <host>\n")
 		fmt.Printf("\n  SaaS (Profile A — requires ASAF_API_KEY):\n")
-		fmt.Printf("    export ASAF_API_URL=https://agent.souhimbou.org\n")
+		fmt.Printf("    export ASAF_API_URL=https://agent.souhimbou.ai\n")
 		fmt.Printf("    export ASAF_API_KEY=<your-key>\n\n")
 		os.Exit(1)
 	}
