@@ -44,7 +44,8 @@ type Gateway struct {
 	metrics *GatewayMetrics
 }
 
-// GatewayMetrics tracks gateway performance and security metrics
+// GatewayMetrics tracks gateway performance and security metrics.
+// The embedded mu field must never be copied — use MetricsSnapshot for serialization.
 type GatewayMetrics struct {
 	RequestsTotal     int64
 	RequestsBlocked   int64
@@ -55,6 +56,19 @@ type GatewayMetrics struct {
 	AverageLatencyMs  float64
 	LastUpdated       time.Time
 	mu                sync.RWMutex
+}
+
+// MetricsSnapshot is a mutex-free point-in-time copy of GatewayMetrics.
+// Safe to pass by value, encode to JSON, or return over HTTP.
+type MetricsSnapshot struct {
+	RequestsTotal     int64     `json:"requests_total"`
+	RequestsBlocked   int64     `json:"requests_blocked"`
+	RequestsAllowed   int64     `json:"requests_allowed"`
+	AuthFailures      int64     `json:"auth_failures"`
+	AnomaliesDetected int64     `json:"anomalies_detected"`
+	RateLimitHits     int64     `json:"rate_limit_hits"`
+	AverageLatencyMs  float64   `json:"average_latency_ms"`
+	LastUpdated       time.Time `json:"last_updated"`
 }
 
 // New creates a new Khepra Secure Gateway with the given configuration
@@ -332,12 +346,12 @@ func (g *Gateway) Stop(ctx context.Context) error {
 	return g.httpServer.Shutdown(ctx)
 }
 
-// GetMetrics returns current gateway metrics
-func (g *Gateway) GetMetrics() GatewayMetrics {
+// GetMetrics returns a point-in-time MetricsSnapshot (mutex-free, safe to copy/encode).
+func (g *Gateway) GetMetrics() MetricsSnapshot {
 	g.metrics.mu.RLock()
 	defer g.metrics.mu.RUnlock()
 
-	return GatewayMetrics{
+	return MetricsSnapshot{
 		RequestsTotal:     g.metrics.RequestsTotal,
 		RequestsBlocked:   g.metrics.RequestsBlocked,
 		RequestsAllowed:   g.metrics.RequestsAllowed,
