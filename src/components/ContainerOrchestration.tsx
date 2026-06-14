@@ -122,7 +122,7 @@ export const ContainerOrchestration = () => {
             disabled={loading}
             className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/40"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={['h-4 w-4', loading && 'animate-spin'].filter(Boolean).join(' ')} />
           </Button>
         </CardTitle>
       </CardHeader>
@@ -178,3 +178,4 @@ export const ContainerOrchestration = () => {
     </Card>
   );
 };
+

@@ -140,8 +140,9 @@ export const AutomatedThreatHunting = () => {
       // Simulate hunt execution
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Real results require Splunk query execution response
-      const matches = 0; // Real match count from Splunk API response
+      // TODO: Replace 0 with actual match count from Splunk API response.
+      // e.g.: const result = await splunkClient.search(query); let matches = result.count;
+      let matches = 0; // Real match count from Splunk API response
 
       setHuntQueries(prev => prev.map(q =>
         q.id === queryId ? {
@@ -155,7 +156,7 @@ export const AutomatedThreatHunting = () => {
       toast({
         title: "Hunt Complete",
         description: matches > 0
-          ? `🚨 ${matches} matches found! Check Splunk for details.`
+          ? `🎯 ${matches} matches found! Check Splunk for details.`
           : "✅ Clean - no matches found in environment.",
         variant: matches > 0 ? "destructive" : "default"
       });

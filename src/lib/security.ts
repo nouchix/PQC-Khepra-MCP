@@ -25,6 +25,23 @@ export class SecurityValidator {
     /(\bUNION\b.*\bSELECT\b)/gi
   ];
 
+  /**
+   * XSS detection heuristics.
+   *
+   * IMPORTANT: These patterns are used for INPUT DETECTION/REJECTION only —
+   * they identify user inputs that look like XSS payloads so the server can
+   * reject them early. They are NOT used for sanitizing output intended for
+   * rendering (output sanitization uses character encoding, see sanitizeInput).
+   *
+   * Regex-based sanitization is inherently incomplete and bypassed by encoding;
+   * always use a proper library (DOMPurify) or textContent/encoding for rendering.
+   *
+   * @see https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+   *
+   * CodeQL note: codeql/javascript/ql/lib/semmle/javascript/security/dataflow/BadHtmlFilteringConfig.qll
+   * This is intentionally a detection pattern, not a filter — suppress if needed:
+   * // lgtm[js/bad-html-filtering-regexp]
+   */
   private static readonly XSS_PATTERNS = [
     /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
     /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,

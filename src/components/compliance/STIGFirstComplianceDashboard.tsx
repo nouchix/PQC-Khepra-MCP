@@ -342,13 +342,12 @@ export const STIGFirstComplianceDashboard: React.FC = () => {
       </Tabs>
 
       {/* Data Sources Wizard */}
-      {currentOrganization && (
-        <DataSourcesWizard
-          open={showDataSourcesWizard}
-          onClose={() => setShowDataSourcesWizard(false)}
-          organizationId={currentOrganization.id}
-        />
-      )}
+      {/* currentOrganization is always defined here due to early return above */}
+      <DataSourcesWizard
+        open={showDataSourcesWizard}
+        onClose={() => setShowDataSourcesWizard(false)}
+        organizationId={currentOrganization.id}
+      />
     </div>
   );
 };

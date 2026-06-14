@@ -205,16 +205,12 @@ export const EnhancedMFASetup = () => {
                 <div className="space-y-4">
                   {enrollmentData.qrCode && (
                     <div className="text-center">
-                      <div
-                        className="inline-block p-4 bg-white rounded-lg border"
-                        dangerouslySetInnerHTML={{
-                          // Basic sanitization to prevent XSS from compromised QR code generation
-                          __html: enrollmentData.qrCode
-                            .replaceAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-                            .replaceAll(/javascript:/gim, "")
-                            .replaceAll(/ on\w+="[^"]*"/gim, "")
-                            .replaceAll(/ on\w+='[^']*'/gim, "")
-                        }}
+                      {/* Supabase returns qrCode as a data: URI (image/png or SVG).
+                          Render via <img> to avoid dangerouslySetInnerHTML entirely. */}
+                      <img
+                        src={enrollmentData.qrCode}
+                        alt="MFA QR Code — scan with your authenticator app"
+                        className="inline-block p-4 bg-white rounded-lg border max-w-[200px]"
                       />
                       <p className="text-sm text-muted-foreground mt-2">
                         Scan this QR code with your authenticator app

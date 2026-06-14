@@ -35,6 +35,23 @@ interface DeploymentConfig {
   organizationName: string;
 }
 
+/**
+ * Validates a deployment URL and returns it only if it uses http/https.
+ * Returns an empty string for any other scheme (javascript:, data:, etc.)
+ * to prevent URL injection via user-supplied configuration. (CWE-601, alert #1)
+ */
+function sanitizeDeploymentUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return url;
+    }
+  } catch {
+    // Not a valid URL at all
+  }
+  return '';
+}
+
 // Mock function to get deployment config from Supabase
 // In production, this would fetch from your Supabase database
 async function getDeploymentConfig(orgId: string): Promise<DeploymentConfig | null> {
@@ -46,9 +63,11 @@ async function getDeploymentConfig(orgId: string): Promise<DeploymentConfig | nu
   //   .single();
 
   // Mock data for development
+  // NOTE: The API key is stored in sessionStorage (not localStorage) to avoid
+  // persisting sensitive credentials across browser sessions. (CWE-312, alert #4)
   return {
     deploymentUrl: localStorage.getItem(`khepra_url_${orgId}`) || 'http://localhost:8080',
-    apiKey: localStorage.getItem(`khepra_key_${orgId}`) || 'test-api-key',
+    apiKey: sessionStorage.getItem(`khepra_key_${orgId}`) || 'test-api-key',
     organizationName: 'Development Organization',
   };
 }
@@ -93,9 +112,10 @@ export default function ClientPortal() {
   const handleSaveConfig = () => {
     if (!org_id) return;
 
-    // Save to localStorage for development
+    // Save URL to localStorage (not sensitive), API key to sessionStorage only
+    // to avoid persisting credentials across sessions. (CWE-312, alert #4)
     localStorage.setItem(`khepra_url_${org_id}`, tempUrl);
-    localStorage.setItem(`khepra_key_${org_id}`, tempKey);
+    sessionStorage.setItem(`khepra_key_${org_id}`, tempKey);
 
     setConfig({
       ...config!,
@@ -203,7 +223,13 @@ export default function ClientPortal() {
           </Dialog>
 
           <Button variant="outline" size="sm" asChild>
-            <a href={config.deploymentUrl} target="_blank" rel="noopener noreferrer">
+            {/* sanitizeDeploymentUrl enforces http/https only, preventing
+                javascript: or data: URL injection. (alert #1) */}
+            <a
+              href={sanitizeDeploymentUrl(config.deploymentUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <ExternalLink className="h-4 w-4 mr-2" />
               Open API
             </a>
