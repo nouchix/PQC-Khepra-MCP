@@ -245,7 +245,7 @@ func getServiceSecret() []byte {
 		fmt.Println()
 		fmt.Println("   Run 'service-token init-secret' to generate a secure secret")
 		fmt.Println()
-		secret = "khepra-service-secret-v1-development-only"
+		secret = "khepra-service-secret-v1-development-only" // PLACEHOLDER — set KHEPRA_SERVICE_SECRET in production
 	}
 	return []byte(secret)
 }
