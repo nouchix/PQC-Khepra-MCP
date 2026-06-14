@@ -945,8 +945,9 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"scan_path": map[string]any{"type": "string", "description": "Path to project directory to scan (default: current directory)"},
-					"profile":   map[string]any{"type": "string", "enum": []string{"full", "quick", "executive"}, "description": "Output profile: full (all controls), quick (CAT I failures only), executive (summary only — default: full)"},
+					"scan_path":   map[string]any{"type": "string", "description": "Path to project directory to scan (default: current directory)"},
+					"profile":     map[string]any{"type": "string", "enum": []string{"full", "quick", "executive"}, "description": "Output profile: full (all 12 controls), quick (CAT I+II failures only), executive (summary stats only — default: full)"},
+					"output_path": map[string]any{"type": "string", "description": "Optional: absolute file path for PDF export of the Executive Intelligence Brief (e.g. /tmp/pqc_report). Omit .pdf extension — added automatically. Falls back to .txt if fpdf is unavailable."},
 				},
 			},
 		},

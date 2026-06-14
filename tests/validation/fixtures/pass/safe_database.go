@@ -1,3 +1,6 @@
+//go:build ignore
+// This file is a test fixture — excluded from normal builds.
+
 // Safe database queries - should PASS validation
 package database
 
