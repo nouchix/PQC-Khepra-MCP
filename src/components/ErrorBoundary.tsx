@@ -8,13 +8,16 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
     hasError: boolean;
     error: Error | null;
-    errorInfo: ErrorInfo | null;
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    // errorInfo is stored as an instance field (not state) since it's only
+    // used for logging, not rendering. Avoids the unused-state-property lint. (#409)
+    private errorInfo: ErrorInfo | null = null;
+
     constructor(props: ErrorBoundaryProps) {
         super(props);
-        this.state = { hasError: false, error: null, errorInfo: null };
+        this.state = { hasError: false, error: null };
     }
 
     static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
@@ -22,7 +25,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        this.setState({ errorInfo });
+        this.errorInfo = errorInfo;
         // Log to console for debugging — production would send to telemetry
         console.error('[ErrorBoundary] Unhandled error caught:', error, errorInfo);
     }

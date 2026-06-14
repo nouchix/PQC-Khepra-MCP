@@ -282,10 +282,26 @@ export const useMFA = () => {
   // Generate backup codes using cryptographically secure random values
   const generateBackupCodes = useCallback((): string[] => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Use rejection sampling to eliminate modulo bias.
+    // floor(256 / 36) * 36 = 252; bytes 252–255 are discarded so each
+    // remaining byte maps uniformly to exactly one character. (CWE-338, alert #3)
+    const unbiasedRandomChar = (): string => {
+      const limit = Math.floor(256 / chars.length) * chars.length; // 252
+      const buf = new Uint8Array(1);
+      let b: number;
+      do {
+        crypto.getRandomValues(buf);
+        b = buf[0];
+      } while (b >= limit);
+      return chars[b % chars.length];
+    };
+
     const codes: string[] = [];
     for (let i = 0; i < 8; i++) {
-      const randomBytes = crypto.getRandomValues(new Uint8Array(6));
-      const code = Array.from(randomBytes).map(b => chars[b % chars.length]).join('');
+      let code = '';
+      for (let j = 0; j < 6; j++) {
+        code += unbiasedRandomChar();
+      }
       codes.push(code);
     }
     return codes;
