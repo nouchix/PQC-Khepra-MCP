@@ -1,0 +1,119 @@
+name: Publish MCP Container
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'manifest.json'
+      - 'Dockerfile.mcp'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Additional image tag (e.g. v1.2.3)'
+        required: false
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: nouchix/pqc-khepra-mcp
+
+jobs:
+  build-and-push:
+    name: Build & Push ghcr.io/nouchix/pqc-khepra-mcp
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # for OIDC attestation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event.inputs.tag != '' }}
+
+      - name: Build and push MCP container
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mcp
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Verify image starts and returns tools
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-$(git rev-parse --short HEAD)"
+          echo "Smoke-testing $IMAGE ..."
+
+          INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci-smoke","version":"1.0"}}}'
+          NOTIF='{"jsonrpc":"2.0","method":"notifications/initialized"}'
+          LIST='{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+          OUTPUT=$(printf '%s\n%s\n%s\n' "$INIT" "$NOTIF" "$LIST" | \
+            timeout 15 docker run --rm -i \
+              -e KHEPRA_MODE=sovereign \
+              "$IMAGE" 2>/dev/null)
+
+          TOOL_COUNT=$(echo "$OUTPUT" | python3 -c "
+          import sys, json
+          for line in sys.stdin:
+              line = line.strip()
+              if not line: continue
+              try:
+                  obj = json.loads(line)
+                  if obj.get('id') == 2:
+                      tools = obj.get('result', {}).get('tools', [])
+                      print(len(tools))
+                      break
+              except: pass
+          " 2>/dev/null)
+
+          echo "Tool count: $TOOL_COUNT"
+          if [ -z "$TOOL_COUNT" ] || [ "$TOOL_COUNT" -lt 12 ]; then
+            echo "❌ FAIL: Expected at least 12 tools, got: $TOOL_COUNT"
+            exit 1
+          fi
+          echo "✅ Container verified: $TOOL_COUNT tools registered"
+
+      - name: Output image digest
+        run: |
+          echo "## Container Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`ghcr.io/${{ env.IMAGE_NAME }}:latest\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Digest | \`${{ steps.build.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA tag | \`sha-$(git rev-parse --short HEAD)\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
