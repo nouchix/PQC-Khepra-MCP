@@ -54,6 +54,16 @@ pkg/llm/*/blobs/
 # Run: make fetch-cve OR data/cve-database/fetch-cve-data.sh
 data/cve-database/cve-data/
 
+# Large non-MCP data directories (not needed by khepra-mcp binary)
+pkg/ir/data/dag/
+pkg/sonar/data/
+pkg/tnok/
+pkg/llm/
+
+# Binary assets / media (not needed for MCP server build)
+pkg/phantom/*.jpg
+pkg/phantom/*.png
+pkg/phantom/*.mp4
 
 
 # Build output binaries (go build ./cmd/... drops these in repo root)

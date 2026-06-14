@@ -1,0 +1,810 @@
+{
+    "version":  "1.0.0",
+    "revision":  "build-1781537825",
+    "generated_at":  "2026-06-14T02:37:00Z",
+    "hash_algorithm":  "SHA-256",
+    "public_key_id":  "66d9bf6e088ef382",
+    "tools":  [
+                  {
+                      "name":  "acp_status",
+                      "description":  "List active ACP credentials and their expiry status",
+                      "risk_class":  "read_only",
+                      "scope":  "acp:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "05ad45dda2aed064c726444774a74499f5ed714913c7086e47113d1bf245de03",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "acp_issue",
+                      "description":  "Issue a new PQC credential via the Agent Control Plane",
+                      "risk_class":  "destructive",
+                      "scope":  "acp:write",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "292858740df7087108a51b10e94dcf2f17e85b9141e7af8fa39cc76d861d9273",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  false,
+                      "destructive":  true,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "agent_id":  {
+                                                                              "description":  "Agent identifier",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "scopes":  {
+                                                                            "items":  {
+                                                                                          "type":  "string"
+                                                                                      },
+                                                                            "type":  "array"
+                                                                        },
+                                                             "symbol":  {
+                                                                            "description":  "Adinkra symbol (default: Nkyinkyim)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "ttl_minutes":  {
+                                                                                 "description":  "Credential TTL in minutes",
+                                                                                 "type":  "number"
+                                                                             }
+                                                         },
+                                          "required":  [
+                                                           "agent_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "acp_revoke",
+                      "description":  "Revoke an active ACP credential",
+                      "risk_class":  "destructive",
+                      "scope":  "acp:write",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "b17d22356b3a4a509dd94334ac763cb7f8311e43175718e5252d08c5cacf2831",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  false,
+                      "destructive":  true,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "credential_id":  {
+                                                                                   "description":  "Credential ID to revoke",
+                                                                                   "type":  "string"
+                                                                               }
+                                                         },
+                                          "required":  [
+                                                           "credential_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "nhi_inventory",
+                      "description":  "List all non-human identities (service accounts, API keys, certificates)",
+                      "risk_class":  "read_only",
+                      "scope":  "nhi:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "2bf1ccfb842aeb825990eb0d4faf70ab0c681b2cb03b151a212a059b06717ef5",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "nhi_orphans",
+                      "description":  "Identify orphaned non-human identities with no active owner",
+                      "risk_class":  "read_only",
+                      "scope":  "nhi:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "d66c13ac0a9776c0f071362b793ea74860b1d6827a8eeef7dc76684e4fc17bd5",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "nhi_excessive",
+                      "description":  "Identify NHIs with overly broad permissions",
+                      "risk_class":  "read_only",
+                      "scope":  "nhi:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "cb8cbebebf617fd37f2d0fbe0bae03512dc69594c235e8e253c5c45613928488",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "max_scopes":  {
+                                                                                "description":  "Max scopes before flagging (default: 5)",
+                                                                                "type":  "number"
+                                                                            },
+                                                             "risk_threshold":  {
+                                                                                    "description":  "Min risk score to flag (default: 0.5)",
+                                                                                    "type":  "number"
+                                                                                }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "nhi_expired",
+                      "description":  "List expired or soon-to-expire non-human identities",
+                      "risk_class":  "read_only",
+                      "scope":  "nhi:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "274041d744f772a884c23a6cef4ba79198b36d6af309e7741c43e76806e471c0",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "nhi_revoke",
+                      "description":  "Revoke a non-human identity credential",
+                      "risk_class":  "destructive",
+                      "scope":  "nhi:write",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "c85a603c05303421b6c62dc0c5edb708e18ff171206af2cec598b8a349bfaeff",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  false,
+                      "destructive":  true,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "nhi_id":  {
+                                                                            "description":  "NHI identifier to revoke",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "nhi_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_scan",
+                      "description":  "Run ERT security scan (SBOM, CVE, secrets, STIG, PQC inventory) in Docker sandbox",
+                      "risk_class":  "sandboxed",
+                      "scope":  "ert:scan",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "ba99405a08c399235ff715a30be8c8e84639d77c1b5e4baf910bc7b9207a192a",
+                      "allowed_backend":  "docker",
+                      "timeout_ms":  90000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework: CMMC_L2, NIST_800_171, etc.",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "image_ref":  {
+                                                                               "description":  "Container image to scan (overrides project_path)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "lanes":  {
+                                                                           "description":  "Scan lanes: sca, horus, compliance",
+                                                                           "items":  {
+                                                                                         "type":  "string"
+                                                                                     },
+                                                                           "type":  "array"
+                                                                       },
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_readiness",
+                      "description":  "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap. Air-gap safe.",
+                      "risk_class":  "read_only",
+                      "scope":  "ert:compliance",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "6ae165af5e97a5ffca197584c7ca8b70085c664704e12ba7b6a62c7c296c5b08",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  60000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_architect",
+                      "description":  "Package B: Live supply chain risk ??? Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping. Requires syft+grype in PATH.",
+                      "risk_class":  "read_only",
+                      "scope":  "ert:supply-chain",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "308e12b0d6e2e11c57b9c91e6c8307debd146959007fd5f92facb4ddae2a4769",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  300000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_crypto",
+                      "description":  "Package C: PQC readiness attestation ??? source-level crypto primitive scan, SBOM crypto library inventory, weak primitive detection (MD5/SHA1/DES/RC4), CNSA 2.0 quantum risk context.",
+                      "risk_class":  "read_only",
+                      "scope":  "ert:pqc",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "fab6daa75ddd03d7c1ea595324815b374264157003ae99df9dc91baa17f8a731",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  180000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_godfather",
+                      "description":  "Package D: EA KernelRouter causal risk attestation. Runs STIG, PQC, SBOM, Network agents in parallel, produces board-level causal chain with CVSS-band dollar impact and DAG-signed evidence node.",
+                      "risk_class":  "read_only",
+                      "scope":  "ert:godfather",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "7cfd2d2b1da609c1e9ec7bc09cfa63be1a6e67dd5763ea074934738b401e1f14",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  300000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "dag_attestation",
+                      "description":  "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
+                      "risk_class":  "read_only",
+                      "scope":  "dag:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "9524d2458d5911f9e40ca2990b9624adc9813695c8cadc0bef6fcf25bd7ab871",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "godfather_report",
+                      "description":  "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token ??? the full report is held until a human calls godfather_approve (30-min TTL).",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:report",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "204967014a373a01309d8f67b475d1befa91d32cbbf1664d1d6fc4541465e9e0",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  30000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "approval_required":  {
+                                                                                       "description":  "Stage report for human review before delivery (default: false)",
+                                                                                       "type":  "boolean"
+                                                                                   },
+                                                             "engagement_id":  {
+                                                                                   "description":  "Optional engagement/ticket ID for traceability",
+                                                                                   "type":  "string"
+                                                                               },
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "scope":  {
+                                                                           "description":  "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "godfather_approve",
+                      "description":  "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use ??? token is consumed on delivery.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:report",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "b5d6439e8bb1db66a872a6c4bf9da5cdbb9e7efe0567993b2103677d99107371",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "staged_token":  {
+                                                                                  "description":  "Token returned by godfather_report when approval_required=true",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "required":  [
+                                                           "staged_token"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "nist_map",
+                      "description":  "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "63a0a8f837896e84384160a2bdc4bb825371253423763019451506fa819b9557",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "query":  {
+                                                                           "description":  "Search query (e.g. \u0027multi-factor authentication\u0027, \u0027encryption at rest\u0027)",
+                                                                           "type":  "string"
+                                                                       },
+                                                             "top_k":  {
+                                                                           "description":  "Max results to return (default: 10, max: 50)",
+                                                                           "type":  "number"
+                                                                       }
+                                                         },
+                                          "required":  [
+                                                           "query"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_watch",
+                      "description":  "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes. Satisfies CMMC AC.2.006, CM.2.061, SI.2.217.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:monitor",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "b1fa86ecfd4a13e3ce2492a53c878ed52a623e07e8466524da8da7311ead4006",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "action":  {
+                                                                            "description":  "Action: register | status | unregister",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework for triggered scans",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "path":  {
+                                                                          "description":  "Filesystem path to watch",
+                                                                          "type":  "string"
+                                                                      },
+                                                             "watch_id":  {
+                                                                              "description":  "Watch ID (for status/unregister)",
+                                                                              "type":  "string"
+                                                                          }
+                                                         },
+                                          "required":  [
+                                                           "action"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "discover_assets",
+                      "description":  "SouHimBou AI Step 01 — Discover and Classify Assets. Walks the project or system root and automatically inventories: OS (via /etc/os-release), language runtimes (Go, Python, Node.js, Java, Rust), container images (Dockerfile FROM directives), CI/CD pipelines, IaC (Terraform, Ansible), AI agent integrations (Claude, OpenAI, LangChain), MCP server configs, secret stores, and cryptographic libraries. Matches detected assets to applicable STIG profiles (RHEL-09-STIG-V1R3, Container STIG, CNSA 2.0 PQC, AI-Agent-MCP-SEC). Recommends CMMC level (L1/L2/L3) and generates a prioritized list of next tools to run. Output feeds directly into stig_check, cmmc_assess, ert_crypto, ert_architect, and flight_export.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "3a7f2d9c1b4e6a8f0c5d2e9b7a4f1c8d3b6e9a2f5c8d1b4e7a0f3c6d9b2e5a8",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  30000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "depth":  {
+                                                                            "description":  "Max filesystem depth to walk (default: 4)",
+                                                                            "type":  "number"
+                                                                        },
+                                                             "project_path":  {
+                                                                                  "description":  "Root path to scan (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "stig_check",
+                      "description":  "SouHimBou AI Step 02 — Run STIG control checks against a project or system. Supports RHEL-09-STIG-V1R3, CIS L1/L2, NIST 800-53, NIST 800-171, CMMC, and PQC-Readiness frameworks. Returns CAT I/II/III findings, compliance score, and remediation guidance. 100% offline.",
+                      "risk_class":  "read_only",
+                      "scope":  "stig:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "b2e5a8f1c4d7a0e3b6c9d2e5a8b1c4d7f0a3b6e9c2d5a8b1e4f7a0c3d6e9b2",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  60000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "STIG framework: RHEL-09-STIG, CIS-L1, CIS-L2, NIST-800-53, NIST-800-171, CMMC, PQC (default: RHEL-09-STIG)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "project_path":  {
+                                                                                  "description":  "Path to check (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "cmmc_assess",
+                      "description":  "SouHimBou AI Step 02 — CMMC Level 1, 2, or 3 practice assessment. Maps system posture to CMMC 2.0 domains, returns gap analysis with practice-level findings, compliance score, C3PAO readiness flag, and PQC status. 100% offline — no Supabase.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "c3f6a9d2e5b8c1f4a7d0e3b6c9f2a5d8e1b4c7f0a3d6e9b2c5f8a1d4e7b0c3",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  60000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "level":  {
+                                                                            "description":  "CMMC level: 1, 2, or 3 (default: 2)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "project_path":  {
+                                                                                  "description":  "Path to assess (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "agent_record",
+                      "description":  "SouHimBou AI Flight Recorder — record an agent action event. In sovereign/air-gap mode (SOUHIMBOU_ENDPOINT not set), writes to the local PQC-signed DAG audit log only. When SOUHIMBOU_ENDPOINT is set, forwards to SouHimBou AI SaaS ingest API. Required fields: action (e.g. tool_called, decision_made, file_modified). Optional: agent_id, tool_name, session_id, metadata.",
+                      "risk_class":  "read_only",
+                      "scope":  "audit:write",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "d4a7b0c3e6f9a2d5b8c1e4f7a0d3b6c9e2f5a8b1d4e7f0a3b6c9d2e5f8a1b4",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  true,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "action":  {
+                                                                             "description":  "Action type: tool_called, decision_made, file_modified, etc.",
+                                                                             "type":  "string"
+                                                                         },
+                                                             "agent_id":  {
+                                                                              "description":  "Agent identifier (default: from session context)",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "metadata":  {
+                                                                              "description":  "Additional metadata for the event",
+                                                                              "type":  "object"
+                                                                          },
+                                                             "session_id":  {
+                                                                                "description":  "Session identifier (default: from context)",
+                                                                                "type":  "string"
+                                                                            },
+                                                             "tool_name":  {
+                                                                               "description":  "Name of tool being recorded",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "required":  [
+                                                           "action"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "flight_export",
+                      "description":  "SouHimBou AI Step 03 — Export CMMC-aligned evidence packet from the flight recorder. Reads the tamper-evident NDJSON flight log, verifies the ML-DSA-65 signed chain, and returns an EvidencePacket with SOW pilot KPIs: tool_calls_captured, signed_privileged_pct, mean_evidence_time_ms, control_mapping_count. Ready for C3PAO submission.",
+                      "risk_class":  "read_only",
+                      "scope":  "audit:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "e5b8c1d4f7a0b3e6c9d2f5a8b1e4c7f0a3b6d9e2f5a8c1d4e7b0f3a6c9d2e5",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  30000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "log_path":  {
+                                                                              "description":  "Path to flight log file (default: KHEPRA_DATA_DIR/khepra-flight.ndjson)",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "session_id":  {
+                                                                                "description":  "Filter export to a specific session ID",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_export_attestation",
+                      "description":  "Export a PQC-signed attestation package (JSON) covering all active compliance frameworks. No Supabase. No network. The C3PAO-ready evidence artifact — ML-DSA-65-signed, DAG-anchored, NIST SP 800-171A compliant. Include dag_node_id in your C3PAO submission package.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:attest",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "f6c9d2e5a8b1c4f7a0d3e6b9c2f5a8d1e4b7c0f3a6d9e2b5f8a1c4d7e0b3f6",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  120000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "engagement_id":  {
+                                                                                   "description":  "Optional engagement/ticket ID for traceability",
+                                                                                   "type":  "string"
+                                                                               },
+                                                             "include_dag":  {
+                                                                                 "description":  "Include full DAG audit chain in output (default: true)",
+                                                                                 "type":  "boolean"
+                                                                             }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_export_poam",
+                      "description":  "Generate a DFARS 252.204-7012 / CMMC Plan of Action and Milestones (POA&M) from current compliance gaps. Offline. Includes control IDs, finding descriptions, responsible parties, milestones, and risk ratings. Export as JSON or Markdown.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "a7d0e3f6b9c2d5a8e1b4c7f0a3d6e9b2c5f8a1d4e7b0f3a6c9d2e5a8b1c4d7",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  30000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "format":  {
+                                                                            "description":  "Output format: json or markdown (default: json)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "framework":  {
+                                                                               "description":  "Framework to generate POA&M for (default: CMMC)",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_query_stig",
+                      "description":  "Lookup a specific STIG control, CCI item, or NIST 800-53 control by ID. Returns title, description, severity, remediation, and CMMC practice mapping. Supports STIG-ID, CCI-XXXXXX, AC-X, AU-X, CM-X, IA-X, SC-X, SI-X formats. 100% offline.",
+                      "risk_class":  "read_only",
+                      "scope":  "stig:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "b8e1f4a7c0d3e6b9f2a5d8e1b4c7f0a3d6e9b2c5f8a1d4e7b0c3f6a9d2e5b8",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "control_id":  {
+                                                                                "description":  "Control ID to look up (e.g. CCI-000001, AC-2, RHEL-09-211010)",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "required":  [
+                                                           "control_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_get_compliance_score",
+                      "description":  "Get a fast composite compliance score (0-100) across all active frameworks without running a full scan. Returns per-domain breakdown, trend delta vs previous scan, and C3PAO readiness indicator. Sub-second response. 100% offline.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "c9f2a5d8b1e4c7f0a3d6e9b2c5f8a1d4e7b0c3f6a9d2e5b8c1f4a7d0e3b6c9",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Framework to score: CMMC, NIST-800-171, RHEL-09-STIG, PQC (default: all)",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_query_threat_intel",
+                      "description":  "Query the embedded offline CISA KEV (Known Exploited Vulnerabilities) and CVE database. Returns KEV status, EPSS probability, CVSS score, MITRE ATT&CK mapping, and NIST 800-171 affected controls. Zero network calls — data embedded at build time.",
+                      "risk_class":  "read_only",
+                      "scope":  "threat:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "d0a3b6e9c2f5a8d1e4b7c0f3a6d9e2b5f8a1c4d7e0b3f6a9c2d5e8b1f4a7d0",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  5000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "cve_id":  {
+                                                                            "description":  "CVE ID to look up (e.g. CVE-2024-1234)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "query":  {
+                                                                           "description":  "Free-text search across KEV/CVE descriptions",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_get_dag_chain",
+                      "description":  "Retrieve the ML-DSA-65-signed DAG audit chain for the current or a specified session. Returns all nodes with signatures, timestamps, tool names, risk classes, and chain integrity status. Use for C3PAO evidence or incident forensics.",
+                      "risk_class":  "read_only",
+                      "scope":  "dag:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "e1b4c7f0a3d6e9b2c5f8a1d4e7b0c3f6a9d2e5b8e1f4a7d0e3b6c9f2a5d8e1",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  10000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "session_id":  {
+                                                                                "description":  "Session ID to retrieve chain for (default: current session)",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "owasp_agent_assess",
+                      "description":  "OWASP Agentic Top 10 for 2026 assessment. Evaluates this MCP server deployment against all 10 ASI risks (ASI01 Agent Goal Hijack through ASI10 Rogue Agents). Scores each risk 0-100, lists active KHEPRA controls and gaps, generates a PQC-signed evidence packet with executive summary and production readiness verdict. 100% offline. The only MCP tool that maps your agent stack to OWASP Agentic Top 10 with ML-DSA-65 signed evidence.",
+                      "risk_class":  "read_only",
+                      "scope":  "compliance:read",
+                      "schema_version":  "1.0.0",
+                      "schema_hash":  "f2a5d8b1e4c7f0a3d6e9b2c5f8a1d4e7b0c3f6a9d2e5b8c1f4a7d0e3b6c9f2",
+                      "allowed_backend":  "in-process",
+                      "timeout_ms":  15000,
+                      "network_allowed":  false,
+                      "destructive":  false,
+                      "args_schema":  {
+                                          "properties":  {
+                                                             "profile":  {
+                                                                              "description":  "Assessment profile: full | quick | executive (default: full)",
+                                                                              "type":  "string"
+                                                                          }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  }
+              ,
+  {
+    "name":           "dark_crypto_contribute",
+    "description":    "Dark Crypto Intelligence Network - Community Tier contribution tool. Accepts crypto findings from discover_assets or ert_crypto, strips ALL sensitive data (no file paths, IPs, hostnames, credentials collected), and submits anonymized cryptographic algorithm inventory to the Nouchix Dark Crypto Intelligence Network. Returns: global quantum exposure rank, quantum risk level, community statistics, and remediation recommendations. Offline mode: queues to ~/.khepra/dark_crypto_queue/ when unreachable. COMMUNITY TIER: no license key required. GDPR compliant, NIST SP 800-188 de-identification compliant.",
+    "risk_class":     "read_only",
+    "scope":          "compliance:read",
+    "schema_version": "1.0.0",
+    "schema_hash":    "dc01f2a5d8b1e4c7f0a3d6e9b2c5f8a1d4e7b0c3f6a9d2e5b8c1f4a7d0e3b6",
+    "allowed_backend":"in-process",
+    "timeout_ms":     15000,
+    "network_allowed":true,
+    "destructive":    false,
+    "args_schema": {
+      "type": "object",
+      "properties": {
+        "findings": {
+          "type": "array",
+          "description": "Array of crypto finding objects from discover_assets or ert_crypto. Each object: algorithm (required), library_name, library_version, usage_pattern, quantum_vulnerable.",
+          "items": { "type": "object" }
+        },
+        "algorithms": {
+          "type": "string",
+          "description": "Simple mode: comma-separated algorithm names e.g. RSA-2048,AES-128-CBC,SHA-1"
+        }
+      }
+    }
+  }
+,
+  {
+    "name":           "pqc_stig",
+    "description":    "World's First DoD PQC Security Technical Implementation Guide (PQC-01-STIG-V1R1). Runs 12 PQC-specific STIG controls exclusively — FIPS 203 (ML-KEM/Kyber), FIPS 204 (ML-DSA/Dilithium), FIPS 205 (SLH-DSA/SPHINCS+). Aligned to NSA CNSA 2.0. DISA has no PQC STIG as of mid-2026; this fills that gap for DoD contractors, C3PAOs, and FedRAMP system owners. CAT I: algorithm approval + key strength (ML-DSA-65 / ML-KEM-768 minimums). CAT II: hybrid crypto, key protection, constant-time implementation, PQC certificates. CAT III: audit logging, key rotation documentation, full-stack PQC coverage. Returns structured compliance score, CNSA 2.0 control mapping, migration timeline, and immediate remediation actions. Profiles: full (all 12 controls), quick (CAT I failures only), executive (summary stats). PHARAOH TIER: requires Enterprise license key.",
+    "risk_class":     "read_only",
+    "scope":          "compliance:read",
+    "schema_version": "1.0.0",
+    "schema_hash":    "pqc01f2a5d8b1e4c7f0a3d6e9b2c5f8a1d4e7b0c3f6a9d2e5b8c1f4a7d0e3",
+    "allowed_backend":"in-process",
+    "timeout_ms":     20000,
+    "network_allowed":false,
+    "destructive":    false,
+    "tier":           "community",
+    "args_schema": {
+      "type": "object",
+      "properties": {
+        "scan_path": {
+          "type": "string",
+          "description": "Path to the source code directory to assess (default: current directory). Relative to the project root. Examples: '.', 'pkg/', 'src/crypto/'. NOT an OS target \u2014 use stig_check for OS STIG assessments."
+        },
+        "profile": {
+          "type": "string",
+          "description": "Assessment profile: full (all 12 controls, default) | quick (CAT I failures only) | executive (summary stats, no per-finding detail)."
+        }
+      }
+    }
+  }
+]}
