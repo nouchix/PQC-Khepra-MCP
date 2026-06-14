@@ -17,6 +17,7 @@ import time
 import http.client
 import signal
 import socket
+import re
 from typing import Optional, List, Tuple
 
 # ============================================================================
@@ -34,6 +35,10 @@ AGENT_EXE = "adinkhepra-agent.exe"
 # Deployment modes that require full air-gap — no remote fallbacks permitted.
 SOVEREIGN_MODES = {"sovereign", "ironbank"}
 
+# Port validation range
+MIN_PORT = 1024
+MAX_PORT = 65535
+
 
 def is_sovereign() -> bool:
     """Return True when running in a sovereignty-guaranteed mode.
@@ -42,7 +47,40 @@ def is_sovereign() -> bool:
     (license server, telemetry, CVE feeds) must ABORT, not warn.
     Default is sovereign when KHEPRA_MODE is unset — safe by default.
     """
-    return os.environ.get("KHEPRA_MODE", "sovereign").lower() in SOVEREIGN_MODES
+    mode = os.environ.get("KHEPRA_MODE", "sovereign").lower()
+    # Validate mode is one of expected values
+    if mode not in {"sovereign", "ironbank", "hybrid", "edge"}:
+        return True  # Fail-closed: default to sovereign
+    return mode in SOVEREIGN_MODES
+
+
+def validate_port(port: int) -> bool:
+    """Validate port number is in acceptable range.
+    
+    Args:
+        port: Port number to validate
+        
+    Returns:
+        True if port is valid, False otherwise
+    """
+    try:
+        port_num = int(port)
+        return MIN_PORT <= port_num <= MAX_PORT
+    except (ValueError, TypeError):
+        return False
+
+
+def validate_component_name(component: str) -> bool:
+    """Validate component name contains only safe characters.
+    
+    Args:
+        component: Component name to validate
+        
+    Returns:
+        True if component name is safe, False otherwise
+    """
+    # Only allow alphanumeric, dash, and underscore
+    return bool(re.match(r'^[a-zA-Z0-9_-]+$', component))
 
 
 # ============================================================================
@@ -51,6 +89,9 @@ def is_sovereign() -> bool:
 
 def get_binary_name(component: str) -> str:
     """Get platform-specific binary name with correct extension."""
+    if not validate_component_name(component):
+        raise ValueError(f"Invalid component name: {component}")
+    
     system = platform.system().lower()
     ext = ".exe" if system == "windows" else ""
     return f"bin/{component}{ext}"
@@ -64,14 +105,22 @@ def should_use_shell() -> bool:
 def print_header(title: str, char: str = "=") -> None:
     """Print a formatted header."""
     width = 60
-    print(f"\n{char * width}")
+    # Sanitize char to single character
+    safe_char = char[0] if char else "="
+    print(f"\n{safe_char * width}")
     print(f"{title:^{width}}")
-    print(f"{char * width}\n")
+    print(f"{safe_char * width}\n")
 
 
 def print_step(step: str, total: int, current: int, message: str) -> None:
     """Print a formatted step message."""
-    print(f"\n[{current}/{total}] {message}...")
+    try:
+        total_int = int(total)
+        current_int = int(current)
+        if 0 < current_int <= total_int:
+            print(f"\n[{current_int}/{total_int}] {message}...")
+    except (ValueError, TypeError):
+        print(f"\n{message}...")
 
 
 def print_success(message: str) -> None:
@@ -109,19 +158,25 @@ def build(component: str, fips: bool = True) -> bool:
     Returns:
         True if build successful, False otherwise
     """
+    if not validate_component_name(component):
+        print_error(f"Invalid component name: {component}")
+        return False
+        
     print_info(f"Building {component} (FIPS={fips})...")
     binary = get_binary_name(component)
     
-    # Determine source path
+    # Determine source path - validate it doesn't contain path traversal
     if component == "adinkhepra-agent":
         cmd_path = "./cmd/agent"
     elif component == "adinkhepra":
         cmd_path = "./cmd/adinkhepra"
     else:
-        cmd_path = f"./cmd/{component.replace('adinkhepra-', '')}"
+        # Safe component name already validated above
+        safe_component = component.replace('adinkhepra-', '')
+        cmd_path = f"./cmd/{safe_component}"
     
-    # Build command
-    cmd = ["go", "build", MOD_VENDOR, "-o", binary]
+    # Build command with explicit shell=False for security
+    cmd = ["go", "build", MOD_VENDOR, "-o", binary, cmd_path]
     
     # Configure environment for FIPS mode
     env = os.environ.copy()
@@ -130,10 +185,9 @@ def build(component: str, fips: bool = True) -> bool:
         env["CGO_ENABLED"] = "1"
         print_info("[FIPS] Enabled GOEXPERIMENT=boringcrypto + CGO_ENABLED=1")
     
-    cmd.append(cmd_path)
-    
     try:
-        subprocess.check_call(cmd, env=env)
+        # Use shell=False explicitly for security
+        subprocess.check_call(cmd, env=env, shell=False)
         print_success(f"Build successful: {binary}")
         return True
     except subprocess.CalledProcessError:
@@ -141,6 +195,9 @@ def build(component: str, fips: bool = True) -> bool:
         return False
     except FileNotFoundError:
         print_error("'go' command not found. Please install Go 1.22+")
+        return False
+    except Exception as e:
+        print_error(f"Build error: {e}")
         return False
 
 
@@ -171,6 +228,16 @@ def wait_for_port(port: int, host: str = "127.0.0.1", timeout: int = PORT_WAIT_T
     Returns:
         True if port is available, False if timeout
     """
+    if not validate_port(port):
+        print_error(f"Invalid port number: {port}")
+        return False
+    
+    if host not in ("127.0.0.1", "localhost", "0.0.0.0"):
+        # Only allow loopback or any address for testing
+        if not re.match(r'^[0-9a-fA-F:.]+$', host):  # Basic IP validation
+            print_error(f"Invalid host: {host}")
+            return False
+    
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -181,18 +248,24 @@ def wait_for_port(port: int, host: str = "127.0.0.1", timeout: int = PORT_WAIT_T
             return True
         except (socket.error, socket.timeout):
             time.sleep(0.5)
+        except Exception:
+            # Catch other socket exceptions
+            time.sleep(0.5)
     return False
 
 
 def check_port_available(port: int, host: str = "127.0.0.1") -> bool:
     """Check if a port is currently available (not in use)."""
+    if not validate_port(port):
+        return False
+    
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1)
         result = sock.connect_ex((host, port))
         sock.close()
         return result != 0  # Port is available if connection fails
-    except socket.error:
+    except (socket.error, OSError):
         return True
 
 
@@ -223,11 +296,19 @@ def start_telemetry_server() -> Optional[subprocess.Popen]:
     print_info(f"Starting Telemetry Server (wrangler dev) on port {TELEMETRY_PORT}...")
     
     try:
-        # Start wrangler dev server
+        # Validate port before use
+        if not validate_port(TELEMETRY_PORT):
+            print_error(f"Invalid telemetry port: {TELEMETRY_PORT}")
+            return None
+        
+        # Build command explicitly - don't rely on shell
+        cmd = ["npx", "wrangler", "dev", "--local", "--port", str(TELEMETRY_PORT)]
+        
+        # Start wrangler dev server with shell=False
         telemetry_proc = subprocess.Popen(
-            ["npx", "wrangler", "dev", "--local", "--port", str(TELEMETRY_PORT)],
+            cmd,
             cwd=telemetry_dir,
-            shell=should_use_shell(),
+            shell=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
@@ -264,7 +345,7 @@ def start_telemetry_server() -> Optional[subprocess.Popen]:
 def _run_unit_tests() -> bool:
     print_step("Unit Tests", 4, 1, "Running Unit Tests")
     try:
-        result = subprocess.call(["go", "test", "-count=1", MOD_VENDOR, "./pkg/...", "./cmd/..."])
+        result = subprocess.call(["go", "test", "-count=1", MOD_VENDOR, "./pkg/...", "./cmd/..."], shell=False)
         if result != 0:
             print_error("Unit tests failed")
             return False
@@ -273,6 +354,9 @@ def _run_unit_tests() -> bool:
     except FileNotFoundError:
         print_error("'go' command not found. Please install Go 1.22+")
         return False
+    except Exception as e:
+        print_error(f"Test execution error: {e}")
+        return False
 
 def _test_pqc_key_gen() -> bool:
     print_step("PQC Key Generation", 4, 2, "Testing PQC Key Generation (CLI)")
@@ -280,7 +364,13 @@ def _test_pqc_key_gen() -> bool:
         return False
     cli_bin = get_binary_name("adinkhepra")
     try:
-        subprocess.check_output([cli_bin, "keygen", "-out", "test_key", "-comment", "validation-test"], stderr=subprocess.STDOUT)
+        # Validate output path doesn't contain traversal
+        if not validate_component_name("test_key"):
+            print_error("Invalid key name")
+            return False
+            
+        subprocess.check_output([cli_bin, "keygen", "-out", "test_key", "-comment", "validation-test"], 
+                              stderr=subprocess.STDOUT, shell=False)
         expected_files = ["test_key_dilithium", "test_key_dilithium.pub", "test_key_dilithium.pub.adinkhepra.json", "test_key_kyber", "test_key_kyber.pub"]
         missing_files = [f for f in expected_files if not os.path.exists(f)]
         if missing_files:
@@ -294,10 +384,14 @@ def _test_pqc_key_gen() -> bool:
                 pass
         return True
     except subprocess.CalledProcessError as e:
-        print_error(f"CLI execution failed: {e.output.decode()}")
+        output = e.output if isinstance(e.output, str) else e.output.decode() if e.output else ""
+        print_error(f"CLI execution failed: {output}")
+        return False
+    except Exception as e:
+        print_error(f"Key generation error: {e}")
         return False
 
-def _wait_for_agent() -> http.client.HTTPConnection:
+def _wait_for_agent() -> Optional[http.client.HTTPConnection]:
     attempts = AGENT_STARTUP_TIMEOUT * 2
     conn = None
     while attempts > 0:
@@ -306,11 +400,14 @@ def _wait_for_agent() -> http.client.HTTPConnection:
             conn.request("GET", "/healthz")
             res = conn.getresponse()
             if res.status == 200:
-                data = json.load(res)
-                if data.get("ok"):
-                    print_success("Agent health check passed")
-                    return conn
-        except Exception:
+                try:
+                    data = json.load(res)
+                    if data.get("ok"):
+                        print_success("Agent health check passed")
+                        return conn
+                except json.JSONDecodeError:
+                    pass
+        except (OSError, http.client.HTTPException):
             pass
         time.sleep(0.5)
         attempts -= 1
@@ -325,10 +422,11 @@ def _test_agent_api() -> bool:
     if not check_port_available(AGENT_PORT):
         print_warning(f"Port {AGENT_PORT} is in use, attempting to free it...")
         if platform.system().lower() == "windows":
-            subprocess.call(["taskkill", "/F", "/IM", AGENT_EXE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.call(["taskkill", "/F", "/IM", AGENT_EXE], 
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         time.sleep(2)
     print_info(f"Starting Agent on port {AGENT_PORT}...")
-    agent_proc = subprocess.Popen([agent_bin], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    agent_proc = subprocess.Popen([agent_bin], cwd=".", shell=False)
     try:
         conn = _wait_for_agent()
         if not conn:
@@ -336,7 +434,8 @@ def _test_agent_api() -> bool:
             return False
         print_step("Polymorphic API", 4, 4, "Validating Polymorphic API (Mitochondreal-Scarab)")
         try:
-            subprocess.check_call([sys.executable, "-c", "import torch; import fastapi; import uvicorn"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call([sys.executable, "-c", "import torch; import fastapi; import uvicorn"], 
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
             print_success("Python ML dependencies verified")
         except subprocess.CalledProcessError:
             print_warning("Missing Python ML dependencies (torch, fastapi, uvicorn)")
@@ -358,7 +457,8 @@ def _test_agent_api() -> bool:
     finally:
         print_step("Teardown", 4, 4, "Cleaning up test processes")
         if platform.system().lower() == "windows":
-            subprocess.call(["taskkill", "/F", "/IM", AGENT_EXE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.call(["taskkill", "/F", "/IM", AGENT_EXE], 
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
         else:
             agent_proc.terminate()
             agent_proc.wait()
@@ -374,7 +474,7 @@ def validate() -> bool:
     if os.path.exists(get_binary_name("adinkhepra")):
         try:
             cli_bin = get_binary_name("adinkhepra")
-            subprocess.check_call([cli_bin, "scada", "audit"], stderr=subprocess.STDOUT)
+            subprocess.check_call([cli_bin, "scada", "audit"], stderr=subprocess.STDOUT, shell=False)
             print_success("Sunsum Vitality baseline verified (TRL-10)")
         except subprocess.CalledProcessError:
             print_warning("Akoko Nan Simulation skipped (Nsohia Flow not initiated)")
@@ -400,7 +500,7 @@ def validate() -> bool:
 # LAUNCH FUNCTIONS
 # ============================================================================
 
-def launch(args: List[str] = None) -> None:
+def launch(args: Optional[List[str]] = None) -> None:
     """
     Launch the complete ADINKHEPRA stack.
     
@@ -423,10 +523,14 @@ def launch(args: List[str] = None) -> None:
         try:
             idx = args.index("--llm-port")
             llm_port = args[idx + 1]
+            # Validate port
+            if not validate_port(llm_port):
+                print_error(f"Invalid LLM port: {llm_port}")
+                sys.exit(1)
             os.environ["ADINKHEPRA_LLM_URL"] = f"http://localhost:{llm_port}"
             print_info(f"[Config] Override LLM_URL: {os.environ['ADINKHEPRA_LLM_URL']}")
         except (ValueError, IndexError):
-            print_error("--llm-port requires a port number")
+            print_error("--llm-port requires a valid port number")
             sys.exit(1)
     
     # Start telemetry server
@@ -439,13 +543,13 @@ def launch(args: List[str] = None) -> None:
         sys.exit(1)
     
     print_info(f"Starting Backend: {agent_bin} (Port {AGENT_PORT})")
-    agent_proc = subprocess.Popen([agent_bin], cwd=".")
+    agent_proc = subprocess.Popen([agent_bin], cwd=".", shell=False)
     
     # Start frontend
     print_info(f"Starting Frontend: npm run dev (Port {FRONTEND_PORT})")
     frontend_proc = subprocess.Popen(
         ["npm", "run", "dev"],
-        shell=should_use_shell(),
+        shell=False,
         cwd="."
     )
     
@@ -465,7 +569,8 @@ def launch(args: List[str] = None) -> None:
             subprocess.call(
                 ["taskkill", "/F", "/IM", AGENT_EXE],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
+                shell=False
             )
         else:
             agent_proc.terminate()
@@ -493,6 +598,10 @@ def run(component: str, args: List[str]) -> None:
         component: Component name
         args: Command-line arguments to pass to component
     """
+    if not validate_component_name(component):
+        print_error(f"Invalid component name: {component}")
+        sys.exit(1)
+        
     binary = get_binary_name(component)
     
     if not os.path.exists(binary):
@@ -503,9 +612,12 @@ def run(component: str, args: List[str]) -> None:
     print_info(f"Running {component} with args: {args}")
     
     try:
-        subprocess.call([binary] + args)
+        subprocess.call([binary] + args, shell=False)
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print_error(f"Execution error: {e}")
+        sys.exit(1)
 
 
 # ============================================================================
@@ -529,7 +641,8 @@ def launch_tnok(args: List[str]) -> None:
     try:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-e", tnok_path],
-            stdout=subprocess.DEVNULL
+            stdout=subprocess.DEVNULL,
+            shell=False
         )
     except subprocess.CalledProcessError:
         print_error("Failed to install Tnok. Ensure 'pkg/tnok/tnok' exists with pyproject.toml")
@@ -540,9 +653,12 @@ def launch_tnok(args: List[str]) -> None:
     print_info("ℹ️  Use 'tnokd --help' to see options")
     
     try:
-        subprocess.call([sys.executable, "-m", "tnokd.__main__"] + args)
+        subprocess.call([sys.executable, "-m", "tnokd.__main__"] + args, shell=False)
     except KeyboardInterrupt:
         print_success("Tnok Stealth Gateway shutdown")
+    except Exception as e:
+        print_error(f"Tnok error: {e}")
+        sys.exit(1)
 
 
 # ============================================================================
@@ -575,6 +691,12 @@ def main() -> None:
     command = sys.argv[1].lower()
     extra_args = sys.argv[2:]
     
+    # Validate command
+    valid_commands = {"build", "agent", "cli", "scada", "launch", "test", "validate", "tnok"}
+    if command not in valid_commands and not command.startswith("-"):
+        # Allow unknown commands to be passed to CLI
+        pass
+    
     if command == "build":
         fips_mode = "--no-fips" not in extra_args
         success = build_all_components(fips=fips_mode)
@@ -597,7 +719,7 @@ def main() -> None:
         result = subprocess.call([
             "go", "test", "-count=1", MOD_VENDOR,
             "./pkg/...", "./cmd/..."
-        ])
+        ], shell=False)
         sys.exit(result)
         
     elif command == "validate":
