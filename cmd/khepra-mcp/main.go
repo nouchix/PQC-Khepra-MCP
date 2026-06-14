@@ -5,7 +5,8 @@
 // via stdin/stdout JSON-RPC transport as defined by the MCP specification.
 //
 // Security chain:
-//   DEMARC → Manifest → Polymorphic → MCPGateway → Executor → Attestation
+//
+//	DEMARC → Manifest → Polymorphic → MCPGateway → Executor → Attestation
 //
 // All tool responses are PQC-signed (Adinkhepra ML-DSA-65) and DAG-anchored.
 // Tool schemas are pinned via signed manifest with fail-closed startup verification.
@@ -395,6 +396,17 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// global quantum exposure rank and community intelligence.
 	// This is the primary value exchange of the Community open-source tier.
 	executor.RegisterFunc("dark_crypto_contribute", tools.HandleDarkCryptoContribute)
+
+	// ── SBOM Generation (Syft-backed with filesystem-walk fallback) ──────────
+	// Generates a CycloneDX / SPDX SBOM with PQC readiness annotations.
+	// Zero external-binary dependency: falls back to go.mod/requirements.txt
+	// walk when syft is not in PATH.
+	executor.RegisterFunc("sbom_generate", tools.HandleSBOMGenerate)
+
+	// ── STRIDE Threat Model (100% offline, NIST 800-53 + MITRE ATT&CK) ──────
+	// Detects project technology profile and generates a context-aware
+	// STRIDE threat catalog with NIST 800-53 / CMMC / ATT&CK mappings.
+	executor.RegisterFunc("threat_model", tools.HandleThreatModel)
 }
 
 // ─── Manifest Loading ──────────────────────────────────────────────────────────
@@ -560,12 +572,12 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 
 		// ── ERT Packages A–D (in-process, structured JSON, ASAF-enriched) ────
 		{
-			Name:           "ert_readiness",
-			Description:    "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0–100), control gaps, and prioritized remediation roadmap. Air-gap safe.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "ert:compliance",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("ert_readiness"),
+			Name:        "ert_readiness",
+			Description: "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0–100), control gaps, and prioritized remediation roadmap. Air-gap safe.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "ert:compliance",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ert_readiness"),
 			AllowedBackend: "in-process", TimeoutMs: 60000,
-			MaxPrivilege:   "read-only",
+			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -574,12 +586,12 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 			},
 		},
 		{
-			Name:           "ert_architect",
-			Description:    "Package B: Live supply chain risk — Syft SBOM generation + Grype CVE matching + threat intel enrichment (CISA KEV, EPSS, MITRE ATT&CK). Returns enriched findings with NIST 800-171 control mapping.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "ert:supply-chain",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("ert_architect"),
+			Name:        "ert_architect",
+			Description: "Package B: Live supply chain risk — Syft SBOM generation + Grype CVE matching + threat intel enrichment (CISA KEV, EPSS, MITRE ATT&CK). Returns enriched findings with NIST 800-171 control mapping.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "ert:supply-chain",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ert_architect"),
 			AllowedBackend: "in-process", TimeoutMs: 300000,
-			MaxPrivilege:   "read-only",
+			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -589,12 +601,12 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 			},
 		},
 		{
-			Name:           "ert_crypto",
-			Description:    "Package C: PQC readiness attestation — source-level crypto primitive scan, SBOM crypto library inventory (OpenSSL, Kyber, Dilithium, etc.), weak primitive detection (MD5/SHA1/DES/RC4), CNSA 2.0 scenario-based quantum risk context.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "ert:pqc",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("ert_crypto"),
+			Name:        "ert_crypto",
+			Description: "Package C: PQC readiness attestation — source-level crypto primitive scan, SBOM crypto library inventory (OpenSSL, Kyber, Dilithium, etc.), weak primitive detection (MD5/SHA1/DES/RC4), CNSA 2.0 scenario-based quantum risk context.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "ert:pqc",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ert_crypto"),
 			AllowedBackend: "in-process", TimeoutMs: 180000,
-			MaxPrivilege:   "read-only",
+			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -603,12 +615,12 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 			},
 		},
 		{
-			Name:           "ert_godfather",
-			Description:    "Package D: EA KernelRouter-synthesized causal risk attestation. Runs STIG, PQC, SBOM, and Network agents in parallel, produces board-level causal chain with CVSS-band dollar impact estimate and DAG-signed evidence node.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "ert:godfather",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("ert_godfather"),
+			Name:        "ert_godfather",
+			Description: "Package D: EA KernelRouter-synthesized causal risk attestation. Runs STIG, PQC, SBOM, and Network agents in parallel, produces board-level causal chain with CVSS-band dollar impact estimate and DAG-signed evidence node.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "ert:godfather",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ert_godfather"),
 			AllowedBackend: "in-process", TimeoutMs: 300000,
-			MaxPrivilege:   "read-only",
+			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -620,25 +632,25 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 
 		// ── DAG Attestation ──────────────────────────────────────────────────
 		{
-			Name:           "dag_attestation",
-			Description:    "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain. Use after any ERT scan to produce a cryptographically-verifiable evidence package.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "dag:read",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("dag_attestation"),
+			Name:        "dag_attestation",
+			Description: "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain. Use after any ERT scan to produce a cryptographically-verifiable evidence package.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "dag:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("dag_attestation"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
-			MaxPrivilege:   "read-only",
-			ArgsSchema:     noArgSchema,
+			MaxPrivilege: "read-only",
+			ArgsSchema:   noArgSchema,
 		},
 
 		// ── STIG Check ────────────────────────────────────────────────────────
 		// Architecture Doc Layer 4 tool. Runs RHEL-09-STIG V1R3 or any
 		// supported framework via the pkg/stig Validator engine.
 		{
-			Name: "stig_check",
+			Name:        "stig_check",
 			Description: "Check a system path or configuration against STIG controls. Runs RHEL-09-STIG V1R3 by default. Returns CAT I/II/III findings with remediation guidance and a compliance score. Supports: RHEL-09-STIG-V1R3, CIS-RHEL-9-L1, CIS-RHEL-9-L2, NIST-800-53-Rev5, NIST-800-171-Rev2, CMMC-3.0-L3, PQC-Readiness.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "stig:read",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("stig_check"),
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "stig:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("stig_check"),
 			AllowedBackend: "in-process", TimeoutMs: 60000,
-			MaxPrivilege:   "read-only",
+			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -654,12 +666,12 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		// Architecture Doc Layer 4 tool. Full CMMC 3.0 Level 1/2/3 assessment
 		// via the pkg/stig compliance database (36,195 control mappings).
 		{
-			Name: "cmmc_assess",
+			Name:        "cmmc_assess",
 			Description: "Assess a system or artifact against CMMC Level 1, 2, or 3 practices. Uses the KHEPRA compliance database (36,195 STIG→CCI→NIST→CMMC mappings). Returns satisfaction score, gap list, C3PAO readiness flag, and PQC status. Required before CMMC-AB assessment.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "compliance:read",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("cmmc_assess"),
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("cmmc_assess"),
 			AllowedBackend: "in-process", TimeoutMs: 60000,
-			MaxPrivilege:   "read-only",
+			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -675,14 +687,14 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		// Forwards agent action events to SouHimBou AI Flight Recorder.
 		// Sovereign fallback: records in local PQC-signed DAG audit log.
 		{
-			Name: "agent_record",
+			Name:        "agent_record",
 			Description: "Record an agent action in the SouHimBou AI Flight Recorder (agentic AI observability). In sovereign/air-gap mode, records to the local PQC-signed DAG audit log. Set SOUHIMBOU_ENDPOINT env var to forward to SouHimBou AI SaaS. Required for AI flight recorder compliance evidence.",
-			RiskClass:      khepramcp.RiskReadOnly, Scope: "audit:write",
-			SchemaVersion:  "1.0.0", SchemaHash: hash("agent_record"),
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "audit:write",
+			SchemaVersion: "1.0.0", SchemaHash: hash("agent_record"),
 			AllowedBackend: "in-process", TimeoutMs: 15000,
-			MaxPrivilege:   "audit-write",
+			MaxPrivilege: "audit-write",
 			ArgsSchema: map[string]any{
-				"type": "object",
+				"type":     "object",
 				"required": []string{"action"},
 				"properties": map[string]any{
 					"action":     map[string]any{"type": "string", "description": "The agent action to record (e.g. 'tool_called', 'decision_made', 'file_modified', 'scan_completed')"},
@@ -698,25 +710,25 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		// Security Track 6: staged delivery with 30-min TTL token.
 		// Full report only released after human calls godfather_approve.
 		{
-			Name: "godfather_report",
+			Name:        "godfather_report",
 			Description: "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:report",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:report",
 			SchemaVersion: "1.0.0", SchemaHash: hash("godfather_report"),
 			AllowedBackend: "in-process", TimeoutMs: 30000,
 			MaxPrivilege: "stig-db-read",
 			ArgsSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"framework":        map[string]any{"type": "string", "description": "Compliance framework (CMMC_L2, NIST_800_171, STIG)"},
+					"framework":         map[string]any{"type": "string", "description": "Compliance framework (CMMC_L2, NIST_800_171, STIG)"},
 					"approval_required": map[string]any{"type": "boolean", "description": "If true, returns staged token requiring human approval"},
-					"project_path":     map[string]any{"type": "string", "description": "Path to project directory"},
+					"project_path":      map[string]any{"type": "string", "description": "Path to project directory"},
 				},
 			},
 		},
 		{
-			Name: "godfather_approve",
+			Name:        "godfather_approve",
 			Description: "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:report",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:report",
 			SchemaVersion: "1.0.0", SchemaHash: hash("godfather_approve"),
 			AllowedBackend: "in-process", TimeoutMs: 5000,
 			MaxPrivilege: "read-only",
@@ -733,9 +745,9 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		// Zero token cost, zero network calls, air-gap safe.
 		// 36,195 NIST/CMMC/STIG control mappings indexed at startup.
 		{
-			Name: "nist_map",
+			Name:        "nist_map",
 			Description: "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:read",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("nist_map"),
 			AllowedBackend: "in-process", TimeoutMs: 5000,
 			MaxPrivilege: "read-only",
@@ -754,9 +766,9 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		// Registers filesystem watches that fire ert_scan on file change.
 		// Satisfies CMMC AC.2.006, CM.2.061, SI.2.217.
 		{
-			Name: "khepra_watch",
+			Name:        "khepra_watch",
 			Description: "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes. Action: register | status | unregister.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:monitor",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:monitor",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_watch"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
 			MaxPrivilege: "read-only",
@@ -775,7 +787,7 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "khepra_export_attestation",
 			Description: "Export a PQC-signed attestation package (JSON) covering all active compliance frameworks. No Supabase. No network. The C3PAO-ready evidence artifact — Dilithium-signed, DAG-anchored, NIST SP 800-171A compliant. Include dag_node_id in your C3PAO submission package.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:attest",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:attest",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_export_attestation"),
 			AllowedBackend: "in-process", TimeoutMs: 120000,
 			MaxPrivilege: "read-only",
@@ -791,7 +803,7 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "khepra_export_poam",
 			Description: "Export a Plan of Action & Milestones (POA&M) from STIG/CMMC scan findings. DFARS 252.204-7012 and NIST SP 800-171A requirement. Returns prioritized remediation items with estimated costs and scheduled completion dates. 100% offline.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:poam",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:poam",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_export_poam"),
 			AllowedBackend: "in-process", TimeoutMs: 120000,
 			MaxPrivilege: "read-only",
@@ -807,7 +819,7 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "khepra_query_stig",
 			Description: "Look up STIG controls, CCI items, or NIST 800-53 controls by ID or keyword. Backed by the embedded 36,195-row STIG↔CCI↔NIST↔CMMC cross-reference database. Returns cross-references, severity, and remediation context. 100% offline.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "stig:read",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "stig:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_query_stig"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
 			MaxPrivilege: "read-only",
@@ -824,7 +836,7 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "khepra_get_compliance_score",
 			Description: "Get the compliance score for a specific framework without running a full scan. Targeted scan against a single framework. Good for dashboards and quick health checks. Frameworks: CMMC, STIG, NIST-171, NIST-53, PQC, PQC-STIG.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:read",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_get_compliance_score"),
 			AllowedBackend: "in-process", TimeoutMs: 60000,
 			MaxPrivilege: "read-only",
@@ -841,7 +853,7 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "khepra_query_threat_intel",
 			Description: "Query CISA Known Exploited Vulnerabilities (KEV) and NVD CVE data from the embedded offline database. Search by CVE ID (CVE-2021-44228) or keyword (log4j, apache, openssl). Returns severity, KEV status, and remediation action. 100% offline — no NVD API calls.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "threat:read",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "threat:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_query_threat_intel"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
 			MaxPrivilege: "read-only",
@@ -858,18 +870,18 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "khepra_get_dag_chain",
 			Description: "Retrieve the ML-DSA-65-signed DAG audit chain for the current session. Each node represents a tool call with a PQC signature, timestamp, and Adinkra symbol. Use to produce a forensic evidence package for C3PAO or DFARS audit. 100% offline.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "dag:read",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "dag:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("khepra_get_dag_chain"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
 			MaxPrivilege: "read-only",
-			ArgsSchema: noArgSchema,
+			ArgsSchema:   noArgSchema,
 		},
 
 		// SouHimBou AI Step 01 — Discover & Classify
 		{
 			Name:        "discover_assets",
 			Description: "SouHimBou AI Step 01 — Discover & Classify Assets. Walks the project or system root and automatically inventories: OS (via /etc/os-release), language runtimes (Go, Python, Node.js, Java, Rust), container images (Dockerfile FROM directives), CI/CD pipelines, IaC (Terraform, Ansible), AI agent integrations (Claude, OpenAI, LangChain), MCP server configs, secret stores, and cryptographic libraries. Matches detected assets to applicable STIG profiles (RHEL-09-STIG-V1R3, Container STIG, CNSA 2.0 PQC, AI-Agent-MCP-SEC). Recommends CMMC level (L1/L2/L3) and generates a prioritized list of next tools to run. Output feeds directly into stig_check, cmmc_assess, ert_crypto, ert_architect, and flight_export.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:read",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("discover_assets"),
 			AllowedBackend: "in-process", TimeoutMs: 30000,
 			MaxPrivilege: "read-only",
@@ -886,12 +898,12 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "agent_record",
 			Description: "SouHimBou AI Flight Recorder: record an agent action in the tamper-evident flight log. Captures intent summary, session context, and CMMC control mappings. In sovereign mode, writes to a local ML-DSA-65-signed NDJSON log. If SOUHIMBOU_ENDPOINT is set, forwards to the SouHimBou AI SaaS. Required field: action (human-readable description of what the agent did).",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "audit:write",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "audit:write",
 			SchemaVersion: "1.0.0", SchemaHash: hash("agent_record"),
 			AllowedBackend: "in-process", TimeoutMs: 5000,
 			MaxPrivilege: "read-only",
 			ArgsSchema: map[string]any{
-				"type": "object",
+				"type":     "object",
 				"required": []string{"action"},
 				"properties": map[string]any{
 					"action":     map[string]any{"type": "string", "description": "Human-readable description of the agent action (e.g. 'Ran stig_check on /opt/app')"},
@@ -906,7 +918,7 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 		{
 			Name:        "flight_export",
 			Description: "SouHimBou AI Flight Recorder: export a CMMC-aligned evidence packet from the flight log. Reads the persistent signed flight log, verifies the ML-DSA-65 tamper chain, and produces a structured EvidencePacket mapping all agent actions to NIST SP 800-171 Rev 2 and CMMC 2.0 Level 2 controls. Computes all SOW pilot KPIs: calls captured, % privileged calls signed, mean evidence time, control mapping count. 100% offline.",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:report",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "compliance:report",
 			SchemaVersion: "1.0.0", SchemaHash: hash("flight_export"),
 			AllowedBackend: "in-process", TimeoutMs: 30000,
 			MaxPrivilege: "read-only",
@@ -915,6 +927,64 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 				"properties": map[string]any{
 					"session_id": map[string]any{"type": "string", "description": "Filter to a specific session ID (omit to export all sessions)"},
 					"log_path":   map[string]any{"type": "string", "description": "Path to flight log file (default: $KHEPRA_DATA_DIR/khepra-flight.ndjson)"},
+				},
+			},
+		},
+
+		// ── PQC STIG (World's First DoD PQC STIG — PQC-01-STIG-V1R1) ─────────
+		// CNSA 2.0 / FIPS 203/204/205 readiness baseline.
+		// CAT I–III controls for ML-KEM, ML-DSA, SLH-DSA, hybrid crypto,
+		// key storage, side-channel resistance, cert chain, and audit.
+		{
+			Name:        "pqc_stig",
+			Description: "World's First DoD PQC STIG — PQC-01-STIG-V1R1. Runs 12 CNSA 2.0 / FIPS 203/204/205 controls (4 CAT I, 5 CAT II, 3 CAT III). Fast (<1s). Returns compliance score, readiness verdict, migration timeline, and immediate actions. Use ert_crypto for SBOM-level PQC inventory.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "pqc:stig",
+			SchemaVersion: "1.0.0", SchemaHash: hash("pqc_stig"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"scan_path": map[string]any{"type": "string", "description": "Path to project directory to scan (default: current directory)"},
+					"profile":   map[string]any{"type": "string", "enum": []string{"full", "quick", "executive"}, "description": "Output profile: full (all controls), quick (CAT I failures only), executive (summary only — default: full)"},
+				},
+			},
+		},
+
+		// ── SBOM Generation ───────────────────────────────────────────────────
+		// Uses Syft (CycloneDX/SPDX) when in PATH, falls back to filesystem walk.
+		// Annotates components with PQC readiness and weak-crypto flags.
+		{
+			Name:        "sbom_generate",
+			Description: "Generate a Software Bill of Materials (SBOM) for the target project. Uses Syft for CycloneDX/SPDX output when available; falls back to language manifest walk (go.mod, requirements.txt, package.json). Annotates all components with PQC readiness and quantum-vulnerable crypto flags.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "sbom:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("sbom_generate"),
+			AllowedBackend: "in-process", TimeoutMs: 300000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_path":  map[string]any{"type": "string", "description": "Path to project directory (default: current directory)"},
+					"output_format": map[string]any{"type": "string", "enum": []string{"cyclonedx-json", "spdx-json"}, "description": "SBOM output format (default: cyclonedx-json)"},
+				},
+			},
+		},
+
+		// ── STRIDE Threat Model ───────────────────────────────────────────────
+		// 100% offline. Detects project tech profile and builds a contextual
+		// STRIDE threat catalog with NIST 800-53 Rev5 + CMMC + MITRE ATT&CK.
+		{
+			Name:        "threat_model",
+			Description: "Generate a STRIDE threat model for the target project. Detects project technology (Go, Python, Node, Docker, gRPC, MCP, AI agent) and produces contextual threats mapped to NIST 800-53 Rev5 controls, CMMC practices, and MITRE ATT&CK techniques. 100% offline. Ideal before architecture reviews or C3PAO assessments.",
+			RiskClass:   khepramcp.RiskReadOnly, Scope: "threat:model",
+			SchemaVersion: "1.0.0", SchemaHash: hash("threat_model"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_path": map[string]any{"type": "string", "description": "Path to project directory (default: current directory)"},
+					"scope":        map[string]any{"type": "string", "enum": []string{"application", "infrastructure", "ai-agent", "full"}, "description": "Threat modeling scope (default: application)"},
 				},
 			},
 		},
