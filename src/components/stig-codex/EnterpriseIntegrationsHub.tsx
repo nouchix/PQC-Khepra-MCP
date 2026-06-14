@@ -122,7 +122,7 @@ export const EnterpriseIntegrationsHub = () => {
 
   const syncIntegration = async (integrationId: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
         body: {
           action: 'sync_integration',
           integration_id: integrationId,

@@ -116,7 +116,7 @@ export const STIGAssetScanner: React.FC<STIGAssetScannerProps> = ({
       setLoading(true);
       
       for (const assetId of assetIds) {
-        const { _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
+        const { data: _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
           body: {
             action: 'scan',
             asset_id: assetId,
@@ -150,7 +150,7 @@ export const STIGAssetScanner: React.FC<STIGAssetScannerProps> = ({
 
   const cancelScan = async (jobId: string) => {
     try {
-      const { _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
         body: {
           action: 'cancel_scan',
           job_id: jobId,

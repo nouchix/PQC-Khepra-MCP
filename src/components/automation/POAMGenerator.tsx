@@ -89,7 +89,7 @@ export const POAMGenerator = () => {
     setGenerating(true);
     try {
       // Call automated-remediation function to generate updated POAM
-      const { _data, error } = await supabase.functions.invoke('automated-remediation', {
+      const { data: _data, error } = await supabase.functions.invoke('automated-remediation', {
         body: {
           action: 'generate_poam',
           framework: selectedFramework || 'cmmc-2.0'

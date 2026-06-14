@@ -39,7 +39,7 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
   const [discoveredAssets, setDiscoveredAssets] = useState<DiscoveredAsset[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { _toast } = useToast();
+  const { toast: _toast } = useToast();
 
   const phases = [
     { id: 'discovery', label: 'Asset Discovery', icon: Scan },
@@ -185,7 +185,7 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
       addAIMessage("Now analyzing STIG compliance for each discovered asset...");
 
       // Call STIG analysis service
-      const { _data, error } = await supabase.functions.invoke('stig-compliance-analyzer', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-compliance-analyzer', {
         body: {
           assets: assets.map(a => ({
             id: a.id,

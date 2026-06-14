@@ -84,7 +84,7 @@ export const EvidenceCollectionEngine: React.FC = () => {
   const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const [isCollecting, setIsCollecting] = useState(false);
   const [collectionProgress, setCollectionProgress] = useState(0);
-  const { userIntegrations, _library, _loading } = useIndustryIntegrations();
+  const { userIntegrations, _library, loading: _loading } = useIndustryIntegrations();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export const EvidenceCollectionEngine: React.FC = () => {
       }, 500);
 
       // Call enhanced evidence collection function
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'collect_evidence',
           framework,

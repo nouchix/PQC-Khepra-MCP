@@ -105,7 +105,7 @@ export const STIGComplianceReports: React.FC<STIGComplianceReportsProps> = ({
     try {
       setGenerating(true);
       
-      const { _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
+      const { data: _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
         body: {
           action: 'generate_report',
           organization_id: organizationId,

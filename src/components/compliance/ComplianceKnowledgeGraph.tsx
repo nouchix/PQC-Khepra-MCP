@@ -245,7 +245,7 @@ export const ComplianceKnowledgeGraph: React.FC = () => {
   const refreshGraph = async () => {
     try {
       // Simulate fetching updated graph data
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'generate_knowledge_graph',
           includeRemediations: true,

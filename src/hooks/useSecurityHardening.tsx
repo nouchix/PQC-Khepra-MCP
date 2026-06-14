@@ -18,7 +18,7 @@ interface SecurityMetrics {
 }
 
 export const useSecurityHardening = () => {
-  const { _toast } = useToast();
+  const { toast: _toast } = useToast();
   const [securityMetrics, setSecurityMetrics] = useState<SecurityMetrics>({
     failedAttempts: 0,
     lastAttempt: null,
