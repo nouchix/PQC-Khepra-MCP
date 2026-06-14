@@ -76,7 +76,7 @@ func NewAuthLayer(cfg *AuthConfig) (*AuthLayer, error) {
 	}
 
 	log.Printf("[AUTH] Layer 2 initialized - mTLS[%v] PQC[%v] APIKey[%s]",
-		cfg.RequireMTLS, cfg.RequirePQCSignature, cfg.APIKeyHeader)
+		cfg.RequireMTLS, cfg.RequirePQCSignature, maskID(cfg.APIKeyHeader))
 
 	return auth, nil
 }
@@ -185,7 +185,8 @@ func (auth *AuthLayer) finalizeIdentity(r *http.Request, identity *Identity, met
 		identity.Metadata["pqc_verified"] = "true"
 	}
 
-	log.Printf("[AUTH] Authenticated: %s via %s", identity.ID, method)
+	// #416/#417 Clear-text log: mask identity ID to avoid leaking auth token fragments.
+	log.Printf("[AUTH] Authenticated: %s via %s", maskID(identity.ID), method)
 	return identity, nil
 }
 
@@ -342,7 +343,7 @@ func (auth *AuthLayer) RegisterPublicKey(identityID string, pubKey []byte) error
 	defer auth.publicKeysMu.Unlock()
 
 	auth.publicKeys[identityID] = pubKey
-	log.Printf("[AUTH] Registered PQC public key for: %s", identityID)
+	log.Printf("[AUTH] Registered PQC public key for: %s", sanitizeLog(identityID))
 	return nil
 }
 
@@ -410,4 +411,13 @@ func min(a, b float64) float64 {
 		return a
 	}
 	return b
+}
+
+// maskID returns a partially redacted string safe for logging.
+// Shows at most 4 characters to aid debugging without leaking sensitive values.
+func maskID(s string) string {
+	if len(s) <= 4 {
+		return "****"
+	}
+	return s[:4] + "****"
 }

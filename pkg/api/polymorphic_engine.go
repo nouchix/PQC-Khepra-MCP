@@ -207,7 +207,9 @@ func AgentInventoryHandler(engine *PolymorphicEngine, items interface{}) http.Ha
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Khepra-Signed", "true")
-		w.Write(data)
+		// #412 XSS: Prevent browsers from sniffing/reinterpreting JSON content as HTML.
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Write(data) //nolint:errcheck
 	}
 }
 

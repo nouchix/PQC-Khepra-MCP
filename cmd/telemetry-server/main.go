@@ -310,7 +310,7 @@ func requestLogger(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		// Log method + path only; never log IP, headers, or body
-		log.Printf("[REQ] %s %s %.2fms", r.Method, r.URL.Path, float64(time.Since(start).Microseconds())/1000)
+		log.Printf("[REQ] %s %s %.2fms", sanitizeLog(r.Method), sanitizeLog(r.URL.Path), float64(time.Since(start).Microseconds())/1000)
 	})
 }
 
@@ -388,4 +388,15 @@ func dbDirFrom(path string) string {
 		return "."
 	}
 	return path[:idx]
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

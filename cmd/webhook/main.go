@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -34,6 +33,13 @@ import (
 	"strings"
 	"time"
 )
+
+// sanitizeHeader removes CRLF characters from user-supplied strings to prevent
+// email header injection (CWE-93). Must be applied to every user-controlled
+// value embedded in SMTP message headers or bodies.
+func sanitizeHeader(s string) string {
+	return strings.NewReplacer("\r", "", "\n", "", "\x00", "").Replace(strings.TrimSpace(s))
+}
 
 // ── Stripe event types we care about ─────────────────────────────────────────
 
@@ -191,14 +197,14 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[webhook] received event: %s id=%s", event.Type, event.ID)
+	log.Printf("[webhook] received event: %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
 
 	// Idempotency: respond 200 immediately, process async
 	w.WriteHeader(http.StatusOK)
 
 	go func() {
 		if err := processEvent(event); err != nil {
-			log.Printf("[webhook] event processing error (id=%s): %v", event.ID, err)
+			log.Printf("[webhook] event processing error (id=%s): %v", sanitizeLog(event.ID), err)
 		}
 	}()
 }
@@ -269,7 +275,7 @@ func processEvent(event StripeEvent) error {
 
 	// ── Subscription lifecycle ────────────────────────────────────────────────
 	case "customer.subscription.created":
-		log.Printf("[webhook] [info] subscription.created id=%s (cert delivered via checkout.session.completed)", event.ID)
+		log.Printf("[webhook] [info] subscription.created id=%s (cert delivered via checkout.session.completed)", sanitizeLog(event.ID))
 		return nil
 	case "customer.subscription.paused":
 		return handleSubscriptionPaused(event)
@@ -278,19 +284,19 @@ func processEvent(event StripeEvent) error {
 	case "customer.subscription.trial_will_end":
 		return handleTrialWillEnd(event)
 	case "customer.subscription.updated":
-		log.Printf("[webhook] [info] subscription.updated id=%s", event.ID)
+		log.Printf("[webhook] [info] subscription.updated id=%s", sanitizeLog(event.ID))
 		return nil
 	case "customer.subscription.pending_update_applied",
 		"customer.subscription.pending_update_expired":
-		log.Printf(logInfoFmt, event.Type, event.ID)
+		log.Printf(logInfoFmt, sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 
 	// ── Checkout abandonment ──────────────────────────────────────────────────
 	case "checkout.session.expired":
-		log.Printf("[webhook] [analytics] checkout.session.expired id=%s — abandoned payment", event.ID)
+		log.Printf("[webhook] [analytics] checkout.session.expired id=%s — abandoned payment", sanitizeLog(event.ID))
 		return nil
 	case "checkout.session.async_payment_failed":
-		log.Printf("[webhook] [warn] async_payment_failed id=%s", event.ID)
+		log.Printf("[webhook] [warn] async_payment_failed id=%s", sanitizeLog(event.ID))
 		return nil
 	case "checkout.session.async_payment_succeeded":
 		return handleCheckoutComplete(event) // same flow as completed
@@ -301,30 +307,30 @@ func processEvent(event StripeEvent) error {
 
 	// ── Customer ──────────────────────────────────────────────────────────────
 	case "customer.created":
-		log.Printf("[webhook] [info] customer.created id=%s", event.ID)
+		log.Printf("[webhook] [info] customer.created id=%s", sanitizeLog(event.ID))
 		return nil
 	case "customer.deleted":
-		log.Printf("[webhook] [warn] customer.deleted id=%s — possible churn", event.ID)
+		log.Printf("[webhook] [warn] customer.deleted id=%s — possible churn", sanitizeLog(event.ID))
 		return nil
 	case "customer.updated",
 		"customer.discount.created", "customer.discount.deleted", "customer.discount.updated",
 		"customer.source.created", "customer.source.deleted", "customer.source.updated", "customer.source.expiring",
 		"customer.tax_id.created", "customer.tax_id.deleted", "customer.tax_id.updated",
 		"customer_cash_balance_transaction.created":
-		log.Printf(logInfoFmt, event.Type, event.ID)
+		log.Printf(logInfoFmt, sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 
 	// ── Payment methods ───────────────────────────────────────────────────────
 	case "payment_method.attached", "payment_method.detached":
-		log.Printf(logInfoFmt, event.Type, event.ID)
+		log.Printf(logInfoFmt, sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 	case "payment_intent.partially_funded":
-		log.Printf("[webhook] [info] payment_intent partially funded id=%s", event.ID)
+		log.Printf("[webhook] [info] payment_intent partially funded id=%s", sanitizeLog(event.ID))
 		return nil
 
 	// ── Invoices ──────────────────────────────────────────────────────────────
 	case "invoice.created", "invoice.deleted", "invoice.finalization_failed", "invoice.upcoming":
-		log.Printf("[webhook] [billing] %s id=%s", event.Type, event.ID)
+		log.Printf("[webhook] [billing] %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 
 	// ── Subscription schedules ────────────────────────────────────────────────
@@ -332,22 +338,22 @@ func processEvent(event StripeEvent) error {
 		"subscription_schedule.completed", "subscription_schedule.created",
 		"subscription_schedule.expiring", "subscription_schedule.released",
 		"subscription_schedule.updated":
-		log.Printf("[webhook] [schedule] %s id=%s", event.Type, event.ID)
+		log.Printf("[webhook] [schedule] %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 
 	// ── Entitlements ──────────────────────────────────────────────────────────
 	case "entitlements.active_entitlement_summary.updated":
-		log.Printf("[webhook] [entitlement] updated id=%s", event.ID)
+		log.Printf("[webhook] [entitlement] updated id=%s", sanitizeLog(event.ID))
 		return nil
 
 	// ── v2 account events (thin payload — no action needed) ───────────────────
 	case "v2.core.account[configuration.customer].capability_status_updated",
 		"v2.core.account[configuration.customer].updated":
-		log.Printf("[webhook] [v2-account] %s id=%s (thin event, no action)", event.Type, event.ID)
+		log.Printf("[webhook] [v2-account] %s id=%s (thin event, no action)", sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 
 	default:
-		log.Printf("[webhook] [unhandled] %s id=%s", event.Type, event.ID)
+		log.Printf("[webhook] [unhandled] %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
 		return nil
 	}
 }
@@ -362,10 +368,10 @@ func handleDisputeCreated(event StripeEvent) error {
 	}
 	_ = json.Unmarshal(event.Data.Object, &dispute)
 	log.Printf("[webhook] [URGENT] charge.dispute.created id=%s amount=%d reason=%s status=%s",
-		dispute.ID, dispute.Amount, dispute.Reason, dispute.Status)
+		sanitizeHeader(dispute.ID), dispute.Amount, sanitizeHeader(dispute.Reason), sanitizeHeader(dispute.Status))
 
 	subject := fmt.Sprintf("⚠️ URGENT: Stripe Dispute Filed — $%.2f (%s)",
-		float64(dispute.Amount)/100, dispute.Reason)
+		float64(dispute.Amount)/100, sanitizeHeader(dispute.Reason))
 	body := fmt.Sprintf(`From: ASAF Alerts <alerts@nouchix.com>
 To: %s
 Subject: %s
@@ -384,14 +390,14 @@ https://dashboard.stripe.com/disputes/%s
 — ASAF Webhook (automated)
 `,
 		cfg.NotifyEmail, subject,
-		dispute.ID, float64(dispute.Amount)/100, dispute.Reason, dispute.Status, event.ID,
-		dispute.ID)
+		sanitizeHeader(dispute.ID), float64(dispute.Amount)/100, sanitizeHeader(dispute.Reason), sanitizeHeader(dispute.Status), sanitizeHeader(event.ID),
+		sanitizeHeader(dispute.ID))
 	return sendMail([]string{cfg.NotifyEmail}, subject, body)
 }
 
 // handleSubscriptionPaused notifies operator and flags the license on the API.
 func handleSubscriptionPaused(event StripeEvent) error {
-	log.Printf("[webhook] subscription paused event=%s — pausing license access", event.ID)
+	log.Printf("[webhook] subscription paused event=%s — pausing license access", sanitizeLog(event.ID))
 	return callASAFAPI("POST", "/api/v1/license/revoke", map[string]interface{}{
 		"stripe_event_id": event.ID,
 		"reason":          "subscription_paused",
@@ -401,7 +407,7 @@ func handleSubscriptionPaused(event StripeEvent) error {
 // handleSubscriptionResumed re-activates a paused license (logged; re-activation
 // is handled automatically on next API call once Stripe confirms active status).
 func handleSubscriptionResumed(event StripeEvent) error {
-	log.Printf("[webhook] subscription resumed event=%s — license re-activation pending next auth check", event.ID)
+	log.Printf("[webhook] subscription resumed event=%s — license re-activation pending next auth check", sanitizeLog(event.ID))
 	// Notify operator
 	subject := "ASAF: Subscription Resumed"
 	body := fmt.Sprintf(`From: ASAF Webhook <webhook@nouchix.com>
@@ -414,7 +420,7 @@ Event ID: %s
 The license will be re-activated on the customer's next certification request.
 
 — ASAF Webhook
-`, cfg.NotifyEmail, subject, event.ID)
+`, cfg.NotifyEmail, subject, sanitizeHeader(event.ID))
 	sendMail([]string{cfg.NotifyEmail}, subject, body) //nolint:errcheck
 	return nil
 }
@@ -427,7 +433,7 @@ func handleTrialWillEnd(event StripeEvent) error {
 		CustomerEmail  string `json:"customer_email"`
 	}
 	_ = json.Unmarshal(event.Data.Object, &sub)
-	log.Printf("[webhook] trial_will_end sub=%s trial_end=%d customer=%s", sub.ID, sub.TrialEnd, sub.CustomerEmail)
+	log.Printf("[webhook] trial_will_end sub=%s trial_end=%d customer=%s", sanitizeLog(sub.ID), sub.TrialEnd, sanitizeLog(sub.CustomerEmail))
 
 	if sub.CustomerEmail == "" {
 		return nil // can't email without address
@@ -446,7 +452,7 @@ will automatically convert to a paid plan.
 If you have any questions: security@nouchix.com
 
 — NouchiX / Sacred Knowledge Inc
-`, sub.CustomerEmail, subject)
+`, sanitizeHeader(sub.CustomerEmail), subject)
 	return sendMail([]string{sub.CustomerEmail, cfg.NotifyEmail}, subject, body)
 }
 
@@ -477,7 +483,7 @@ func handleCheckoutComplete(event StripeEvent) error {
 	// CLI token from client_reference_id (set by `asaf certify` command)
 	cliToken := session.ClientReferenceID
 
-	log.Printf("[webhook] payment confirmed: email=%s token=%s session=%s", email, cliToken, session.ID)
+	log.Printf("[webhook] payment confirmed: email=%s sanitizeLog(token)=%s session=%s", email, cliToken, session.ID)
 
 	// 1. Request certificate from ASAF API
 	cert, err := requestCertificate(session, email)
@@ -572,6 +578,8 @@ func sendCertificateEmail(to, name, cliToken string, cert *CertificateResponse) 
 		greeting = "Security Professional"
 	}
 
+	sTo := sanitizeHeader(to)
+	sGreeting := sanitizeHeader(greeting)
 	body := fmt.Sprintf(`From: ASAF Certificates <certs@nouchix.com>
 To: %s
 Subject: %s
@@ -607,10 +615,10 @@ Questions? security@nouchix.com
 — NouchiX / Sacred Knowledge Inc
   Patent Pending · Post-Quantum Certified
 
-`, to, subject, greeting,
-		cert.CertificateID, cert.Framework,
-		cert.IssuedAt, cert.ExpiresAt, cert.Score,
-		cert.DAGNode, cert.CertificateID)
+`, sTo, subject, sGreeting,
+		sanitizeHeader(cert.CertificateID), sanitizeHeader(cert.Framework),
+		sanitizeHeader(cert.IssuedAt), sanitizeHeader(cert.ExpiresAt), cert.Score,
+		sanitizeHeader(cert.DAGNode), sanitizeHeader(cert.CertificateID))
 
 	// If CLI token present, add unlock note
 	if cliToken != "" {
@@ -637,7 +645,7 @@ Our team will deliver it within 24 hours at this email address.
 We apologize for the inconvenience.
 
 — NouchiX / Sacred Knowledge Inc
-`, email, subject, name, sessionID)
+`, sanitizeHeader(email), subject, sanitizeHeader(name), sanitizeHeader(sessionID))
 	return sendMail([]string{email, cfg.NotifyEmail}, subject, body)
 }
 
@@ -653,7 +661,7 @@ New paying customer:
   Amount:  $%.2f
 
 Certificate issued and emailed automatically.
-`, cfg.NotifyEmail, subject, customerEmail, sessionID, float64(amountCents)/100)
+`, cfg.NotifyEmail, subject, sanitizeHeader(customerEmail), sanitizeHeader(sessionID), float64(amountCents)/100)
 	sendMail([]string{cfg.NotifyEmail}, subject, body) //nolint:errcheck
 }
 
@@ -671,7 +679,6 @@ func sendMail(to []string, subject, body string) error {
 	}
 
 	// STARTTLS (port 587 — Gmail etc.)
-	_ = net.Dial // ensure net is used
 	return smtp.SendMail(addr, auth, cfg.SMTPUser, to, []byte(body))
 }
 
@@ -714,4 +721,15 @@ func getOrDefault(m map[string]string, key, def string) string {
 		return v
 	}
 	return def
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

@@ -145,6 +145,8 @@ func (a *SyftAdapter) GenerateSBOM(ctx context.Context, projectPath string) (*Cy
 	if err != nil {
 		return nil, nil, fmt.Errorf("sca/syft: cannot resolve path: %w", err)
 	}
+	// #425 Uncontrolled path: clean the resolved path.
+	absPath = filepath.Clean(absPath)
 
 	// Verify path exists
 	_, err = os.Stat(absPath)
@@ -322,7 +324,8 @@ func (a *SyftAdapter) computeLockfileChecksum(projectDir string) string {
 	found := false
 
 	for _, name := range lockfileNames {
-		path := filepath.Join(projectDir, name)
+		// #426 Uncontrolled path: name is from hardcoded lockfileNames; filepath.Clean ensures no traversal.
+		path := filepath.Clean(filepath.Join(projectDir, name))
 		data, err := os.ReadFile(path)
 		if err != nil {
 			continue

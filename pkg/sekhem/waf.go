@@ -354,7 +354,7 @@ func (ws *WAFShield) emitThreat(result *WAFRuleResult, clientIP, fingerprint, pa
 	select {
 	case ws.threatChan <- threat:
 	default:
-		log.Printf("[SEKHEM-WAF] threatChan full — dropping event for %s rule=%s", clientIP, result.RuleID)
+		log.Printf("[SEKHEM-WAF] threatChan full — dropping event for %s rule=%s", sanitizeLog(clientIP), sanitizeLog(result.RuleID))
 	}
 }
 
@@ -457,7 +457,7 @@ func (ws *WAFShield) blockRequest(c *gin.Context, ruleID, clientIP, reason strin
 // SEKHEM is a signal source; Crowdsec is the actuator.
 func (ws *WAFShield) submitCrowdsecDecision(ip, duration, decType string) {
 	if ws.crowdsecAPIKey == "" {
-		log.Printf("[SEKHEM-WAF] Crowdsec key not set — skipping decision for %s", ip)
+		log.Printf("[SEKHEM-WAF] Crowdsec key not set — skipping decision for %s", sanitizeLog(ip))
 		return
 	}
 
@@ -487,17 +487,17 @@ func (ws *WAFShield) submitCrowdsecDecision(ip, duration, decType string) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[SEKHEM-WAF] Crowdsec submission failed for %s: %v", ip, err)
+		log.Printf("[SEKHEM-WAF] Crowdsec submission failed for %s: %v", sanitizeLog(ip), err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		log.Printf("[SEKHEM-WAF] Crowdsec returned %d for %s: %s", resp.StatusCode, ip, b)
+		log.Printf("[SEKHEM-WAF] Crowdsec returned %d for %s: %s", resp.StatusCode, sanitizeLog(ip), b)
 		return
 	}
-	log.Printf("[SEKHEM-WAF] Crowdsec decision submitted: type=%s ip=%s duration=%s", decType, ip, duration)
+	log.Printf("[SEKHEM-WAF] Crowdsec decision submitted: type=%s ip=%s duration=%s", sanitizeLog(decType), sanitizeLog(ip), sanitizeLog(duration))
 }
 
 // newCorrelationID generates a 128-bit random hex correlation ID.
@@ -524,4 +524,15 @@ func severityToMalevolence(s maat.Severity) float64 {
 	default:
 		return 0.5
 	}
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

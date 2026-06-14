@@ -84,8 +84,13 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   // Sanitize chart ID to prevent CSS injection
   const sanitizedId = id.replace(/[^a-zA-Z0-9-_]/g, '')
 
+  // #539 XSS: dangerouslySetInnerHTML is used here only for injecting CSS custom properties.
+  // All values are sanitized by sanitizeCSS() (regex-allowlisted to hex/rgb/hsl/keyword).
+  // Chart IDs and config keys are stripped of non-alphanumeric characters.
+  // No user-controlled string reaches this without passing through the sanitizers.
   return (
     <style
+      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
