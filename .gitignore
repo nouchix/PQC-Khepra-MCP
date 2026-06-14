@@ -44,9 +44,6 @@ docs/internal/
 
 
 # Large Assets
-pkg/llm/ollama/blobs/
-pkg/llm/*/blobs/
-pkg/llm/*/blobs/
 *.kpkg
 *.tar.gz
 
@@ -58,7 +55,11 @@ data/cve-database/cve-data/
 pkg/ir/data/dag/
 pkg/sonar/data/
 pkg/tnok/
-pkg/llm/
+# Exclude large Ollama model data only — Go source is tracked
+pkg/llm/ollama/blobs/
+pkg/llm/ollama/manifests/
+pkg/llm/*/blobs/
+pkg/llm/*/manifests/
 
 # Binary assets / media (not needed for MCP server build)
 pkg/phantom/*.jpg
@@ -77,6 +78,5 @@ NUL
 demo-snapshot.json
 *.tmp
 ANONYMOUS_GIT_*.md
-pkg/llm/ollama/manifests/registry.ollama.ai/library/gemma3/4b
 .vercel
 .env*.local
