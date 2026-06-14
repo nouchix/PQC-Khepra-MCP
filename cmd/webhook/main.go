@@ -657,22 +657,40 @@ Certificate issued and emailed automatically.
 	sendMail([]string{cfg.NotifyEmail}, subject, body) //nolint:errcheck
 }
 
+// sanitizeEmailContent removes CR/LF and other control characters that can be used
+// for header/content injection when constructing raw SMTP messages.
+func sanitizeEmailContent(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	return strings.Map(func(r rune) rune {
+		if r < 32 && r != '\t' {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 // sendMail supports both implicit SSL (port 465, Hostinger) and STARTTLS (port 587, Gmail).
 func sendMail(to []string, subject, body string) error {
 	if cfg.SMTPUser == "" || cfg.SMTPPass == "" {
 		log.Printf("[webhook] SMTP not configured — skipping email to %v", to)
 		return nil
 	}
+
+	safeSubject := sanitizeEmailContent(subject)
+	safeBody := sanitizeEmailContent(body)
+	_ = safeSubject // subject is already part of prebuilt body in current templates
+
 	addr := cfg.SMTPHost + ":" + cfg.SMTPPort
 	auth := smtp.PlainAuth("", cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPHost)
 
 	if cfg.SMTPPort == "465" {
-		return sendMailImplicitSSL(addr, auth, to, body)
+		return sendMailImplicitSSL(addr, auth, to, safeBody)
 	}
 
 	// STARTTLS (port 587 — Gmail etc.)
 	_ = net.Dial // ensure net is used
-	return smtp.SendMail(addr, auth, cfg.SMTPUser, to, []byte(body))
+	return smtp.SendMail(addr, auth, cfg.SMTPUser, to, []byte(safeBody))
 }
 
 // sendMailImplicitSSL sends mail over an implicit TLS connection (port 465).
