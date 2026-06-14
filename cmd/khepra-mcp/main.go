@@ -28,6 +28,7 @@
 package main
 
 import (
+	"strings"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -1014,4 +1015,15 @@ func getEnvOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

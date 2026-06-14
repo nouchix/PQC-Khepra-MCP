@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/kms"
 )
@@ -93,6 +94,7 @@ func decompressProject(r io.Reader, targetDir string) error {
 	defer gr.Close()
 
 	tr := tar.NewReader(gr)
+	cleanBase := filepath.Clean(targetDir) + string(os.PathSeparator)
 
 	for {
 		header, err := tr.Next()
@@ -103,7 +105,12 @@ func decompressProject(r io.Reader, targetDir string) error {
 			return err
 		}
 
+		// #428 Zip Slip: reject paths that escape the target directory.
 		target := filepath.Join(targetDir, header.Name)
+		if !strings.HasPrefix(filepath.Clean(target)+string(os.PathSeparator), cleanBase) &&
+			filepath.Clean(target) != filepath.Clean(targetDir) {
+			return fmt.Errorf("zip slip: illegal archive path %q", header.Name)
+		}
 		if err := extractEntry(tr, header, target); err != nil {
 			return err
 		}

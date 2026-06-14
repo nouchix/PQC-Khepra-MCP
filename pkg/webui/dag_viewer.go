@@ -20,6 +20,7 @@
 package webui
 
 import (
+	"strings"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -214,6 +215,17 @@ func (dv *DAGViewer) withLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		log.Printf("DAG Viewer: %s %s %s", r.Method, r.URL.Path, time.Since(start))
+		log.Printf("DAG Viewer: %s %s %s", sanitizeLog(r.Method), sanitizeLog(r.URL.Path), time.Since(start))
 	})
+}
+
+// sanitizeLog removes newline characters from user-controlled strings before
+// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, s)
 }

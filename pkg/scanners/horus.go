@@ -487,6 +487,8 @@ func scanDockerfile(path string) []string {
 		dockerfilePath = filepath.Join(path, "Dockerfile")
 	}
 
+	// #427 Uncontrolled path: clean the path before use.
+	dockerfilePath = filepath.Clean(dockerfilePath)
 	data, err := os.ReadFile(dockerfilePath)
 	if err != nil {
 		return issues

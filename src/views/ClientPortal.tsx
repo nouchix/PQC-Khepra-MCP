@@ -63,10 +63,10 @@ async function getDeploymentConfig(orgId: string): Promise<DeploymentConfig | nu
   //   .single();
 
   // Mock data for development
-  // NOTE: The API key is stored in sessionStorage (not localStorage) to avoid
-  // persisting sensitive credentials across browser sessions. (CWE-312, alert #4)
+  // NOTE: Both URL and API key are stored in sessionStorage (not localStorage) to avoid
+  // persisting connection config across browser sessions. (CWE-312 / alert #540)
   return {
-    deploymentUrl: localStorage.getItem(`khepra_url_${orgId}`) || 'http://localhost:8080',
+    deploymentUrl: sessionStorage.getItem(`khepra_url_${orgId}`) || 'http://localhost:8080',
     apiKey: sessionStorage.getItem(`khepra_key_${orgId}`) || 'test-api-key',
     organizationName: 'Development Organization',
   };
@@ -112,9 +112,10 @@ export default function ClientPortal() {
   const handleSaveConfig = () => {
     if (!org_id) return;
 
-    // Save URL to localStorage (not sensitive), API key to sessionStorage only
-    // to avoid persisting credentials across sessions. (CWE-312, alert #4)
-    localStorage.setItem(`khepra_url_${org_id}`, tempUrl);
+    // Security (CWE-312 / #540): Store connection config in sessionStorage only.
+    // sessionStorage is cleared when the tab closes — no cross-session persistence
+    // of deployment URLs or API keys.
+    sessionStorage.setItem(`khepra_url_${org_id}`, tempUrl);
     sessionStorage.setItem(`khepra_key_${org_id}`, tempKey);
 
     setConfig({
