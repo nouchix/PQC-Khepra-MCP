@@ -7,7 +7,7 @@ WORKDIR /src
 RUN apk add --no-cache git
 
 COPY go.mod go.sum ./
-COPY vendor/ ./vendor/
+RUN GONOSUMCHECK="*" go mod download && go mod verify
 COPY pkg/ ./pkg/
 COPY cmd/ ./cmd/
 
@@ -15,7 +15,7 @@ ARG VERSION=1.0.0
 ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
     -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildDate=${BUILD_DATE} -X main.Commit=${VCS_REF}" \
     -o /out/khepra-mcp \
     ./cmd/khepra-mcp
@@ -36,9 +36,9 @@ ENV PHANTOM_SYMBOL=Eban
 
 LABEL org.opencontainers.image.title="KHEPRA MCP Server" \
       org.opencontainers.image.description="Post-quantum MCP security layer for signed agent tool calls and audit evidence." \
-      org.opencontainers.image.source="https://github.com/EtherVerseCodeMate/giza-cyber-shield" \
-      org.opencontainers.image.licenses="Apache-2.0" \
-      io.modelcontextprotocol.server.name="io.github.etherversecodemate/khepra-mcp"
+      org.opencontainers.image.source="https://github.com/nouchix/PQC-Khepra-MCP" \
+      org.opencontainers.image.licenses="Proprietary" \
+      io.modelcontextprotocol.server.name="io.github.nouchix/pqc-khepra-mcp"
 
 USER khepra
 
