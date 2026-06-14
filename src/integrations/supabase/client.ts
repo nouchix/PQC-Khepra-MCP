@@ -61,6 +61,7 @@ interface QueryStub extends Promise<QueryResult> {
   containedBy: (_col: string, _val: any) => QueryStub;
   filter: (_col: string, _op: string, _val: any) => QueryStub;
   or: (_filters: string, _opts?: any) => QueryStub;
+  like: (_col: string, _val: string) => QueryStub;
   single: () => QueryStub;
   maybeSingle: () => QueryStub;
   throwOnError: () => QueryStub;
@@ -96,6 +97,7 @@ const makeQueryStub = (_table: string): QueryStub => {
     containedBy: () => makeQueryStub(_table),
     filter: () => makeQueryStub(_table),
     or: () => makeQueryStub(_table),
+    like: () => makeQueryStub(_table),
     single: () => makeQueryStub(_table),
     maybeSingle: () => makeQueryStub(_table),
     throwOnError: () => makeQueryStub(_table),
@@ -119,6 +121,8 @@ const authStub = {
   signOut: async () => ({ error: null }),
   resetPasswordForEmail: async (_email: string, _opts?: any) => ({ error: null }),
   updateUser: async (_attrs: any) => ({ data: { user: null as any }, error: null }),
+  refreshSession: async (_opts?: any) => ({ data: { session: null as any, user: null as any }, error: null }),
+  setSession: async (_tokens: { access_token: string; refresh_token: string }) => ({ data: { session: null as any, user: null as any }, error: null }),
   // MFA API stub
   mfa: {
     listFactors: async () => ({ data: { all: [] as any[], totp: [] as any[], phone: [] as any[] }, error: null }),
@@ -206,11 +210,15 @@ export const supabase = {
   storage,
   from: (table: string) => makeQueryStub(table),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  channel: (_name: string) => ({
-    on: (_event: string, _filter: any, _cb: any) => ({ subscribe: () => {} }),
-    subscribe: () => ({}),
-    unsubscribe: () => {},
-  }),
+  channel: (_name: string) => {
+    // Channel stub: fully chainable with .on().on().subscribe()
+    const makeChannel = (): any => ({
+      on: (_event: string, _filter: any, _cb: any) => makeChannel(),
+      subscribe: (_cb?: any) => makeChannel(),
+      unsubscribe: () => Promise.resolve('ok'),
+    });
+    return makeChannel();
+  },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   removeChannel: (_ch: any) => {},
 };
