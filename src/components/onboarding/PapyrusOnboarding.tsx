@@ -6,18 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import {
-  Brain,
-  Send,
-  Sparkles,
-  Shield,
-  User,
-  ArrowRight,
-  CheckCircle2,
-  Wand2,
-  MessageSquare,
-  ChevronRight
-} from 'lucide-react';
+import { Brain, Send, User, ArrowRight, CheckCircle2, Wand2, MessageSquare, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';

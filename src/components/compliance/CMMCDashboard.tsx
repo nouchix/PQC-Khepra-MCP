@@ -119,7 +119,7 @@ export const CMMCDashboard: React.FC<CMMCDashboardProps> = ({ organizationId }) 
     }
   };
 
-  const getDomainIcon = (domain: string): React.ElementType => {
+  const _getDomainIcon = (domain: string): React.ElementType => {
     const icons: Record<string, any> = {
       'AC': Users,      // Access Control
       'AU': FileText,   // Audit and Accountability  

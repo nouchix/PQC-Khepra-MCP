@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { TELEMETRY_ENABLED } from '@/lib/telemetry';
 
 interface WorkflowEvent {
   id: string;
@@ -38,13 +39,14 @@ export const useWorkflowAnalytics = () => {
   const [insights, setInsights] = useState<HeuristicInsight[]>([]);
   const [sessionId] = useState(() => `session_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substr(0, 9)}`);
 
-  // Track user interactions
   const trackEvent = useCallback((
     elementType: string,
     action: string,
     coordinates: { x: number; y: number },
     metadata: Record<string, any> = {}
   ) => {
+    if (!TELEMETRY_ENABLED) return;
+
     const event: WorkflowEvent = {
       id: `event_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substr(0, 9)}`,
       elementType,
@@ -57,8 +59,6 @@ export const useWorkflowAnalytics = () => {
     };
 
     setEvents(prev => [...prev, event]);
-    
-    // Trigger pattern analysis
     analyzePatterns([...events, event]);
   }, [events, sessionId]);
 
@@ -69,7 +69,7 @@ export const useWorkflowAnalytics = () => {
     const recentEvents = eventData.slice(-20);
     const actionSequences = extractActionSequences(recentEvents);
     const spatialPatterns = analyzeSpatialBehavior(recentEvents);
-    const temporalPatterns = analyzeTemporalBehavior(recentEvents);
+    const _temporalPatterns = analyzeTemporalBehavior(recentEvents);
 
     const newPatterns: WorkflowPattern[] = [];
 

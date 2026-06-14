@@ -154,7 +154,7 @@ export const EnterpriseSTIGDashboard: React.FC = () => {
     try {
       setScanning(true);
       
-      const { data, error } = await supabase.functions.invoke('stig-compliance-monitor', {
+      const { _data, error } = await supabase.functions.invoke('stig-compliance-monitor', {
         body: {
           organization_id: 'default', // In real app, get from context
           scan_type: 'full',

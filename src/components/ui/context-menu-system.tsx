@@ -2,23 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Brain, 
-  Settings, 
-  Star, 
-  Copy, 
-  Share, 
-  Edit, 
-  Trash2, 
-  Info, 
-  Play, 
-  Pause, 
-  MoreHorizontal,
-  Target,
-  TrendingUp,
-  Eye,
-  Zap
-} from 'lucide-react';
+import { Brain, Copy, Share, Info, Target, TrendingUp, Eye, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContextMenuItem {

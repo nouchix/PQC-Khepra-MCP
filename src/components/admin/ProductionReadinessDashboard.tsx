@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Network, Key, Users } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Network, Key } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -33,7 +33,7 @@ interface ComplianceResult {
 }
 
 export const ProductionReadinessDashboard = () => {
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const [securityFindings, setSecurityFindings] = useState<SecurityFinding[]>([]);
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [complianceResults, setComplianceResults] = useState<ComplianceResult[]>([]);

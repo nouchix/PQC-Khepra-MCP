@@ -4,19 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  Target, 
-  TrendingUp, 
-  Building, 
-  DollarSign, 
-  Calendar,
-  CheckCircle,
-  AlertCircle,
-  BarChart3,
-  PieChart,
-  Network
-} from 'lucide-react';
+import { Users, Target, TrendingUp, Building, DollarSign, Calendar, CheckCircle, AlertCircle, BarChart3, Network } from 'lucide-react';
 import { PageLayout } from '@/components/PageLayout';
 
 const BusinessDevelopment = () => {

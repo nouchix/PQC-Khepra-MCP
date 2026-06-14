@@ -10,23 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  Key, 
-  Plus, 
-  Eye, 
-  EyeOff, 
-  TestTube, 
-  RotateCcw, 
-  Trash2,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Lock,
-  Unlock
-} from 'lucide-react';
+import { Shield, Key, Plus, Eye, EyeOff, TestTube, RotateCcw, Trash2, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { SecureCredentialVault, type SecureCredential } from '@/services/SecureCredentialVault';
+import { SecureCredentialVault } from '@/services/SecureCredentialVault';
 
 interface SecureCredentialManagerProps {
   organizationId: string;

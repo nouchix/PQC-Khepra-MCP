@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Cloud, Server, Network, CheckCircle2 } from 'lucide-react';
+import { Cloud, Network, CheckCircle2 } from 'lucide-react';
 import AWSConnector from './connectors/AWSConnector';
 import AzureConnector from './connectors/AzureConnector';
 import GCPConnector from './connectors/GCPConnector';

@@ -1,25 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  Shield, 
-  Settings, 
-  Globe, 
-  Database, 
-  Zap, 
-  Users, 
-  Lock, 
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  CheckCircle2,
-  AlertTriangle,
-  Info
-} from 'lucide-react';
+import { Shield, Settings, Globe, Database, Zap, Users, Lock, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface TestItem {
   id: string;

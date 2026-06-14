@@ -64,7 +64,7 @@ export const EnvironmentDetection: React.FC<EnvironmentDetectionProps> = ({
   ];
 
   // Real asset discovery implementation
-  const performRealAssetDiscovery = async () => {
+  const _performRealAssetDiscovery = async () => {
     const discoveredAssets: DetectedAsset[] = [];
     
     try {

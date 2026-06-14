@@ -4,23 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  PlayCircle, 
-  Shield, 
-  Target,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Zap,
-  FileText,
-  Eye,
-  Settings,
-  Users,
-  Building,
-  Globe,
-  DollarSign,
-  Gauge
-} from 'lucide-react';
+import { PlayCircle, Shield, Target, Clock, CheckCircle, Zap, Eye, Settings, Users, DollarSign, Gauge } from 'lucide-react';
 
 interface DemoScenario {
   id: string;

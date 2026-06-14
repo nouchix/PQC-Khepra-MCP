@@ -13,20 +13,7 @@ import { MondaySyncSettings } from '@/components/integrations/MondaySyncSettings
 import { useIndustryIntegrations } from '@/hooks/useIndustryIntegrations';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Plug,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Activity,
-  Zap,
-  Shield,
-  BarChart3,
-  Settings,
-  Plus,
-  ExternalLink
-} from 'lucide-react';
+import { Plug, TrendingUp, AlertCircle, CheckCircle, Activity, Settings, Plus, ExternalLink } from 'lucide-react';
 
 const IntegrationStatusCard = ({ title, value, icon: Icon, status = 'normal', description }: any) => (
   <Card>
@@ -42,7 +29,7 @@ const IntegrationStatusCard = ({ title, value, icon: Icon, status = 'normal', de
 );
 
 const IntegrationHealthDashboard = () => {
-  const { userIntegrations, loading } = useIndustryIntegrations();
+  const { userIntegrations, _loading } = useIndustryIntegrations();
   const { integrations } = useIntegrations();
 
   const totalIntegrations = userIntegrations.length + integrations.length;

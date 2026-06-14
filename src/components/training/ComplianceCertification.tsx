@@ -4,18 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  BookOpen, 
-  Award, 
-  Clock, 
-  Users, 
-  CheckCircle, 
-  PlayCircle,
-  Download,
-  Star,
-  Trophy,
-  Target
-} from 'lucide-react';
+import { BookOpen, Award, Clock, Users, CheckCircle, PlayCircle, Download, Star, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Course {

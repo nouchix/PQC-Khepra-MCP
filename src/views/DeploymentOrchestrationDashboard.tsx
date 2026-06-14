@@ -7,38 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Server, 
-  Database, 
-  Cloud, 
-  Shield, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle,
-  Terminal,
-  Settings,
-  Network,
-  Container,
-  Globe,
-  Lock,
-  Zap,
-  PlayCircle,
-  PauseCircle,
-  RotateCcw,
-  Download,
-  Upload,
-  Eye,
-  EyeOff,
-  Monitor,
-  Code,
-  Brain,
-  Sparkles,
-  Laptop,
-  Wifi,
-  Router,
-  Smartphone,
-  Loader2
-} from 'lucide-react';
+import { Shield, AlertTriangle, XCircle, Terminal, Settings, Zap, Sparkles, Loader2 } from 'lucide-react';
 import { ThreatIntelligenceOrchestrator } from '@/components/khepra/ThreatIntelligenceOrchestrator';
 import { OSINTConnector } from '@/components/khepra/OSINTConnector';
 import { AdinkraSymbolDisplay } from '@/components/khepra/AdinkraSymbolDisplay';
@@ -50,7 +19,6 @@ import { BrowserSecurityContext } from '@/components/BrowserSecurityContext';
 import useRealTimeAssetDiscovery from '@/hooks/useRealTimeAssetDiscovery';
 import { useKipConnection } from '@/hooks/useKipConnection';
 import CacheStatusBadge from '@/components/CacheStatusBadge';
-
 
 const DeploymentOrchestrationDashboard = () => {
   const {

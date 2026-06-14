@@ -6,27 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Network,
-  Shield,
-  Eye,
-  Target,
-  MapPin,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  Layers,
-  GitBranch,
-  Database,
-  Settings,
-  FileText,
-  Lock,
-  Brain,
-  Zap,
-  TrendingUp,
-  Download,
-  RefreshCw
-} from 'lucide-react';
+import { MapPin, CheckCircle, AlertTriangle, Clock, Brain, Zap, TrendingUp, Download, RefreshCw } from 'lucide-react';
 
 interface ControlMapping {
   id: string;
@@ -111,7 +91,7 @@ export const ComplianceControlMapper: React.FC = () => {
 
     try {
       // Enhanced AI-powered cross-framework mapping
-      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'cross_framework_mapping',
           frameworks: selectedFrameworks,

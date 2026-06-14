@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+
 import { 
   Shield, 
   TrendingUp, 
@@ -148,7 +148,7 @@ export const CustomerConfidenceJourney: React.FC<CustomerConfidenceJourneyProps>
 
   const stages = getJourneyStages(industry);
   const currentStageIndex = stages.findIndex(s => s.current) || 0;
-  const currentStage = stages[currentStageIndex];
+  const _currentStage = stages[currentStageIndex];
   const nextStage = stages[currentStageIndex + 1];
 
   const canAdvance = nextStage && 

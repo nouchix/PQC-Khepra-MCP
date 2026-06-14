@@ -114,7 +114,7 @@ export function OnboardingWizard({ organizationId }: OnboardingWizardProps) {
             {PHASES.map((phase, index) => {
               const isCompleted = index < currentStep;
               const isCurrent = index === currentStep;
-              const phaseStatus = onboarding.phase_status[phase.id];
+              const _phaseStatus = onboarding.phase_status[phase.id];
 
               return (
                 <div

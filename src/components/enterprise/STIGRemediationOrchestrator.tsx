@@ -9,21 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
-  Play,
-  Pause,
-  Square,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Zap,
-  Settings,
-  RefreshCw,
-  FileText,
-  Shield,
-  AlertCircle,
-  Undo2
-} from "lucide-react";
+import { Play, Pause, Square, AlertTriangle, CheckCircle, Clock, Zap, Settings, RefreshCw, FileText, AlertCircle, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganizationContext } from "@/components/OrganizationProvider";
@@ -121,7 +107,7 @@ export const STIGRemediationOrchestrator: React.FC = () => {
       setExecuting(true);
 
       for (const assetId of assetIds) {
-        const { data, error } = await supabase.functions.invoke('automated-remediation-engine', {
+        const { _data, error } = await supabase.functions.invoke('automated-remediation-engine', {
           body: {
             organization_id: currentOrganization?.id || '',
             asset_id: assetId,

@@ -168,7 +168,7 @@ export class PerformanceAnalyticsEngine {
       const startTime = new Date(endTime.getTime() - timeWindow);
 
       // Analyze recent performance data
-      const { data: recentMetrics, error } = await supabase
+      const { data: _recentMetrics, error } = await supabase
         .from('open_controls_performance_metrics')
         .select('*')
         .eq('organization_id', organizationId)

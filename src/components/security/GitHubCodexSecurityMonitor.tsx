@@ -6,10 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Shield, GitBranch, Eye, AlertTriangle, CheckCircle, Clock,
-  FileText, Zap, Lock, Settings, Activity, Ban
-} from 'lucide-react';
+import { Shield, GitBranch, Eye, AlertTriangle, CheckCircle, Clock, FileText, Zap, Activity, Ban } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 

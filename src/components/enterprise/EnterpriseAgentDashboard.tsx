@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,22 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Bot, 
-  Brain, 
-  Shield, 
-  TrendingUp, 
-  Users, 
-  Settings,
-  Play,
-  Pause,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  BarChart3,
-  Plus,
-  Zap
-} from 'lucide-react';
+import { Bot, Brain, Shield, TrendingUp, Users, Settings, Play, Pause, CheckCircle, BarChart3, Plus, Zap } from 'lucide-react';
 import { useEnterpriseAgents, EnterpriseAgent } from '@/hooks/useEnterpriseAgents';
 import { useToast } from '@/hooks/use-toast';
 import SpecializedAgentTemplates from './SpecializedAgentTemplates';
@@ -42,7 +27,7 @@ const EnterpriseAgentDashboard: React.FC = () => {
     suspendAgent 
   } = useEnterpriseAgents();
   
-  const { toast } = useToast();
+  const { _toast } = useToast();
   const [selectedAgent, setSelectedAgent] = useState<EnterpriseAgent | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [performanceData, setPerformanceData] = useState<any>(null);

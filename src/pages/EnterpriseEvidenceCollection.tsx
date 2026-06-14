@@ -2,20 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  Download, 
-  Archive, 
-  Shield, 
-  CheckCircle, 
-  Clock,
-  RefreshCw,
-  Search,
-  Filter,
-  Calendar
-} from "lucide-react";
+import { FileText, Download, Archive, Shield, CheckCircle, Clock, RefreshCw, Search, Filter } from "lucide-react";
 import { PageLayout } from '@/components/PageLayout';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";

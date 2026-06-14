@@ -45,7 +45,7 @@ export const useTrialStatus = () => {
       }
 
       // Check user status from database
-      const { data: profile, error } = await supabase
+      const { data: _profile, error } = await supabase
         .from('profiles')
         .select('plan_type')
         .eq('user_id', user?.id)

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useOrganizationContext } from "@/components/OrganizationProvider";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { STIGCodexDashboard } from "@/components/stig-codex/STIGCodexDashboard";
 import { STIGTrustedRegistry } from "@/components/stig-codex/STIGTrustedRegistry";

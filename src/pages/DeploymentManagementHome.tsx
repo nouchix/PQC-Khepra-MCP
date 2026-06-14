@@ -19,7 +19,7 @@ import {
 import { IndustryType } from '@/types/deployment';
 
 const DeploymentManagementHome = () => {
-  const { profile } = useUserProfile();
+  const { _profile } = useUserProfile();
   const [selectedOrganization] = useState('org-1'); // Mock organization ID
 
   const {

@@ -4,17 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Shield, 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock,
-  RefreshCw,
-  TrendingUp,
-  Eye,
-  Settings
-} from "lucide-react";
+import { Shield, Activity, AlertTriangle, RefreshCw, TrendingUp, Eye, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -85,7 +75,7 @@ export const ContinuousSTIGMonitoring: React.FC = () => {
     try {
       setScanning(true);
       
-      const { data, error } = await supabase.functions.invoke('stig-compliance-monitor', {
+      const { _data, error } = await supabase.functions.invoke('stig-compliance-monitor', {
         body: {
           organization_id: 'default',
           scan_type: 'full',

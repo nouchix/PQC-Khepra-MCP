@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useUsageTracker } from '@/components/UsageTracker';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 
 interface OnboardingStep {
   id: string;
@@ -29,7 +29,7 @@ interface OnboardingStep {
 }
 
 export const TrialOnboarding = () => {
-  const { trialStatus } = useTrialStatus();
+  const { _trialStatus } = useTrialStatus();
   const { trackFeatureAccess } = useUsageTracker();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);

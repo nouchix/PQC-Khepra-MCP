@@ -200,8 +200,10 @@ export const useIntegrations = () => {
   const addIntegration = async (template: IntegrationTemplate, config: Record<string, string>) => {
     try {
       // Call the appropriate integration function based on template type
+      let _result;
+
       if (template.id === 'splunk') {
-        await supabase.functions.invoke('siem-integration', {
+        result = await supabase.functions.invoke('siem-integration', {
           body: {
             action: 'splunk_integration',
             config,
@@ -209,7 +211,7 @@ export const useIntegrations = () => {
           }
         });
       } else if (template.id === 'elastic') {
-        await supabase.functions.invoke('siem-integration', {
+        result = await supabase.functions.invoke('siem-integration', {
           body: {
             action: 'elastic_integration',
             config,

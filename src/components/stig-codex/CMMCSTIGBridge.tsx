@@ -11,17 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Shield, 
-  ArrowRight, 
-  CheckCircle, 
-  Clock, 
-  DollarSign, 
-  Settings,
-  Target,
-  Zap,
-  FileText
-} from 'lucide-react';
+import { Shield, ArrowRight, Clock, Settings, Target, Zap } from 'lucide-react';
 import { STIGCodexEngine } from '@/services/STIGCodexEngine';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/use-toast';
