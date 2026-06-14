@@ -1,0 +1,24 @@
+# KHEPRA MCP Server — Approved npm Packages with Lifecycle Hooks
+# =============================================================================
+# Add a package here ONLY after manually reviewing its postinstall script and
+# confirming it performs no network exfiltration or filesystem writes outside
+# its own directory.
+#
+# Format: one package name per line (scoped: @org/name).
+# Lines starting with # are comments.
+# =============================================================================
+
+# Build tooling (known safe — Vite, TypeScript, esbuild)
+esbuild
+vite
+@vitejs/plugin-react-swc
+
+# Native bindings (postinstall downloads/compiles native binary — reviewed)
+# Add as needed after review:
+# fsevents
+# keytar
+
+# Supabase CLI helpers
+# supabase  -- add only if you install the supabase CLI npm package
+
+# Crypto / PQC (none currently — all PQC via Go binary, not npm)
