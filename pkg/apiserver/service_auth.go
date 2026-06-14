@@ -185,7 +185,7 @@ func getServiceSecret() []byte {
 	if secret == "" {
 		// Fallback to a deterministic secret derived from ML-DSA-65 public key hash
 		// This is NOT ideal but ensures tokens work across restarts
-		secret = "khepra-service-secret-v1-change-me-in-production"
+		secret = "khepra-service-secret-v1-change-me-in-production" // PLACEHOLDER — set KHEPRA_SERVICE_SECRET in production
 	}
 	return []byte(secret)
 }

@@ -26,6 +26,8 @@ jobs:
       - name: Set up test environment
         run: |
           echo "Setting up validation test environment..."
+          # Strip Windows CRLF line endings (file was authored on Windows)
+          sed -i 's/\r$//' tests/validation/scripts/run-validation-tests.sh
           chmod +x tests/validation/scripts/run-validation-tests.sh
 
       - name: Run validation tests
