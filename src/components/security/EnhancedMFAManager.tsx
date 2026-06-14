@@ -232,9 +232,21 @@ export const EnhancedMFAManager = () => {
     setLoading(true);
     try {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const charLen = chars.length; // 36
+      // Rejection-sampling: discard bytes ≥ maxBound to eliminate modulo bias
+      // (CodeQL js/biased-cryptographic-random-value / alert #2).
+      const maxBound = 256 - (256 % charLen); // 252
       const codes = Array.from({ length: 5 }, () => {
-        const randomBytes = crypto.getRandomValues(new Uint8Array(8));
-        return Array.from(randomBytes).map(b => chars[b % chars.length]).join('');
+        let code = '';
+        while (code.length < 8) {
+          const buf = crypto.getRandomValues(new Uint8Array(8 - code.length + 4));
+          for (const b of buf) {
+            if (b < maxBound && code.length < 8) {
+              code += chars[b % charLen];
+            }
+          }
+        }
+        return code;
       });
       
       await supabase

@@ -20,6 +20,7 @@ package emass
 import (
 	"encoding/xml"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
