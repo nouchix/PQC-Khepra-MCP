@@ -778,7 +778,7 @@ function renderDAGFromChain(chain){if(!Array.isArray(chain))return;dagNodes=chai
 // ── D3 DAG graph ──────────────────────────────────────────────────────────────
 function renderDAGGraph(){
   const svg=d3.select('#dag-svg');svg.selectAll('*').remove();if(!dagNodes.length)return;
-  const w=document.getElementById('dagwrap').clientWidth,h=document.getElementById('dagwrap').clientHeight;
+  const w=document.getElementById('dagwrap').clientWidth;
   svg.append('defs').append('marker').attr('id','arrow').attr('viewBox','0 -5 10 10').attr('refX',18).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto').append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#2a3545');
   const g=svg.append('g').attr('transform',`translate(${w/2},40)`);
   const nodes=dagNodes.slice(0,8).map((n,i)=>({...n,x:(i%3-1)*120,y:Math.floor(i/3)*100}));
