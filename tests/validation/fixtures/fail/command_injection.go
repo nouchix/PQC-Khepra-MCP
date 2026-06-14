@@ -1,3 +1,6 @@
+//go:build ignore
+// This file is a test fixture — excluded from normal builds.
+
 // Command injection vulnerabilities - should FAIL validation
 package executor
 
