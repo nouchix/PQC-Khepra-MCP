@@ -97,7 +97,11 @@ func verifyHostKey(hostname string, remote net.Addr, key ssh.PublicKey) error {
 	if err != nil {
 		return fmt.Errorf("failed to write known_hosts: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[SSH] known_hosts close error: %v", cerr)
+		}
+	}()
 
 	if _, err := fmt.Fprintf(f, "%s %s\n", hostID, fingerprint); err != nil {
 		return fmt.Errorf("failed to write host key entry: %w", err)

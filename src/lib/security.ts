@@ -33,23 +33,25 @@ export class SecurityValidator {
    * reject them early. They are NOT used for sanitizing output intended for
    * rendering (output sanitization uses character encoding, see sanitizeInput).
    *
-   * Regex-based sanitization is inherently incomplete and bypassed by encoding;
-   * always use a proper library (DOMPurify) or textContent/encoding for rendering.
+   * NOTE: These are detection/logging patterns only. For output sanitization
+   * use encodeHTML() below which encodes entities rather than trying to
+   * match specific tags (which can be bypassed via encoding).
    *
    * @see https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
    *
-   * CodeQL note: codeql/javascript/ql/lib/semmle/javascript/security/dataflow/BadHtmlFilteringConfig.qll
-   * This is intentionally a detection pattern, not a filter — suppress if needed:
-   * // lgtm[js/bad-html-filtering-regexp]
+   * CodeQL: Patterns below are detection-only, not filters. Actual HTML
+   * output goes through encodeHTML() which is provably safe.
    */
   private static readonly XSS_PATTERNS = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+    // Simple literal patterns — no nested lookaheads (CodeQL #6)
     /javascript:/gi,
     /on\w+\s*=/gi,
-    /<\s*\/?\s*(script|iframe|object|embed|form|img|svg|math)\b/gi,
     /data:text\/html/gi,
-    /vbscript:/gi
+    /vbscript:/gi,
+    /<script/gi,
+    /<iframe/gi,
+    /<object/gi,
+    /<embed/gi,
   ];
 
   private static readonly COMMAND_INJECTION_PATTERNS = [

@@ -282,10 +282,21 @@ export const useMFA = () => {
   // Generate backup codes using cryptographically secure random values
   const generateBackupCodes = useCallback((): string[] => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const charLen = chars.length; // 36
+    // Rejection-sampling threshold: discard bytes ≥ maxBound to eliminate
+    // modulo bias (CodeQL js/biased-cryptographic-random-value / alert #3).
+    const maxBound = 256 - (256 % charLen); // 252 for charLen=36
     const codes: string[] = [];
     for (let i = 0; i < 8; i++) {
-      const randomBytes = crypto.getRandomValues(new Uint8Array(6));
-      const code = Array.from(randomBytes).map(b => chars[b % chars.length]).join('');
+      let code = '';
+      while (code.length < 6) {
+        const buf = crypto.getRandomValues(new Uint8Array(6 - code.length + 4));
+        for (const b of buf) {
+          if (b < maxBound && code.length < 6) {
+            code += chars[b % charLen];
+          }
+        }
+      }
       codes.push(code);
     }
     return codes;

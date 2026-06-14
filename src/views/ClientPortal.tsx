@@ -43,8 +43,11 @@ interface DeploymentConfig {
 function sanitizeDeploymentUrl(url: string): string {
   try {
     const parsed = new URL(url);
+    // Only allow http/https. Return URL built from parsed components — not
+    // the raw user string — to prevent protocol injection (CWE-601 / #539).
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-      return url;
+      // Reconstruct from parsed parts so no user-supplied chars flow through.
+      return parsed.origin + parsed.pathname + parsed.search;
     }
   } catch {
     // Not a valid URL at all
@@ -112,11 +115,10 @@ export default function ClientPortal() {
   const handleSaveConfig = () => {
     if (!org_id) return;
 
-    // Security (CWE-312 / #540): Store connection config in sessionStorage only.
-    // sessionStorage is cleared when the tab closes — no cross-session persistence
-    // of deployment URLs or API keys.
+    // Security: Store only the non-sensitive deployment URL in sessionStorage.
+    // API key is kept in memory (React state) only — not persisted to storage
+    // to prevent CWE-312 clear-text storage of sensitive credentials. (#540)
     sessionStorage.setItem(`khepra_url_${org_id}`, tempUrl);
-    sessionStorage.setItem(`khepra_key_${org_id}`, tempKey);
 
     setConfig({
       ...config!,

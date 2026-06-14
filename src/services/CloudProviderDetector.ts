@@ -13,6 +13,15 @@ export interface CloudDetectionResult {
 
 export class CloudProviderDetector {
   /**
+   * Checks if a hostname is exactly a domain or ends with '.domain'.
+   * Prevents substring spoofing (e.g., evil-amazonaws.com.attacker.com).
+   * Fixes CodeQL js/incomplete-url-substring-sanitization (#10–17).
+   */
+  private static hostnameMatchesDomain(hostname: string, domain: string): boolean {
+    return hostname === domain || hostname.endsWith('.' + domain);
+  }
+
+  /**
    * Detect cloud provider from browser environment
    */
   static async detectCloudProvider(): Promise<CloudDetectionResult> {
@@ -55,8 +64,8 @@ export class CloudProviderDetector {
     // Browser-based detection (limited)
     const hostname = globalThis.location.hostname;
     if (
-      hostname.includes('amazonaws.com') ||
-      hostname.includes('aws.amazon.com')
+      this.hostnameMatchesDomain(hostname, 'amazonaws.com') ||
+      this.hostnameMatchesDomain(hostname, 'aws.amazon.com')
     ) {
       confidence += 40;
       metadata.detectedFrom = 'hostname';
@@ -96,9 +105,9 @@ export class CloudProviderDetector {
 
     const hostname = globalThis.location.hostname;
     if (
-      hostname.includes('azure.com') ||
-      hostname.includes('azurewebsites.net') ||
-      hostname.includes('windows.net')
+      this.hostnameMatchesDomain(hostname, 'azure.com') ||
+      this.hostnameMatchesDomain(hostname, 'azurewebsites.net') ||
+      this.hostnameMatchesDomain(hostname, 'windows.net')
     ) {
       confidence += 40;
       metadata.detectedFrom = 'hostname';
@@ -132,9 +141,9 @@ export class CloudProviderDetector {
 
     const hostname = globalThis.location.hostname;
     if (
-      hostname.includes('googleapis.com') ||
-      hostname.includes('googleusercontent.com') ||
-      hostname.includes('google.com')
+      this.hostnameMatchesDomain(hostname, 'googleapis.com') ||
+      this.hostnameMatchesDomain(hostname, 'googleusercontent.com') ||
+      this.hostnameMatchesDomain(hostname, 'google.com')
     ) {
       confidence += 40;
       metadata.detectedFrom = 'hostname';

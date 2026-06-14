@@ -465,7 +465,11 @@ func secureEraseFile(path string) error {
 	zeros := make([]byte, info.Size())
 	f.Write(zeros) //nolint:errcheck
 	f.Sync()       //nolint:errcheck
-	f.Close()
+	// Explicit close to avoid silent data loss (GoSec/CodeQL G304 + writable handle warning).
+	if cerr := f.Close(); cerr != nil {
+		// Erase failed: still remove the file — best-effort secure erase.
+		fmt.Printf("[QKD] WARN: secure erase close error on %s: %v\n", path, cerr)
+	}
 	return os.Remove(path)
 }
 

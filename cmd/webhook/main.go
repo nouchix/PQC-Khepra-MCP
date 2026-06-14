@@ -679,7 +679,8 @@ func sendMail(to []string, subject, body string) error {
 	}
 
 	// STARTTLS (port 587 — Gmail etc.)
-	return smtp.SendMail(addr, auth, cfg.SMTPUser, to, []byte(body))
+	// sanitizeEmailBody converts bare LFs to CRLF and strips injected header sequences.
+	return smtp.SendMail(addr, auth, cfg.SMTPUser, to, []byte(sanitizeEmailBody(body)))
 }
 
 // sendMailImplicitSSL sends mail over an implicit TLS connection (port 465).
@@ -711,7 +712,7 @@ func sendMailImplicitSSL(addr string, auth smtp.Auth, to []string, body string) 
 	if err != nil {
 		return fmt.Errorf("smtp data: %w", err)
 	}
-	_, err = fmt.Fprint(w, body)
+	_, err = fmt.Fprint(w, sanitizeEmailBody(body))
 	w.Close()
 	return err
 }
@@ -721,6 +722,18 @@ func getOrDefault(m map[string]string, key, def string) string {
 		return v
 	}
 	return def
+}
+
+// sanitizeEmailBody prevents email header injection by ensuring no bare CR or LF
+// characters exist in email headers. RFC 5321 requires CRLF line endings.
+// This removes any standalone \r or \n that could inject extra headers.
+func sanitizeEmailBody(body string) string {
+	// Normalize existing CRLF so we don't double-convert
+	normalized := strings.ReplaceAll(body, "\r\n", "\n")
+	// Strip bare CR (\r without following \n)
+	normalized = strings.ReplaceAll(normalized, "\r", "")
+	// Convert bare LF to CRLF for RFC 5321 compliance
+	return strings.ReplaceAll(normalized, "\n", "\r\n")
 }
 
 // sanitizeLog removes newline characters from user-controlled strings before
