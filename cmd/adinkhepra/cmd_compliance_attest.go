@@ -203,10 +203,25 @@ func complianceAttestCmd(args []string) {
 		os.Exit(1)
 	}
 	w := bufio.NewWriter(f)
-	w.Write(line)
-	w.WriteString("\n")
-	w.Flush()
-	f.Close()
+	if _, err := w.Write(line); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot write chain record: %v\n", err)
+		f.Close()
+		os.Exit(1)
+	}
+	if _, err := w.WriteString("\n"); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot write chain newline: %v\n", err)
+		f.Close()
+		os.Exit(1)
+	}
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot flush chain file: %v\n", err)
+		f.Close()
+		os.Exit(1)
+	}
+	if err := f.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot close chain file: %v\n", err)
+		os.Exit(1)
+	}
 
 	// ── Print receipt ─────────────────────────────────────────────────────────
 	fmt.Println()
