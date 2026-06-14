@@ -111,7 +111,7 @@ func decompressProject(r io.Reader, targetDir string) error {
 	return nil
 }
 
-func extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
+func extractEntry(tr *tar.Reader, header *tar.Header, target string) (err error) {
 	switch header.Typeflag {
 	case tar.TypeDir:
 		return os.MkdirAll(target, 0755)
@@ -125,7 +125,11 @@ func extractEntry(tr *tar.Reader, header *tar.Header, target string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() {
+			if cerr := f.Close(); cerr != nil && err == nil {
+				err = cerr
+			}
+		}()
 
 		if _, err := io.Copy(f, tr); err != nil {
 			return err
