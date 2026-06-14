@@ -29,7 +29,7 @@ const IntegrationStatusCard = ({ title, value, icon: Icon, status = 'normal', de
 );
 
 const IntegrationHealthDashboard = () => {
-  const { userIntegrations, _loading } = useIndustryIntegrations();
+  const { userIntegrations, loading: _loading } = useIndustryIntegrations();
   const { integrations } = useIntegrations();
 
   const totalIntegrations = userIntegrations.length + integrations.length;

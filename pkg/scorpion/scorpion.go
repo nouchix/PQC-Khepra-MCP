@@ -68,7 +68,12 @@ func Mpatapo(path string, data []byte, password string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[WARN] file close error: %v", cerr)
+		}
+	}()
 
 	if err := binary.Write(f, binary.LittleEndian, &header); err != nil {
 		return err
@@ -88,7 +93,12 @@ func Sane(path string, password string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[WARN] file close error: %v", cerr)
+		}
+	}()
 
 	var header ScorpionHeader
 	if err := binary.Read(f, binary.LittleEndian, &header); err != nil {

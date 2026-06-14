@@ -597,7 +597,12 @@ func exportPQCText(r *PQCSTIGResponse, path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[WARN] file close error: %v", cerr)
+		}
+	}()
 	w := func(format string, args ...any) { fmt.Fprintf(f, format, args...) }
 	w("═══════════════════════════════════════════════════════════════════\n")
 	w("           PQC EXECUTIVE INTELLIGENCE BRIEF — %s\n", r.Standard)

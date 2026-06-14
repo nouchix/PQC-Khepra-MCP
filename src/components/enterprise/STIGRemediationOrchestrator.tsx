@@ -107,7 +107,7 @@ export const STIGRemediationOrchestrator: React.FC = () => {
       setExecuting(true);
 
       for (const assetId of assetIds) {
-        const { _data, error } = await supabase.functions.invoke('automated-remediation-engine', {
+        const { data: _data, error } = await supabase.functions.invoke('automated-remediation-engine', {
           body: {
             organization_id: currentOrganization?.id || '',
             asset_id: assetId,

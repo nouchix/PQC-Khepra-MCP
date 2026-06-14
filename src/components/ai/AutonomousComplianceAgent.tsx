@@ -39,7 +39,7 @@ interface AutomationStats {
 }
 
 export const AutonomousComplianceAgent = () => {
-  const { _user } = useAuth();
+  const { user: _user } = useAuth();
   const { currentOrganization } = useOrganization();
   const [tasks, setTasks] = useState<ComplianceTask[]>([]);
   const [stats, setStats] = useState<AutomationStats>({
@@ -167,7 +167,7 @@ export const AutonomousComplianceAgent = () => {
     
     setLoading(true);
     try {
-      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           message: "Perform autonomous CMMC compliance assessment and generate remediation recommendations for our infrastructure.",
           organizationId: currentOrganization.id,

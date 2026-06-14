@@ -183,7 +183,12 @@ func exportPOAMCSV(report *stig.ComprehensiveReport, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[WARN] file close error: %v", cerr)
+		}
+	}()
 
 	w := csv.NewWriter(f)
 	defer w.Flush()

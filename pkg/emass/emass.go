@@ -247,7 +247,12 @@ func (e *Exporter) WriteXML(outputPath string) error {
 	if err != nil {
 		return fmt.Errorf("emass: create output: %w", err)
 	}
-	defer f.Close()
+	// Explicit close with error capture to prevent silent data loss (Go WARNING).
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			log.Printf("[WARN] file close error: %v", cerr)
+		}
+	}()
 
 	f.WriteString(xml.Header)
 	f.WriteString("<?xml-stylesheet type=\"text/xsl\" href=\"emass.xsl\"?>\n")
