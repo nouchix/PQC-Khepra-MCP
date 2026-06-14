@@ -728,24 +728,33 @@ func nsuoCmd(args []string) {
 
 // secureDelete overwrites the file with noise before removing it.
 // This prevents forensic recovery.
-func secureDelete(path string) error {
+func secureDelete(path string) (retErr error) {
 	f, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if cerr := f.Close(); retErr == nil && cerr != nil {
+			retErr = cerr
+		}
+	}()
 
 	info, err := f.Stat()
 	if err != nil {
-		f.Close()
 		return err
 	}
 
 	// Overwrite with random noise
 	noise := make([]byte, info.Size())
-	rand.Read(noise)
-	f.Write(noise)
-	f.Sync()
-	f.Close()
+	if _, err := rand.Read(noise); err != nil {
+		return err
+	}
+	if _, err := f.Write(noise); err != nil {
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		return err
+	}
 
 	return os.Remove(path)
 }
