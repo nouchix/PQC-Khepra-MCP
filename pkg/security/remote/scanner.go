@@ -208,8 +208,14 @@ func (b *BulkScanner) Scan(ctx context.Context, progress chan<- BulkScanResult) 
 				progress <- results[idx]
 			}
 
-			log.Printf("[SCAN] %s: Score=%.1f%% (%d/%d passed)",
-				prof.Host, report.Score, report.Passed, report.TotalChecks)
+			if err == nil && report != nil {
+				log.Printf("[SCAN] %s: Score=%.1f%% (%d/%d passed)",
+					prof.Host, report.Score, report.Passed, report.TotalChecks)
+			} else if err != nil {
+				log.Printf("[SCAN] %s: failed: %v", prof.Host, err)
+			} else {
+				log.Printf("[SCAN] %s: no report returned", prof.Host)
+			}
 		}(i, profile)
 	}
 
