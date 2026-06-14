@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
-import { Cpu, Shield, Brain, TrendingUp, CheckCircle, AlertTriangle, Zap, RefreshCw } from "lucide-react";
+import { Cpu, Shield, Brain, TrendingUp, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/hooks/use-toast";
@@ -172,7 +172,7 @@ export const NVIDIAMorpheus = () => {
             disabled={loading}
             className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/40"
           >
-            <RefreshCw className={['h-4 w-4', loading && 'animate-spin'].filter(Boolean).join(' ')} />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </CardTitle>
       </CardHeader>

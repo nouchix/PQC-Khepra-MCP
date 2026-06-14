@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Brain, Send, Shield, AlertTriangle, CheckCircle, Activity, MessageSquare } from "lucide-react";
+import { Brain, Send, Shield, AlertTriangle, Activity } from "lucide-react";
 
 const InteractiveDemoVideo = () => {
   const [currentStep, setCurrentStep] = useState(0);

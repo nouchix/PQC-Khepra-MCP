@@ -6,18 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Play, 
-  Search, 
-  Shield, 
-  Server, 
-  Monitor, 
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Pause,
-  RotateCcw
-} from 'lucide-react';
+import { Play, Search, Shield, Server, Monitor, AlertTriangle, CheckCircle, Clock, Pause } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -127,7 +116,7 @@ export const STIGAssetScanner: React.FC<STIGAssetScannerProps> = ({
       setLoading(true);
       
       for (const assetId of assetIds) {
-        const { data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
+        const { _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
           body: {
             action: 'scan',
             asset_id: assetId,
@@ -161,7 +150,7 @@ export const STIGAssetScanner: React.FC<STIGAssetScannerProps> = ({
 
   const cancelScan = async (jobId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
+      const { _data, error } = await supabase.functions.invoke('stig-compliance-orchestrator', {
         body: {
           action: 'cancel_scan',
           job_id: jobId,

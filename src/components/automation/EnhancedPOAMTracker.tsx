@@ -4,23 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Users, 
-  Download,
-  RefreshCw,
-  Settings,
-  Calendar,
-  Target,
-  TrendingUp,
-  Zap,
-  Bot,
-  Bell,
-  PlayCircle
-} from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Download, Settings, Target, TrendingUp, Zap, Bot, Bell, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -195,7 +179,7 @@ export const EnhancedPOAMTracker = () => {
 
   const updateRealTimeMetrics = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('automated-remediation', {
+      const { _data, error } = await supabase.functions.invoke('automated-remediation', {
         body: { 
           action: 'update_real_time_metrics',
           poam_ids: poamItems.map(item => item.id)
@@ -219,7 +203,7 @@ export const EnhancedPOAMTracker = () => {
 
   const triggerAutomation = async (ruleId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('automated-remediation', {
+      const { _data, error } = await supabase.functions.invoke('automated-remediation', {
         body: { 
           action: 'trigger_automation_rule',
           rule_id: ruleId
@@ -251,7 +235,7 @@ export const EnhancedPOAMTracker = () => {
 
   const generateAIRecommendations = async (poamId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: { 
           action: 'generate_poam_recommendations',
           poam_id: poamId

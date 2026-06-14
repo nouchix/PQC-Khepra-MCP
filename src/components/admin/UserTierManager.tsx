@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUserTierManagement, UserTierInfo } from '@/hooks/useUserTierManagement';
-import { useAuth, useUserRoles } from '@/hooks/useAuth';
+import { useUserRoles } from '@/hooks/useAuth';
 import {
   Crown, 
   Users, 
@@ -18,7 +18,7 @@ import {
 const UserTierManager = () => {
   const { toast } = useToast();
   const { isMasterAdmin, switchUserTier, getAllUsers, loading } = useUserTierManagement();
-  const { hasRole, isAdmin } = useUserRoles();
+  const { _hasRole, isAdmin } = useUserRoles();
   const [users, setUsers] = useState<UserTierInfo[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [selectedTiers, setSelectedTiers] = useState<Record<string, string>>({});

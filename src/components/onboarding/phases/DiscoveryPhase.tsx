@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Shield, CheckCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+
 import { AutoDiscoveryPanel } from '../AutoDiscoveryPanel';
 import CloudConnectionWizard from '../CloudConnectionWizard';
 import { DiscoveryResults } from '@/services/EnvironmentAutoDiscovery';

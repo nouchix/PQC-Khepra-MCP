@@ -3,27 +3,13 @@
  * Comprehensive STIG-first compliance automation interface
  */
 
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Shield,
-  Activity,
-  Zap,
-  Brain,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  Eye,
-  Settings,
-  FileText,
-  Globe
-} from 'lucide-react';
+import { Shield, Activity, Zap, Brain, AlertTriangle, CheckCircle, Clock, TrendingUp, Eye, Settings, Globe } from 'lucide-react';
 import { STIGCodexState, STIGCodexOperations } from '@/hooks/useSTIGCodex';
 
 interface STIGCodexDashboardProps extends STIGCodexState, STIGCodexOperations { }

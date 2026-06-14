@@ -2,16 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Shield, 
-  Globe, 
-  TrendingUp, 
-  Users, 
-  FileText,
-  Settings,
-  Link,
-  AlertTriangle
-} from "lucide-react";
+import { Shield, Globe, TrendingUp, Users, FileText, Link, AlertTriangle } from "lucide-react";
 import { CMMCDashboard } from "@/components/compliance/CMMCDashboard";
 import { HostBreachIntegration } from "@/components/integration/HostBreachIntegration";
 import { POAMGenerator } from "@/components/automation/POAMGenerator";

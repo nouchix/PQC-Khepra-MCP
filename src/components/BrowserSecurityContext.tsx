@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Globe, Shield, AlertTriangle, Clock, Network, Eye } from 'lucide-react';
+import { Globe, Shield, AlertTriangle } from 'lucide-react';
 import { useKhepraProtection } from '@/hooks/useKhepraProtection';
 
 interface BrowserSecurityContextProps {

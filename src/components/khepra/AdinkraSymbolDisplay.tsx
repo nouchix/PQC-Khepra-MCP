@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -33,7 +33,7 @@ export const AdinkraSymbolDisplay: React.FC<AdinkraSymbolDisplayProps> = ({
     return colors[category];
   };
 
-  const getSizeClasses = () => {
+  const _getSizeClasses = () => {
     switch (size) {
       case 'small': return 'w-16 h-16 text-xs';
       case 'large': return 'w-24 h-24 text-lg';

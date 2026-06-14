@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, CreditCard, Key } from "lucide-react";
+import { Shield, CreditCard, Key } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 const AdminSovereignty = () => {

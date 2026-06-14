@@ -1,4 +1,4 @@
-import { AdinkraAlgebraicEngine, AdinkraSymbol } from '../aae/AdinkraEngine';
+import { AdinkraAlgebraicEngine } from '../aae/AdinkraEngine';
 
 export interface CulturalThreatPattern {
   id: string;
@@ -207,7 +207,7 @@ export class CulturalThreatTaxonomy {
 
     // Analyze current threat distribution
     currentThreats.forEach(threat => {
-      const culturalContext = this.classifyThreat(threat);
+      const _culturalContext = this.classifyThreat(threat);
       const patterns = this.findCulturalPatterns(this.extractThreatVector(threat));
       
       patterns.forEach(pattern => {

@@ -297,7 +297,7 @@ export function KhepraDAGVisualization({
               <Controls className="bg-black/80 border-white/10 fill-white" />
               <MiniMap
                 nodeColor={(node) => {
-                  const type = nodes.find(n => n.id === node.id)?.id.includes('scan') ? 'scan' : 'default';
+                  const _type = nodes.find(n => n.id === node.id)?.id.includes('scan') ? 'scan' : 'default';
                   // Simple heuristic for minimap colors
                   return '#222';
                 }}

@@ -1,25 +1,11 @@
-import { useEffect } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useInteractiveTour } from '@/hooks/useInteractiveTour';
-import { 
-  X, 
-  ArrowRight, 
-  ArrowLeft, 
-  Play, 
-  Pause,
-  CheckCircle2,
-  Clock,
-  Brain,
-  Target,
-  Shield,
-  FileText,
-  Users,
-  Activity
-} from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, Play, CheckCircle2, Brain, Target, Shield, FileText, Activity } from 'lucide-react';
 
 export const InteractiveTourOverlay: React.FC = () => {
   const {

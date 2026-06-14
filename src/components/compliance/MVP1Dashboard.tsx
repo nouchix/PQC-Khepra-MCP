@@ -14,14 +14,29 @@ import {
   Settings,
   TrendingUp,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Lock,
 } from 'lucide-react';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import { useOrganizationContext } from '@/components/OrganizationProvider';
 import { useSTIGCompliance } from '@/hooks/useSTIGCompliance';
 
-export const MVP1Dashboard = () => {
+interface MVP1DashboardProps {
+  demoMetrics?: ComplianceMetrics;
+  onGatedAction?: () => void;
+}
+
+export const MVP1Dashboard = ({ demoMetrics, onGatedAction }: MVP1DashboardProps = {}) => {
   const navigate = useNavigate();
+  const isDemoMode = !!demoMetrics;
+
+  const handleAction = (route: string) => {
+    if (isDemoMode && onGatedAction) {
+      onGatedAction();
+    } else {
+      navigate(route);
+    }
+  };
 
   const mvp1Features = [
     {
@@ -108,33 +123,40 @@ export const MVP1Dashboard = () => {
   ];
 
   const { currentOrganization } = useOrganizationContext();
-  const { metrics, loading } = useSTIGCompliance(currentOrganization?.id || '');
+  const { metrics: liveMetrics, loading } = useSTIGCompliance(
+    isDemoMode ? '' : (currentOrganization?.id || '')
+  );
+  const metrics = demoMetrics ?? liveMetrics;
 
   const stats = [
     {
       label: 'Compliance Score',
-      value: loading ? '...' : `${metrics?.overall_compliance_percentage || 0}%`,
+      value: isDemoMode
+        ? `${metrics?.overall_compliance_percentage ?? 0}%`
+        : (loading ? '...' : `${metrics?.overall_compliance_percentage || 0}%`),
       icon: Shield,
-      color: 'text-green-600'
+      color: 'text-green-600',
     },
     {
       label: 'Open Findings',
-      value: loading ? '...' : ((metrics?.critical_findings || 0) + (metrics?.high_findings || 0) + (metrics?.medium_findings || 0)).toString(),
+      value: isDemoMode
+        ? ((metrics?.critical_findings ?? 0) + (metrics?.high_findings ?? 0) + (metrics?.medium_findings ?? 0)).toString()
+        : (loading ? '...' : ((metrics?.critical_findings || 0) + (metrics?.high_findings || 0) + (metrics?.medium_findings || 0)).toString()),
       icon: AlertTriangle,
-      color: 'text-red-600'
+      color: 'text-red-600',
     },
     {
       label: 'Drift Detection',
       value: 'Active',
       icon: Activity,
-      color: 'text-orange-600'
+      color: 'text-orange-600',
     },
     {
       label: 'AI Verification',
       value: 'Online',
       icon: Brain,
-      color: 'text-blue-600'
-    }
+      color: 'text-blue-600',
+    },
   ];
 
   return (
@@ -206,7 +228,8 @@ export const MVP1Dashboard = () => {
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400">
                       Live
                     </Badge>
-                    <Button onClick={() => navigate(feature.route)} size="sm">
+                    <Button onClick={() => handleAction(feature.route)} size="sm">
+                      {isDemoMode ? <Lock className="mr-2 h-3.5 w-3.5 opacity-60" /> : null}
                       Open <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
@@ -291,9 +314,9 @@ export const MVP1Dashboard = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => globalThis.open('mailto:pilot@stigfirst.com', '_blank')}
+                        onClick={() => navigate('/advisory')}
                       >
-                        Contact Sales
+                        Book Advisory Call
                       </Button>
                     </div>
                   </div>
@@ -314,11 +337,12 @@ export const MVP1Dashboard = () => {
           <Button
             variant="outline"
             className="justify-start h-auto py-4 flex-col items-start gap-2"
-            onClick={() => navigate('/dod')}
+            onClick={() => handleAction('/dod')}
           >
             <div className="flex items-center gap-2 w-full">
               <Search className="h-5 w-5 text-primary" />
               <div className="font-semibold">Search Registry</div>
+              {isDemoMode && <Lock className="h-3.5 w-3.5 ml-auto text-muted-foreground opacity-50" />}
             </div>
             <div className="text-xs text-muted-foreground text-left">
               Browse trusted STIG configurations
@@ -328,11 +352,12 @@ export const MVP1Dashboard = () => {
           <Button
             variant="outline"
             className="justify-start h-auto py-4 flex-col items-start gap-2"
-            onClick={() => navigate('/asset-scanning')}
+            onClick={() => handleAction('/asset-scanning')}
           >
             <div className="flex items-center gap-2 w-full">
               <Activity className="h-5 w-5 text-primary" />
               <div className="font-semibold">Monitor Drift</div>
+              {isDemoMode && <Lock className="h-3.5 w-3.5 ml-auto text-muted-foreground opacity-50" />}
             </div>
             <div className="text-xs text-muted-foreground text-left">
               Real-time configuration tracking
@@ -342,11 +367,12 @@ export const MVP1Dashboard = () => {
           <Button
             variant="outline"
             className="justify-start h-auto py-4 flex-col items-start gap-2"
-            onClick={() => navigate('/compliance-reports')}
+            onClick={() => handleAction('/compliance-reports')}
           >
             <div className="flex items-center gap-2 w-full">
               <Database className="h-5 w-5 text-primary" />
               <div className="font-semibold">View Baselines</div>
+              {isDemoMode && <Lock className="h-3.5 w-3.5 ml-auto text-muted-foreground opacity-50" />}
             </div>
             <div className="text-xs text-muted-foreground text-left">
               Configuration baseline status
@@ -356,11 +382,12 @@ export const MVP1Dashboard = () => {
           <Button
             variant="outline"
             className="justify-start h-auto py-4 flex-col items-start gap-2"
-            onClick={() => navigate('/evidence-collection')}
+            onClick={() => handleAction('/evidence-collection')}
           >
             <div className="flex items-center gap-2 w-full">
               <Shield className="h-5 w-5 text-primary" />
               <div className="font-semibold">Collect Evidence</div>
+              {isDemoMode && <Lock className="h-3.5 w-3.5 ml-auto text-muted-foreground opacity-50" />}
             </div>
             <div className="text-xs text-muted-foreground text-left">
               Build compliance reports

@@ -150,7 +150,7 @@ export const useMondayIntegration = () => {
 
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('monday-sync', {
+      const { _data, error } = await supabase.functions.invoke('monday-sync', {
         body: {
           organizationId: currentOrganization.id,
           operation: 'create',

@@ -223,7 +223,7 @@ export const UnifiedAdminConsole = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const _getStatusColor = (status: string) => {
     switch (status) {
       case "operational":
         return "text-green-400";

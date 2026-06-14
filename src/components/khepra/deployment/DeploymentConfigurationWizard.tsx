@@ -4,31 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Settings, 
-  Shield, 
-  Zap, 
-  Network, 
-  Globe, 
-  Lock,
-  Eye,
-  Bell,
-  Database,
-  Code,
-  Cpu,
-  HardDrive,
-  Wifi,
-  ChevronRight,
-  Info,
-  AlertTriangle,
-  CheckCircle
-} from 'lucide-react';
+import { Settings, Shield, Zap, Network, Lock, Eye, Code, Cpu, ChevronRight, Info, CheckCircle } from 'lucide-react';
 import { AdinkraSymbolDisplay } from '../AdinkraSymbolDisplay';
 
 interface SecurityProfile {

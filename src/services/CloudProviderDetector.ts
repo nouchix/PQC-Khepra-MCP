@@ -45,7 +45,7 @@ export class CloudProviderDetector {
     let confidence = 0;
 
     // Check for AWS-specific environment indicators
-    const awsIndicators = [
+    const _awsIndicators = [
       'AWS_REGION',
       'AWS_DEFAULT_REGION',
       'AWS_EXECUTION_ENV',
@@ -55,10 +55,8 @@ export class CloudProviderDetector {
     // Browser-based detection (limited)
     const hostname = globalThis.location.hostname;
     if (
-      hostname === 'amazonaws.com' ||
-      hostname.endsWith('.amazonaws.com') ||
-      hostname === 'aws.amazon.com' ||
-      hostname.endsWith('.aws.amazon.com')
+      hostname.includes('amazonaws.com') ||
+      hostname.includes('aws.amazon.com')
     ) {
       confidence += 40;
       metadata.detectedFrom = 'hostname';
@@ -98,12 +96,9 @@ export class CloudProviderDetector {
 
     const hostname = globalThis.location.hostname;
     if (
-      hostname === 'azure.com' ||
-      hostname.endsWith('.azure.com') ||
-      hostname === 'azurewebsites.net' ||
-      hostname.endsWith('.azurewebsites.net') ||
-      hostname === 'windows.net' ||
-      hostname.endsWith('.windows.net')
+      hostname.includes('azure.com') ||
+      hostname.includes('azurewebsites.net') ||
+      hostname.includes('windows.net')
     ) {
       confidence += 40;
       metadata.detectedFrom = 'hostname';
@@ -137,12 +132,9 @@ export class CloudProviderDetector {
 
     const hostname = globalThis.location.hostname;
     if (
-      hostname === 'googleapis.com' ||
-      hostname.endsWith('.googleapis.com') ||
-      hostname === 'googleusercontent.com' ||
-      hostname.endsWith('.googleusercontent.com') ||
-      hostname === 'google.com' ||
-      hostname.endsWith('.google.com')
+      hostname.includes('googleapis.com') ||
+      hostname.includes('googleusercontent.com') ||
+      hostname.includes('google.com')
     ) {
       confidence += 40;
       metadata.detectedFrom = 'hostname';

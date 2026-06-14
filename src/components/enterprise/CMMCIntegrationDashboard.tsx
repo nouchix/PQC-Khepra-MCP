@@ -6,21 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Shield, 
-  Award, 
-  FileText, 
-  CheckCircle, 
-  AlertTriangle, 
-  Clock,
-  TrendingUp,
-  Star,
-  Flag,
-  RefreshCw,
-  Download,
-  Eye,
-  Settings
-} from "lucide-react";
+import { Shield, Award, FileText, CheckCircle, AlertTriangle, Clock, RefreshCw, Download, Eye, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 

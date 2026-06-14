@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
-import { Container, Cpu, HardDrive, Activity, CheckCircle, RefreshCw } from "lucide-react";
+import { Container, CheckCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/hooks/use-toast";
@@ -122,7 +122,7 @@ export const ContainerOrchestration = () => {
             disabled={loading}
             className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/40"
           >
-            <RefreshCw className={['h-4 w-4', loading && 'animate-spin'].filter(Boolean).join(' ')} />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </CardTitle>
       </CardHeader>
@@ -178,4 +178,3 @@ export const ContainerOrchestration = () => {
     </Card>
   );
 };
-

@@ -14,18 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { 
-  Network, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Shield,
-  AlertTriangle,
-  CheckCircle2,
-  Monitor,
-  Lock,
-  Eye
-} from 'lucide-react';
+import { Network, Plus, Trash2, Shield, AlertTriangle, CheckCircle2, Lock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';

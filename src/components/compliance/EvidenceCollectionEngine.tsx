@@ -8,28 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useIndustryIntegrations } from '@/hooks/useIndustryIntegrations';
 import { InfrastructureDiscovery } from '@/components/InfrastructureDiscovery';
-import {
-  Database,
-  FileCheck,
-  Shield,
-  Cloud,
-  Server,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  Download,
-  Scan,
-  Network,
-  Key,
-  HardDrive,
-  Globe,
-  Users,
-  Lock,
-  Bot,
-  Link,
-  Eye,
-  Settings
-} from 'lucide-react';
+import { Database, FileCheck, Shield, Cloud, Server, CheckCircle, Clock, AlertTriangle, Download, Scan, Network, HardDrive, Globe, Users, Lock, Bot, Link, Eye, Settings } from 'lucide-react';
 
 interface EvidenceBundle {
   id: string;
@@ -105,7 +84,7 @@ export const EvidenceCollectionEngine: React.FC = () => {
   const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const [isCollecting, setIsCollecting] = useState(false);
   const [collectionProgress, setCollectionProgress] = useState(0);
-  const { userIntegrations, library, loading } = useIndustryIntegrations();
+  const { userIntegrations, _library, _loading } = useIndustryIntegrations();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -145,7 +124,7 @@ export const EvidenceCollectionEngine: React.FC = () => {
       }, 500);
 
       // Call enhanced evidence collection function
-      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'collect_evidence',
           framework,

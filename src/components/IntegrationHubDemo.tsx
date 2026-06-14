@@ -3,11 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Plug, Plus, Settings, AlertCircle, CheckCircle, 
-  Clock, Trash2, TestTube, Link, Zap, Shield,
-  Cloud, Monitor, UserCheck, RefreshCw, ExternalLink
-} from 'lucide-react';
+import { Plug, Plus, Settings, AlertCircle, CheckCircle, Clock, TestTube, Link, Zap, Shield, Cloud, Monitor, UserCheck, RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 

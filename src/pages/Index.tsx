@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,9 @@ import { SecurityEventsPanel } from "@/components/SecurityEventsPanel";
 import { UserManagement } from "@/components/UserManagement";
 import { AuditLog } from "@/components/AuditLog";
 import { RealTimeMetrics } from "@/components/RealTimeMetrics";
-import { LiveThreatFeed } from "@/components/LiveThreatFeed";
-import { SecurityDashboard } from "@/components/SecurityDashboard";
+
 import { IndustryIntegrationHub } from "@/components/integrations/IndustryIntegrationHub";
-import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
+
 import { useOrganizationContext } from "@/components/OrganizationProvider";
 import { ThreatFeedManager } from "@/components/ThreatFeedManager";
 import { AIThreatAnalyzer } from "@/components/AIThreatAnalyzer";
@@ -34,12 +33,12 @@ import { AlertDashboard } from "@/components/AlertDashboard";
 import FeatureGate from "@/components/FeatureGate";
 import { TrialOnboarding } from "@/components/onboarding/TrialOnboarding";
 import { UsageTracker, useUsageTracker } from "@/components/UsageTracker";
-import { Shield, Brain, Activity, Globe, Container, Network, LogOut, Users, FileText, Home, BarChart3, Lock, Plug, Target, Bell, Bot, Scale, CreditCard, Crown } from "lucide-react";
+import { Shield, Brain, Activity, Globe, Network, LogOut, Users, FileText, Home, BarChart3, Lock, Plug, Target, Bell, Bot, Scale, CreditCard, Crown } from "lucide-react";
 import { AISecurityAgent } from "@/components/ai/AISecurityAgent";
 import { AutonomousComplianceAgent } from "@/components/ai/AutonomousComplianceAgent";
 import { AIAgentDeployment } from '@/components/deployment/AIAgentDeployment';
 import { EnterpriseSecurityDashboard } from '@/components/EnterpriseSecurityDashboard';
-import UserTierManager from "@/components/admin/UserTierManager";
+
 import { SplunkDataFeed } from '@/components/SplunkDataFeed';
 import { EmergencyResponseManager } from '@/components/EmergencyResponseManager';
 import { IntegrationStatusWidget, IntegrationQuickActions } from '@/components/IntegrationStatusWidget';
@@ -169,14 +168,14 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Development Status Banner */}
-      <div className="bg-yellow-900/30 border-b border-yellow-500/30">
+      {/* PoC Status Banner */}
+      <div className="bg-emerald-900/30 border-b border-emerald-500/30">
         <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-center gap-3 text-sm">
-            <Shield className="h-4 w-4 text-yellow-400 flex-shrink-0" />
-            <p className="text-yellow-300 text-center">
-              <strong>Development Platform Notice:</strong> This system is in active development. Beta features shown are UI prototypes only.
-              Production CUI workloads require AWS GovCloud deployment (Q2 2025) with full NIST 800-171 compliance.
+            <Shield className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+            <p className="text-emerald-300 text-center">
+              <strong>KHEPRA Protocol: Proof of Concept Live</strong> — ASAF Flight Recorder deployed on Raspberry Pi Phantom Node.
+              CMMC hard deadline: October 1, 2026 (138 days).
             </p>
           </div>
         </div>

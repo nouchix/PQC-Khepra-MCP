@@ -42,7 +42,7 @@ export function KhepraLicenseWidget({ deploymentUrl, apiKey }: KhepraLicenseWidg
   const { license, heartbeat } = useKhepraAPI(deploymentUrl, apiKey);
   const { licenseUpdates } = useKhepraLicenseUpdates(deploymentUrl);
 
-  const latestUpdate = licenseUpdates.at(-1);
+  const _latestUpdate = licenseUpdates.at(-1);
   const data = license.data;
 
   const handleHeartbeat = async () => {

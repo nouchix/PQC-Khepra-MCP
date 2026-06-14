@@ -4,21 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  PlayCircle, 
-  PauseCircle, 
-  RotateCcw, 
-  CheckCircle, 
-  XCircle,
-  AlertTriangle,
-  Clock,
-  Shield,
-  Zap,
-  Network,
-  Database,
-  Cpu,
-  HardDrive
-} from 'lucide-react';
+import { PlayCircle, PauseCircle, RotateCcw, CheckCircle, XCircle, AlertTriangle, Clock, Shield, Zap, Network, Cpu, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DeploymentTask {
@@ -499,7 +485,7 @@ export const DeploymentOrchestrator: React.FC<DeploymentOrchestratorProps> = ({
     addLog('🔄 Deployment reset', 'info');
   };
 
-  const getCategoryIcon = (category: string) => {
+  const _getCategoryIcon = (category: string) => {
     switch (category) {
       case 'infrastructure': return <Cpu className="h-4 w-4" />;
       case 'security': return <Shield className="h-4 w-4" />;

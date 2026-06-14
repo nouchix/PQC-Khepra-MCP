@@ -8,21 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { 
-  Activity, 
-  AlertTriangle, 
-  TrendingUp, 
-  TrendingDown,
-  RefreshCw,
-  Settings,
-  Zap,
-  Clock,
-  Shield,
-  Eye,
-  Target,
-  CheckCircle,
-  AlertCircle
-} from "lucide-react";
+import { Activity, AlertTriangle, TrendingUp, RefreshCw, Settings, Zap, Shield, Eye, Target, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 

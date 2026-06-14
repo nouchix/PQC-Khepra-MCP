@@ -28,7 +28,7 @@ export const AccessControlWrapper = ({
   onAccessDenied
 }: AccessControlWrapperProps) => {
   const { profile } = useUserProfile();
-  const { hasAccess, currentClearance, loading, validateSecurityAccess, requestElevatedAccess } = useSecurityClearance(requiredClearance);
+  const { hasAccess, currentClearance, loading, _validateSecurityAccess, requestElevatedAccess } = useSecurityClearance(requiredClearance);
 
   // Check role-based access if required
   const hasRoleAccess = requiredRole ? (

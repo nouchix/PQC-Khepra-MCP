@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plug, CheckCircle, AlertTriangle, XCircle, RefreshCw, Network, Database } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface IntegrationTest {
   name: string;

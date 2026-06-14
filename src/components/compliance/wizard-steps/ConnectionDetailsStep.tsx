@@ -5,17 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Eye, 
-  EyeOff, 
-  Upload, 
-  Key, 
-  Server, 
-  FileText,
-  AlertTriangle,
-  Plus,
-  X
-} from 'lucide-react';
+import { Eye, EyeOff, Upload, Key, AlertTriangle, Plus, X } from 'lucide-react';
 import { WizardData } from '../DataSourcesWizard';
 
 interface ConnectionDetailsStepProps {

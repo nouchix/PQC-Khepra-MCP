@@ -7,20 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Brain,
-  Shield,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  GitBranch,
-  Eye,
-  Play,
-  Pause,
-  Settings,
-  FileCheck,
-  Network
-} from 'lucide-react';
+import { Brain, Shield, CheckCircle, AlertTriangle, GitBranch, Eye, Play, Pause, FileCheck, Network } from 'lucide-react';
 import { ControlTestEngine } from './ControlTestEngine';
 import { RemediationOrchestrator } from './RemediationOrchestrator';
 import { ConnectorSDK } from './ConnectorSDK';
@@ -29,7 +16,7 @@ import { AttestationEngine } from './AttestationEngine';
 import { EvidenceCollectionEngine } from './EvidenceCollectionEngine';
 import { ComplianceControlMapper } from './ComplianceControlMapper';
 import { POAMGenerator } from '../automation/POAMGenerator';
-import { EnhancedPOAMTracker } from '../automation/EnhancedPOAMTracker';
+
 import { ComplianceDemoScenarios } from '../demo/ComplianceDemoScenarios';
 
 interface AgentMode {
@@ -192,7 +179,7 @@ export const AgenticComplianceArchitect: React.FC = () => {
 
   const triggerComplianceScan = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'compliance_scan',
           mode: activeMode,
@@ -232,7 +219,7 @@ export const AgenticComplianceArchitect: React.FC = () => {
 
       updateGapStatus(gap.id, 'remediating');
 
-      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'execute_remediation',
           controlId: gap.controlId,
@@ -305,6 +292,7 @@ export const AgenticComplianceArchitect: React.FC = () => {
                 onClick={handleAgentToggle}
                 variant={agentStatus === 'running' ? 'outline' : 'default'}
                 className="flex items-center gap-2"
+                aria-label={agentStatus === 'running' ? 'Pause AI Agent' : 'Start AI Agent'}
               >
                 {agentStatus === 'running' ? (
                   <>
@@ -651,7 +639,7 @@ export const AgenticComplianceArchitect: React.FC = () => {
         <TabsContent value="gaps" className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Active Control Gaps</h3>
-            <Button onClick={fetchControlGaps} disabled={isLoading}>
+            <Button onClick={fetchControlGaps} disabled={isLoading} aria-label="Refresh compliance gaps">
               {isLoading ? 'Scanning...' : 'Refresh'}
             </Button>
           </div>
@@ -779,7 +767,11 @@ export const AgenticComplianceArchitect: React.FC = () => {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         {mode.name}
-                        <Badge variant={mode.riskLevel === 'high' ? 'destructive' : mode.riskLevel === 'medium' ? 'default' : 'secondary'}>
+                        <Badge variant={
+                          mode.riskLevel === 'high' ? 'destructive' : 
+                          mode.riskLevel === 'medium' ? 'default' : 
+                          'secondary'
+                        }>
                           {mode.riskLevel} risk
                         </Badge>
                       </CardTitle>

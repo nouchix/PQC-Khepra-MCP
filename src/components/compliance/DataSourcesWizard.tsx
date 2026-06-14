@@ -9,12 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { EnvironmentSelectionStep } from './wizard-steps/EnvironmentSelectionStep';
 import { ConnectionMethodStep } from './wizard-steps/ConnectionMethodStep';
 import { ConnectionDetailsStep } from './wizard-steps/ConnectionDetailsStep';

@@ -1,18 +1,11 @@
-import { useEffect, useState } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import { useIndustryIntegrations } from '@/hooks/useIndustryIntegrations';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { 
-  Plug, 
-  CheckCircle, 
-  AlertCircle, 
-  TrendingUp, 
-  ExternalLink,
-  Plus
-} from 'lucide-react';
+import { Plug, CheckCircle, AlertCircle, ExternalLink, Plus } from 'lucide-react';
 
 export const IntegrationStatusWidget = () => {
   const navigate = useNavigate();

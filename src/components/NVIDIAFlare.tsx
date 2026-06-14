@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Brain, Network, Lock, Users, CheckCircle, AlertTriangle, TrendingUp, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,7 +219,7 @@ export const NVIDIAFlare = () => {
             disabled={loading}
             className="bg-purple-600/20 border-purple-500/30 text-purple-400 hover:bg-purple-600/40"
           >
-              <RefreshCw className="h-4 w-4" data-spinning={loading || undefined} style={loading ? { animation: 'spin 1s linear infinite' } : undefined} />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </CardTitle>
       </CardHeader>

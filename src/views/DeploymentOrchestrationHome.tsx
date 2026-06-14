@@ -5,7 +5,7 @@ import DeploymentOrchestrationDashboard from './DeploymentOrchestrationDashboard
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 const DeploymentOrchestrationHome = () => {
-  const { profile } = useUserProfile();
+  const { _profile } = useUserProfile();
 
   const tabs = [
     { id: 'dod', title: 'Deployment Orchestration', path: '/dod', isActive: true },

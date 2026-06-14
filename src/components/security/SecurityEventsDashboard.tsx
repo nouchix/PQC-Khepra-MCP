@@ -7,24 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  AlertTriangle, 
-  Activity, 
-  Eye,
-  Search,
-  Filter,
-  Download,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  MapPin,
-  User,
-  Lock,
-  Settings,
-  Zap
-} from 'lucide-react';
+import { Shield, AlertTriangle, Activity, Eye, Download, RefreshCw, TrendingUp, Clock, MapPin, Lock, Settings, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';

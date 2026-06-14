@@ -6,19 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  Clock, 
-  Monitor, 
-  MapPin, 
-  AlertTriangle, 
-  Activity,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff,
-  Trash2
-} from 'lucide-react';
+import { Shield, Clock, Monitor, MapPin, Activity, Lock, Unlock, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';

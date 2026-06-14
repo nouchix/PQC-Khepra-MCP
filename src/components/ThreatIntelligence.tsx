@@ -54,7 +54,7 @@ export const ThreatIntelligence = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const _getStatusIcon = (status: string) => {
     return status === "active" ? 
       <CheckCircle className="h-3 w-3 text-green-400" /> : 
       <AlertCircle className="h-3 w-3 text-yellow-400" />;

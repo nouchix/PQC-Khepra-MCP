@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Zap, Timer, Activity, TrendingUp, RefreshCw, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface PerformanceTest {
   test_name: string;

@@ -8,7 +8,7 @@ export const useCacheManager = () => {
 
   useEffect(() => {
     // Listen for update notifications
-    const handleUpdateAvailable = () => {
+    const _handleUpdateAvailable = () => {
       setIsUpdateAvailable(true);
       toast.info('New version available!', {
         description: 'Click to update to the latest version',

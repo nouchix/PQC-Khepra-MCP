@@ -1,26 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import {
-  Brain,
-  MessageSquare,
-  Scan,
-  Network,
-  Shield,
-  CheckCircle,
-  ArrowRight,
-  Loader2,
-  Bot,
-  Target,
-  Database,
-  Cloud,
-  Lock,
-  Zap
-} from 'lucide-react';
+import { Brain, Scan, Network, Shield, CheckCircle, ArrowRight, Loader2, Bot, Target, Database, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -54,7 +39,7 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
   const [discoveredAssets, setDiscoveredAssets] = useState<DiscoveredAsset[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { toast } = useToast();
+  const { _toast } = useToast();
 
   const phases = [
     { id: 'discovery', label: 'Asset Discovery', icon: Scan },
@@ -160,7 +145,7 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
       }
 
       // Call real discovery service
-      const { data: discoveryData, error: discoveryError } = await supabase.functions.invoke('automated-infrastructure-discovery', {
+      const { data: _discoveryData, error: discoveryError } = await supabase.functions.invoke('automated-infrastructure-discovery', {
         body: {
           domain,
           scanDepth: 'standard',
@@ -200,7 +185,7 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
       addAIMessage("Now analyzing STIG compliance for each discovered asset...");
 
       // Call STIG analysis service
-      const { data, error } = await supabase.functions.invoke('stig-compliance-analyzer', {
+      const { _data, error } = await supabase.functions.invoke('stig-compliance-analyzer', {
         body: {
           assets: assets.map(a => ({
             id: a.id,

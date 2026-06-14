@@ -1,17 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Node, Edge } from '@xyflow/react';
-import { 
-  Laptop, 
-  Wifi, 
-  Router, 
-  Globe, 
-  Database, 
-  Server,
-  Smartphone,
-  Monitor,
-  Printer,
-  Shield
-} from 'lucide-react';
+import { Laptop, Router, Globe, Database, Server, Monitor } from 'lucide-react';
 import { productionSecurityService, SecurityAsset } from '@/services/ProductionSecurityService';
 
 interface NetworkInfo {

@@ -4,21 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, 
-  Lock, 
-  Eye, 
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Settings,
-  Network,
-  Smartphone,
-  Key,
-  Activity,
-  BarChart3,
-  Zap
-} from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle2, XCircle, Settings, Network, Smartphone, BarChart3, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,7 +41,7 @@ export const ZeroTrustDashboard = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const { toast } = useToast();
+  const { _toast } = useToast();
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
 

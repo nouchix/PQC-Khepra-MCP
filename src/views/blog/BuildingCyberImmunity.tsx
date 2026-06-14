@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet';
-import { Link } from '@/lib/router-compat';
-import { ArrowLeft, Calendar, Clock, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 
 export default function BuildingCyberImmunity() {
   return (

@@ -5,7 +5,6 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { DashboardToggle } from '@/components/DashboardToggle';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { EnhancedOnboarding } from '@/components/onboarding/EnhancedOnboarding';
-import { AWSDeploymentStatus } from '@/components/AWSDeploymentStatus';
 
 const ConsoleDashboard = () => {
   const { profile } = useUserProfile();

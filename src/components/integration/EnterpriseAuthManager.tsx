@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, CheckCircle, Shield, Key, Users, Settings, Globe, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Shield, Key, Users, Globe, Lock } from 'lucide-react';
 
 interface AuthProvider {
   id: string;

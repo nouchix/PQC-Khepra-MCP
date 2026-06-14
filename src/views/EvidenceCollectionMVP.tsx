@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Download, Upload, Calendar, Shield } from 'lucide-react';
 
 const EvidenceCollectionMVP = () => {
-  const { currentOrganization } = useOrganizationContext();
+  const { _currentOrganization } = useOrganizationContext();
 
   const tabs = [
     { id: 'stig-dashboard', title: 'STIG Dashboard', path: '/stig-dashboard' },

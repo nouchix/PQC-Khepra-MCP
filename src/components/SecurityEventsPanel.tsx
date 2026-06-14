@@ -1,8 +1,8 @@
-import { useState } from "react";
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, Clock, Shield, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Shield } from "lucide-react";
 import { useSecurityEvents } from "@/hooks/useSecurityEvents";
 import { useToast } from "@/hooks/use-toast";
 

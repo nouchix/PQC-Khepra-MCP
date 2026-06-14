@@ -7,12 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Bell, AlertTriangle, CheckCircle, Clock, User, 
-  TrendingUp, Zap, Shield, Activity, Play, Pause,
-  Settings, Send, RefreshCw, Archive, ChevronUp,
-  Eye, MessageSquare, Phone, Mail
-} from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle, Clock, TrendingUp, Zap, Shield, Activity, Play, Pause, Settings, Send, RefreshCw, Archive, ChevronUp, Eye, Phone, Mail } from 'lucide-react';
 import { useAlertManager } from '@/hooks/useAlertManager';
 import { formatDistanceToNow } from 'date-fns';
 

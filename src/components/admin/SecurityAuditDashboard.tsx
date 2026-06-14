@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, AlertTriangle, CheckCircle, Database, Lock, Users, Eye } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Lock, Users, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SecurityAuditResult {

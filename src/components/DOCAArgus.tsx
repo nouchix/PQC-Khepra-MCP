@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Eye, Server, Zap, CheckCircle, AlertTriangle, Activity, RefreshCw } from "lucide-react";
+import { Shield, Eye, Server, CheckCircle, AlertTriangle, Activity, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/hooks/use-toast";
@@ -103,7 +103,7 @@ export const DOCAArgus = () => {
     }
   };
 
-  const getStatusColor = (status: string, threats: number) => {
+  const _getStatusColor = (status: string, threats: number) => {
     if (status === "protected" && threats === 0) {
       return "text-green-400";
     } else if (status === "protected" && threats > 0) {
@@ -153,7 +153,7 @@ export const DOCAArgus = () => {
             disabled={loading}
             className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/40"
           >
-            <RefreshCw className={['h-4 w-4', loading && 'animate-spin'].filter(Boolean).join(' ')} />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </CardTitle>
       </CardHeader>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -6,14 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, Activity, Database, Globe, Zap, Eye, Target,
-  AlertTriangle, CheckCircle, XCircle, TrendingUp, Clock,
-  Server, Network, Lock, Brain, Sparkles
-} from 'lucide-react';
+import { Shield, Database, Globe, Zap, Eye, Target, AlertTriangle, CheckCircle, TrendingUp, Clock, Brain, Sparkles } from 'lucide-react';
 import { AdinkraSymbolDisplay } from './AdinkraSymbolDisplay';
-import { AdinkraAlgebraicEngine } from '@/khepra/aae/AdinkraEngine';
-import { TrustedAgentRegistry } from '@/khepra/registry/TrustedAgentRegistry';
+
 import { useThreatIntelligence } from '@/hooks/useThreatIntelligence';
 
 // MITRE ATT&CK Framework Integration

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import UserTierManager from "@/components/admin/UserTierManager";
 import { UnifiedAdminConsole } from "@/components/UnifiedAdminConsole";
 import { UserManagement } from "@/components/UserManagement";
 import { AuditLog } from "@/components/AuditLog";
-import { Crown, Users, FileText, Scale, Activity, LogOut, Shield } from "lucide-react";
+import { Crown, Users, FileText, Activity, LogOut, Shield } from "lucide-react";
 
 const MasterAdmin = () => {
   const { user, signOut } = useAuth();
@@ -189,7 +189,6 @@ const MasterAdmin = () => {
           <TabsContent value="users" className="space-y-6">
             <UserManagement />
           </TabsContent>
-
 
           <TabsContent value="audit" className="space-y-6">
             <AuditLog />

@@ -8,22 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, Zap, Monitor, UserCheck, Cloud, AlertTriangle, Activity, Globe,
-  Plus, Settings, TestTube, Trash2, CheckCircle, AlertCircle, Clock, 
-  ExternalLink, Filter, Search, Ticket, Award, Info, Brain, Sparkles,
-  Network, Eye, Workflow, MessageSquare, TrendingUp
-} from 'lucide-react';
+import { Shield, Zap, Monitor, UserCheck, Cloud, AlertTriangle, Activity, Globe, Plus, Settings, TestTube, Trash2, CheckCircle, AlertCircle, Clock, ExternalLink, Search, Ticket, Award, Brain, Sparkles, Network, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useIndustryIntegrations, IntegrationLibraryItem } from '@/hooks/useIndustryIntegrations';
 import { useAuth } from '@/hooks/useAuth';
-import { AdinkraSymbolDisplay } from '@/components/khepra/AdinkraSymbolDisplay';
+
 import { useKhepraAuth } from '@/khepra/hooks/useKhepraAuth';
 import { supabase } from '@/integrations/supabase/client';
-
 
 interface KhepraIntegrationData {
   connectedTools: number;
@@ -155,7 +149,7 @@ export const IndustryIntegrationHub = () => {
   }, []);
 
   // Handle voice assistant integration requests
-  const handleVoiceIntegrationRequest = async (request: string) => {
+  const _handleVoiceIntegrationRequest = async (request: string) => {
     console.log('Voice integration request:', request);
     
     // Parse the request and trigger appropriate actions

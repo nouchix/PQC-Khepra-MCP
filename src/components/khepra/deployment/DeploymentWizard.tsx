@@ -3,23 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Sparkles, 
-  Shield, 
-  Cloud, 
-  Server, 
-  Globe, 
-  ChevronLeft, 
-  ChevronRight,
-  CheckCircle,
-  AlertTriangle,
-  Loader2,
-  Brain,
-  Eye,
-  Zap
-} from 'lucide-react';
+import { Sparkles, Shield, ChevronLeft, ChevronRight, CheckCircle, Loader2, Brain } from 'lucide-react';
 import { AdinkraSymbolDisplay } from '../AdinkraSymbolDisplay';
 import { EnvironmentDetection } from './EnvironmentDetection';
 import { DeploymentVectorSelector } from './DeploymentVectorSelector';

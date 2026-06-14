@@ -1,48 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+
 import { useOrganizationContext } from '@/components/OrganizationProvider';
-import { 
-  Shield, 
-  Brain, 
-  Activity, 
-  TrendingUp, 
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Zap,
-  Users,
-  Globe,
-  ArrowRight,
-  ExternalLink,
-  Settings,
-  Star,
-  Target,
-  Play,
-  Pause,
-  BarChart3,
-  Layers,
-  Server
-} from 'lucide-react';
-import { AdinkraSymbolDisplay } from '@/components/khepra/AdinkraSymbolDisplay';
-import { PapyrusChecklist } from '@/components/papyrus/PapyrusChecklist';
-import { ActivityFeed } from '@/components/ActivityFeed';
+import { Shield, Activity, AlertTriangle, CheckCircle, ArrowRight, ExternalLink, Settings, Target, Play, BarChart3, Server } from 'lucide-react';
+
 import { useContextMenu } from '@/components/ui/context-menu-system';
 import { useWorkflowAnalytics } from '@/hooks/useWorkflowAnalytics';
 import { ExecutiveModeToggle } from '@/components/ui/executive-mode-toggle';
 import { ExecutiveSummaryView } from '@/components/ui/executive-summary-view';
-import { CollapsibleSection } from '@/components/ui/collapsible-section';
+
 import { AWSDeploymentStatus } from '@/components/AWSDeploymentStatus';
 import { InteractiveTourOverlay } from '@/components/onboarding/InteractiveTourOverlay';
 
 export const ConsoleHome: React.FC = () => {
   const navigate = useNavigate();
-  const { currentOrganization } = useOrganizationContext();
+  const { _currentOrganization } = useOrganizationContext();
   const { showContextMenu, ContextMenuComponent } = useContextMenu();
-  const { trackEvent, analytics } = useWorkflowAnalytics();
+  const { trackEvent, _analytics } = useWorkflowAnalytics();
   const [isExecutiveMode, setIsExecutiveMode] = useState(false);
   const [currentView, setCurrentView] = useState('home');
   const [assetStats, setAssetStats] = useState<any>(null);
@@ -63,7 +40,6 @@ export const ConsoleHome: React.FC = () => {
       setCurrentView(view);
     }
   }, []);
-
 
   // Core STIG-focused services
   const coreServices = [
@@ -99,7 +75,7 @@ export const ConsoleHome: React.FC = () => {
     }
   ];
 
-  const quickActions = [
+  const _quickActions = [
     { 
       title: 'Run STIG Scan', 
       icon: Shield, 
@@ -134,7 +110,7 @@ export const ConsoleHome: React.FC = () => {
     }
   ];
 
-  const handleElementClick = (elementType: string, action: string, coordinates: { x: number; y: number }) => {
+  const _handleElementClick = (elementType: string, action: string, coordinates: { x: number; y: number }) => {
     trackEvent(elementType, action, coordinates);
   };
 

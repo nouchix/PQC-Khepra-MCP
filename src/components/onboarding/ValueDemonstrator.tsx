@@ -1,21 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Progress } from '@/components/ui/progress';
-import { 
-  TrendingUp, 
-  Shield, 
-  Clock, 
-  DollarSign,
-  CheckCircle2,
-  AlertTriangle,
-  Zap,
-  Target,
-  Users,
-  ArrowRight
-} from 'lucide-react';
-import { useNavigate } from '@/lib/router-compat';
+import { TrendingUp, Shield, Clock, DollarSign, CheckCircle2, Zap, Target, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useUsageTracker } from '@/components/UsageTracker';
 
 interface ValueMetric {

@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Clock, Target, Activity, Shield } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, TrendingDown, AlertTriangle, Clock, Activity, Shield } from 'lucide-react';
 
 interface AnalyticsMetric {
   id: string;
@@ -100,7 +100,7 @@ export const STIGAnalyticsDashboard = () => {
 
   const generateReport = async (reportType: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
+      const { _data, error } = await supabase.functions.invoke('stig-intelligence-orchestrator', {
         body: {
           action: 'generate_compliance_report',
           organization_id: currentOrganization?.id,

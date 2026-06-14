@@ -8,27 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { AdinkraAlgebraicEngine } from '@/khepra/aae/AdinkraEngine';
-import {
-  Shield,
-  FileCheck,
-  Key,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  Download,
-  Upload,
-  QrCode,
-  Lock,
-  Unlock,
-  Hash,
-  Eye,
-  EyeOff,
-  Fingerprint,
-  Calendar,
-  User,
-  Building
-} from 'lucide-react';
+import { Shield, FileCheck, Key, CheckCircle, XCircle, Clock, AlertTriangle, Download, Upload, QrCode, Lock, Hash, Eye, EyeOff, Fingerprint } from 'lucide-react';
 
 interface AttestationRecord {
   id: string;

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,7 @@ import { SecurityEventsPanel } from "@/components/SecurityEventsPanel";
 import { UserManagement } from "@/components/UserManagement";
 import { AuditLog } from "@/components/AuditLog";
 import { RealTimeMetrics } from "@/components/RealTimeMetrics";
-import { LiveThreatFeed } from "@/components/LiveThreatFeed";
-import { SecurityDashboard } from "@/components/SecurityDashboard";
+
 import { IndustryIntegrationHub } from "@/components/integrations/IndustryIntegrationHub";
 import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import { useOrganizationContext } from "@/components/OrganizationProvider";
@@ -33,12 +32,12 @@ import { AlertDashboard } from "@/components/AlertDashboard";
 import FeatureGate from "@/components/FeatureGate";
 import { TrialOnboarding } from "@/components/onboarding/TrialOnboarding";
 import { UsageTracker, useUsageTracker } from "@/components/UsageTracker";
-import { Shield, Brain, Activity, Globe, Container, Network, LogOut, Users, FileText, Home, BarChart3, Lock, Plug, Target, Bell, Bot, Scale, CreditCard, Crown } from "lucide-react";
+import { Shield, Brain, Activity, Container, Network, LogOut, Users, FileText, Home, BarChart3, Lock, Plug, Target, Bell, Bot, Scale, CreditCard, Crown } from "lucide-react";
 import { AISecurityAgent } from "@/components/ai/AISecurityAgent";
 import { AutonomousComplianceAgent } from "@/components/ai/AutonomousComplianceAgent";
 import { AIAgentDeployment } from '@/components/deployment/AIAgentDeployment';
 import { EnterpriseSecurityDashboard } from '@/components/EnterpriseSecurityDashboard';
-import UserTierManager from "@/components/admin/UserTierManager";
+
 import { SplunkDataFeed } from '@/components/SplunkDataFeed';
 import { EmergencyResponseManager } from '@/components/EmergencyResponseManager';
 import { IntegrationStatusWidget, IntegrationQuickActions } from '@/components/IntegrationStatusWidget';

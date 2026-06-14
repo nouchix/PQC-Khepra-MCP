@@ -2,32 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Network,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Eye,
-  Target,
-  GitBranch,
-  Database,
-  Zap,
-  Users,
-  Building,
-  Globe,
-  Key,
-  FileText,
-  ArrowRight,
-  Search,
-  Filter,
-  Maximize,
-  Minimize
-} from 'lucide-react';
+import { Network, Shield, CheckCircle, Target, Database, Zap, Users, Building, Globe, FileText, ArrowRight, Search, Filter, Maximize, Minimize } from 'lucide-react';
 
 // Graph visualization component using canvas
 interface GraphNode {
@@ -266,7 +245,7 @@ export const ComplianceKnowledgeGraph: React.FC = () => {
   const refreshGraph = async () => {
     try {
       // Simulate fetching updated graph data
-      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { _data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'generate_knowledge_graph',
           includeRemediations: true,

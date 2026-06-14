@@ -9,24 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Search, 
-  Plus, 
-  Play, 
-  Square, 
-  RefreshCw, 
-  Server, 
-  Shield, 
-  Network, 
-  Cloud, 
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Settings
-} from 'lucide-react';
+import { Search, Plus, Square, RefreshCw, Server, Shield, Activity, AlertTriangle, CheckCircle, Settings } from 'lucide-react';
 import { STIGConnectorService, DiscoveredAsset, DiscoveryJob } from '@/services/STIGConnectorService';
-import { useOrganizationContext } from '@/components/OrganizationProvider';
 
 interface STIGConnectorDashboardProps {
   organizationId: string;
@@ -83,7 +67,7 @@ export const STIGConnectorDashboard: React.FC<STIGConnectorDashboardProps> = ({ 
     try {
       const targets = newJobData.targets.split('\n').filter(t => t.trim());
       
-      const result = await STIGConnectorService.startDiscovery(organizationId, {
+      const _result = await STIGConnectorService.startDiscovery(organizationId, {
         type: newJobData.discovery_type as "nmap_scan" | "comprehensive_scan" | "stealth_scan" | "vulnerability_scan",
         targets,
         scan_options: newJobData.scan_options

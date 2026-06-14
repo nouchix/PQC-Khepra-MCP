@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -18,7 +18,7 @@ interface SecurityMetrics {
 }
 
 export const useSecurityHardening = () => {
-  const { toast } = useToast();
+  const { _toast } = useToast();
   const [securityMetrics, setSecurityMetrics] = useState<SecurityMetrics>({
     failedAttempts: 0,
     lastAttempt: null,

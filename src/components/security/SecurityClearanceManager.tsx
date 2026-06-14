@@ -30,10 +30,10 @@ interface ClearanceRequest {
 }
 
 export const SecurityClearanceManager = () => {
-  const { profile, isAdmin: isProfileAdmin } = useUserProfile();
+  const { profile, isAdmin: _isProfileAdmin } = useUserProfile();
   const { currentClearance } = useSecurityClearance();
   const { toast } = useToast();
-  const { isAdmin: hasAdminRole, hasRole } = useUserRoles();
+  const { isAdmin: hasAdminRole, _hasRole } = useUserRoles();
   
   // Use secure role system instead of profile-based check
   const isAdmin = () => hasAdminRole() || profile?.master_admin || false;

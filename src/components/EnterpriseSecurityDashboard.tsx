@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Shield, Network, Search, AlertTriangle, Eye, Globe, Mail, Cloud } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+
 import { useToast } from '@/hooks/use-toast';
 import { useOrganizationContext } from '@/components/OrganizationProvider';
 
