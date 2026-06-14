@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHEPRA PROTOCOL // Living Trust Constellation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #050505;
+            color: #00ff41;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        #canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        .node {
+            fill: #000;
+            stroke: #00ff41;
+            stroke-width: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            fill: #00ff41;
+            stroke: #00ff00;
+            stroke-width: 2.5px;
+        }
+
+        .node.secure {
+            fill: #00ff41;
+            stroke: #004400;
+        }
+
+        .node.verified {
+            fill: #003300;
+            stroke: #00ff41;
+        }
+
+        .link {
+            stroke: #004400;
+            stroke-opacity: 0.6;
+            stroke-width: 1px;
+            fill: none;
+        }
+
+        .link.verified {
+            stroke: #00ff41;
+            stroke-opacity: 0.8;
+        }
+
+        .text {
+            font-size: 10px;
+            fill: #00ff41;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            padding: 20px;
+            background: rgba(0, 20, 0, 0.95);
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            max-width: 350px;
+            backdrop-filter: blur(10px);
+        }
+
+        #detail-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            padding: 20px;
+            background: rgba(0, 20, 0, 0.95);
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        h3 {
+            margin-top: 0;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-weight: bold;
+        }
+
+        .blink {
+            animation: blinker 1.5s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0.3; }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .console-log {
+            font-size: 11px;
+            color: #88ff88;
+            line-height: 1.6;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #004400;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .console-log div {
+            margin-bottom: 3px;
+        }
+
+        .status-ok {
+            color: #00ff41;
+        }
+
+        .status-warn {
+            color: #ffff00;
+        }
+
+        .status-error {
+            color: #ff4444;
+        }
+
+        .button {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 5px 10px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .button:hover {
+            background: #00ff41;
+            color: #000;
+        }
+
+        #zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+
+        #zoom-controls button {
+            display: block;
+            margin-bottom: 5px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 20, 0, 0.9);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #zoom-controls button:hover {
+            background: #00ff41;
+            color: #000;
+        }
+
+        .hash-display {
+            font-size: 9px;
+            word-break: break-all;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <!-- Main HUD Overlay -->
+    <div id="overlay">
+        <h3>🔒 LIVING TRUST DAG</h3>
+        <div class="stat-row">
+            <span class="stat-label">STATUS:</span>
+            <span id="status" class="stat-value blink status-ok">INITIALIZING</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">NODES_ACTIVE:</span>
+            <span id="node-count" class="stat-value">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">EDGES_VERIFIED:</span>
+            <span id="edge-count" class="stat-value">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">HASH_POWER:</span>
+            <span id="hash-power" class="stat-value">0 TH/s</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">LAST_SYNC:</span>
+            <span id="last-sync" class="stat-value">--:--:--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">FIPS_140-3:</span>
+            <span id="fips-status" class="stat-value">CHECKING...</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">PQC_ACTIVE:</span>
+            <span id="pqc-status" class="stat-value">CHECKING...</span>
+        </div>
+
+        <div class="console-log" id="console-log">
+            <div class="pulse">&gt; INITIATING DAG SYNC...</div>
+        </div>
+
+        <button class="button" onclick="window.location.reload()">🔄 REFRESH</button>
+    </div>
+
+    <!-- Detail Panel (shown on node click) -->
+    <div id="detail-panel">
+        <h3>📋 NODE DETAILS</h3>
+        <div class="stat-row">
+            <span class="stat-label">NODE_ID:</span>
+            <span id="detail-id" class="stat-value">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">TIMESTAMP:</span>
+            <span id="detail-timestamp" class="stat-value">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">EVENT_TYPE:</span>
+            <span id="detail-event" class="stat-value">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">VERIFIED:</span>
+            <span id="detail-verified" class="stat-value">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">PARENTS:</span>
+            <span id="detail-parents" class="stat-value">--</span>
+        </div>
+        <div class="hash-display">
+            <strong>HASH:</strong><br>
+            <span id="detail-hash">--</span>
+        </div>
+        <div class="hash-display">
+            <strong>SIGNATURE:</strong><br>
+            <span id="detail-signature">--</span>
+        </div>
+        <button class="button" onclick="closeDetailPanel()">✕ CLOSE</button>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div id="zoom-controls">
+        <button onclick="zoomIn()">+</button>
+        <button onclick="zoomOut()">−</button>
+        <button onclick="resetZoom()">⌂</button>
+    </div>
+
+    <svg id="canvas"></svg>
+
+    <script>
+        // Configuration
+        const API_BASE = '';
+        const POLL_INTERVAL = 2000; // 2 seconds
+
+        // D3 Setup
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const svg = d3.select("#canvas")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        let nodes = [];
+        let links = [];
+        let nodeMap = new Map(); // For quick node lookup
+
+        // Force simulation
+        const simulation = d3.forceSimulation(nodes)
+            .force("charge", d3.forceManyBody().strength(-50))
+            .force("link", d3.forceLink(links).id(d => d.id).distance(80).strength(0.5))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(10))
+            .force("y", d3.forceY(0).strength(0.05))
+            .force("x", d3.forceX(0).strength(0.05))
+            .on("tick", ticked);
+
+        let link = g.append("g").attr("class", "links").selectAll(".link");
+        let node = g.append("g").attr("class", "nodes").selectAll(".node");
+
+        function ticked() {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+        }
+
+        function restart() {
+            // Update nodes
+            node = node.data(nodes, d => d.id);
+            node.exit().remove();
+
+            const nodeEnter = node.enter().append("circle")
+                .attr("class", d => "node" + (d.verified ? " verified" : ""))
+                .attr("r", 0)
+                .on("click", (event, d) => showNodeDetails(d))
+                .call(drag(simulation));
+
+            nodeEnter.transition()
+                .duration(500)
+                .attr("r", 5);
+
+            node = nodeEnter.merge(node);
+
+            // Update links
+            link = link.data(links, d => `${d.source.id}-${d.target.id}`);
+            link.exit().remove();
+
+            const linkEnter = link.enter().append("line")
+                .attr("class", d => "link" + (d.verified ? " verified" : ""))
+                .attr("stroke-opacity", 0);
+
+            linkEnter.transition()
+                .duration(500)
+                .attr("stroke-opacity", 0.6);
+
+            link = linkEnter.merge(link);
+
+            // Update simulation
+            simulation.nodes(nodes);
+            simulation.force("link").links(links);
+            simulation.alpha(0.3).restart();
+        }
+
+        function drag(simulation) {
+            function dragstarted(event) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+
+            function dragended(event) {
+                if (!event.active) simulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        // Zoom controls
+        function zoomIn() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1.5);
+        }
+
+        function zoomOut() {
+            svg.transition().duration(300).call(zoom.scaleBy, 0.67);
+        }
+
+        function resetZoom() {
+            svg.transition().duration(500).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+            );
+        }
+
+        // Node detail panel
+        function showNodeDetails(d) {
+            document.getElementById('detail-panel').style.display = 'block';
+            document.getElementById('detail-id').textContent = d.id;
+            document.getElementById('detail-timestamp').textContent = new Date(d.timestamp).toLocaleString();
+            document.getElementById('detail-event').textContent = d.event_type || 'unknown';
+            document.getElementById('detail-verified').textContent = d.verified ? 'YES ✓' : 'NO ✗';
+            document.getElementById('detail-parents').textContent = d.parents ? d.parents.length : 0;
+            document.getElementById('detail-hash').textContent = d.hash || 'N/A';
+            document.getElementById('detail-signature').textContent = d.signature ? d.signature.substring(0, 64) + '...' : 'N/A';
+        }
+
+        function closeDetailPanel() {
+            document.getElementById('detail-panel').style.display = 'none';
+        }
+
+        // Console logging
+        function addConsoleLog(message, type = 'info') {
+            const console = document.getElementById('console-log');
+            const div = document.createElement('div');
+            div.textContent = '> ' + message;
+
+            if (type === 'ok') div.className = 'status-ok';
+            else if (type === 'warn') div.className = 'status-warn';
+            else if (type === 'error') div.className = 'status-error';
+
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
+
+            // Keep only last 10 messages
+            while (console.children.length > 10) {
+                console.removeChild(console.firstChild);
+            }
+        }
+
+        // API Functions
+        async function fetchNodes() {
+            try {
+                const response = await fetch(API_BASE + '/api/dag/nodes');
+                const data = await response.json();
+
+                // Update nodes and links
+                const newNodes = [];
+                const newLinks = [];
+                nodeMap.clear();
+
+                data.forEach(nodeData => {
+                    const node = {
+                        id: nodeData.id,
+                        timestamp: nodeData.timestamp,
+                        event_type: nodeData.event_type,
+                        hash: nodeData.hash,
+                        signature: nodeData.signature,
+                        verified: nodeData.verified,
+                        parents: nodeData.parents || []
+                    };
+
+                    newNodes.push(node);
+                    nodeMap.set(node.id, node);
+                });
+
+                // Create links from parent relationships
+                newNodes.forEach(node => {
+                    if (node.parents) {
+                        node.parents.forEach(parentId => {
+                            const parent = nodeMap.get(parentId);
+                            if (parent) {
+                                newLinks.push({
+                                    source: parent,
+                                    target: node,
+                                    verified: node.verified && parent.verified
+                                });
+                            }
+                        });
+                    }
+                });
+
+                nodes = newNodes;
+                links = newLinks;
+                restart();
+
+                addConsoleLog(`Loaded ${nodes.length} nodes, ${links.length} edges`, 'ok');
+
+            } catch (error) {
+                addConsoleLog('NETWORK ERROR: ' + error.message, 'error');
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch(API_BASE + '/api/dag/stats');
+                const stats = await response.json();
+
+                // Update HUD
+                document.getElementById('status').textContent = stats.status;
+                document.getElementById('status').className = 'stat-value ' +
+                    (stats.status.includes('STABLE') ? 'status-ok' : 'blink status-warn');
+
+                document.getElementById('node-count').textContent = stats.node_count;
+                document.getElementById('edge-count').textContent = stats.edge_count;
+                document.getElementById('hash-power').textContent = stats.hash_power;
+                document.getElementById('last-sync').textContent = stats.last_sync;
+
+                document.getElementById('fips-status').textContent = stats.fips_enabled ? 'ENABLED ✓' : 'DISABLED';
+                document.getElementById('fips-status').className = 'stat-value ' +
+                    (stats.fips_enabled ? 'status-ok' : 'status-warn');
+
+                document.getElementById('pqc-status').textContent = stats.pqc_active ? 'ACTIVE ✓' : 'INACTIVE';
+                document.getElementById('pqc-status').className = 'stat-value ' +
+                    (stats.pqc_active ? 'status-ok' : 'status-warn');
+
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+
+        // Initialize
+        addConsoleLog('KHEPRA PROTOCOL INITIALIZING...', 'ok');
+        addConsoleLog('VERIFYING GENESIS BLOCK...', 'ok');
+        addConsoleLog('KYBER-1024 ENCAPSULATION: OK', 'ok');
+        addConsoleLog('DILITHIUM-3 SIGNATURE: VERIFIED', 'ok');
+
+        // Start polling
+        fetchNodes();
+        fetchStats();
+
+        setInterval(fetchNodes, POLL_INTERVAL);
+        setInterval(fetchStats, POLL_INTERVAL);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            svg.attr("width", window.innerWidth)
+               .attr("height", window.innerHeight);
+            simulation.force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
+            simulation.alpha(0.3).restart();
+        });
+    </script>
+</body>
+</html>
