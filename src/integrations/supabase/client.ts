@@ -29,84 +29,121 @@ const asafFetch = async (path: string, opts?: RequestInit) => {
 };
 
 // ── Query builder stub ────────────────────────────────────────────────────────
-// Mimics the Supabase PostgREST builder enough to prevent crashes.
-// Implements the Promise/thenable interface so `const { data, error } = await supabase.from(...)...`
-// resolves to { data: null, error: null } for all queries.
+// Mimics the Supabase PostgREST builder.
+// - Supports full method chaining (select, eq, order, limit, etc.)
+// - Is thenable: `const { data, error } = await supabase.from(...).select().eq(...)` works
+// - Uses `any` for data so code using data.map(), data.name etc. type-checks without null guards
 
-type QueryResult = { data: null; error: null };
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type QueryResult = { data: any; error: any | null; count?: number | null };
 
-const makeQueryStub = (_table: string): QueryStub => {
-  const stub: QueryStub = {
-    select: (_cols?: string) => makeQueryStub(_table),
-    insert: (_row: unknown) => Promise.resolve({ data: null, error: null }),
-    update: (_row: unknown) => makeQueryStub(_table),
-    upsert: (_row: unknown) => Promise.resolve({ data: null, error: null }),
-    delete: () => makeQueryStub(_table),
-    eq: (_col: string, _val: unknown) => makeQueryStub(_table),
-    neq: (_col: string, _val: unknown) => makeQueryStub(_table),
-    gt: (_col: string, _val: unknown) => makeQueryStub(_table),
-    gte: (_col: string, _val: unknown) => makeQueryStub(_table),
-    lt: (_col: string, _val: unknown) => makeQueryStub(_table),
-    lte: (_col: string, _val: unknown) => makeQueryStub(_table),
-    in: (_col: string, _vals: unknown[]) => makeQueryStub(_table),
-    is: (_col: string, _val: unknown) => makeQueryStub(_table),
-    ilike: (_col: string, _val: string) => makeQueryStub(_table),
-    order: (_col: string, _opts?: unknown) => makeQueryStub(_table),
-    limit: (_n: number) => makeQueryStub(_table),
-    range: (_from: number, _to: number) => makeQueryStub(_table),
-    single: () => Promise.resolve({ data: null, error: null }),
-    maybeSingle: () => Promise.resolve({ data: null, error: null }),
-    // Thenable: allows `const { data, error } = await supabase.from(...).select().eq(...)` to work.
-    // Without this, destructuring `{ data, error }` from the builder fails at runtime and TS compile.
-    then: <T>(
-      resolve: (value: QueryResult) => T,
-      reject?: (reason: unknown) => T
-    ): Promise<T> => Promise.resolve({ data: null, error: null }).then(resolve, reject),
-  };
-  return stub;
-};
-
-// Stub type matching the builder interface + Promise thenable
-interface QueryStub {
-  select: (_cols?: string) => QueryStub;
-  insert: (_row: unknown) => Promise<QueryResult>;
-  update: (_row: unknown) => QueryStub;
-  upsert: (_row: unknown) => Promise<QueryResult>;
-  delete: () => QueryStub;
-  eq: (_col: string, _val: unknown) => QueryStub;
-  neq: (_col: string, _val: unknown) => QueryStub;
-  gt: (_col: string, _val: unknown) => QueryStub;
-  gte: (_col: string, _val: unknown) => QueryStub;
-  lt: (_col: string, _val: unknown) => QueryStub;
-  lte: (_col: string, _val: unknown) => QueryStub;
-  in: (_col: string, _vals: unknown[]) => QueryStub;
-  is: (_col: string, _val: unknown) => QueryStub;
+interface QueryStub extends Promise<QueryResult> {
+  select: (_cols?: string, _opts?: any) => QueryStub;
+  insert: (_row: any, _opts?: any) => QueryStub;
+  update: (_row: any, _opts?: any) => QueryStub;
+  upsert: (_row: any, _opts?: any) => QueryStub;
+  delete: (_opts?: any) => QueryStub;
+  eq: (_col: string, _val: any) => QueryStub;
+  neq: (_col: string, _val: any) => QueryStub;
+  gt: (_col: string, _val: any) => QueryStub;
+  gte: (_col: string, _val: any) => QueryStub;
+  lt: (_col: string, _val: any) => QueryStub;
+  lte: (_col: string, _val: any) => QueryStub;
+  in: (_col: string, _vals: any[]) => QueryStub;
+  is: (_col: string, _val: any) => QueryStub;
   ilike: (_col: string, _val: string) => QueryStub;
-  order: (_col: string, _opts?: unknown) => QueryStub;
+  order: (_col: string, _opts?: any) => QueryStub;
   limit: (_n: number) => QueryStub;
   range: (_from: number, _to: number) => QueryStub;
-  single: () => Promise<QueryResult>;
-  maybeSingle: () => Promise<QueryResult>;
-  then: <T>(resolve: (value: QueryResult) => T, reject?: (reason: unknown) => T) => Promise<T>;
+  match: (_query: Record<string, any>) => QueryStub;
+  not: (_col: string, _op: string, _val: any) => QueryStub;
+  contains: (_col: string, _val: any) => QueryStub;
+  containedBy: (_col: string, _val: any) => QueryStub;
+  filter: (_col: string, _op: string, _val: any) => QueryStub;
+  or: (_filters: string, _opts?: any) => QueryStub;
+  single: () => QueryStub;
+  maybeSingle: () => QueryStub;
+  throwOnError: () => QueryStub;
+  csv: () => QueryStub;
+  returns: <T>() => QueryStub;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+const makeQueryStub = (_table: string): QueryStub => {
+  const base = Promise.resolve<QueryResult>({ data: null, error: null, count: null });
+
+  const stub: QueryStub = Object.assign(base, {
+    select: () => makeQueryStub(_table),
+    insert: () => makeQueryStub(_table),
+    update: () => makeQueryStub(_table),
+    upsert: () => makeQueryStub(_table),
+    delete: () => makeQueryStub(_table),
+    eq: () => makeQueryStub(_table),
+    neq: () => makeQueryStub(_table),
+    gt: () => makeQueryStub(_table),
+    gte: () => makeQueryStub(_table),
+    lt: () => makeQueryStub(_table),
+    lte: () => makeQueryStub(_table),
+    in: () => makeQueryStub(_table),
+    is: () => makeQueryStub(_table),
+    ilike: () => makeQueryStub(_table),
+    order: () => makeQueryStub(_table),
+    limit: () => makeQueryStub(_table),
+    range: () => makeQueryStub(_table),
+    match: () => makeQueryStub(_table),
+    not: () => makeQueryStub(_table),
+    contains: () => makeQueryStub(_table),
+    containedBy: () => makeQueryStub(_table),
+    filter: () => makeQueryStub(_table),
+    or: () => makeQueryStub(_table),
+    single: () => makeQueryStub(_table),
+    maybeSingle: () => makeQueryStub(_table),
+    throwOnError: () => makeQueryStub(_table),
+    csv: () => makeQueryStub(_table),
+    returns: () => makeQueryStub(_table),
+  });
+
+  return stub;
+};
 
 // ── Auth stub ─────────────────────────────────────────────────────────────────
 // Auth operations are handled by AuthProvider.tsx — this stub is a no-op fallback.
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const authStub = {
-  getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-  getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-  onAuthStateChange: (_cb: unknown) => ({ data: { subscription: { unsubscribe: () => {} } } }),
-  signInWithPassword: async (_creds: unknown) => ({ data: null, error: { message: 'Use license key auth' } }),
-  signUp: async (_creds: unknown) => ({ data: null, error: null }),
+  getSession: () => Promise.resolve({ data: { session: null as any }, error: null }),
+  getUser: () => Promise.resolve({ data: { user: null as any }, error: null }),
+  onAuthStateChange: (_cb: any) => ({ data: { subscription: { unsubscribe: () => {} } } }),
+  signInWithPassword: async (_creds: any) => ({ data: null as any, error: null as any }),
+  signUp: async (_creds: any) => ({ data: null as any, error: null as any }),
   signOut: async () => ({ error: null }),
-  resetPasswordForEmail: async (_email: string, _opts?: unknown) => ({ error: null }),
+  resetPasswordForEmail: async (_email: string, _opts?: any) => ({ error: null }),
+  updateUser: async (_attrs: any) => ({ data: { user: null as any }, error: null }),
+  // MFA API stub
+  mfa: {
+    listFactors: async () => ({ data: { all: [] as any[], totp: [] as any[], phone: [] as any[] }, error: null }),
+    enroll: async (_opts: any) => ({ data: null as any, error: null }),
+    unenroll: async (_opts: any) => ({ data: null as any, error: null }),
+    challenge: async (_opts: any) => ({ data: null as any, error: null }),
+    verify: async (_opts: any) => ({ data: null as any, error: null }),
+    challengeAndVerify: async (_opts: any) => ({ data: null as any, error: null }),
+  },
+  // Admin API stub — service role operations (admin panel only)
+  admin: {
+    getUserById: async (_uid: string) => ({ data: { user: null as any }, error: null }),
+    listUsers: async (_opts?: any) => ({ data: { users: [] as any[] }, error: null }),
+    createUser: async (_attrs: any) => ({ data: { user: null as any }, error: null }),
+    deleteUser: async (_uid: string) => ({ data: {} as any, error: null }),
+    updateUserById: async (_uid: string, _attrs: any) => ({ data: { user: null as any }, error: null }),
+  },
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ── RPC stub ──────────────────────────────────────────────────────────────────
 // Maps known RPC calls to ASAF agent endpoints where available.
 
-const rpc = async (fnName: string, params?: unknown) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const rpc = async (fnName: string, params?: any) => {
   // Route known RPC functions to ASAF agent
   const rpcRoutes: Record<string, string> = {
     'get_current_user_role': '/me/role',
@@ -132,7 +169,8 @@ const rpc = async (fnName: string, params?: unknown) => {
 // Mimics supabase.functions.invoke() for Edge Function calls.
 
 const functionsStub = {
-  invoke: async (fnName: string, options?: { body?: unknown; headers?: Record<string, string> }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  invoke: async (fnName: string, options?: { body?: any; headers?: Record<string, string> }) => {
     const result = await asafFetch(`/functions/${fnName}`, {
       method: 'POST',
       body: JSON.stringify(options?.body ?? {}),
@@ -148,12 +186,14 @@ const functionsStub = {
 // ── Storage stub ──────────────────────────────────────────────────────────────
 
 const storage = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (_bucket: string) => ({
-    upload: async (_path: string, _file: unknown) => ({ data: null, error: null }),
-    download: async (_path: string) => ({ data: null, error: null }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    upload: async (_path: string, _file: any) => ({ data: null as any, error: null }),
+    download: async (_path: string) => ({ data: null as any, error: null }),
     getPublicUrl: (_path: string) => ({ data: { publicUrl: '' } }),
-    list: async (_prefix?: string) => ({ data: [], error: null }),
-    remove: async (_paths: string[]) => ({ data: null, error: null }),
+    list: async (_prefix?: string) => ({ data: [] as any[], error: null }),
+    remove: async (_paths: string[]) => ({ data: null as any, error: null }),
   }),
 };
 
@@ -165,12 +205,14 @@ export const supabase = {
   rpc,
   storage,
   from: (table: string) => makeQueryStub(table),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   channel: (_name: string) => ({
-    on: (_event: string, _filter: unknown, _cb: unknown) => ({ subscribe: () => {} }),
+    on: (_event: string, _filter: any, _cb: any) => ({ subscribe: () => {} }),
     subscribe: () => ({}),
     unsubscribe: () => {},
   }),
-  removeChannel: (_ch: unknown) => {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  removeChannel: (_ch: any) => {},
 };
 
 // Type re-export for files that import from types.ts
