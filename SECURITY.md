@@ -154,3 +154,45 @@ We target **Level 2 (Advanced)** and **Level 3 (Expert)** practices for defense 
 
 ## Post-Quantum Cryptography (PQC)
 AdinKhepra proactively addresses the quantum threat by implementing **NIST-standardized PQC algorithms** (CRYSTALS-Kyber, CRYSTALS-Dilithium) for key exchange and digital signatures, ensuring long-term data protection against "Harvest Now, Decrypt Later" attacks.
+
+---
+
+## MCP Transport Security — Claude Code Attack Chain (Mitiga Labs, 2026-04-10)
+
+### Threat Summary
+
+A five-step supply chain attack can silently redirect Claude Code's MCP traffic through attacker-controlled infrastructure, intercepting OAuth bearer tokens. Anthropic has ruled this out of scope — no patch is planned. Full detection and response responsibility falls on us and our customers.
+
+**Attack vector**: Malicious npm `postinstall` hook → rewrites `~/.claude.json` → proxies MCP traffic → intercepts OAuth tokens on every session load (including after rotation).
+
+### Our Controls
+
+| Control | Implementation | Status |
+|---|---|---|
+| `~/.claude.json` audit script | `scripts/check-claude-json.ps1` | ✅ Shipped |
+| npm postinstall hook detection | `scripts/check-npm-integrity.sh` + `.ps1` | ✅ Shipped |
+| Approved hooks allowlist | `scripts/approved-hooks.txt` | ✅ Shipped |
+| MCP transport integrity checker | `src/services/MCPTransportGuard.ts` | ✅ Shipped |
+| Live dashboard monitor hook | `src/khepra/hooks/useMCPSecurityMonitor.ts` | ✅ Shipped |
+| Developer IR runbook | `docs/MCP_SECURITY_RUNBOOK.md` | ✅ Shipped |
+
+### ASAF Event Taxonomy
+
+These events are emitted by `MCPTransportGuard` to the ASAF audit trail:
+
+| Event | Trigger | Severity |
+|---|---|---|
+| `mcp_config_tamper` | `mcpServers` URL/command changed from canonical value | CRITICAL |
+| `mcp_localhost_proxy` | `mcpServers` URL resolves to loopback address | CRITICAL |
+| `claude_json_trust_flag_set` | `alreadyTrusted: true` added to an unrecognised project path | MEDIUM |
+| `postinstall_hook_detected` | Unexpected lifecycle hook key found in `~/.claude.json` | CRITICAL |
+| `oauth_refresh_unknown_origin` | OAuth refresh originates from IP not in user's known device set | HIGH |
+
+### Critical IR Rule
+
+> **⚠️ Token rotation BEFORE hook removal actively feeds the attacker.**  
+> The hook reasserts on every Claude Code load and captures the new token immediately.  
+> Correct sequence: **Remove hook → kill proxy → THEN rotate credentials.**
+
+Full runbook: [docs/MCP_SECURITY_RUNBOOK.md](docs/MCP_SECURITY_RUNBOOK.md)
+

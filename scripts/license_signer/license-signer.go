@@ -9,12 +9,12 @@
 //
 // Environment variables:
 //   KHEPRA_PRIVATE_KEY_PATH - Path to ML-DSA-65 private key file
-//   KHEPRA_TELEMETRY_URL    - Telemetry server URL (default: https://telemetry.souhimbou.org)
+//   KHEPRA_TELEMETRY_URL    - Telemetry server URL (default: https://telemetry.souhimbou.ai)
 //   KHEPRA_ADMIN_TOKEN      - Admin JWT token for authentication
 //   KHEPRA_POLL_INTERVAL    - Poll interval in seconds (default: 30)
 //
 // Usage via Cloudflare Tunnel:
-//   The telemetry server is accessed via agent.souhimbou.org tunnel
+//   The telemetry server is accessed via agent.souhimbou.ai tunnel
 
 package main
 
@@ -148,7 +148,7 @@ func loadConfig() Config {
 
 	// Default values
 	if config.TelemetryURL == "" {
-		config.TelemetryURL = "https://telemetry.souhimbou.org"
+		config.TelemetryURL = "https://telemetry.souhimbou.ai"
 	}
 
 	if config.PrivateKeyPath == "" {

@@ -1,10 +1,10 @@
-﻿name: CI â€” Required Gate
+name: CI â€” Required Gate
 
 on:
   push:
-    branches: [ main, develop, "feature/**" ]
+    branches: [main, develop, "feature/**"]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:
@@ -100,7 +100,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile.mcp
-          failure-threshold: error
+          failure-threshold: warning
 
   # â”€â”€ 5. server.json + MCP label validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   mcp-schema:
@@ -134,23 +134,57 @@ jobs:
           fi
           echo "OK: OCI label found in Dockerfile"
 
-  # â”€â”€ 6. Docker build smoke test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # ── 6. Go build ─────────────────────────────────────────────────────────────
+  go-build:
+    name: Go Build (khepra-mcp)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Build khepra-mcp binary
+        run: go build -o khepra-mcp ./cmd/khepra-mcp/
+
+      - name: Vet and test safe packages
+        run: |
+          go vet ./cmd/khepra-mcp/ ./pkg/stig/... ./pkg/license/... ./pkg/mcp/... ./pkg/config/...
+          go test -short -count=1 -timeout 60s \
+            ./pkg/stig/... \
+            ./pkg/license/... \
+            ./pkg/config/... \
+            ./pkg/mcp/...
+
+  # ── 7. Docker build smoke test ───────────────────────────────────────────────
   docker-smoke:
     name: Docker Build Smoke Test
     runs-on: ubuntu-latest
-    needs: [python-tests, python-lint, secret-scan, dockerfile-lint, mcp-schema]
+    needs: [python-tests, python-lint, secret-scan, dockerfile-lint, mcp-schema, go-build]
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build image (no push)
+      - name: Build Dockerfile (main app — no push)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           push: false
           tags: ghcr.io/nouchix/pqc-khepra-mcp:smoke-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Dockerfile.mcp (MCP server — no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mcp
+          push: false
+          tags: ghcr.io/nouchix/pqc-khepra-mcp:mcp-smoke-test
           cache-from: type=gha
           cache-to: type=gha,mode=max

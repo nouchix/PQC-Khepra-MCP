@@ -1,0 +1,58 @@
+NIST_172_Ref,NIST_53_Ref,Control_Family
+3.1.1e,AC-2(11),Access Control
+3.1.1e,AC-2(13),Access Control
+3.1.2e,AC-3(11),Access Control
+3.1.2e,AC-3(12),Access Control
+3.1.3e,AC-4(28),Access Control
+3.1.3e,AC-4(29),Access Control
+3.1.4e,AC-6(1),Access Control
+3.1.4e,AC-6(2),Access Control
+3.1.4e,AC-6(3),Access Control
+3.1.5e,AC-17(10),Access Control
+3.1.6e,AC-20(3),Access Control
+3.2.1e,AT-2(5),Awareness and Training
+3.2.1e,AT-2(6),Awareness and Training
+3.3.1e,AU-10,Audit and Accountability
+3.3.2e,AU-3(1),Audit and Accountability
+3.3.2e,AU-14,Audit and Accountability
+3.4.1e,CM-2(3),Configuration Management
+3.4.1e,CM-9,Configuration Management
+3.4.2e,CM-3(7),Configuration Management
+3.4.2e,CM-3(8),Configuration Management
+3.5.1e,IA-2(12),Identification and Authentication
+3.5.1e,IA-2(13),Identification and Authentication
+3.5.2e,IA-3(1),Identification and Authentication
+3.5.3e,IA-5(2),Identification and Authentication
+3.5.4e,IA-12(1),Identification and Authentication
+3.5.4e,IA-12(4),Identification and Authentication
+3.5.4e,IA-12(5),Identification and Authentication
+3.6.1e,IR-3(2),Incident Response
+3.6.2e,IR-9,Incident Response
+3.6.2e,IR-9(1),Incident Response
+3.7.1e,MA-3(5),Maintenance
+3.8.1e,MP-7(2),Media Protection
+3.10.1e,PE-3(1),Physical Protection
+3.10.1e,PE-3(9),Physical Protection
+3.11.1e,RA-3(1),Risk Assessment
+3.11.2e,RA-5(9),Risk Assessment
+3.11.2e,RA-5(11),Risk Assessment
+3.11.3e,RA-9,Risk Assessment
+3.12.1e,CA-2(2),Security Assessment
+3.12.2e,CA-7(4),Security Assessment
+3.13.1e,SC-3(5),System and Communications Protection
+3.13.2e,SC-7(20),System and Communications Protection
+3.13.2e,SC-7(21),System and Communications Protection
+3.13.3e,SC-7(22),System and Communications Protection
+3.13.3e,SC-7(25),System and Communications Protection
+3.13.4e,SC-8(2),System and Communications Protection
+3.13.4e,SC-8(3),System and Communications Protection
+3.13.5e,SC-16(2),System and Communications Protection
+3.13.6e,SC-45,System and Communications Protection
+3.13.6e,SC-46,System and Communications Protection
+3.14.1e,SI-2(7),System and Information Integrity
+3.14.1e,SI-2(8),System and Information Integrity
+3.14.2e,SI-4(24),System and Information Integrity
+3.14.2e,SI-4(25),System and Information Integrity
+3.14.3e,SI-7(15),System and Information Integrity
+3.14.4e,SI-14,System and Information Integrity
+3.14.4e,SI-14(1),System and Information Integrity

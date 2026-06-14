@@ -1,4 +1,4 @@
-﻿name: Publish KHEPRA MCP Registry Package
+name: Publish KHEPRA MCP Registry Package
 
 on:
   workflow_dispatch:
@@ -65,7 +65,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile
+          file: Dockerfile.mcp
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}

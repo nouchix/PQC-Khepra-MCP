@@ -31,6 +31,20 @@ PORT_WAIT_TIMEOUT = 30  # seconds
 MOD_VENDOR = "-mod=vendor"
 AGENT_EXE = "adinkhepra-agent.exe"
 
+# Deployment modes that require full air-gap — no remote fallbacks permitted.
+SOVEREIGN_MODES = {"sovereign", "ironbank"}
+
+
+def is_sovereign() -> bool:
+    """Return True when running in a sovereignty-guaranteed mode.
+
+    In sovereign/ironbank mode, ANY attempt to fall back to remote services
+    (license server, telemetry, CVE feeds) must ABORT, not warn.
+    Default is sovereign when KHEPRA_MODE is unset — safe by default.
+    """
+    return os.environ.get("KHEPRA_MODE", "sovereign").lower() in SOVEREIGN_MODES
+
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
@@ -196,8 +210,15 @@ def start_telemetry_server() -> Optional[subprocess.Popen]:
     telemetry_dir = "adinkhepra-telemetry-server"
     
     if not os.path.exists(telemetry_dir):
+        if is_sovereign():
+            print_error("SOVEREIGN MODE ABORT: Local telemetry server not found at './adinkhepra-telemetry-server/'.")
+            print_error("In sovereign/ironbank mode, license validation MUST run locally.")
+            print_error("A sovereignty guarantee that silently calls home is not a sovereignty guarantee.")
+            print_error("Fix: bundle the telemetry server with your sovereign release artifact.")
+            sys.exit(1)
         print_warning("Telemetry server not found, skipping (license will use remote)")
         return None
+
     
     print_info(f"Starting Telemetry Server (wrangler dev) on port {TELEMETRY_PORT}...")
     
@@ -217,9 +238,16 @@ def start_telemetry_server() -> Optional[subprocess.Popen]:
             os.environ["KHEPRA_LICENSE_SERVER"] = f"http://localhost:{TELEMETRY_PORT}"
             return telemetry_proc
         else:
+            if is_sovereign():
+                print_error(f"SOVEREIGN MODE ABORT: Local telemetry server failed to start on port {TELEMETRY_PORT}.")
+                print_error("Sovereign mode cannot fall back to remote license validation.")
+                print_error("Check: is npx/wrangler installed? Is port 8787 free? Is the telemetry-server directory intact?")
+                telemetry_proc.terminate()
+                sys.exit(1)
             print_warning("Telemetry server failed to start, continuing without it")
             telemetry_proc.terminate()
             return None
+
             
     except FileNotFoundError:
         print_warning("npx/wrangler not found, skipping telemetry server")
