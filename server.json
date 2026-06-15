@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp:1.0.0",
+      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp:v1.0.0",
       "runtimeHint": "docker",
       "transport": {
         "type": "stdio"
