@@ -88,6 +88,6 @@
     "fips": "140-3 compatible (Linux builds with GOEXPERIMENT=boringcrypto)",
     "attestation": "CycloneDX SBOM + cosign keyless (Sigstore)",
     "codeqlAlerts": 0,
-    "grpcVersion": "v1.81.1 (CVE-2025-22869 patched)"
+    "grpcVersion": "v1.81.0 (CVE-2025-22869 mitigated via golang.org/x/net ≥ v0.38.0)"
   }
 }
