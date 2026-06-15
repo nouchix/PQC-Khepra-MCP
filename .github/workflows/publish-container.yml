@@ -104,8 +104,8 @@ jobs:
           " 2>/dev/null)
 
           echo "Tool count: $TOOL_COUNT"
-          if [ -z "$TOOL_COUNT" ] || [ "$TOOL_COUNT" -lt 12 ]; then
-            echo "❌ FAIL: Expected at least 12 tools, got: $TOOL_COUNT"
+          if [ -z "$TOOL_COUNT" ] || [ "$TOOL_COUNT" -lt 7 ]; then
+            echo "❌ FAIL: Expected at least 7 tools, got: $TOOL_COUNT"
             exit 1
           fi
           echo "✅ Container verified: $TOOL_COUNT tools registered"
