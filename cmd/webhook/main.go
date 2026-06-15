@@ -127,7 +127,7 @@ func loadConfig() Config {
 func mustEnv(key string) string {
 	v := os.Getenv(key)
 	if v == "" {
-		log.Fatalf("[webhook] required env var %s is not set", key)
+		log.Fatalf("[webhook] required env var %q is not set", key)
 	}
 	return v
 }
@@ -148,7 +148,7 @@ func main() {
 	mux.HandleFunc("GET /healthz", handleHealth)
 	mux.HandleFunc("POST /stripe/webhook", handleStripeWebhook)
 
-	log.Printf("[webhook] ASAF Stripe webhook receiver listening on %s", cfg.Addr)
+	log.Printf("[webhook] ASAF Stripe webhook receiver listening on %q", cfg.Addr)
 	srv := &http.Server{
 		Addr:         cfg.Addr,
 		Handler:      mux,
@@ -197,14 +197,14 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[webhook] received event: %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
+	log.Printf("[webhook] received event: %q id=%q", event.Type, event.ID)
 
 	// Idempotency: respond 200 immediately, process async
 	w.WriteHeader(http.StatusOK)
 
 	go func() {
 		if err := processEvent(event); err != nil {
-			log.Printf("[webhook] event processing error (id=%s): %v", sanitizeLog(event.ID), err)
+			log.Printf("[webhook] event processing error (id=%q): %v", event.ID, err)
 		}
 	}()
 }
@@ -275,7 +275,7 @@ func processEvent(event StripeEvent) error {
 
 	// ── Subscription lifecycle ────────────────────────────────────────────────
 	case "customer.subscription.created":
-		log.Printf("[webhook] [info] subscription.created id=%s (cert delivered via checkout.session.completed)", sanitizeLog(event.ID))
+		log.Printf("[webhook] [info] subscription.created id=%q (cert delivered via checkout.session.completed)", event.ID)
 		return nil
 	case "customer.subscription.paused":
 		return handleSubscriptionPaused(event)
@@ -284,19 +284,19 @@ func processEvent(event StripeEvent) error {
 	case "customer.subscription.trial_will_end":
 		return handleTrialWillEnd(event)
 	case "customer.subscription.updated":
-		log.Printf("[webhook] [info] subscription.updated id=%s", sanitizeLog(event.ID))
+		log.Printf("[webhook] [info] subscription.updated id=%q", event.ID)
 		return nil
 	case "customer.subscription.pending_update_applied",
 		"customer.subscription.pending_update_expired":
-		log.Printf(logInfoFmt, sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf(logInfoFmt, event.Type, event.ID)
 		return nil
 
 	// ── Checkout abandonment ──────────────────────────────────────────────────
 	case "checkout.session.expired":
-		log.Printf("[webhook] [analytics] checkout.session.expired id=%s — abandoned payment", sanitizeLog(event.ID))
+		log.Printf("[webhook] [analytics] checkout.session.expired id=%q — abandoned payment", event.ID)
 		return nil
 	case "checkout.session.async_payment_failed":
-		log.Printf("[webhook] [warn] async_payment_failed id=%s", sanitizeLog(event.ID))
+		log.Printf("[webhook] [warn] async_payment_failed id=%q", event.ID)
 		return nil
 	case "checkout.session.async_payment_succeeded":
 		return handleCheckoutComplete(event) // same flow as completed
@@ -307,30 +307,30 @@ func processEvent(event StripeEvent) error {
 
 	// ── Customer ──────────────────────────────────────────────────────────────
 	case "customer.created":
-		log.Printf("[webhook] [info] customer.created id=%s", sanitizeLog(event.ID))
+		log.Printf("[webhook] [info] customer.created id=%q", event.ID)
 		return nil
 	case "customer.deleted":
-		log.Printf("[webhook] [warn] customer.deleted id=%s — possible churn", sanitizeLog(event.ID))
+		log.Printf("[webhook] [warn] customer.deleted id=%q — possible churn", event.ID)
 		return nil
 	case "customer.updated",
 		"customer.discount.created", "customer.discount.deleted", "customer.discount.updated",
 		"customer.source.created", "customer.source.deleted", "customer.source.updated", "customer.source.expiring",
 		"customer.tax_id.created", "customer.tax_id.deleted", "customer.tax_id.updated",
 		"customer_cash_balance_transaction.created":
-		log.Printf(logInfoFmt, sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf(logInfoFmt, event.Type, event.ID)
 		return nil
 
 	// ── Payment methods ───────────────────────────────────────────────────────
 	case "payment_method.attached", "payment_method.detached":
-		log.Printf(logInfoFmt, sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf(logInfoFmt, event.Type, event.ID)
 		return nil
 	case "payment_intent.partially_funded":
-		log.Printf("[webhook] [info] payment_intent partially funded id=%s", sanitizeLog(event.ID))
+		log.Printf("[webhook] [info] payment_intent partially funded id=%q", event.ID)
 		return nil
 
 	// ── Invoices ──────────────────────────────────────────────────────────────
 	case "invoice.created", "invoice.deleted", "invoice.finalization_failed", "invoice.upcoming":
-		log.Printf("[webhook] [billing] %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf("[webhook] [billing] %q id=%q", event.Type, event.ID)
 		return nil
 
 	// ── Subscription schedules ────────────────────────────────────────────────
@@ -338,22 +338,22 @@ func processEvent(event StripeEvent) error {
 		"subscription_schedule.completed", "subscription_schedule.created",
 		"subscription_schedule.expiring", "subscription_schedule.released",
 		"subscription_schedule.updated":
-		log.Printf("[webhook] [schedule] %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf("[webhook] [schedule] %q id=%q", event.Type, event.ID)
 		return nil
 
 	// ── Entitlements ──────────────────────────────────────────────────────────
 	case "entitlements.active_entitlement_summary.updated":
-		log.Printf("[webhook] [entitlement] updated id=%s", sanitizeLog(event.ID))
+		log.Printf("[webhook] [entitlement] updated id=%q", event.ID)
 		return nil
 
 	// ── v2 account events (thin payload — no action needed) ───────────────────
 	case "v2.core.account[configuration.customer].capability_status_updated",
 		"v2.core.account[configuration.customer].updated":
-		log.Printf("[webhook] [v2-account] %s id=%s (thin event, no action)", sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf("[webhook] [v2-account] %q id=%q (thin event, no action)", event.Type, event.ID)
 		return nil
 
 	default:
-		log.Printf("[webhook] [unhandled] %s id=%s", sanitizeLog(event.Type), sanitizeLog(event.ID))
+		log.Printf("[webhook] [unhandled] %q id=%q", event.Type, event.ID)
 		return nil
 	}
 }
@@ -367,7 +367,7 @@ func handleDisputeCreated(event StripeEvent) error {
 		Status string `json:"status"`
 	}
 	_ = json.Unmarshal(event.Data.Object, &dispute)
-	log.Printf("[webhook] [URGENT] charge.dispute.created id=%s amount=%d reason=%s status=%s",
+	log.Printf("[webhook] [URGENT] charge.dispute.created id=%q amount=%d reason=%q status=%q",
 		sanitizeHeader(dispute.ID), dispute.Amount, sanitizeHeader(dispute.Reason), sanitizeHeader(dispute.Status))
 
 	subject := fmt.Sprintf("⚠️ URGENT: Stripe Dispute Filed — $%.2f (%s)",
@@ -397,7 +397,7 @@ https://dashboard.stripe.com/disputes/%s
 
 // handleSubscriptionPaused notifies operator and flags the license on the API.
 func handleSubscriptionPaused(event StripeEvent) error {
-	log.Printf("[webhook] subscription paused event=%s — pausing license access", sanitizeLog(event.ID))
+	log.Printf("[webhook] subscription paused event=%q — pausing license access", event.ID)
 	return callASAFAPI("POST", "/api/v1/license/revoke", map[string]interface{}{
 		"stripe_event_id": event.ID,
 		"reason":          "subscription_paused",
@@ -407,7 +407,7 @@ func handleSubscriptionPaused(event StripeEvent) error {
 // handleSubscriptionResumed re-activates a paused license (logged; re-activation
 // is handled automatically on next API call once Stripe confirms active status).
 func handleSubscriptionResumed(event StripeEvent) error {
-	log.Printf("[webhook] subscription resumed event=%s — license re-activation pending next auth check", sanitizeLog(event.ID))
+	log.Printf("[webhook] subscription resumed event=%q — license re-activation pending next auth check", event.ID)
 	// Notify operator
 	subject := "ASAF: Subscription Resumed"
 	body := fmt.Sprintf(`From: ASAF Webhook <webhook@nouchix.com>
@@ -433,7 +433,7 @@ func handleTrialWillEnd(event StripeEvent) error {
 		CustomerEmail  string `json:"customer_email"`
 	}
 	_ = json.Unmarshal(event.Data.Object, &sub)
-	log.Printf("[webhook] trial_will_end sub=%s trial_end=%d customer=%s", sanitizeLog(sub.ID), sub.TrialEnd, sanitizeLog(sub.CustomerEmail))
+	log.Printf("[webhook] trial_will_end sub=%q trial_end=%d customer=%q", sub.ID, sub.TrialEnd, sub.CustomerEmail)
 
 	if sub.CustomerEmail == "" {
 		return nil // can't email without address
@@ -463,7 +463,7 @@ func handleCheckoutComplete(event StripeEvent) error {
 	}
 
 	if session.PaymentStatus != "paid" {
-		log.Printf("[webhook] session %s payment_status=%s — skipping", session.ID, session.PaymentStatus)
+		log.Printf("[webhook] session %q payment_status=%q — skipping", session.ID, session.PaymentStatus)
 		return nil
 	}
 
@@ -483,7 +483,7 @@ func handleCheckoutComplete(event StripeEvent) error {
 	// CLI token from client_reference_id (set by `asaf certify` command)
 	cliToken := session.ClientReferenceID
 
-	log.Printf("[webhook] payment confirmed: email=%s sanitizeLog(token)=%s session=%s", email, cliToken, session.ID)
+	log.Printf("[webhook] payment confirmed: email=%q token=%q session=%q", email, cliToken, session.ID)
 
 	// 1. Request certificate from ASAF API
 	cert, err := requestCertificate(session, email)
@@ -705,7 +705,7 @@ func sendMailImplicitSSL(addr string, auth smtp.Auth, to []string, body string) 
 	}
 	for _, r := range to {
 		if err := client.Rcpt(r); err != nil {
-			log.Printf("[webhook] smtp rcpt %s: %v", r, err)
+			log.Printf("[webhook] smtp rcpt %q: %v", r, err)
 		}
 	}
 	w, err := client.Data()

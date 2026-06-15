@@ -124,7 +124,7 @@ func (t *PQCTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set(HeaderKhepraPubKey, hex.EncodeToString(t.pubKey))
 	req.Header.Set(HeaderKhepraTimestamp, fmt.Sprintf("%d", time.Now().UnixNano()))
 
-	log.Printf("[IRONBANK][PQC] → %s %s | body_hash=%s",
+	log.Printf("[IRONBANK][PQC] → %q %q | body_hash=%q",
 		req.Method, req.URL.Path, hex.EncodeToString(bodyHash[:8]))
 
 	// ── Forward through inner transport ────────────────────────────────────
@@ -146,7 +146,7 @@ func (t *PQCTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		actualMAC := hex.EncodeToString(mac.Sum(nil))
 
 		if !hmac.Equal([]byte(actualMAC), []byte(expectedMAC)) {
-			log.Printf("[IRONBANK][PQC] INTEGRITY VIOLATION — response tampered! expected=%s got=%s",
+			log.Printf("[IRONBANK][PQC] INTEGRITY VIOLATION — response tampered! expected=%q got=%q",
 				expectedMAC[:16], actualMAC[:16])
 			return nil, fmt.Errorf("ironbank: response integrity check failed — possible MITM")
 		}

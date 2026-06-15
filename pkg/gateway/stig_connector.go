@@ -722,7 +722,7 @@ func (c *STIGConnector) logAudit(eventType, identity string, details map[string]
 	}
 	c.auditMu.Unlock()
 
-	log.Printf("[STIGConnector] %s | identity=%s | %v", eventType, identity, details)
+	log.Printf("[STIGConnector] %q | identity=%q | %v", eventType, identity, details)
 }
 
 // ─── HTTP Handler (Zone 2 → Zone 1 interface on port 8443) ──────────────────────
