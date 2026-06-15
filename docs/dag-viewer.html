@@ -3,246 +3,394 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KHEPRA · DAG Audit Viewer</title>
-  <meta name="description" content="Live 3D visualization of KHEPRA MCP immutable DAG audit trail — tool executions, ML-DSA-65 attestations, and compliance control mappings." />
+  <title>KHEPRA · DAG Audit Viewer · NouchiX</title>
+  <meta name="description" content="SouHimBou AI ASAF Flight Recorder — Live 3D DAG of ML-DSA-65 attested tool executions and CMMC compliance mappings. NouchiX SecRed Knowledge Inc." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@400;600&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;600&display=swap" />
   <script src="https://unpkg.com/3d-force-graph@1.73.4/dist/3d-force-graph.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0a0a0a;
-      --bg2:      #0f0f0f;
-      --bg3:      #1a1a1a;
-      --border:   #2a2a2a;
-      --border2:  #333;
-      --red:      #a21e2c;
-      --red-bold: #cc2a36;
-      --red-glow: rgba(162,30,44,.3);
-      --gold:     #e5a54b;
-      --gold2:    #f0c070;
-      --gold-glow:rgba(229,165,75,.3);
-      --green:    #4ade80;
-      --green-glow:rgba(74,222,128,.3);
-      --cyan:     #06b6d4;
-      --purple:   #a78bfa;
-      --grey:     #888;
-      --text:     #e0e0e0;
-      --text2:    #888;
-      --muted:    #666;
-      --mono:     'Monaco', 'Menlo', 'Consolas', monospace;
-      --sans:     'Inter', sans-serif;
+      /* NouchiX brand */
+      --nx-navy:      #050c16;
+      --nx-blue:      #1a9fe8;
+      --nx-blue-dim:  #0e5a8a;
+      --nx-blue-glow: rgba(26,159,232,.25);
+      --nx-blue-border: rgba(26,159,232,.35);
+
+      /* AdinKhepra gold */
+      --ak-gold:      #e5a54b;
+      --ak-gold2:     #f0c070;
+      --ak-gold-glow: rgba(229,165,75,.25);
+
+      /* SouHimBou cyan */
+      --sb-cyan:      #06b6d4;
+      --sb-cyan2:     #22d3ee;
+      --sb-cyan-glow: rgba(6,182,212,.25);
+
+      /* Semantic */
+      --red:          #cc2a36;
+      --red-glow:     rgba(204,42,54,.25);
+      --orange:       #f97316;
+      --green:        #22c55e;
+      --green-glow:   rgba(34,197,94,.2);
+      --purple:       #818cf8;
+
+      /* UI */
+      --bg:     #050c16;
+      --bg2:    #080f1c;
+      --bg3:    #0d1728;
+      --bg4:    #112039;
+      --border: rgba(26,159,232,.18);
+      --border2: rgba(26,159,232,.35);
+      --text:   #e0eaf5;
+      --text2:  #6b8aaa;
+      --muted:  #3d5a78;
+      --mono:   'JetBrains Mono', 'Consolas', monospace;
+      --sans:   'Space Grotesk', sans-serif;
     }
 
-    html, body { width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); overflow: hidden; }
+    html, body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow:hidden; }
+
+    /* ── CLASSIFICATION BANNER ──────────────────────────────── */
+    #classif {
+      background: rgba(204,42,54,.12);
+      border-bottom: 1px solid rgba(204,42,54,.4);
+      text-align:center; padding: 3px 0;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 2.5px;
+      color: rgba(204,42,54,.9); font-weight: 600;
+      flex-shrink: 0;
+    }
 
     /* ── HEADER ─────────────────────────────────────────────── */
     #header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; height: 44px;
-      background: var(--bg2); border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 0 20px; height: 52px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border2);
       flex-shrink: 0;
     }
-    .logo {
-      display: flex; align-items: center; gap: 10px;
-      font-weight: 700; font-size: 13px; letter-spacing: 2px; color: var(--gold);
-    }
-    .logo-sq { width: 10px; height: 10px; background: var(--red); flex-shrink: 0; }
-    .logo-sq2 { width: 10px; height: 10px; background: var(--gold); flex-shrink: 0; }
-    .nav { display: flex; gap: 24px; }
-    .navlink {
-      font-size: 11px; letter-spacing: 1.5px; color: var(--text2);
-      cursor: pointer; transition: color .15s; text-transform: uppercase;
-      background: none; border: none; font-family: var(--mono);
-    }
-    .navlink:hover, .navlink.active { color: var(--gold); }
-    .stats { font-size: 11px; color: var(--text2); letter-spacing: .5px; }
-    .stats span { color: var(--gold); font-weight: 600; }
 
-    /* ── SEARCH ─────────────────────────────────────────────── */
+    .logo-group { display:flex; align-items:center; gap:12px; }
+
+    /* NouchiX shield SVG */
+    .nx-shield { width: 28px; height: 32px; flex-shrink: 0; }
+
+    .logo-text { display:flex; flex-direction:column; gap:1px; }
+    .logo-main {
+      font-family: var(--sans); font-weight: 700; font-size: 14px;
+      letter-spacing: 1px; color: var(--nx-blue);
+    }
+    .logo-sub {
+      font-family: var(--mono); font-size: 8px; letter-spacing: 2px;
+      color: var(--text2); text-transform: uppercase;
+    }
+
+    .logo-divider {
+      width: 1px; height: 30px; background: var(--border2);
+    }
+
+    .product-badge {
+      display:flex; align-items:center; gap:8px;
+    }
+    .product-name {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px;
+      color: var(--ak-gold); font-weight: 600;
+    }
+    .product-sub {
+      font-family: var(--mono); font-size: 9px; color: var(--text2);
+      letter-spacing: 1px;
+    }
+
+    /* Header right: status + nav */
+    .header-right { display:flex; align-items:center; gap:20px; }
+
+    .live-indicator {
+      display:flex; align-items:center; gap:6px;
+      font-family: var(--mono); font-size: 10px; color: var(--text2);
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .nav { display:flex; gap:4px; }
+    .navbtn {
+      padding: 5px 12px; font-family: var(--mono); font-size: 10px;
+      letter-spacing: 1px; color: var(--text2); cursor: pointer;
+      border: 1px solid transparent; border-radius: 4px;
+      background: none; transition: all .15s; text-transform: uppercase;
+    }
+    .navbtn:hover { color: var(--nx-blue); border-color: var(--border2); }
+    .navbtn.active {
+      color: var(--nx-blue); border-color: var(--border2);
+      background: rgba(26,159,232,.08);
+    }
+
+    .stats-badge {
+      font-family: var(--mono); font-size: 10px; color: var(--text2);
+      padding: 4px 10px; border: 1px solid var(--border);
+      border-radius: 20px; background: var(--bg3);
+      letter-spacing: .3px;
+    }
+    .stats-badge span { color: var(--ak-gold); font-weight: 600; }
+
+    /* ── SEARCH BAR ─────────────────────────────────────────── */
     #search-bar {
-      padding: 10px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+      padding: 8px 20px; background: var(--bg2);
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
     #search-wrap {
-      max-width: 700px; margin: 0 auto;
-      border: 1px solid var(--red); border-radius: 2px;
-      display: flex; align-items: center; padding: 6px 12px; gap: 8px;
-      background: var(--bg3);
+      max-width: 680px; margin: 0 auto;
+      border: 1px solid var(--border2); border-radius: 6px;
+      display:flex; align-items:center; padding: 7px 14px; gap: 10px;
+      background: var(--bg3); transition: border-color .15s;
     }
-    #search-wrap.focused { border-color: var(--gold); }
-    .search-prompt { color: var(--green); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    #search-wrap.focused {
+      border-color: var(--nx-blue);
+      box-shadow: 0 0 0 3px var(--nx-blue-glow);
+    }
+    .search-prefix { color: var(--sb-cyan); font-size: 12px; font-weight: 600; font-family: var(--mono); flex-shrink: 0; }
     #q {
-      flex: 1; background: none; border: none; outline: none;
+      flex:1; background:none; border:none; outline:none;
       font-family: var(--mono); font-size: 13px; color: var(--text);
-      caret-color: var(--gold);
+      caret-color: var(--nx-blue);
     }
-    #q::placeholder { color: var(--text2); }
-    .search-hint { font-size: 10px; color: var(--text2); flex-shrink: 0; }
-
-    /* ── MAIN LAYOUT ────────────────────────────────────────── */
-    #app { display: flex; flex-direction: column; height: 100vh; }
-    #body { display: flex; flex: 1; min-height: 0; }
-
-    /* ── LEFT PANEL ─────────────────────────────────────────── */
-    #left-panel {
-      width: 280px; flex-shrink: 0;
-      background: var(--bg2); border-right: 1px solid var(--border);
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-    .panel-title {
-      padding: 10px 14px; font-size: 9px; letter-spacing: 2px;
-      color: var(--text2); text-transform: uppercase;
-      border-bottom: 1px solid var(--border);
-    }
-    #node-detail { flex: 1; overflow-y: auto; padding: 14px; }
-    #node-detail::-webkit-scrollbar { width: 4px; }
-    #node-detail::-webkit-scrollbar-thumb { background: var(--border); }
-
-    .node-empty { color: var(--text2); font-size: 11px; line-height: 1.6; }
-    .node-empty em { color: var(--gold); font-style: normal; }
-
-    .detail-label { font-size: 9px; color: var(--text2); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3px; margin-top: 10px; }
-    .detail-value { font-size: 12px; color: var(--text); word-break: break-all; line-height: 1.4; }
-    .detail-value a { color: var(--cyan); text-decoration: none; }
-    .detail-value a:hover { color: var(--gold); }
-    .badge {
-      display: inline-block; padding: 2px 7px; border-radius: 2px;
-      font-size: 10px; font-weight: 600; letter-spacing: .5px;
-    }
-    .badge-tool    { background: rgba(229,165,75,.15); color: var(--gold); border: 1px solid rgba(229,165,75,.4); }
-    .badge-finding { background: rgba(204,42,54,.15);  color: var(--red);  border: 1px solid rgba(204,42,54,.4); }
-    .badge-control { background: rgba(74,222,128,.15); color: var(--green); border: 1px solid rgba(74,222,128,.4); }
-    .badge-attest  { background: rgba(6,182,212,.15);  color: var(--cyan); border: 1px solid rgba(6,182,212,.4); }
-    .badge-prompt  { background: rgba(167,139,250,.15);color: var(--purple);border: 1px solid rgba(167,139,250,.4); }
-    .badge-cat1    { background: rgba(204,42,54,.2);   color: #ff6b6b; border: 1px solid var(--red); }
-    .badge-cat2    { background: rgba(229,165,75,.2);  color: var(--gold2); border: 1px solid var(--gold); }
-    .badge-cat3    { background: rgba(74,222,128,.2);  color: var(--green); border: 1px solid var(--green); }
-
-    .sig-hash {
-      font-size: 9px; color: var(--cyan); letter-spacing: .3px;
-      padding: 4px 6px; background: rgba(6,182,212,.08);
-      border: 1px solid rgba(6,182,212,.2); border-radius: 2px;
-      word-break: break-all; line-height: 1.4;
-    }
-
-    /* ── GRAPH AREA ─────────────────────────────────────────── */
-    #graph-container {
-      flex: 1; position: relative; overflow: hidden; background: var(--bg);
-    }
-    #graph { width: 100%; height: 100%; }
-
-    .graph-hint {
-      position: absolute; bottom: 14px; right: 14px;
-      font-size: 10px; color: var(--text2); letter-spacing: .5px;
-      pointer-events: none;
-    }
-    .graph-hint span { color: var(--border); }
+    #q::placeholder { color: var(--muted); }
+    .search-hint { font-size: 9px; color: var(--muted); flex-shrink: 0; letter-spacing: .5px; }
 
     /* ── TABS ───────────────────────────────────────────────── */
     #tabs {
-      display: flex; gap: 0;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg2); flex-shrink: 0;
-      padding: 0 20px;
+      display:flex; border-bottom: 1px solid var(--border);
+      background: var(--bg2); padding: 0 20px; flex-shrink: 0;
     }
     .tab {
-      padding: 8px 16px; font-size: 10px; letter-spacing: 1.5px;
-      color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
-      transition: all .15s; text-transform: uppercase;
-      background: none; border-top: none; border-left: none; border-right: none;
+      padding: 8px 18px; font-size: 10px; letter-spacing: 1.5px;
+      color: var(--text2); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all .15s;
+      text-transform: uppercase; background: none;
+      border-top: none; border-left: none; border-right: none;
       font-family: var(--mono);
     }
     .tab:hover { color: var(--text); }
-    .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+    .tab.active { color: var(--nx-blue); border-bottom-color: var(--nx-blue); }
+
+    /* ── MAIN BODY ──────────────────────────────────────────── */
+    #app { display:flex; flex-direction:column; height:100vh; }
+    #body { display:flex; flex:1; min-height:0; }
+
+    /* ── LEFT PANEL ─────────────────────────────────────────── */
+    #left-panel {
+      width: 288px; flex-shrink: 0;
+      background: var(--bg2); border-right: 1px solid var(--border);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .panel-header {
+      padding: 10px 16px; display:flex; align-items:center; justify-content:space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-title { font-size: 9px; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; }
+    .panel-badge {
+      font-family: var(--mono); font-size: 8px; padding: 2px 6px;
+      border: 1px solid var(--border2); border-radius: 3px;
+      color: var(--nx-blue); background: var(--nx-blue-glow);
+    }
+
+    #node-detail { flex:1; overflow-y:auto; padding: 16px; }
+    #node-detail::-webkit-scrollbar { width:3px; }
+    #node-detail::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    .node-empty { color: var(--text2); font-size: 11px; line-height: 1.8; font-family: var(--mono); }
+    .node-empty .em { color: var(--sb-cyan); }
+    .node-empty .em2 { color: var(--ak-gold); }
+
+    /* Detail content */
+    .dl { margin-top: 12px; }
+    .dt { font-size: 8px; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 3px; }
+    .dd { font-size: 12px; color: var(--text); word-break: break-all; line-height: 1.5; font-family: var(--mono); }
+    .dd a { color: var(--nx-blue); text-decoration: none; }
+    .dd a:hover { color: var(--sb-cyan); }
+
+    /* Badges */
+    .badge { display:inline-flex; align-items:center; gap:4px; padding: 3px 8px; border-radius: 4px; font-size: 9px; font-weight: 600; letter-spacing: .8px; font-family: var(--mono); }
+    .b-prompt  { background: rgba(129,140,248,.12); color: #818cf8; border: 1px solid rgba(129,140,248,.3); }
+    .b-tool    { background: var(--ak-gold-glow);   color: var(--ak-gold);  border: 1px solid rgba(229,165,75,.4); }
+    .b-finding { background: var(--red-glow);        color: #f87171;         border: 1px solid rgba(204,42,54,.4); }
+    .b-control { background: var(--green-glow);      color: var(--green);    border: 1px solid rgba(34,197,94,.4); }
+    .b-attest  { background: var(--sb-cyan-glow);   color: var(--sb-cyan);  border: 1px solid rgba(6,182,212,.4); }
+    .b-cat1    { background: rgba(204,42,54,.18);   color: #fca5a5;         border: 1px solid var(--red); }
+    .b-cat2    { background: rgba(249,115,22,.15);  color: #fdba74;         border: 1px solid var(--orange); }
+    .b-cat3    { background: var(--green-glow);      color: var(--green);    border: 1px solid var(--green); }
+
+    .impact-value { font-size: 20px; font-weight: 700; color: var(--ak-gold); font-family: var(--sans); }
+    .roi-value    { font-size: 14px; font-weight: 600; color: var(--green); font-family: var(--mono); }
+
+    .sig-box {
+      font-size: 9px; color: var(--sb-cyan); letter-spacing: .3px;
+      padding: 6px 8px; background: var(--sb-cyan-glow);
+      border: 1px solid rgba(6,182,212,.25); border-radius: 4px;
+      word-break: break-all; line-height: 1.6; font-family: var(--mono);
+    }
+
+    .linked-node {
+      display:flex; align-items:center; gap:6px; padding: 4px 6px;
+      border-radius: 3px; font-size: 10px; font-family: var(--mono);
+      margin-top: 3px; background: var(--bg3); border: 1px solid var(--border);
+    }
+    .linked-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+    /* ── GRAPH ──────────────────────────────────────────────── */
+    #graph-container { flex:1; position:relative; overflow:hidden; background:var(--bg); }
+    #graph { width:100%; height:100%; }
 
     /* ── LEGEND ─────────────────────────────────────────────── */
     #legend {
-      position: absolute; top: 14px; left: 14px;
-      background: rgba(10,10,10,.9); border: 1px solid var(--border);
-      border-radius: 3px; padding: 10px 12px; pointer-events: none;
+      position:absolute; top:14px; left:14px;
+      background: rgba(5,12,22,.88); border: 1px solid var(--border2);
+      border-radius: 6px; padding: 12px 14px; pointer-events:none;
+      backdrop-filter: blur(8px);
     }
-    .legend-title { font-size: 9px; color: var(--text2); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
-    .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; font-size: 10px; color: var(--text); }
-    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-title { font-size: 8px; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; font-family: var(--mono); }
+    .legend-item { display:flex; align-items:center; gap:8px; margin-bottom: 6px; font-size: 10px; color: var(--text); font-family: var(--mono); }
+    .ldot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 
-    /* ── TOOLTIP ─────────────────────────────────────────────── */
-    .graph-tooltip {
-      background: rgba(10,10,10,.95) !important;
-      border: 1px solid var(--red) !important;
-      border-radius: 3px !important;
-      color: var(--text) !important;
-      font-family: var(--mono) !important;
-      font-size: 11px !important;
-      padding: 8px 10px !important;
-      pointer-events: none;
-      max-width: 240px;
+    /* ── WATERMARK ──────────────────────────────────────────── */
+    #watermark {
+      position:absolute; bottom:14px; right:14px;
+      display:flex; align-items:center; gap:8px;
+      pointer-events:none; opacity: .45;
+    }
+    .wm-text { font-family: var(--mono); font-size: 9px; color: var(--text2); letter-spacing: 1px; text-align:right; }
+    .wm-text strong { color: var(--nx-blue); display:block; }
+
+    /* ── HINT ───────────────────────────────────────────────── */
+    .graph-hint {
+      position:absolute; bottom:14px; left: 50%; transform: translateX(-50%);
+      font-family: var(--mono); font-size: 9px; color: var(--muted);
+      letter-spacing: .5px; pointer-events:none;
+    }
+    .graph-hint span { color: var(--border2); }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    #footer {
+      padding: 5px 20px; background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      flex-shrink: 0;
+    }
+    .footer-left { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: .5px; }
+    .footer-left span { color: var(--text2); }
+    .footer-right { display:flex; align-items:center; gap:10px; }
+    .cmmc-badge {
+      font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px;
+      padding: 3px 8px; border-radius: 3px;
+      color: var(--ak-gold); border: 1px solid rgba(229,165,75,.4);
+      background: var(--ak-gold-glow); text-transform: uppercase;
+    }
+    .pqc-badge {
+      font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px;
+      padding: 3px 8px; border-radius: 3px;
+      color: var(--sb-cyan); border: 1px solid rgba(6,182,212,.4);
+      background: var(--sb-cyan-glow); text-transform: uppercase;
     }
 
-    /* ── SCROLLBAR ───────────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:3px; height:3px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   </style>
 </head>
-
 <body>
 <div id="app">
 
+  <!-- Classification Banner -->
+  <div id="classif">UNCLASSIFIED // OPEN SOURCE // NATIONAL SECURITY RELEVANT</div>
+
   <!-- Header -->
   <div id="header">
-    <div class="logo">
-      <div class="logo-sq"></div>
-      <div class="logo-sq2"></div>
-      KHEPRA
-      <span style="color:var(--text2);font-weight:300">·</span>
-      DAG
-      <span style="color:var(--text2);font-weight:300">·</span>
-      AUDIT TRAIL
+    <div class="logo-group">
+      <!-- NouchiX Shield SVG -->
+      <svg class="nx-shield" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 1L2 6V17C2 23.6 7.4 29.6 14 31C20.6 29.6 26 23.6 26 17V6L14 1Z"
+          fill="rgba(26,159,232,.12)" stroke="#1a9fe8" stroke-width="1.5"/>
+        <path d="M14 7L8 10V16.5C8 20.1 10.8 23.4 14 24.2C17.2 23.4 20 20.1 20 16.5V10L14 7Z"
+          fill="rgba(26,159,232,.2)" stroke="#1a9fe8" stroke-width="1"/>
+        <circle cx="14" cy="16" r="2.5" fill="#1a9fe8" opacity=".9"/>
+      </svg>
+
+      <div class="logo-text">
+        <div class="logo-main">NouchiX</div>
+        <div class="logo-sub">SecRed Knowledge Inc.</div>
+      </div>
+
+      <div class="logo-divider"></div>
+
+      <div class="product-badge">
+        <div>
+          <div class="product-name">KHEPRA · DAG · FLIGHT RECORDER</div>
+          <div class="product-sub">SouHimBou AI ASAF Engine · v1.0</div>
+        </div>
+      </div>
     </div>
-    <nav class="nav">
-      <button class="navlink active" onclick="setView('dag')">DAG View</button>
-      <button class="navlink" onclick="setView('compliance')">Compliance Map</button>
-      <button class="navlink" onclick="setView('timeline')">Timeline</button>
-    </nav>
-    <div class="stats" id="stats-bar">
-      — loading —
+
+    <div class="header-right">
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        <span>ML-DSA-65 VERIFIED</span>
+      </div>
+
+      <nav class="nav">
+        <button class="navbtn active" onclick="setNav(this,'dag')">DAG View</button>
+        <button class="navbtn" onclick="setNav(this,'compliance')">CMMC Map</button>
+        <button class="navbtn" onclick="setNav(this,'timeline')">Timeline</button>
+      </nav>
+
+      <div class="stats-badge" id="stats-bar">— —</div>
     </div>
   </div>
 
   <!-- Search -->
   <div id="search-bar">
     <div id="search-wrap">
-      <span class="search-prompt">khepra&gt;</span>
-      <input id="q" type="text" placeholder="search tool · control · finding · signature..." autocomplete="off" spellcheck="false" />
-      <span class="search-hint">↑↓ nav · ↵ focus</span>
+      <span class="search-prefix">khepra&gt;</span>
+      <input id="q" type="text" placeholder="search tool · control · finding · signature · framework…" autocomplete="off" spellcheck="false" />
+      <span class="search-hint">↑↓ nav · ↵ focus · esc clear</span>
     </div>
   </div>
 
   <!-- Tabs -->
   <div id="tabs">
-    <button class="tab active" onclick="switchTab('3d')">◈ 3D WEB</button>
-    <button class="tab" onclick="switchTab('table')">≡ TABLE</button>
-    <button class="tab" onclick="switchTab('raw')">{ } RAW</button>
+    <button class="tab active" onclick="switchTab('3d', this)">◈ 3D WEB</button>
+    <button class="tab" onclick="switchTab('table', this)">≡ TABLE</button>
+    <button class="tab" onclick="switchTab('raw', this)">{ } RAW</button>
   </div>
 
   <!-- Body -->
   <div id="body">
 
-    <!-- Left: node detail panel -->
+    <!-- Left: Detail Panel -->
     <div id="left-panel">
-      <div class="panel-title">Node Detail</div>
+      <div class="panel-header">
+        <span class="panel-title">Node Inspector</span>
+        <span class="panel-badge">ASAF ENGINE</span>
+      </div>
       <div id="node-detail">
-        <p class="node-empty">
-          <em>drag · scroll · click a node to inspect</em><br><br>
+        <p class="node-empty" style="margin-top:16px">
+          <span class="em">drag · scroll · click a node</span><br><br>
           Node types:<br>
-          <em>●</em> Prompt — AI request<br>
-          <em>●</em> Tool — MCP tool call<br>
-          <em>●</em> Finding — STIG violation<br>
-          <em>●</em> Control — mapped framework<br>
-          <em>●</em> Attestation — ML-DSA-65 sig
+          <span style="color:#818cf8">●</span> Prompt — AI request origin<br>
+          <span style="color:#e5a54b">●</span> Tool — MCP tool execution<br>
+          <span style="color:#cc2a36">●</span> Finding — STIG / PQC violation<br>
+          <span style="color:#22c55e">●</span> Control — mapped framework<br>
+          <span style="color:#06b6d4">●</span> Attestation — ML-DSA-65 sig<br><br>
+          <span class="em2">Click any node to inspect its<br>
+          impact, attestation, and<br>linked compliance controls.</span>
         </p>
       </div>
     </div>
@@ -254,80 +402,94 @@
       <!-- Legend -->
       <div id="legend">
         <div class="legend-title">Node Legend</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>AI Prompt</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e5a54b"></div>Tool Execution</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#cc2a36"></div>Finding (CAT I)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e5a54b;opacity:.7"></div>Finding (CAT II)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>Control Satisfied</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div>ML-DSA-65 Attest</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#9aa0a6"></div>Related Event</div>
+        <div class="legend-item"><div class="ldot" style="background:#818cf8"></div>AI Prompt</div>
+        <div class="legend-item"><div class="ldot" style="background:#e5a54b"></div>Tool Execution</div>
+        <div class="legend-item"><div class="ldot" style="background:#cc2a36"></div>Finding · CAT I</div>
+        <div class="legend-item"><div class="ldot" style="background:#f97316"></div>Finding · CAT II</div>
+        <div class="legend-item"><div class="ldot" style="background:#22c55e"></div>Control Satisfied</div>
+        <div class="legend-item"><div class="ldot" style="background:#06b6d4"></div>ML-DSA-65 Attest</div>
       </div>
 
-      <div class="graph-hint">drag <span>·</span> scroll <span>·</span> click a node to pivot</div>
-    </div>
+      <!-- Watermark -->
+      <div id="watermark">
+        <svg width="22" height="25" viewBox="0 0 28 32" fill="none">
+          <path d="M14 1L2 6V17C2 23.6 7.4 29.6 14 31C20.6 29.6 26 23.6 26 17V6L14 1Z"
+            fill="none" stroke="#1a9fe8" stroke-width="1.5"/>
+          <circle cx="14" cy="16" r="2.5" fill="#1a9fe8"/>
+        </svg>
+        <div class="wm-text">
+          <strong>NouchiX SecRed</strong>
+          SouHimBou ASAF · Powered by AdinKhepra
+        </div>
+      </div>
 
+      <div class="graph-hint">drag <span>·</span> scroll <span>·</span> click a node to inspect</div>
+    </div>
   </div><!-- /body -->
+
+  <!-- Footer -->
+  <div id="footer">
+    <div class="footer-left">
+      ISSUED BY <span>SGT KONE</span> · 255th · CENTCOM VETERAN · SDVOSB ·
+      USPTO #73563085 · PATENT PENDING ·
+      <span id="session-ref">SESSION: dag-2026-06-15T02:43:08Z</span>
+    </div>
+    <div class="footer-right">
+      <span class="cmmc-badge">◈ CMMC AUTOPILOT</span>
+      <span class="pqc-badge">⬡ PQC-STIG v1.0</span>
+    </div>
+  </div>
+
 </div><!-- /app -->
 
-<!-- Demo DAG Data -->
+<!-- DAG Data -->
 <script id="data" type="application/json">
 {
   "meta": {
     "session_id": "dag-2026-06-15T02:43:08Z",
+    "tenant": "demo",
     "tool_calls": 7,
     "attestations": 7,
     "findings": 4,
     "controls_mapped": 12,
-    "generated": "2026-06-15T02:43:08Z"
+    "generated": "2026-06-15T02:43:08Z",
+    "license_tier": "sovereign"
   },
   "nodes": [
-    {"id":"p1","label":"Run ert_scan on /etc","type":"prompt","val":20,"desc":"AI initiated enterprise risk scan","ts":"02:43:01"},
-    {"id":"t1","label":"ert_scan","type":"tool","val":14,"desc":"Enterprise Risk & Threat scan — STIG+NIST+CMMC","ts":"02:43:02","tool_args":{"target":"/etc","frameworks":["STIG","NIST800-53","CMMC"],"output_format":"godfather"}},
+    {"id":"p1","label":"Run ert_scan on /etc","type":"prompt","val":20,"desc":"AI initiated enterprise risk and threat scan","ts":"02:43:01"},
+    {"id":"t1","label":"ert_scan","type":"tool","val":14,"desc":"Enterprise Risk & Threat — STIG + NIST + CMMC","ts":"02:43:02","tool_args":{"target":"/etc","frameworks":["STIG","NIST800-53","CMMC"],"output_format":"godfather"}},
     {"id":"t2","label":"pqc_stig","type":"tool","val":12,"desc":"PQC-01-STIG-V1R1 post-quantum readiness scan","ts":"02:43:04","tool_args":{"scan_path":"/etc","profile":"full"}},
-    {"id":"t3","label":"nist_map","type":"tool","val":10,"desc":"Map findings to NIST 800-53 Rev 5","ts":"02:43:05"},
+    {"id":"t3","label":"nist_map","type":"tool","val":10,"desc":"Map findings to NIST 800-53 Rev 5 controls","ts":"02:43:05"},
     {"id":"t4","label":"godfather_report","type":"tool","val":11,"desc":"Godfather Report — dollar-denominated business impact","ts":"02:43:07"},
-    {"id":"f1","label":"RHEL-09-212030","type":"finding","severity":"CAT_I","val":16,"desc":"No FIPS-validated crypto on /etc/ssh — $2.4M exposure","ts":"02:43:03","impact":"$2,400,000","remediation_cost":"$800","roi":"3000x"},
-    {"id":"f2","label":"RHEL-09-431030","type":"finding","severity":"CAT_II","val":12,"desc":"Audit logs not centrally collected — $420K exposure","ts":"02:43:03","impact":"$420,000","remediation_cost":"$200","roi":"2100x"},
+    {"id":"f1","label":"RHEL-09-212030","type":"finding","severity":"CAT_I","val":16,"desc":"No FIPS-validated crypto on /etc/ssh — exposed to harvest-now-decrypt-later","ts":"02:43:03","impact":"$2,400,000","remediation_cost":"$800","roi":"3000x"},
+    {"id":"f2","label":"RHEL-09-431030","type":"finding","severity":"CAT_II","val":12,"desc":"Audit logs not centrally collected","ts":"02:43:03","impact":"$420,000","remediation_cost":"$200","roi":"2100x"},
     {"id":"f3","label":"PQC-01-001","type":"finding","severity":"CAT_I","val":14,"desc":"ML-DSA-65 not implemented — CNSA 2.0 non-compliant","ts":"02:43:05","impact":"$3,800,000","remediation_cost":"$12,000","roi":"317x"},
     {"id":"f4","label":"PQC-01-003","type":"finding","severity":"CAT_II","val":10,"desc":"Hybrid classical/PQC not present for key exchange","ts":"02:43:05","impact":"$890,000","remediation_cost":"$4,000","roi":"222x"},
-    {"id":"c1","label":"NIST AC-17","type":"control","val":8,"desc":"Remote Access — CM-6 supplemental","framework":"NIST 800-53 Rev 5"},
+    {"id":"c1","label":"NIST AC-17","type":"control","val":8,"desc":"Remote Access controls","framework":"NIST 800-53 Rev 5"},
     {"id":"c2","label":"NIST AU-2","type":"control","val":8,"desc":"Audit Events — continuous monitoring","framework":"NIST 800-53 Rev 5"},
-    {"id":"c3","label":"NIST SI-7","type":"control","val":8,"desc":"Software & Information Integrity — ML-DSA-65","framework":"NIST 800-53 Rev 5"},
+    {"id":"c3","label":"NIST SI-7","type":"control","val":8,"desc":"Software & Information Integrity","framework":"NIST 800-53 Rev 5"},
     {"id":"c4","label":"CMMC CA.2.158","type":"control","val":7,"desc":"Periodically assess security controls","framework":"CMMC Level 2"},
     {"id":"c5","label":"CNSA 2.0 ML-DSA","type":"control","val":9,"desc":"NSA CNSA 2.0 — ML-DSA-65 required by 2030","framework":"NSA CNSA 2.0"},
     {"id":"c6","label":"FIPS 204","type":"control","val":8,"desc":"Module-Lattice-Based Digital Signature Standard","framework":"NIST FIPS 204"},
     {"id":"c7","label":"NIST SC-8","type":"control","val":7,"desc":"Transmission Confidentiality and Integrity","framework":"NIST 800-53 Rev 5"},
-    {"id":"a1","label":"ML-DSA-65 · ert_scan","type":"attest","val":6,"desc":"ML-DSA-65 attestation on ert_scan response","sig":"3d7f2a9b1e4c8f0a6b2d5e8f1a3c7b9d2e5f8a1b","ts":"02:43:02"},
-    {"id":"a2","label":"ML-DSA-65 · pqc_stig","type":"attest","val":6,"desc":"ML-DSA-65 attestation on pqc_stig response","sig":"8f1a3c7b9d2e5f8a1b3d7f2a9b1e4c8f0a6b2d5","ts":"02:43:04"},
-    {"id":"a3","label":"ML-DSA-65 · godfather","type":"attest","val":6,"desc":"ML-DSA-65 attestation on Godfather Report","sig":"1b3d7f2a9b1e4c8f0a6b2d5e8f1a3c7b9d2e5f8","ts":"02:43:07"}
+    {"id":"a1","label":"ML-DSA-65 · ert_scan","type":"attest","val":6,"desc":"Attestation on ert_scan response","sig":"3d7f2a9b1e4c8f0a6b2d5e8f1a3c7b9d2e5f8a1b4c6d9e2f","ts":"02:43:02"},
+    {"id":"a2","label":"ML-DSA-65 · pqc_stig","type":"attest","val":6,"desc":"Attestation on pqc_stig response","sig":"8f1a3c7b9d2e5f8a1b3d7f2a9b1e4c8f0a6b2d5e8c1f3a7","ts":"02:43:04"},
+    {"id":"a3","label":"ML-DSA-65 · godfather","type":"attest","val":6,"desc":"Attestation on Godfather Report","sig":"1b3d7f2a9b1e4c8f0a6b2d5e8f1a3c7b9d2e5f8a4c7b2e9","ts":"02:43:07"}
   ],
   "links": [
-    {"source":"p1","target":"t1","w":3},
-    {"source":"p1","target":"t2","w":2},
-    {"source":"t1","target":"f1","w":2},
-    {"source":"t1","target":"f2","w":2},
-    {"source":"t2","target":"f3","w":2},
-    {"source":"t2","target":"f4","w":2},
-    {"source":"t1","target":"t3","w":1},
-    {"source":"t3","target":"c1","w":1},
-    {"source":"t3","target":"c2","w":1},
-    {"source":"t3","target":"c7","w":1},
-    {"source":"t2","target":"c3","w":2},
-    {"source":"t2","target":"c5","w":2},
-    {"source":"t2","target":"c6","w":2},
-    {"source":"f1","target":"c1","w":1},
-    {"source":"f2","target":"c2","w":1},
-    {"source":"f3","target":"c5","w":2},
-    {"source":"f4","target":"c3","w":1},
-    {"source":"t4","target":"f1","w":1},
-    {"source":"t4","target":"f2","w":1},
-    {"source":"t4","target":"f3","w":1},
-    {"source":"t1","target":"t4","w":1},
-    {"source":"t1","target":"a1","w":1},
-    {"source":"t2","target":"a2","w":1},
-    {"source":"t4","target":"a3","w":1},
-    {"source":"t1","target":"c4","w":1},
-    {"source":"f3","target":"c6","w":1}
+    {"source":"p1","target":"t1","w":3},{"source":"p1","target":"t2","w":2},
+    {"source":"t1","target":"f1","w":2},{"source":"t1","target":"f2","w":2},
+    {"source":"t2","target":"f3","w":2},{"source":"t2","target":"f4","w":2},
+    {"source":"t1","target":"t3","w":1},{"source":"t3","target":"c1","w":1},
+    {"source":"t3","target":"c2","w":1},{"source":"t3","target":"c7","w":1},
+    {"source":"t2","target":"c3","w":2},{"source":"t2","target":"c5","w":2},
+    {"source":"t2","target":"c6","w":2},{"source":"f1","target":"c1","w":1},
+    {"source":"f2","target":"c2","w":1},{"source":"f3","target":"c5","w":2},
+    {"source":"f4","target":"c3","w":1},{"source":"t4","target":"f1","w":1},
+    {"source":"t4","target":"f2","w":1},{"source":"t4","target":"f3","w":1},
+    {"source":"t1","target":"t4","w":1},{"source":"t1","target":"a1","w":1},
+    {"source":"t2","target":"a2","w":1},{"source":"t4","target":"a3","w":1},
+    {"source":"t1","target":"c4","w":1},{"source":"f3","target":"c6","w":1}
   ]
 }
 </script>
@@ -336,261 +498,224 @@
 // ── Data ─────────────────────────────────────────────────────
 const RAW = JSON.parse(document.getElementById('data').textContent);
 
-// ── Colors ───────────────────────────────────────────────────
-const COLOR = {
-  prompt:  '#a78bfa',
-  tool:    '#e5a54b',
-  finding_CAT_I:  '#cc2a36',
-  finding_CAT_II: '#e5a54b',
-  finding_CAT_III:'#4ade80',
-  control: '#4ade80',
-  attest:  '#06b6d4',
-  default: '#9aa0a6'
+// ── Color Map ────────────────────────────────────────────────
+const C = {
+  prompt:      '#818cf8',
+  tool:        '#e5a54b',
+  finding_CAT_I:   '#cc2a36',
+  finding_CAT_II:  '#f97316',
+  finding_CAT_III: '#22c55e',
+  control:     '#22c55e',
+  attest:      '#06b6d4',
+  default:     '#3d5a78'
 };
-
 function nodeColor(n) {
-  if (n.type === 'finding') return COLOR['finding_' + n.severity] || '#cc2a36';
-  return COLOR[n.type] || COLOR.default;
+  if (n.type === 'finding') return C['finding_' + n.severity] || '#cc2a36';
+  return C[n.type] || C.default;
 }
-
 function nodeVal(n) {
-  // scale by node importance
-  if (n.type === 'prompt') return 22;
-  if (n.type === 'tool')   return n.val || 12;
-  if (n.type === 'finding' && n.severity === 'CAT_I')  return 16;
-  if (n.type === 'finding' && n.severity === 'CAT_II') return 12;
-  if (n.type === 'finding' && n.severity === 'CAT_III')return 9;
+  if (n.type === 'prompt')  return 22;
+  if (n.type === 'finding' && n.severity === 'CAT_I')  return 18;
+  if (n.type === 'finding' && n.severity === 'CAT_II') return 13;
+  if (n.type === 'tool')    return n.val || 12;
   if (n.type === 'control') return 7;
   if (n.type === 'attest')  return 5;
   return n.val || 6;
 }
 
-// ── Stats bar ────────────────────────────────────────────────
+// ── Stats Bar ────────────────────────────────────────────────
+const m = RAW.meta;
 document.getElementById('stats-bar').innerHTML =
-  `<span>${RAW.meta.tool_calls}</span> tool_calls &nbsp;·&nbsp; ` +
-  `<span>${RAW.meta.attestations}</span> signatures &nbsp;·&nbsp; ` +
-  `<span>${RAW.meta.findings}</span> findings &nbsp;·&nbsp; ` +
-  `<span>${RAW.meta.controls_mapped}</span> controls`;
+  `<span>${m.tool_calls}</span> tools &nbsp;·&nbsp;` +
+  `<span>${m.findings}</span> findings &nbsp;·&nbsp;` +
+  `<span>${m.attestations}</span> sigs`;
 
-// ── Tooltip HTML ─────────────────────────────────────────────
+// ── Tooltip ──────────────────────────────────────────────────
 function tooltipHtml(n) {
   const col = nodeColor(n);
-  const typeLabel = n.type === 'finding' ? `FINDING · ${n.severity}` : n.type.toUpperCase();
+  const type = n.type === 'finding' ? `FINDING · ${n.severity}` : n.type.toUpperCase();
   let extra = '';
-  if (n.type === 'finding') {
-    extra = `<br><span style="color:#6b7280">impact </span><span style="color:#e5a54b">${n.impact}</span>`;
-    extra += `<br><span style="color:#6b7280">roi    </span><span style="color:#4ade80">${n.roi}</span>`;
-  }
-  if (n.type === 'attest') {
-    extra = `<br><span style="color:#6b7280">sig </span><span style="color:#06b6d4;font-size:9px">${n.sig?.slice(0,16)}…</span>`;
-  }
-  return `<div style="border-left:2px solid ${col};padding-left:8px">` +
-    `<div style="color:${col};font-weight:700;font-size:12px">${n.label}</div>` +
-    `<div style="color:#6b7280;font-size:9px;letter-spacing:1px;margin:2px 0">${typeLabel}</div>` +
-    `<div style="color:#c8ccd4;font-size:11px">${n.desc || ''}</div>` +
-    extra + '</div>';
+  if (n.type === 'finding')
+    extra = `<br><span style="color:#6b8aaa">impact </span><span style="color:#e5a54b">${n.impact}</span>`
+          + `<br><span style="color:#6b8aaa">roi    </span><span style="color:#22c55e">${n.roi}</span>`;
+  if (n.type === 'attest')
+    extra = `<br><span style="color:#6b8aaa">sig </span><span style="color:#06b6d4;font-size:9px">${n.sig?.slice(0,18)}…</span>`;
+  if (n.type === 'control')
+    extra = `<br><span style="color:#6b8aaa">${n.framework}</span>`;
+  return `<div style="border-left:2px solid ${col};padding-left:8px;font-family:'JetBrains Mono',monospace">`
+    + `<div style="color:${col};font-weight:700;font-size:12px">${n.label}</div>`
+    + `<div style="color:#6b8aaa;font-size:8px;letter-spacing:1px;margin:2px 0">${type}</div>`
+    + `<div style="color:#e0eaf5;font-size:11px">${n.desc || ''}</div>`
+    + extra + '</div>';
 }
 
 // ── Detail Panel ─────────────────────────────────────────────
 function showDetail(n) {
   const col = nodeColor(n);
   const panel = document.getElementById('node-detail');
+  const bClass = {prompt:'b-prompt',tool:'b-tool',finding:'b-finding',control:'b-control',attest:'b-attest'}[n.type]||'b-tool';
+  const sevClass = {CAT_I:'b-cat1',CAT_II:'b-cat2',CAT_III:'b-cat3'}[n.severity] || '';
 
-  const badgeClass = {
-    prompt: 'badge-prompt', tool: 'badge-tool', finding: 'badge-finding',
-    control: 'badge-control', attest: 'badge-attest'
-  }[n.type] || 'badge-tool';
+  let html = `<div class="dl"><div class="dt">Type</div><div class="dd">
+    <span class="badge ${bClass}">${n.type.toUpperCase()}</span>
+    ${n.severity ? `&nbsp;<span class="badge ${sevClass}">${n.severity}</span>` : ''}
+  </div></div>`;
 
-  let html = `
-    <div class="detail-label">Type</div>
-    <div class="detail-value">
-      <span class="badge ${badgeClass}">${n.type.toUpperCase()}</span>
-      ${n.severity ? `&nbsp;<span class="badge badge-${n.severity === 'CAT_I' ? 'cat1' : n.severity === 'CAT_II' ? 'cat2' : 'cat3'}">${n.severity}</span>` : ''}
-    </div>
-
-    <div class="detail-label">ID / Label</div>
-    <div class="detail-value" style="color:${col}">${n.label}</div>
-
-    <div class="detail-label">Description</div>
-    <div class="detail-value">${n.desc || '—'}</div>
-  `;
-
-  if (n.ts) html += `<div class="detail-label">Timestamp</div><div class="detail-value">2026-06-15 ${n.ts} UTC</div>`;
+  html += `<div class="dl"><div class="dt">ID / Label</div><div class="dd" style="color:${col}">${n.label}</div></div>`;
+  html += `<div class="dl"><div class="dt">Description</div><div class="dd">${n.desc||'—'}</div></div>`;
+  if (n.ts) html += `<div class="dl"><div class="dt">Timestamp</div><div class="dd">2026-06-15 ${n.ts} UTC</div></div>`;
 
   if (n.type === 'finding') {
-    html += `
-      <div class="detail-label">Business Impact (FAIR)</div>
-      <div class="detail-value" style="color:#e5a54b;font-size:16px;font-weight:700">${n.impact}</div>
-      <div class="detail-label">Remediation Cost</div>
-      <div class="detail-value" style="color:#4ade80">${n.remediation_cost}</div>
-      <div class="detail-label">ROI</div>
-      <div class="detail-value" style="color:#4ade80;font-weight:700">${n.roi}</div>
-    `;
+    html += `<div class="dl"><div class="dt">Business Impact (FAIR)</div>
+      <div class="dd"><span class="impact-value">${n.impact}</span></div></div>
+      <div class="dl"><div class="dt">Remediation Cost</div><div class="dd" style="color:#22c55e">${n.remediation_cost}</div></div>
+      <div class="dl"><div class="dt">ROI</div><div class="dd"><span class="roi-value">${n.roi}</span></div></div>`;
   }
-
   if (n.type === 'control') {
-    html += `
-      <div class="detail-label">Framework</div>
-      <div class="detail-value">${n.framework}</div>
-    `;
+    html += `<div class="dl"><div class="dt">Framework</div><div class="dd" style="color:#06b6d4">${n.framework}</div></div>`;
   }
-
   if (n.type === 'attest' && n.sig) {
-    html += `
-      <div class="detail-label">ML-DSA-65 Signature</div>
-      <div class="sig-hash">${n.sig}</div>
-    `;
+    html += `<div class="dl"><div class="dt">ML-DSA-65 Signature</div><div class="dd"><div class="sig-box">${n.sig}</div></div></div>`;
   }
-
   if (n.type === 'tool' && n.tool_args) {
-    html += `
-      <div class="detail-label">Tool Arguments</div>
-      <div class="detail-value" style="font-size:10px;color:#9aa0a6">${JSON.stringify(n.tool_args, null, 2).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;')}</div>
-    `;
+    const args = JSON.stringify(n.tool_args, null, 2).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;');
+    html += `<div class="dl"><div class="dt">Tool Arguments</div><div class="dd" style="font-size:10px;color:#6b8aaa">${args}</div></div>`;
   }
 
-  // Outgoing links
-  const links = RAW.links.filter(l => l.source === n.id || l.source?.id === n.id);
+  // Linked nodes
+  const links = RAW.links.filter(l => {
+    const s = typeof l.source==='object'?l.source.id:l.source;
+    const t = typeof l.target==='object'?l.target.id:l.target;
+    return s===n.id || t===n.id;
+  });
   if (links.length) {
-    html += `<div class="detail-label">Linked Nodes (${links.length})</div>`;
+    html += `<div class="dl"><div class="dt">Linked Nodes (${links.length})</div>`;
     links.forEach(l => {
-      const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      const t = RAW.nodes.find(x => x.id === tid);
-      if (t) html += `<div class="detail-value" style="color:${nodeColor(t)};font-size:11px">→ ${t.label}</div>`;
+      const sid = typeof l.source==='object'?l.source.id:l.source;
+      const tid = typeof l.target==='object'?l.target.id:l.target;
+      const otherId = sid===n.id ? tid : sid;
+      const dir = sid===n.id ? '→' : '←';
+      const other = RAW.nodes.find(x=>x.id===otherId);
+      if(other) html += `<div class="linked-node">
+        <div class="linked-dot" style="background:${nodeColor(other)}"></div>
+        <span style="color:#6b8aaa">${dir}</span>
+        <span style="color:${nodeColor(other)}">${other.label}</span>
+      </div>`;
     });
+    html += '</div>';
   }
 
   panel.innerHTML = html;
 }
 
 // ── Build Graph ───────────────────────────────────────────────
-let Graph;
-let currentNodes = RAW.nodes;
-let currentLinks = RAW.links;
+let Graph = null;
 
 function buildGraph(nodes, links) {
   const el = document.getElementById('graph');
   el.innerHTML = '';
+  el.style.display = '';
 
   Graph = ForceGraph3D()(el)
-    .backgroundColor('#0a0a0a')
+    .backgroundColor('#050c16')
     .width(el.clientWidth)
     .height(el.clientHeight)
     .graphData({ nodes, links })
-
-    // nodes
     .nodeId('id')
     .nodeLabel(n => tooltipHtml(n))
     .nodeColor(n => nodeColor(n))
     .nodeVal(n => nodeVal(n))
-    .nodeOpacity(0.92)
-    .nodeResolution(16)
-
-    // links
-    .linkColor(() => '#a21e2c')
-    .linkOpacity(0.3)
-    .linkWidth(l => 0.4 + l.w * 0.6)
-    .linkDirectionalParticles(l => l.w > 1 ? 2 : 1)
-    .linkDirectionalParticleColor(() => '#e5a54b')
-    .linkDirectionalParticleWidth(1)
-    .linkDirectionalParticleSpeed(0.004)
-
-    // interactions
+    .nodeOpacity(0.95)
+    .nodeResolution(18)
+    .linkColor(() => '#1a4f7a')
+    .linkOpacity(0.45)
+    .linkWidth(l => 0.5 + (l.w||1)*0.5)
+    .linkDirectionalParticles(l => (l.w||1) > 1 ? 3 : 1)
+    .linkDirectionalParticleColor(() => '#1a9fe8')
+    .linkDirectionalParticleWidth(1.2)
+    .linkDirectionalParticleSpeed(0.005)
     .onNodeClick(n => {
       showDetail(n);
-      // Camera: move to node
       const dist = 120;
-      const distRatio = 1 + dist / Math.hypot(n.x, n.y, n.z);
-      Graph.cameraPosition(
-        { x: n.x * distRatio, y: n.y * distRatio, z: n.z * distRatio },
-        n, 800
-      );
+      const dr = 1 + dist / Math.hypot(n.x||1, n.y||1, n.z||1);
+      Graph.cameraPosition({ x:n.x*dr, y:n.y*dr, z:n.z*dr }, n, 700);
     })
-    .onNodeHover(n => { el.style.cursor = n ? 'pointer' : 'default'; })
+    .onNodeHover(n => { el.style.cursor = n ? 'pointer' : 'default'; });
 
-    // forces
-    .d3Force('charge', null)
-    .d3AlphaDecay(0.02)
-    .d3VelocityDecay(0.3);
+  // NouchiX: subtle ambient particles for all edges
+  Graph.d3Force('charge')?.strength?.(-100);
+  Graph.d3Force('link')?.distance?.(35);
 
-  Graph.d3Force('charge')?.strength(-95);
-  Graph.d3Force('link')?.distance(30);
-
-  setTimeout(() => Graph.zoomToFit(400, 80), 1200);
+  setTimeout(() => Graph?.zoomToFit(400, 100), 1200);
 }
 
 // ── Search ────────────────────────────────────────────────────
 const qEl = document.getElementById('q');
-const searchWrap = document.getElementById('search-wrap');
+const swEl = document.getElementById('search-wrap');
+qEl.addEventListener('focus', () => swEl.classList.add('focused'));
+qEl.addEventListener('blur',  () => swEl.classList.remove('focused'));
+qEl.addEventListener('keydown', e => { if(e.key==='Escape'){qEl.value='';filterGraph('');} });
+qEl.addEventListener('input', () => filterGraph(qEl.value));
 
-qEl.addEventListener('focus', () => searchWrap.classList.add('focused'));
-qEl.addEventListener('blur', () => searchWrap.classList.remove('focused'));
-
-qEl.addEventListener('input', () => {
-  const q = qEl.value.toLowerCase().trim();
-  if (!q) {
-    buildGraph(RAW.nodes, RAW.links);
-    return;
-  }
-  const matchIds = new Set(RAW.nodes.filter(n =>
+function filterGraph(q) {
+  q = q.toLowerCase().trim();
+  if (!q) { buildGraph(RAW.nodes, RAW.links); return; }
+  const ids = new Set(RAW.nodes.filter(n =>
     n.label.toLowerCase().includes(q) ||
-    (n.desc || '').toLowerCase().includes(q) ||
-    (n.type || '').toLowerCase().includes(q) ||
-    (n.framework || '').toLowerCase().includes(q)
-  ).map(n => n.id));
-
-  // include directly linked nodes
+    (n.desc||'').toLowerCase().includes(q) ||
+    (n.type||'').toLowerCase().includes(q) ||
+    (n.framework||'').toLowerCase().includes(q) ||
+    (n.severity||'').toLowerCase().includes(q)
+  ).map(n=>n.id));
   RAW.links.forEach(l => {
-    const sid = typeof l.source === 'object' ? l.source.id : l.source;
-    const tid = typeof l.target === 'object' ? l.target.id : l.target;
-    if (matchIds.has(sid)) matchIds.add(tid);
-    if (matchIds.has(tid)) matchIds.add(sid);
+    const s = typeof l.source==='object'?l.source.id:l.source;
+    const t = typeof l.target==='object'?l.target.id:l.target;
+    if(ids.has(s))ids.add(t); if(ids.has(t))ids.add(s);
   });
-
-  const filteredNodes = RAW.nodes.filter(n => matchIds.has(n.id));
-  const filteredLinks = RAW.links.filter(l => {
-    const sid = typeof l.source === 'object' ? l.source.id : l.source;
-    const tid = typeof l.target === 'object' ? l.target.id : l.target;
-    return matchIds.has(sid) && matchIds.has(tid);
-  });
-  buildGraph(filteredNodes, filteredLinks);
-});
+  buildGraph(
+    RAW.nodes.filter(n=>ids.has(n.id)),
+    RAW.links.filter(l => {
+      const s=typeof l.source==='object'?l.source.id:l.source;
+      const t=typeof l.target==='object'?l.target.id:l.target;
+      return ids.has(s)&&ids.has(t);
+    })
+  );
+}
 
 // ── Tabs ──────────────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  if (tab === '3d') {
-    document.getElementById('graph').style.display = '';
-  } else if (tab === 'table') {
-    // Build simple table view
-    const el = document.getElementById('graph');
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const el = document.getElementById('graph');
+  if (tab==='3d') { buildGraph(RAW.nodes, RAW.links); return; }
+  Graph = null;
+  if (tab==='table') {
     const rows = RAW.nodes.map(n =>
-      `<tr style="border-bottom:1px solid #2a2a35">
-        <td style="padding:6px 10px;color:${nodeColor(n)}">${n.label}</td>
-        <td style="padding:6px 10px;color:#6b7280;font-size:10px">${n.type.toUpperCase()}</td>
-        <td style="padding:6px 10px;font-size:11px">${n.desc || ''}</td>
-        <td style="padding:6px 10px;color:#e5a54b;font-size:11px">${n.impact || (n.type === 'attest' ? '✓ signed' : '—')}</td>
-      </tr>`
-    ).join('');
-    el.innerHTML = `<div style="overflow:auto;height:100%;padding:10px">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="color:#6b7280;font-size:9px;letter-spacing:1px;text-transform:uppercase">
-          <th style="text-align:left;padding:6px 10px">Label</th>
-          <th style="text-align:left;padding:6px 10px">Type</th>
-          <th style="text-align:left;padding:6px 10px">Description</th>
-          <th style="text-align:left;padding:6px 10px">Impact / Status</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
+      `<tr style="border-bottom:1px solid rgba(26,159,232,.12)">
+        <td style="padding:7px 12px;color:${nodeColor(n)};font-family:'JetBrains Mono',monospace;font-size:11px">${n.label}</td>
+        <td style="padding:7px 12px;color:#6b8aaa;font-size:9px;letter-spacing:1px">${n.type.toUpperCase()}</td>
+        <td style="padding:7px 12px;font-size:11px;color:#e0eaf5">${n.desc||''}</td>
+        <td style="padding:7px 12px;font-size:11px;color:#e5a54b;font-family:'JetBrains Mono',monospace">${n.impact||n.framework||(n.type==='attest'?'✓ signed':'—')}</td>
+      </tr>`).join('');
+    el.innerHTML = `<div style="overflow:auto;height:100%;padding:12px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="color:#3d5a78;font-size:8px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid rgba(26,159,232,.25)">
+          <th style="text-align:left;padding:8px 12px">Label</th>
+          <th style="text-align:left;padding:8px 12px">Type</th>
+          <th style="text-align:left;padding:8px 12px">Description</th>
+          <th style="text-align:left;padding:8px 12px">Impact / Status</th>
+        </tr></thead><tbody>${rows}</tbody>
       </table></div>`;
-    Graph = null;
-  } else if (tab === 'raw') {
-    document.getElementById('graph').innerHTML =
-      `<pre style="padding:20px;font-size:11px;color:#9aa0a6;overflow:auto;height:100%;white-space:pre-wrap">${
-        JSON.stringify(RAW, null, 2)
-      }</pre>`;
-    Graph = null;
+  } else {
+    el.innerHTML = `<pre style="padding:20px;font-size:10px;color:#6b8aaa;overflow:auto;height:100%;white-space:pre-wrap;font-family:'JetBrains Mono',monospace">${JSON.stringify(RAW,null,2)}</pre>`;
   }
+}
+
+// ── Nav ───────────────────────────────────────────────────────
+function setNav(btn, view) {
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // Future: switch between DAG / CMMC Map / Timeline view modes
 }
 
 // ── Resize ────────────────────────────────────────────────────
@@ -600,13 +725,6 @@ window.addEventListener('resize', () => {
     Graph.width(el.clientWidth).height(el.clientHeight);
   }
 });
-
-// ── Nav views ─────────────────────────────────────────────────
-function setView(v) {
-  document.querySelectorAll('.navlink').forEach(n => n.classList.remove('active'));
-  event.target.classList.add('active');
-  // Future: switch between DAG view, compliance map, timeline
-}
 
 // ── Init ─────────────────────────────────────────────────────
 buildGraph(RAW.nodes, RAW.links);
