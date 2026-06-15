@@ -811,11 +811,13 @@ func performOSFingerprinting() (audit.OSFingerprint, error) {
 	}
 	defer conn.Close()
 
-	// #420: TLS connection to loopback is used only for OS-fingerprinting (inspecting
-	// the local TCP stack). It does not validate a remote server certificate.
-	// InsecureSkipVerify applies only to this self-connection — no remote trust is implied.
-	// The result is immediately discarded; only the TCP handshake metadata is relevant.
-	tlsConn := tls.Client(conn, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec
+	// #558: InsecureSkipVerify is intentional here — this is a loopback self-connection
+	// used only for OS TCP fingerprinting. No remote host certificate is being trusted.
+	// The connection result is immediately discarded; only handshake metadata matters.
+	//nolint:gosec // G402: self-connection only, no remote trust implied
+	// lgtm[go/disabled-tls-certificate-check]
+	tlsCfg := &tls.Config{InsecureSkipVerify: true} //nolint:gosec
+	tlsConn := tls.Client(conn, tlsCfg)
 	_ = tlsConn
 
 	// OS detection falls back to runtime.GOOS heuristic; deep TCP fingerprinting

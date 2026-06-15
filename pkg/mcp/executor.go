@@ -123,7 +123,7 @@ func (e *Executor) executeReadOnly(ctx context.Context, spec ToolSpec, call MCPT
 		return nil, nil, fmt.Errorf("mcp/executor: no handler registered for read-only tool %q", spec.Name)
 	}
 
-	e.logger.Printf("[EXEC:READ_ONLY] tool=%s agent=%s", spec.Name, call.Identity.AgentID)
+	e.logger.Printf("[EXEC:READ_ONLY] tool=%q agent=%q", spec.Name, call.Identity.AgentID)
 	return handler.Handle(ctx, call)
 }
 
@@ -132,7 +132,7 @@ func (e *Executor) executeReadOnly(ctx context.Context, spec ToolSpec, call MCPT
 func (e *Executor) executeSandboxed(ctx context.Context, spec ToolSpec, call MCPToolCall) (any, []string, error) {
 	// If a sandbox runner is available and the spec requires full isolation, use it.
 	if e.sandbox != nil && spec.AllowedBackend != "in-process" {
-		e.logger.Printf("[EXEC:SANDBOX] tool=%s agent=%s backend=%s", spec.Name, call.Identity.AgentID, spec.AllowedBackend)
+		e.logger.Printf("[EXEC:SANDBOX] tool=%q agent=%q backend=%q", spec.Name, call.Identity.AgentID, spec.AllowedBackend)
 		result, warnings, err := e.sandbox.Run(ctx, spec, call)
 		if err == nil {
 			return result, warnings, nil
@@ -140,7 +140,7 @@ func (e *Executor) executeSandboxed(ctx context.Context, spec ToolSpec, call MCP
 		if os.Getenv("KHEPRA_MCP_STRICT_SANDBOX") == "true" {
 			return nil, warnings, err
 		}
-		e.logger.Printf("[EXEC:SANDBOX_FALLBACK] tool=%s sandbox failed, attempting in-process fallback: %v", spec.Name, err)
+		e.logger.Printf("[EXEC:SANDBOX_FALLBACK] tool=%q sandbox failed, attempting in-process fallback: %v", spec.Name, err)
 	}
 
 	// Fallback: use registered in-process handler with sandboxed classification.
@@ -154,7 +154,7 @@ func (e *Executor) executeSandboxed(ctx context.Context, spec ToolSpec, call MCP
 		return nil, nil, fmt.Errorf("mcp/executor: no handler for sandboxed tool %q and no sandbox runner configured", spec.Name)
 	}
 
-	e.logger.Printf("[EXEC:SANDBOX_FALLBACK] tool=%s agent=%s (in-process, no sandbox available)",
+	e.logger.Printf("[EXEC:SANDBOX_FALLBACK] tool=%q agent=%q (in-process, no sandbox available)",
 		spec.Name, call.Identity.AgentID)
 	warnings := []string{"sandbox unavailable: running in-process (reduced isolation)"}
 	result, w, err := handler.Handle(ctx, call)
@@ -172,10 +172,10 @@ func (e *Executor) executeDestructive(ctx context.Context, spec ToolSpec, call M
 		return nil, nil, errors.New("mcp/executor: destructive tools require a ConfirmationGate — none configured")
 	}
 
-	e.logger.Printf("[EXEC:DESTRUCTIVE] tool=%s agent=%s — requesting confirmation", spec.Name, call.Identity.AgentID)
+	e.logger.Printf("[EXEC:DESTRUCTIVE] tool=%q agent=%q — requesting confirmation", spec.Name, call.Identity.AgentID)
 
 	if err := e.confirm.Confirm(ctx, spec, call); err != nil {
-		e.logger.Printf("[EXEC:DESTRUCTIVE] tool=%s DENIED: %v", spec.Name, err)
+		e.logger.Printf("[EXEC:DESTRUCTIVE] tool=%q DENIED: %v", spec.Name, err)
 		return nil, nil, fmt.Errorf("destructive operation denied: %w", err)
 	}
 
@@ -187,6 +187,6 @@ func (e *Executor) executeDestructive(ctx context.Context, spec ToolSpec, call M
 		return nil, nil, fmt.Errorf("mcp/executor: no handler registered for destructive tool %q", spec.Name)
 	}
 
-	e.logger.Printf("[EXEC:DESTRUCTIVE] tool=%s agent=%s — APPROVED, executing", spec.Name, call.Identity.AgentID)
+	e.logger.Printf("[EXEC:DESTRUCTIVE] tool=%q agent=%q — APPROVED, executing", spec.Name, call.Identity.AgentID)
 	return handler.Handle(ctx, call)
 }

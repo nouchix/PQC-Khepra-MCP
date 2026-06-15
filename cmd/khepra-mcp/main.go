@@ -1003,7 +1003,7 @@ type StdioConfirmationGate struct {
 }
 
 func (g *StdioConfirmationGate) Confirm(_ context.Context, spec khepramcp.ToolSpec, call khepramcp.MCPToolCall) error {
-	g.logger.Printf("[CONFIRM] auto-approved destructive tool=%s agent=%s (stdio single-tenant)",
+	g.logger.Printf("[CONFIRM] auto-approved destructive tool=%q agent=%q (stdio single-tenant)",
 		spec.Name, call.Identity.AgentID)
 	return nil
 }

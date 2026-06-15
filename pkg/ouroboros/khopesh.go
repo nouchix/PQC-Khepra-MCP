@@ -45,20 +45,20 @@ func (rb *RemediationBlade) Strike(heka maat.Heka) error {
 		return nil
 	}
 
-	log.Printf("[%s] Striking: %s (Action: %s)", rb.name, heka.Isfet.ID, heka.Action)
+	log.Printf("[%q] Striking: %q (Action: %q)", rb.name, heka.Isfet.ID, heka.Action)
 
 	// REAL IMPLEMENTATION: Link to stig.Remediator
 	remediator := stig.NewRemediator(nil)
 	result, err := remediator.Remediate(heka.Isfet.ID)
 
 	if err != nil {
-		log.Printf("[%s] Remediation FAILED for %s: %v", rb.name, heka.Isfet.ID, err)
+		log.Printf("[%q] Remediation FAILED for %q: %v", rb.name, heka.Isfet.ID, err)
 		return err
 	}
 
-	log.Printf("[%s] Remediation Status: %s for %s", rb.name, result.Status, heka.Isfet.ID)
-	log.Printf("[%s] Execution Output: %s", rb.name, result.Output)
-	log.Printf("[%s] KASA wisdom applied: %s", rb.name, heka.Wisdom)
+	log.Printf("[%q] Remediation Status: %q for %q", rb.name, result.Status, heka.Isfet.ID)
+	log.Printf("[%q] Execution Output: %q", rb.name, result.Output)
+	log.Printf("[%q] KASA wisdom applied: %q", rb.name, heka.Wisdom)
 
 	return nil
 }
@@ -123,16 +123,16 @@ func (fb *FirewallBlade) Strike(heka maat.Heka) error {
 			continue
 		}
 		if submitted == 0 {
-			log.Printf("[%s] Processing banishment for Isfet: %s", fb.name, heka.Isfet.ID)
+			log.Printf("[%q] Processing banishment for Isfet: %q", fb.name, heka.Isfet.ID)
 		}
 		ip := omen.Value
-		log.Printf("[%s] Submitting Crowdsec decision: ban ip=%s malevolence=%.2f isfet=%s",
+		log.Printf("[%q] Submitting Crowdsec decision: ban ip=%q malevolence=%.2f isfet=%q",
 			fb.name, ip, omen.Malevolence, heka.Isfet.ID)
 		if err := fb.submitCrowdsecDecision(ip, "24h", "ban"); err != nil {
-			log.Printf("[%s] Crowdsec submission failed for %s: %v", fb.name, ip, err)
+			log.Printf("[%q] Crowdsec submission failed for %q: %v", fb.name, ip, err)
 			lastErr = err
 		} else {
-			log.Printf("[%s] SUCCESS: ip=%s submitted to Crowdsec (24h ban)", fb.name, ip)
+			log.Printf("[%q] SUCCESS: ip=%q submitted to Crowdsec (24h ban)", fb.name, ip)
 			submitted++
 		}
 	}
@@ -196,7 +196,7 @@ func (ib *IsolationBlade) CanStrike(heka maat.Heka) bool {
 
 func (ib *IsolationBlade) Strike(heka maat.Heka) error {
 	// Isolation always requires manual approval (too disruptive)
-	log.Printf(ManualApprovalFormat+" (Action: %s)", ib.name, heka.Isfet.ID, heka.Action)
+	log.Printf(ManualApprovalFormat+" (Action: %q)", ib.name, heka.Isfet.ID, heka.Action)
 	return nil
 }
 
@@ -220,7 +220,7 @@ func (mb *MonitorBlade) CanStrike(heka maat.Heka) bool {
 }
 
 func (mb *MonitorBlade) Strike(heka maat.Heka) error {
-	log.Printf("[%s] Observing: %s (Severity: %s)", mb.name, heka.Isfet.ID, heka.Isfet.Severity)
+	log.Printf("[%q] Observing: %q (Severity: %q)", mb.name, heka.Isfet.ID, heka.Isfet.Severity)
 	return nil
 }
 
@@ -250,9 +250,9 @@ func (cb *ConfigBlade) Strike(heka maat.Heka) error {
 	}
 
 	// Apply configuration remediation based on KASA recommendation
-	log.Printf("[%s] Purifying configuration: %s (source: %s)",
+	log.Printf("[%q] Purifying configuration: %q (source: %q)",
 		cb.name, heka.Isfet.ID, heka.Isfet.Source)
-	log.Printf("[%s] Applying config fix per KASA guidance: %s",
+	log.Printf("[%q] Applying config fix per KASA guidance: %q",
 		cb.name, heka.Wisdom)
 
 	return nil

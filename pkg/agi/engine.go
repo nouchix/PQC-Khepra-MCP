@@ -130,7 +130,7 @@ func NewEngine(store dag.Store) *Engine {
 		// Quick health check in background so we don't block startup
 		go func() {
 			if cognitiveLayer.CheckHealth() {
-				log.Printf("[KASA] LLM CONNECTION ESTABLISHED: %s@%s", cfg.LLMModel, cfg.LLMUrl)
+				log.Printf("[KASA] LLM CONNECTION ESTABLISHED: %q@%q", cfg.LLMModel, cfg.LLMUrl)
 			} else {
 				log.Printf("[KASA] WARNING: LLM UNREACHABLE. Reverting to Heuristic Mode.")
 			}
@@ -181,7 +181,7 @@ func (e *Engine) Start() {
 	e.Status = "Active (Guardian Mode)"
 	e.wg.Add(1)
 	go e.loop()
-	log.Printf("[KASA] Agentic Auditor ONLINE. Objective: %s. Autonomy Level: HIGH.", e.Objective)
+	log.Printf("[KASA] Agentic Auditor ONLINE. Objective: %q. Autonomy Level: HIGH.", e.Objective)
 }
 
 // Stop halts the engine
@@ -283,7 +283,7 @@ func (e *Engine) think() {
 	task := e.Tasks[0]
 	e.Tasks = e.Tasks[1:] // Pop
 
-	log.Printf("[KASA] EXECUTING TASK: %s (%s)", task.Description, task.Symbol)
+	log.Printf("[KASA] EXECUTING TASK: %q (%q)", task.Description, task.Symbol)
 	e.Status = "Working on: " + task.Description
 
 	// 2. Execution Agent
@@ -398,7 +398,7 @@ func (e *Engine) executeVulnHunt() (string, error) {
 				Priority:    "HIGH",
 				Symbol:      "Dwennimmen", // Ram's horns - strength/conflict resolution
 			})
-			log.Printf("[KASA] QUEUED REMEDIATION: %s (%s) - %s", v.ID, v.Severity, v.Package)
+			log.Printf("[KASA] QUEUED REMEDIATION: %q (%q) - %q", v.ID, v.Severity, v.Package)
 		}
 	}
 
@@ -418,7 +418,7 @@ func (e *Engine) executeVulnHunt() (string, error) {
 func (e *Engine) executeRemediation(t Task) (string, error) {
 	// Extract vuln ID from task description
 	// Format: "Remediate: GHSA-xxxx in package-name (ecosystem)"
-	log.Printf("[KASA] EXECUTING REMEDIATION: %s", t.Description)
+	log.Printf("[KASA] EXECUTING REMEDIATION: %q", t.Description)
 	e.Status = "Remediating: " + t.Description
 
 	// Get the last scan results
@@ -482,7 +482,7 @@ func (e *Engine) executeForensics() (string, error) {
 		if len(changes) > 0 {
 			log.Printf("[KASA] FORENSIC ANOMALY DETECTED: %d changes since last snapshot", len(changes))
 			for _, change := range changes {
-				log.Printf("[KASA]   -> %s", change)
+				log.Printf("[KASA]   -> %q", change)
 
 				// Record each change as evidence
 				changeNode := dag.Node{
@@ -511,7 +511,7 @@ func (e *Engine) executeForensics() (string, error) {
 		len(snapshot.FileHashes))
 
 	log.Printf(KASAFormat, summary)
-	log.Printf("[KASA] Snapshot Hash: %s", snapshot.Hash)
+	log.Printf("[KASA] Snapshot Hash: %q", snapshot.Hash)
 
 	// Store snapshot data separately for detailed analysis
 	dataNode := dag.Node{
@@ -540,7 +540,7 @@ func (e *Engine) executePentest(t Task) (string, error) {
 	// Phase 1: Arsenal Check
 	e.Status = "PENTEST Phase 1: Arsenal Verification..."
 	gapReport := e.arsenal.ReportGaps()
-	log.Printf("[KASA] PENTEST ARSENAL: %s", gapReport)
+	log.Printf("[KASA] PENTEST ARSENAL: %q", gapReport)
 
 	// Phase 2: Network Service Discovery (T1046)
 	openPorts := e.executePentestDiscovery(target, startNode.ID)
@@ -614,7 +614,7 @@ func (e *Engine) initiatePentestNode(target string) *dag.Node {
 
 func (e *Engine) executePentestDiscovery(target string, parentID string) int {
 	e.Status = "PENTEST Phase 2: T1046 Network Service Discovery..."
-	log.Printf("[KASA] PENTEST T1046: Scanning %s for open ports...", target)
+	log.Printf("[KASA] PENTEST T1046: Scanning %q for open ports...", target)
 
 	scanResults, scanErr := e.scanner.Run(target)
 	if scanErr != nil {
@@ -710,7 +710,7 @@ func (e *Engine) logToDAG(t Task, result string) {
 	}
 
 	if err := e.store.Add(&node, []string{}); err == nil {
-		log.Printf("[KASA] PROVENANCE SECURED: Node %s (Signed) | Result: %s", node.ID, result)
+		log.Printf("[KASA] PROVENANCE SECURED: Node %q (Signed) | Result: %q", node.ID, result)
 	}
 }
 
@@ -729,7 +729,7 @@ func (e *Engine) deriveNewTasks(t Task, _ string) {
 			Symbol:      "Eban",
 		}
 		e.Tasks = append(e.Tasks, newTask)
-		log.Printf("[KASA] NEW TASK DERIVED: %s", newTask.Description)
+		log.Printf("[KASA] NEW TASK DERIVED: %q", newTask.Description)
 	}
 }
 
@@ -742,13 +742,13 @@ func (e *Engine) AddTask(description, symbol string) {
 		Symbol:      symbol,
 	}
 	e.Tasks = append(e.Tasks, t)
-	log.Printf("[KASA] TASK INGESTED: %s", sanitizeLog(description))
+	log.Printf("[KASA] TASK INGESTED: %q", description)
 }
 
 // RunMission: Scan triggers a vulnerability scan (Commando Capability)
 func (e *Engine) RunScan(target string) error {
 	e.Status = "Scanning Target: " + target
-	log.Printf("[KASA] COMMANDO: Initiating Vulnerability Scan on %s...", sanitizeLog(target))
+	log.Printf("[KASA] COMMANDO: Initiating Vulnerability Scan on %q...", target)
 
 	results, err := e.scanner.Run(target)
 	if err != nil {
@@ -780,11 +780,11 @@ func (e *Engine) RunScan(target string) error {
 
 		if err := node.Sign(e.privKey); err == nil {
 			if err := e.store.Add(&node, []string{}); err == nil {
-				log.Printf("[KASA] INTEL SECURED: %s:%d IS OPEN -> DAG Node %s (Signed) | Risk: %s", r.Target, r.Port, node.ID, riskLevel)
+				log.Printf("[KASA] INTEL SECURED: %q:%d IS OPEN -> DAG Node %q (Signed) | Risk: %q", r.Target, r.Port, node.ID, riskLevel)
 			}
 		}
 	}
-	log.Printf("KASA AI ANALYSIS:\n%s", aiAnalysis)
+	log.Printf("KASA AI ANALYSIS:\n%q", aiAnalysis)
 	e.Status = "Scan Complete"
 	return nil
 }

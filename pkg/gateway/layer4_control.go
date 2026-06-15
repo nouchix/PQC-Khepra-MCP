@@ -142,7 +142,7 @@ func NewControlLayer(rateCfg *RateLimitConfig, logCfg *LoggingConfig) (*ControlL
 	// Start audit log processor
 	go layer.processAuditLog()
 
-	log.Printf("[CONTROL] Layer 4 initialized - RateLimit[%d/s global, %d/s per-identity] Logging[%s]",
+	log.Printf("[CONTROL] Layer 4 initialized - RateLimit[%d/s global, %d/s per-identity] Logging[%q]",
 		rateCfg.GlobalRequestsPerSecond, rateCfg.RequestsPerSecond, logCfg.Level)
 
 	return layer, nil
@@ -267,7 +267,7 @@ func (c *ControlLayer) applyBackoff(limiter *RateLimiter) {
 	}
 
 	limiter.BackoffUntil = time.Now().Add(backoffDuration)
-	log.Printf("[CONTROL] Applied backoff to %s: %v (count: %d)",
+	log.Printf("[CONTROL] Applied backoff to %q: %v (count: %d)",
 		limiter.IdentityID, backoffDuration, limiter.BackoffCount)
 }
 
@@ -332,7 +332,7 @@ func (c *ControlLayer) LogRequest(ctx *RequestContext) {
 	select {
 	case c.auditChan <- event:
 	default:
-		log.Printf("[CONTROL] Audit channel full, dropping event: %s", event.RequestID)
+		log.Printf("[CONTROL] Audit channel full, dropping event: %q", event.RequestID)
 	}
 }
 
@@ -381,7 +381,7 @@ func (c *ControlLayer) logToStdout(event *AuditEvent) {
 		status = "BLOCKED"
 	}
 
-	log.Printf("[AUDIT] %s %s %s %s %d %s %.2fms anomaly=%.2f",
+	log.Printf("[AUDIT] %q %q %q %q %d %q %.2fms anomaly=%.2f",
 		event.RequestID[:8],
 		event.Method,
 		event.Path,
@@ -439,7 +439,7 @@ func (c *ControlLayer) RegisterWebSocket(connID string) chan *AuditEvent {
 	c.wsConnections[connID] = ch
 	c.wsConnectionsMu.Unlock()
 
-	log.Printf("[CONTROL] WebSocket registered: %s", connID)
+	log.Printf("[CONTROL] WebSocket registered: %q", connID)
 	return ch
 }
 
@@ -451,7 +451,7 @@ func (c *ControlLayer) UnregisterWebSocket(connID string) {
 	if ch, exists := c.wsConnections[connID]; exists {
 		close(ch)
 		delete(c.wsConnections, connID)
-		log.Printf("[CONTROL] WebSocket unregistered: %s", connID)
+		log.Printf("[CONTROL] WebSocket unregistered: %q", connID)
 	}
 }
 

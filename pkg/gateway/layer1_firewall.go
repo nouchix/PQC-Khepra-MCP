@@ -162,7 +162,7 @@ func (fw *FirewallLayer) checkGeo(ip string) (bool, string) {
 	country := fw.lookupCountry(ip)
 
 	// Log GeoIP result for auditing
-	log.Printf("[FIREWALL] GeoIP: IP %s -> Country %s", ip, country)
+	log.Printf("[FIREWALL] GeoIP: IP %q -> Country %q", ip, country)
 
 	// Check against blocklist
 	for _, blocked := range fw.config.GeoBlockCountries {
@@ -347,7 +347,7 @@ func (fw *FirewallLayer) loadIPBlocklist(path string) error {
 		if strings.Contains(line, "/") {
 			_, cidr, err := net.ParseCIDR(line)
 			if err != nil {
-				log.Printf("[FIREWALL] Invalid CIDR in blocklist: %s", line)
+				log.Printf("[FIREWALL] Invalid CIDR in blocklist: %q", line)
 				continue
 			}
 			fw.blockedCIDRs = append(fw.blockedCIDRs, cidr)
@@ -366,7 +366,7 @@ func (fw *FirewallLayer) AddBlockedIP(ip string) {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
 	fw.blockedIPs[ip] = true
-	log.Printf("[FIREWALL] Added IP to blocklist: %s", ip)
+	log.Printf("[FIREWALL] Added IP to blocklist: %q", ip)
 }
 
 // RemoveBlockedIP removes an IP from the blocklist
@@ -374,7 +374,7 @@ func (fw *FirewallLayer) RemoveBlockedIP(ip string) {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
 	delete(fw.blockedIPs, ip)
-	log.Printf("[FIREWALL] Removed IP from blocklist: %s", ip)
+	log.Printf("[FIREWALL] Removed IP from blocklist: %q", ip)
 }
 
 // UpdateTorExitNodes updates the Tor exit node list

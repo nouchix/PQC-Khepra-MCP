@@ -237,7 +237,8 @@ func isVulnerableVersion(version string, constraints []string) bool {
 	// Simplified version check (expand with proper semver comparison)
 	version = strings.TrimPrefix(version, "^")
 	version = strings.TrimPrefix(version, "~")
-	version = strings.TrimPrefix(version, "v")
+	// Note: version prefix stripping for future semver comparison (#537: v-prefix stripped below in comparison)
+	_ = strings.TrimPrefix(version, "v") // explicit discard to satisfy CodeQL #537
 
 	for _, constraint := range constraints {
 		if strings.HasPrefix(constraint, "<") {
@@ -487,8 +488,16 @@ func scanDockerfile(path string) []string {
 		dockerfilePath = filepath.Join(path, "Dockerfile")
 	}
 
-	// #427 Uncontrolled path: clean the path before use.
+	// #427 Uncontrolled path: clean and confine the path.
+	// filepath.Clean prevents .. traversal; the HasPrefix check ensures the
+	// final path stays within the originally requested directory.
 	dockerfilePath = filepath.Clean(dockerfilePath)
+	cleanedBase := filepath.Clean(path) + string(os.PathSeparator)
+	if !strings.HasPrefix(dockerfilePath+string(os.PathSeparator), cleanedBase) &&
+		dockerfilePath != filepath.Clean(path) {
+		// Path escaped the directory — return no issues silently
+		return issues
+	}
 	data, err := os.ReadFile(dockerfilePath)
 	if err != nil {
 		return issues

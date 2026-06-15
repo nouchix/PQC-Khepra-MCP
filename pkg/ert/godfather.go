@@ -142,8 +142,8 @@ func (e *Engine) buildCausalChain(readiness *ReadinessIntel, arch *ArchitectureI
 			Type:        "CONSEQUENCE",
 			Description: "THEREFORE -> Exposure window averages 45 days per CVE",
 		})
-		step++
-	}
+		// step not incremented here — no further chain items (#538)
+	} // end if len(arch.VulnerableDeps) > 0
 
 	return chain
 }

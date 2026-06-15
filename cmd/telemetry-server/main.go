@@ -310,7 +310,7 @@ func requestLogger(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		// Log method + path only; never log IP, headers, or body
-		log.Printf("[REQ] %s %s %.2fms", sanitizeLog(r.Method), sanitizeLog(r.URL.Path), float64(time.Since(start).Microseconds())/1000)
+		log.Printf("[REQ] %q %q %.2fms", r.Method, r.URL.Path, float64(time.Since(start).Microseconds())/1000)
 	})
 }
 
@@ -328,7 +328,7 @@ func main() {
 	// Ensure DB directory exists
 	dbDir := dbDirFrom(cfg.DBPath)
 	if err := os.MkdirAll(dbDir, 0700); err != nil {
-		log.Fatalf("[TELEMETRY] Cannot create DB directory %s: %v", dbDir, err)
+		log.Fatalf("[TELEMETRY] Cannot create DB directory %q: %v", dbDir, err)
 	}
 
 	st, err := newStore(cfg.DBPath)
@@ -350,7 +350,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("[TELEMETRY] Listening on %s (TLS)", cfg.ListenAddr)
+		log.Printf("[TELEMETRY] Listening on %q (TLS)", cfg.ListenAddr)
 		var serveErr error
 		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
 			serveErr = httpSrv.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile)

@@ -41,16 +41,18 @@ interface DeploymentConfig {
  * to prevent URL injection via user-supplied configuration. (CWE-601, alert #1)
  */
 function sanitizeDeploymentUrl(url: string): string {
+  if (!url || typeof url !== 'string') return '';
   try {
     const parsed = new URL(url);
-    // Only allow http/https. Return URL built from parsed components — not
-    // the raw user string — to prevent protocol injection (CWE-601 / #539).
-    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-      // Reconstruct from parsed parts so no user-supplied chars flow through.
-      return parsed.origin + parsed.pathname + parsed.search;
-    }
+    // Only allow http/https protocols. Any other scheme (javascript:, data:, etc.)
+    // returns empty string, preventing protocol injection (CWE-601 / #539).
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+    // Reconstruct a clean URL from parsed components (never pass raw user input).
+    // encodeURI ensures any residual special chars are percent-encoded.
+    const safe = parsed.origin + parsed.pathname + (parsed.search || '');
+    return encodeURI(decodeURI(safe)); // normalize then encode
   } catch {
-    // Not a valid URL at all
+    // Unparseable URL — reject it
   }
   return '';
 }

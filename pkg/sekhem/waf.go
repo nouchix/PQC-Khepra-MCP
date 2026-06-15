@@ -219,7 +219,7 @@ func NewWAFShield(cfg WAFShieldConfig) (*WAFShield, error) {
 	// Start hourly keypair rotation goroutine
 	go shield.rotateKeypairLoop(ctx)
 
-	log.Printf("[SEKHEM-WAF] WAFShield online — %d rules, spectral anchor=%s, Crowdsec=%s",
+	log.Printf("[SEKHEM-WAF] WAFShield online — %d rules, spectral anchor=%q, Crowdsec=%q",
 		len(shield.rules), string(anchorHex[:16])+"...", csURL)
 
 	return shield, nil
@@ -354,7 +354,7 @@ func (ws *WAFShield) emitThreat(result *WAFRuleResult, clientIP, fingerprint, pa
 	select {
 	case ws.threatChan <- threat:
 	default:
-		log.Printf("[SEKHEM-WAF] threatChan full — dropping event for %s rule=%s", sanitizeLog(clientIP), sanitizeLog(result.RuleID))
+		log.Printf("[SEKHEM-WAF] threatChan full — dropping event for %q rule=%q", clientIP, result.RuleID)
 	}
 }
 
@@ -457,7 +457,7 @@ func (ws *WAFShield) blockRequest(c *gin.Context, ruleID, clientIP, reason strin
 // SEKHEM is a signal source; Crowdsec is the actuator.
 func (ws *WAFShield) submitCrowdsecDecision(ip, duration, decType string) {
 	if ws.crowdsecAPIKey == "" {
-		log.Printf("[SEKHEM-WAF] Crowdsec key not set — skipping decision for %s", sanitizeLog(ip))
+		log.Printf("[SEKHEM-WAF] Crowdsec key not set — skipping decision for %q", ip)
 		return
 	}
 
@@ -487,17 +487,17 @@ func (ws *WAFShield) submitCrowdsecDecision(ip, duration, decType string) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[SEKHEM-WAF] Crowdsec submission failed for %s: %v", sanitizeLog(ip), err)
+		log.Printf("[SEKHEM-WAF] Crowdsec submission failed for %q: %v", ip, err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		log.Printf("[SEKHEM-WAF] Crowdsec returned %d for %s: %s", resp.StatusCode, sanitizeLog(ip), b)
+		log.Printf("[SEKHEM-WAF] Crowdsec returned %d for %q: %q", resp.StatusCode, ip, b)
 		return
 	}
-	log.Printf("[SEKHEM-WAF] Crowdsec decision submitted: type=%s ip=%s duration=%s", sanitizeLog(decType), sanitizeLog(ip), sanitizeLog(duration))
+	log.Printf("[SEKHEM-WAF] Crowdsec decision submitted: type=%q ip=%q duration=%q", decType, ip, duration)
 }
 
 // newCorrelationID generates a 128-bit random hex correlation ID.

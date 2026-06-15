@@ -187,7 +187,7 @@ func (ds *DockerSandbox) runPhantomContainer(
 	// Build the docker run command
 	args := ds.buildDockerArgs(spec, call, cfg, string(argsJSON))
 
-	ds.logger.Printf("[SANDBOX:PHANTOM] tool=%s agent=%s image=%s timeout=%s",
+	ds.logger.Printf("[SANDBOX:PHANTOM] tool=%q agent=%q image=%q timeout=%q",
 		spec.Name, call.Identity.AgentID, ds.image, cfg.Timeout)
 
 	// Execute via docker CLI (AD-002: no heavy SDK dependency)
@@ -200,7 +200,7 @@ func (ds *DockerSandbox) runPhantomContainer(
 	if len(stderr) > 0 {
 		for _, line := range strings.Split(strings.TrimSpace(string(stderr)), "\n") {
 			if line != "" {
-				ds.logger.Printf("[SANDBOX:PHANTOM:STDERR] %s", line)
+				ds.logger.Printf("[SANDBOX:PHANTOM:STDERR] %q", line)
 			}
 		}
 	}
@@ -283,7 +283,7 @@ func (ds *DockerSandbox) buildDockerArgs(
 			absDir, absErr := filepath.Abs(dir)
 			if absErr != nil || absDir != dir {
 				// Skip malformed capability mounts (fail-safe)
-				ds.logger.Printf("[SANDBOX] WARN: skipping invalid capability mount %q for tool %s", dir, spec.Name)
+				ds.logger.Printf("[SANDBOX] WARN: skipping invalid capability mount %q for tool %q", dir, spec.Name)
 				continue
 			}
 			// Mount as read-only inside container at /cap/N (e.g. /cap/0, /cap/1)

@@ -264,10 +264,12 @@ func ResolveConflict(symbolA, symbolB string) string {
 // Hash generates a Khepra-standard hash, encoded in the Khepra Lattice.
 // This creates the immutable "DNA" of any artifact.
 // It wraps SHA-256 but encodes it using the poetic alphabet to obfuscate the structure.
-// #nosec G401 — SHA-256 (crypto/sha256) is FIPS-140-2 approved; the hex-to-lattice
-// remapping below is purely cosmetic encoding, not an alternative hash algorithm.
+// #nosec G401 — SHA-256 (crypto/sha256) is FIPS-140-2 approved; not a weak hash.
+// This is purely cosmetic encoding over a secure hash; there is no integrity requirement
+// for the lattice encoding itself.
+// lgtm[go/weak-cryptographic-algorithm]
 func Hash(data []byte) string {
-	h := sha256.Sum256(data)
+	h := sha256.Sum256(data) // SHA-256 is NIST-approved; not weak (#421)
 	hexStr := fmt.Sprintf("%x", h)
 
 	// Transmute standard hex (0-9, a-f) to Khepra Lattice (G-O)
