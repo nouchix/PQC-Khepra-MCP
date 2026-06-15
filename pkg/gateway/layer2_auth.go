@@ -67,7 +67,7 @@ func NewAuthLayer(cfg *AuthConfig) (*AuthLayer, error) {
 			return nil, fmt.Errorf("failed to load client CA: %w", err)
 		}
 		auth.clientCAs = pool
-		log.Printf("[AUTH] mTLS enabled with client CA: %s", cfg.ClientCAFile)
+		log.Printf("[AUTH] mTLS enabled with client CA: %q", cfg.ClientCAFile)
 	}
 
 	// Initialize JWT key
@@ -75,7 +75,7 @@ func NewAuthLayer(cfg *AuthConfig) (*AuthLayer, error) {
 		auth.jwtKey = []byte(cfg.JWTSecret)
 	}
 
-	log.Printf("[AUTH] Layer 2 initialized - mTLS[%v] PQC[%v] APIKey[%s]",
+	log.Printf("[AUTH] Layer 2 initialized - mTLS[%v] PQC[%v] APIKey[%q]",
 		cfg.RequireMTLS, cfg.RequirePQCSignature, maskID(cfg.APIKeyHeader))
 
 	return auth, nil
@@ -186,7 +186,7 @@ func (auth *AuthLayer) finalizeIdentity(r *http.Request, identity *Identity, met
 	}
 
 	// #416/#417 Clear-text log: mask identity ID to avoid leaking auth token fragments.
-	log.Printf("[AUTH] Authenticated: %s via %s", maskID(identity.ID), method)
+	log.Printf("[AUTH] Authenticated: %q via %q", maskID(identity.ID), method)
 	return identity, nil
 }
 
@@ -314,7 +314,7 @@ func (auth *AuthLayer) RegisterAPIKey(key string, org string, permissions []stri
 		Revoked:      false,
 	}
 
-	log.Printf("[AUTH] Registered API key for org: %s (expires in %d days)", org, validDays)
+	log.Printf("[AUTH] Registered API key for org: %q (expires in %d days)", org, validDays)
 	return nil
 }
 
@@ -329,7 +329,7 @@ func (auth *AuthLayer) RevokeAPIKey(keyHash string) error {
 	}
 
 	entry.Revoked = true
-	log.Printf("[AUTH] Revoked API key: %s", keyHash[:8])
+	log.Printf("[AUTH] Revoked API key: %q", keyHash[:8])
 	return nil
 }
 
@@ -343,7 +343,7 @@ func (auth *AuthLayer) RegisterPublicKey(identityID string, pubKey []byte) error
 	defer auth.publicKeysMu.Unlock()
 
 	auth.publicKeys[identityID] = pubKey
-	log.Printf("[AUTH] Registered PQC public key for: %s", sanitizeLog(identityID))
+	log.Printf("[AUTH] Registered PQC public key for: %q", identityID)
 	return nil
 }
 

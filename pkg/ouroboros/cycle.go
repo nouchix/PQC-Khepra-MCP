@@ -76,7 +76,7 @@ func (c *Cycle) perceive() []maat.Isfet {
 	for _, eye := range c.Eyes {
 		detected := eye.Gaze()
 		if len(detected) > 0 {
-			log.Printf("[Ouroboros] %s detected %d Isfet", eye.Name(), len(detected))
+			log.Printf("[Ouroboros] %q detected %d Isfet", eye.Name(), len(detected))
 			isfet = append(isfet, detected...)
 		}
 	}
@@ -91,7 +91,7 @@ func (c *Cycle) manifest(heka []maat.Heka) {
 			if blade.CanStrike(h) {
 				err := blade.Strike(h)
 				if err != nil {
-					log.Printf("[Ouroboros] %s failed to strike: %v", blade.Name(), err)
+					log.Printf("[Ouroboros] %q failed to strike: %v", blade.Name(), err)
 				}
 			}
 		}

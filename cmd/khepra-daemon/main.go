@@ -67,12 +67,12 @@ func main() {
 	addr := "127.0.0.1:" + *port
 
 	if *tlsEnabled {
-		log.Printf("[DAEMON] Father is watching on %s (HTTPS/TLS)\n", addr)
+		log.Printf("[DAEMON] Father is watching on %q (HTTPS/TLS)\n", addr)
 		if err := http.ListenAndServeTLS(addr, *certPath, *keyPath, nil); err != nil {
 			log.Fatalf("[FATAL] Failed to start daemon (TLS): %v\n", err)
 		}
 	} else {
-		log.Printf("[DAEMON] Father is watching on %s (HTTP)\n", addr)
+		log.Printf("[DAEMON] Father is watching on %q (HTTP)\n", addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatalf("[FATAL] Failed to start daemon: %v\n", err)
 		}
@@ -269,7 +269,7 @@ func (d *KhepraDaemon) logEvent(action, symbol string, _ map[string]interface{})
 		return ""
 	}
 
-	log.Printf("[DAG] Event logged: %s | %s | ID: %s\n", action, symbol, node.ID)
+	log.Printf("[DAG] Event logged: %q | %q | ID: %q\n", action, symbol, node.ID)
 	return node.ID
 }
 

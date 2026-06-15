@@ -38,7 +38,15 @@ var globalPoller *scada.Poller
 func initSCADAPoller(mux *http.ServeMux) {
 	host   := getenv("SCADA_HOST", "10.187.242.136")
 	port   := getenvInt("SCADA_PORT", 502)
-	unitID := byte(getenvInt("SCADA_UNIT_ID", 2))
+	// #414 Integer narrowing: unitID must fit in [0,255] (Modbus unit ID range).
+	// Clamp before casting to byte to prevent silent truncation.
+	unitIDInt := getenvInt("SCADA_UNIT_ID", 2)
+	if unitIDInt < 0 {
+		unitIDInt = 0
+	} else if unitIDInt > 255 {
+		unitIDInt = 255
+	}
+	unitID := byte(unitIDInt)
 
 	globalPoller = scada.NewPoller(scada.Config{
 		Host:   host,
