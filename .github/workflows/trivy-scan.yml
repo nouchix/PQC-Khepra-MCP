@@ -1,0 +1,147 @@
+name: Container Security Scan (Trivy)
+# OWASP SDLC Phase: Verification
+# Tool: Trivy (equivalent to OWASP Dependency-Check for containers)
+# Covers: CVE scanning of Docker images, SBOM extraction, secret detection in layers
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "Dockerfile*"
+      - "go.mod"
+      - "go.sum"
+      - "package*.json"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile*"
+  schedule:
+    # Daily scan at 02:00 UTC to catch new CVEs against shipped images
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  # ── 1. Scan main application Dockerfile ─────────────────────────────────────
+  trivy-dockerfile:
+    name: Trivy — Dockerfile Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF to GitHub Security tab
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image for scanning
+        run: |
+          docker build -t khepra-scan:${{ github.sha }} \
+            --no-cache \
+            -f Dockerfile .
+
+      - name: Trivy — image scan (CRITICAL + HIGH gate)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "khepra-scan:${{ github.sha }}"
+          format: "sarif"
+          output: "trivy-image.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"          # Fail CI on CRITICAL/HIGH CVEs
+          ignore-unfixed: true    # Only block on patched vulns
+
+      - name: Upload Trivy SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-image.sarif"
+          category: "trivy-container"
+
+  # ── 2. Scan IronBank hardened image ─────────────────────────────────────────
+  trivy-ironbank:
+    name: Trivy — IronBank Image Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build IronBank image
+        run: |
+          docker build -t khepra-ironbank-scan:${{ github.sha }} \
+            --no-cache \
+            -f Dockerfile.ironbank .
+
+      - name: Trivy — IronBank scan (all severities, report only)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "khepra-ironbank-scan:${{ github.sha }}"
+          format: "sarif"
+          output: "trivy-ironbank.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"          # Report-only for IronBank (already hardened)
+          ignore-unfixed: true
+
+      - name: Upload IronBank SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-ironbank.sarif"
+          category: "trivy-ironbank"
+
+  # ── 3. Filesystem / dependency scan (OWASP SCA equivalent) ─────────────────
+  trivy-fs:
+    name: Trivy — Filesystem SCA Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy — Go + npm dependency scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-fs.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload filesystem SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-fs.sarif"
+          category: "trivy-filesystem"
+
+  # ── 4. Generate CycloneDX SBOM for release artifacts ───────────────────────
+  trivy-sbom:
+    name: Trivy — SBOM Generation
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image for SBOM
+        run: docker build -t khepra-sbom:${{ github.sha }} -f Dockerfile .
+
+      - name: Generate CycloneDX SBOM
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "khepra-sbom:${{ github.sha }}"
+          format: "cyclonedx"
+          output: "sbom.cdx.json"
+
+      - name: Upload SBOM as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-${{ github.sha }}
+          path: sbom.cdx.json
+          retention-days: 90
