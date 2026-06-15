@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/kms"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/kms"
 )
 
 // RestoreGenesis reverses the specific Genesis encryption/compression

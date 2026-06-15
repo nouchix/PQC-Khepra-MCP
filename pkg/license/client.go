@@ -18,7 +18,7 @@ const MIMEApplicationJSON = "application/json"
 
 // AgentVersion is set at build time via:
 //
-//	go build -ldflags "-X github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license.AgentVersion=$(git describe --tags --always --dirty)"
+//	go build -ldflags "-X github.com/nouchix/PQC-Khepra-MCP/pkg/license.AgentVersion=$(git describe --tags --always --dirty)"
 //
 // Falls back to the default below when built without ldflags (local/dev builds).
 var AgentVersion = "v1.5.0-NUCLEAR"

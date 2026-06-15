@@ -7,7 +7,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/fim"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/fim"
 )
 
 func fimCmd(args []string) {

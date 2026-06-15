@@ -14,7 +14,7 @@
 package mcp
 
 import (
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp/legacy"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/legacy"
 )
 
 // ─── Re-exported Legacy Types (used by pkg/apiserver, cmd/khepra-mcp) ──────────

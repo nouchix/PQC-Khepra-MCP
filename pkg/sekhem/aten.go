@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/agi"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ouroboros"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/seshat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ouroboros"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/seshat"
 )
 
 const (

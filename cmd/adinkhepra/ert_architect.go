@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sca"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/vuln"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sca"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/vuln"
 )
 
 // ertArchitectCmd implements Package B: Operational Weapons System

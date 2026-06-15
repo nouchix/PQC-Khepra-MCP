@@ -21,7 +21,7 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // Spin represents the binary state of a node in the Ising lattice.

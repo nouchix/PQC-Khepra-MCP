@@ -26,9 +26,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 

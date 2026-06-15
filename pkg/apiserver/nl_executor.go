@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 )
 
 // serverToolExecutor dispatches MCP tool calls directly through the server's

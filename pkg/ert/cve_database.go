@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/intel/registry"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/intel/registry"
 )
 
 // CVEDatabase loads and queries the local CVE database

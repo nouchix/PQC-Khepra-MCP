@@ -16,12 +16,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/acp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ert"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/nhi"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sca"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/vuln"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/acp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ert"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/nhi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sca"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/vuln"
 )
 
 

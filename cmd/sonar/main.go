@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/enumerate"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/fingerprint"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanners"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/enumerate"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/fingerprint"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanners"
 	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 

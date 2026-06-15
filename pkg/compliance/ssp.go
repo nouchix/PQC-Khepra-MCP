@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/lorentz"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 )
 
 // ComplianceDomain represents a CMMC Domain (e.g., AC, AU, IR)

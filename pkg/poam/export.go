@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 // ─── Export functions ─────────────────────────────────────────────────────────

@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/intel"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/risk"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/intel"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/risk"
 )
 
 func reportCmd(args []string) {

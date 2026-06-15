@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 // NodeLicenseBinding tracks which license authorizes which nodes

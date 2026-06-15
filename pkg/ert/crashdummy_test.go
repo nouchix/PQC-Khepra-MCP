@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ert"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ert"
 )
 
 // syntheticGoMod is a crafted go.mod that references old, CVE-bearing packages.

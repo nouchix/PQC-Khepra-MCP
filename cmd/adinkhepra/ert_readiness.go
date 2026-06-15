@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/nist80171"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sca"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/vuln"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/nist80171"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sca"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/vuln"
 )
 
 // ertReadinessCmd implements Package A: Strategic Weapons System

@@ -30,9 +30,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/fingerprint"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/fingerprint"
 	"github.com/google/uuid"
 )
 

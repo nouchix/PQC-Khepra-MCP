@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/connectors"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/nhi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/connectors"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/nhi"
 )
 
 // =============================================================================

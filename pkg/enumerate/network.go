@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
 )
 
 // CollectNetworkIntelligence gathers comprehensive network information

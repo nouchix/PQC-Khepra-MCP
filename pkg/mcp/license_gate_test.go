@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	licpkg "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // ─── License Fixtures ─────────────────────────────────────────────────────────

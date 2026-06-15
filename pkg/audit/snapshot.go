@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanner"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 const Localhost = "127.0.0.1"

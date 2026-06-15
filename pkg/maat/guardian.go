@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/agi"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/seshat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/seshat"
 )
 
 // Guardian maintains Maat (cosmic order/balance)

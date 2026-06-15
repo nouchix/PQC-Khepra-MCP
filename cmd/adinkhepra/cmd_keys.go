@@ -27,8 +27,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/kms"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/kms"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/term"
 )

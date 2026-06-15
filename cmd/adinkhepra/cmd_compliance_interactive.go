@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/attest"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/nist80171"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attest"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/nist80171"
 )
 
 // Control families for navigation

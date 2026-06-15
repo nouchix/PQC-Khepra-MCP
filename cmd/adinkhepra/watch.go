@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/asaf"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/g0dm0d3"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/logging"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/g0dm0d3"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
 
 
