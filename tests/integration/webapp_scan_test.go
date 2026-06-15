@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanner/webapp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner/webapp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 // Target URLs match docker/testbed/docker-compose.yml port bindings.

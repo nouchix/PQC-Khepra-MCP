@@ -7,7 +7,7 @@ package apiserver
 import (
 	"testing"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance"
 )
 
 // TestCMMCMappingCompleteness verifies the full CMMC 2.0 mapping chain

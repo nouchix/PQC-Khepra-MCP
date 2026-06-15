@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sbom"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sbom"
 )
 
 func sbomCmd(args []string) {

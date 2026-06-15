@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ert"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ert"
 )
 
 // ertCmd runs integrated ERT analysis with full ecosystem integration

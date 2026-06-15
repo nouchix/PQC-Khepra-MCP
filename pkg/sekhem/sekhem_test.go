@@ -3,7 +3,7 @@ package sekhem
 import (
 	"testing"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
 )
 
 // ─── WAFMetrics ──────────────────────────────────────────────────────────────

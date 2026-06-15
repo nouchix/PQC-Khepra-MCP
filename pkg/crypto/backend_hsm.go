@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // HSMBackend implements CryptoBackend using Hardware Security Module integration

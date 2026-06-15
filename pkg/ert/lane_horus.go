@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanners"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanners"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 // ──────────────────────────────────────────────────────────────────────────────

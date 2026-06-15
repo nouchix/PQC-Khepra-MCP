@@ -39,7 +39,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/auth"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/auth"
 )
 
 // ─── Gin Context Keys ─────────────────────────────────────────────────────────

@@ -3,8 +3,8 @@ package artifacts
 import (
 	"testing"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/nist80171"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/nist80172"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/nist80171"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/nist80172"
 )
 
 func TestSSPGenerator(t *testing.T) {

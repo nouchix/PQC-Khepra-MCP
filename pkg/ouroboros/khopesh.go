@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 // KhopeshBlade represents an instrument of action

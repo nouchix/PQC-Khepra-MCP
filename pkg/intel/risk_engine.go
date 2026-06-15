@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/attest"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attest"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
 )
 
 // GenerateRiskAttestation transforms a raw AuditSnapshot into a causal risk report.

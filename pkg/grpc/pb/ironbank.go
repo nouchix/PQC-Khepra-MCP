@@ -19,7 +19,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ironbank"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ironbank"
 )
 
 // IronBankScannerClient is the client interface for Iron Bank scanning operations.

@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/nkyinkyim"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/nkyinkyim"
 )
 
 // KhepraDaemon is the "Father" - the hidden protector for SouHimBou.AI

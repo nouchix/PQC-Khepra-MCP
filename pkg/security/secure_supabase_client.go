@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/supabase"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/supabase"
 )
 
 // SecureSupabaseClient wraps Supabase with automatic PQC encryption.

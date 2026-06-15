@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
 )
 
 // BUILT-IN SCANNERS - ZERO EXTERNAL DEPENDENCIES

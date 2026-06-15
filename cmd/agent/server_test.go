@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/agi"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/config"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 func TestDagAdd(t *testing.T) {

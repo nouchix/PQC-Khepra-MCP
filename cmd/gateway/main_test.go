@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/gateway"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
 )
 
 func TestLoadConfig_NoFile(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/supabase"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/supabase"
 )
 
 // ─── Supabase implementation ───────────────────────────────────────────────────
