@@ -1,0 +1,48 @@
+{
+  "name": "@souhimbou/dag-viewer",
+  "version": "1.0.0",
+  "description": "SouHimBou AI ASAF Flight Recorder — NouchiX-branded 3D DAG Viewer React component",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./asaf-stream": {
+      "import": "./dist/asaf-stream.mjs",
+      "require": "./dist/asaf-stream.js",
+      "types": "./dist/asaf-stream.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/asaf-stream.ts --format cjs,esm --dts --external react",
+    "dev": "tsup src/index.ts --watch",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "react-force-graph-3d": "^1.24.0",
+    "three": "^0.165.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/three": "^0.165.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "nouchix", "souhimbou", "khepra", "dag", "flight-recorder", "cmmc",
+    "pqc", "ml-dsa-65", "asaf", "mcp", "force-graph", "3d-graph"
+  ],
+  "license": "PROPRIETARY",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EtherVerseCodeMate/giza-cyber-shield"
+  }
+}
