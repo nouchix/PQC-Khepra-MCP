@@ -1,4 +1,6 @@
-# MEMORY.md — PQC-Khepra-MCP Project Knowledge Base
+# Whitepaper.md — The World's First DoD-Style Post-Quantum Cryptography STIG
+
+PQC-Khepra-MCP Project Knowledge Base
 > Canonical source of truth for whitepapers, design decisions, and institutional knowledge.
 > Last updated: June 2026
 
