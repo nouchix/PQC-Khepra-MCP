@@ -1,0 +1,93 @@
+{
+  "name": "pqc-khepra-mcp",
+  "displayName": "PQC-Khepra MCP — CMMC Autopilot & AI Flight Recorder",
+  "description": "Post-quantum secure MCP server for CMMC compliance scanning, STIG validation, NIST 800-53 cross-mapping, and AI agent observability. Built on KHEPRA Protocol (USPTO #73565085). 36,195 cross-framework compliance mappings. ML-DSA-65 signed attestation packages. FIPS 140-3 compatible.",
+  "repository": "https://github.com/nouchix/PQC-Khepra-MCP",
+  "homepage": "https://adinkhepra.com",
+  "version": "1.0.0",
+  "license": "PROPRIETARY",
+  "categories": ["security", "compliance", "devops"],
+  "tags": ["cmmc", "nist", "stig", "pqc", "post-quantum", "fips", "dod", "attestation", "compliance", "ai-security"],
+  "tools": [
+    {
+      "name": "ert_scan",
+      "description": "Enterprise Risk & Threat scan. Runs full STIG/CMMC/NIST 800-171 compliance scan and returns findings with cross-framework mappings."
+    },
+    {
+      "name": "stig_check",
+      "description": "Check a system path or configuration against RHEL-09-STIG controls."
+    },
+    {
+      "name": "nist_map",
+      "description": "Map CCI identifiers or STIG findings to NIST 800-53 Rev 5 controls across 36,195 pre-computed mappings."
+    },
+    {
+      "name": "cmmc_assess",
+      "description": "Assess a system or artifact against CMMC Level 1, 2, or 3 practices."
+    },
+    {
+      "name": "godfather_report",
+      "description": "Generate a dollar-denominated executive Godfather Report from prior scan results. Shows financial impact per finding."
+    },
+    {
+      "name": "attest_export",
+      "description": "Export a PQC-signed (ML-DSA-65 / NIST FIPS 204) attestation package for C3PAO intake or audit evidence."
+    },
+    {
+      "name": "agent_record",
+      "description": "Send AI agent actions to SouHimBou AI Flight Recorder for tamper-evident capture and PQC-signed storage."
+    }
+  ],
+  "installation": {
+    "docker": {
+      "image": "ghcr.io/nouchix/pqc-khepra-mcp:latest",
+      "command": "docker run -i --rm ghcr.io/nouchix/pqc-khepra-mcp:latest"
+    },
+    "mcpJson": {
+      "mcpServers": {
+        "pqc-khepra": {
+          "command": "docker",
+          "args": ["run", "-i", "--rm", "ghcr.io/nouchix/pqc-khepra-mcp:latest"],
+          "env": {
+            "KHEPRA_MODE": "community"
+          }
+        }
+      }
+    }
+  },
+  "requirements": {
+    "runtime": ["docker"],
+    "environment": [
+      {
+        "key": "KHEPRA_MODE",
+        "description": "Deployment mode: community | sovereign | ironbank | hybrid",
+        "default": "community",
+        "required": false
+      },
+      {
+        "key": "SUPABASE_URL",
+        "description": "Supabase project URL for SouHimBou AI Flight Recorder integration",
+        "required": false
+      },
+      {
+        "key": "KHEPRA_LICENSE_KEY",
+        "description": "License key for AdinKhepra ASAF (Pilot/Program/Enterprise tiers)",
+        "required": false
+      }
+    ]
+  },
+  "author": {
+    "name": "Souhimbou Doh Kone",
+    "organization": "SecRed Knowledge Inc. (NouchiX)",
+    "url": "https://nouchix.com",
+    "sdvosb": true
+  },
+  "security": {
+    "patentPending": "USPTO #73565085",
+    "pqcAlgorithms": ["ML-DSA-65 (NIST FIPS 204)", "Kyber-1024 (NIST FIPS 203)", "ECDSA P-384"],
+    "fips": "140-3 compatible (Linux builds with GOEXPERIMENT=boringcrypto)",
+    "attestation": "CycloneDX SBOM + cosign keyless (Sigstore)",
+    "codeqlAlerts": 0,
+    "grpcVersion": "v1.81.1 (CVE-2025-22869 patched)"
+  }
+}
