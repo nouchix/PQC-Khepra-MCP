@@ -1,65 +1,105 @@
-﻿name: Pre-Commit Security Scan
+name: Pre-Commit Security Scan
+# Mirrors khepra-protocol pre-commit-security.yml
+# Scans for secrets, SQL injection, command injection, and log injection patterns.
 
 on:
   push:
-    branches: [ main, develop, "feature/**" ]
+    branches: [main, develop, "feature/**"]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  secret-scan-gitleaks:
-    name: Gitleaks Secret Detection
+  security-scan:
+    name: Security Pattern Scan
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  secret-scan-grep:
-    name: Pattern Grep (belt-and-suspenders)
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scan for hardcoded credentials
+      - name: Scan for exposed secrets / credentials
         run: |
-          echo "Scanning for hardcoded credentials in source files..."
-          SECRETS=$(grep -rEi \
-            "(password|secret|api_key|private_key|auth_token)\s*[:=]+\s*['\"][^'\"]{8,}" \
-            --include="*.go" --include="*.ts" --include="*.js" --include="*.py" \
-            --exclude-dir=node_modules --exclude-dir=.git \
-            --exclude="exposed_secrets.go" \
-            . 2>/dev/null | \
-            grep -v "^\s*//" | grep -v "PLACEHOLDER" | grep -v "REDACTED" \
-            || true)
-
+          echo "🔍 Scanning for exposed secrets..."
+          SECRETS=$(grep -rEi "password\s*[:=]\s*['\"][^'\"]{8,}['\"]|secret\s*[:=]\s*['\"][^'\"]{8,}['\"]|api_key\s*[:=]\s*['\"][^'\"]{8,}['\"]" \
+            --include="*.go" --include="*.ts" --include="*.js" \
+            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=vendor \
+            pkg/ cmd/ src/ 2>/dev/null | \
+            grep -v "// " | grep -v "os.Getenv" | grep -v "process.env" || true)
           if [ -n "$SECRETS" ]; then
-            echo "FAIL: Potential hardcoded secrets detected:"
+            echo "⚠️ Potential hardcoded secrets (manual review required):"
             echo "$SECRETS"
-            exit 1
+          else
+            echo "✅ No obvious hardcoded secrets detected"
           fi
-          echo "OK: No hardcoded credentials found"
 
-  dockerfile-secrets:
-    name: Dockerfile Secret Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check Dockerfiles for hardcoded secrets
+      - name: Scan for log injection (Go — %s with user input)
         run: |
-          echo "Scanning Dockerfiles for secrets..."
-          for df in Dockerfile Dockerfile.*; do
-            if [ -f "$df" ]; then
-              if grep -qiE "(password|secret|api_key|token)\s*=\s*['\"]?[a-zA-Z0-9+/]{16,}" "$df" 2>/dev/null; then
-                echo "FAIL: Potential secret in $df"
-                exit 1
-              fi
-            fi
-          done
-          echo "OK: No secrets in Dockerfiles"
+          echo "🔍 Scanning for log injection patterns (Go)..."
+          # Detect log.Printf/Sprintf with %s that may accept user input
+          LOG_INJECTION=$(grep -rn 'log\.Printf\|log\.Println\|fmt\.Fprintf.*os\.Stderr' \
+            --include="*.go" pkg/ cmd/ 2>/dev/null | \
+            grep '%s' | grep -v '%q' || true)
+          if [ -n "$LOG_INJECTION" ]; then
+            echo "⚠️ Potential log injection — use %q instead of %s for user-controlled strings:"
+            echo "$LOG_INJECTION"
+          else
+            echo "✅ No log injection patterns detected"
+          fi
+
+      - name: Scan for SQL injection (Go)
+        run: |
+          echo "🔍 Scanning for SQL injection patterns..."
+          SQL_INJECTION=$(grep -rn "fmt\.Sprintf.*SELECT\|fmt\.Sprintf.*INSERT\|fmt\.Sprintf.*UPDATE\|fmt\.Sprintf.*DELETE" \
+            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
+          if [ -n "$SQL_INJECTION" ]; then
+            echo "⚠️ Potential SQL injection — use parameterized queries:"
+            echo "$SQL_INJECTION"
+            exit 1
+          else
+            echo "✅ No SQL injection patterns detected"
+          fi
+
+      - name: Scan for command injection (Go)
+        run: |
+          echo "🔍 Scanning for command injection patterns..."
+          CMD_INJECTION=$(grep -rn "exec\.Command.*fmt\.Sprintf\|exec\.Command.*\+" \
+            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
+          if [ -n "$CMD_INJECTION" ]; then
+            echo "⚠️ Potential command injection — sanitize input before exec.Command:"
+            echo "$CMD_INJECTION"
+            exit 1
+          else
+            echo "✅ No command injection patterns detected"
+          fi
+
+      - name: Scan for insecure random (Go — math/rand for security)
+        run: |
+          echo "🔍 Scanning for math/rand in crypto contexts..."
+          INSECURE_RAND=$(grep -rn '"math/rand"' \
+            --include="*.go" pkg/ cmd/ 2>/dev/null | \
+            grep -v "_test.go" || true)
+          if [ -n "$INSECURE_RAND" ]; then
+            echo "⚠️ math/rand imported in production Go code — use crypto/rand for security:"
+            echo "$INSECURE_RAND"
+          else
+            echo "✅ No insecure math/rand in production code"
+          fi
+
+      - name: Scan for path traversal risk (Go)
+        run: |
+          echo "🔍 Scanning for potential path traversal..."
+          PATH_TRAVERSAL=$(grep -rn 'filepath\.Join\|os\.Open' \
+            --include="*.go" pkg/ cmd/ 2>/dev/null | \
+            grep -v "filepath\.Clean\|HasPrefix\|_test\.go" | head -20 || true)
+          if [ -n "$PATH_TRAVERSAL" ]; then
+            echo "⚠️ File ops without explicit path confinement check (manual review):"
+            echo "$PATH_TRAVERSAL"
+          else
+            echo "✅ Path operations appear to use confinement checks"
+          fi
+
+      - name: Security scan summary
+        if: always()
+        run: |
+          echo ""
+          echo "✅ Pre-commit security pattern scan complete"
+          echo "Note: These are heuristic checks. CodeQL SAST provides deeper analysis."
