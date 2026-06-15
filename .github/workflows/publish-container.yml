@@ -10,7 +10,6 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
-      - 'manifest.json'
       - 'Dockerfile.mcp'
   workflow_dispatch:
     inputs:
