@@ -21,15 +21,34 @@ docker pull ghcr.io/nouchix/pqc-khepra-mcp:latest
 
 This is a ~200MB download. The container is fully self-contained — no external network calls after pull.
 
-## Step 3 — Obtain a License Key
+## Step 3 — Choose Your Mode
 
-The user needs a `KHEPRA_LICENSE_KEY`.
-- Free evaluation (DoD/IC non-production): email [sales@nouchix.com](mailto:sales@nouchix.com)
+**Community mode (free, no license required):**
+
+```json
+{
+  "mcpServers": {
+    "khepra": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "KHEPRA_MODE=community",
+        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+Community mode includes: `ert_scan`, `stig_check`, `nist_map`, `cmmc_assess`, `godfather_report`.
+
+**Paid tiers (Pilot/Program/Enterprise):** Require a `KHEPRA_LICENSE_KEY`.
+- Request evaluation key: [hello@nouchix.com](mailto:hello@nouchix.com)
 - Commercial license: [https://nouchix.com](https://nouchix.com)
 
-Ask the user: **"Do you have a KHEPRA license key?"**
-- If yes: proceed with their key.
-- If no: stop and direct them to obtain one.
+Ask the user: **"Do you want community mode (free) or do you have a license key?"**
+- Community: use config above and skip to Step 5.
+- Licensed: continue with key in Step 4.
 
 ## Step 4 — Write the MCP Configuration
 
