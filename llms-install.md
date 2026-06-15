@@ -194,5 +194,5 @@ Then use the same MCP config above — the container makes no network calls.
 
 ## Support
 
-- Email: [support@nouchix.com](mailto:support@nouchix.com)
-- Website: [https://nouchix.com](https://nouchix.com)
+- Email: [support@souhimbou.ai](mailto:support@souhimbou.ai)
+- Website: [https://souhimbou.ai](https://souhimbou.ai)

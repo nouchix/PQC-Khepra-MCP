@@ -10,6 +10,10 @@
 Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
 The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
 
+> **[PQC-01-STIG-V1R1 — Full Whitepaper →](docs/PQC-01-STIG-V1R1.md)**  
+> 17 controls covering CNSA 2.0, FIPS 203/204/205, and the NSA's May 2026 MCP security advisory.  
+> The world's first DoD-style Post-Quantum Cryptography STIG, including the first PQC controls for agentic AI and MCP deployments.
+
 ---
 
 ## Tiers
@@ -32,7 +36,7 @@ KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. 
 **Key capabilities:**
 - 36,195 STIG/CCI/NIST 800-53/800-171/CMMC mappings (offline, bundled)
 - Post-quantum cryptographic attestation on every tool call (ML-DSA-65 / FIPS 204)
-- **World's First DoD PQC STIG** — 12 controls covering CNSA 2.0 / FIPS 203/204/205
+- **World's First DoD PQC STIG** — 17 controls covering CNSA 2.0 / FIPS 203/204/205 + agentic AI / MCP ([PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md))
 - Godfather Report: dollar-denominated business impact per finding (FAIR model)
 - Air-gap and SCIF compatible — sovereign/ironbank modes make zero egress calls
 - Flat annual licensing — no per-token or per-query charges
@@ -104,7 +108,7 @@ The Community tier starts immediately with no license key. You get `pqc_stig` an
 }
 ```
 
-Get a license key at [nouchix.com](https://nouchix.com) or email [sales@nouchix.com](mailto:sales@nouchix.com).
+Get a license key at [nouchix.com](https://nouchix.com) or email [contact@nouchix.com](mailto:contact@nouchix.com).
 
 ---
 
@@ -242,17 +246,92 @@ docker load < khepra-mcp.tar.gz
 | Pharaoh | Annual flat fee | Required | All 32 tools + priority support + SLA |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
-- Sovereign/Pharaoh: contact [sales@nouchix.com](mailto:sales@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+- Sovereign/Pharaoh: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+
+---
+
+---
+
+## Security
+
+### Reporting Vulnerabilities
+
+**Do not open public issues for security vulnerabilities.**
+
+Report privately via **[GitHub Security Advisories](https://github.com/nouchix/PQC-Khepra-MCP/security/advisories/new)** or email **[support@nouchix.com](mailto:support@nouchix.com)**.
+
+| SLA | Target |
+|-----|--------|
+| Acknowledgement | 24 hours |
+| Initial assessment | 5 business days |
+| Patch / mitigation (Critical) | 30 days |
+
+We accept encrypted reports via PGP (`keys/security_contact.asc`) and Post-Quantum channels (Dilithium / ML-DSA-65 keys in `keys/`). See [SECURITY.md](SECURITY.md) for the full disclosure policy and ASAF event taxonomy.
+
+---
+
+### Security Posture
+
+> **Deploying advanced post-quantum cryptography, air-gapped isolation, and comprehensive STIG mappings — built in direct alignment with NSA & ASD Model Context Protocol guidelines.**
+
+#### NSA & ASD MCP Security Alignment
+
+The NSA and Australian Signals Directorate (ASD) have published specific threat vectors for AI systems interacting with local environments. KHEPRA MCP is explicitly designed to mitigate every identified vector:
+
+| NSA/ASD Requirement | KHEPRA Implementation |
+|---------------------|-----------------------|
+| Cryptographic validation of tool responses | ML-DSA-65 (Dilithium) signatures on all JSON-RPC 2.0 payloads |
+| Input validation & sanitization | Parameter injection resistance via strict JSON Schema validation |
+| Principle of least privilege credentials | Short-lived ephemeral tokens tied to specific task execution windows |
+| Comprehensive audit logging | Tamper-evident events compiled into an immutable DAG structure |
+| Resource consumption limits | Rate limiting + backpressure for LLM request loops |
+| Authorization gates for sensitive actions | Human-in-the-loop gate for destructive state changes |
+| Environment isolation | Containerized execution with zero-egress sovereign mode |
+| Software supply chain integrity | Manifest pinning for all loaded tools and dependencies |
+| Network exposure reduction | Air-gappable — zero internet transit in `sovereign`/`ironbank` modes |
+| Post-quantum resilience | PQC-signed DAG trail protecting against harvest-now-decrypt-later |
+
+#### Compliance Certifications
+
+| Framework | Status | Coverage |
+|-----------|--------|----------|
+| CMMC Level 2 | ✅ | Automates evidence collection for AU, CM, SI, SC domains |
+| NIST SP 800-171 Rev 2 | ✅ | Logging, accountability, system integrity |
+| NIST SP 800-53 Rev 5 | ✅ | Continuous monitoring (AU-2, SI-4) |
+| FIPS 203 (ML-KEM) | ✅ | Key encapsulation for secure transit |
+| FIPS 204 (ML-DSA) | ✅ | Digital signatures for payload authentication |
+| NSM-10 PQC Mandate | ✅ | National Security Memorandum 10 compliance |
+| DFARS 252.204-7012 | ✅ | Immutable forensic trails for cyber incident reporting |
+| NSA MCP Security Guidelines | ✅ | Direct mapping to all published AI agent threat mitigations |
+
+#### Live Deployment — Physical Edge
+
+Running continuously on constrained edge hardware since **May 12, 2026** to prove efficiency in sovereign environments:
+
+- **Hardware**: Raspberry Pi 2 · 1 GB RAM · 900 MHz ARM · Live Spectrum Router
+- **SCADA Pod**: STM32U585 / QRB2210 · Modbus TCP · MQTT · Zephyr RTOS 3.4+ · Live Dilithium Signature Verification
+- **Controls active**: 3 open ports secured · 12 STIG violations detected · 100% file integrity monitoring (AIDE) · 24/7 continuous operation
+
+#### Academic Validation
+
+| Event | Date | Institution |
+|-------|------|-------------|
+| **UAlbany AI Plus Symposium 2026** — *"KHEPRA Protocol: Quantum-Resilient Agentic AI Security Using Cultural Cryptography"* | March 7, 2026 | NSA CAE-CDE Institution · 200+ audience |
+| **SUNY Albany Cybersecurity Showcase** — First PQC key ceremony on STM32-class device (SCADA Pod) | May 12–13, 2026 | Live demo · SCADA architecture poster |
+
+> USPTO Provisional Patent **#73565085** — pending.  
+> 🔒 Iron Bank containers in DISA vetting process.
 
 ---
 
 ## About NouchiX
 
+
 Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executive roadmaps.
 
-- **Sales**: [sales@nouchix.com](mailto:sales@nouchix.com)
+- **Sales / General**: [contact@nouchix.com](mailto:contact@nouchix.com)
 - **Support**: [support@nouchix.com](mailto:support@nouchix.com)
 - **Website**: [https://nouchix.com](https://nouchix.com)
-- **Phone**: (332) 275-4335
+- **Phone**: (518) 304-4450
 
 Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
