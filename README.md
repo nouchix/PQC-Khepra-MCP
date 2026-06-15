@@ -10,6 +10,10 @@
 Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
 The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
 
+> **[PQC-01-STIG-V1R1 — Full Whitepaper →](docs/PQC-01-STIG-V1R1.md)**  
+> 17 controls covering CNSA 2.0, FIPS 203/204/205, and the NSA's May 2026 MCP security advisory.  
+> The world's first DoD-style Post-Quantum Cryptography STIG, including the first PQC controls for agentic AI and MCP deployments.
+
 ---
 
 ## Tiers
@@ -32,7 +36,7 @@ KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. 
 **Key capabilities:**
 - 36,195 STIG/CCI/NIST 800-53/800-171/CMMC mappings (offline, bundled)
 - Post-quantum cryptographic attestation on every tool call (ML-DSA-65 / FIPS 204)
-- **World's First DoD PQC STIG** — 12 controls covering CNSA 2.0 / FIPS 203/204/205
+- **World's First DoD PQC STIG** — 17 controls covering CNSA 2.0 / FIPS 203/204/205 + agentic AI / MCP ([PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md))
 - Godfather Report: dollar-denominated business impact per finding (FAIR model)
 - Air-gap and SCIF compatible — sovereign/ironbank modes make zero egress calls
 - Flat annual licensing — no per-token or per-query charges
