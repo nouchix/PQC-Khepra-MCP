@@ -1,51 +1,79 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.nouchix/pqc-khepra-mcp",
-  "description": "Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. Community tier: free, no license key required — includes pqc_stig (World’s First DoD PQC STIG) and 12 core tools. Sovereign/Pharaoh: all 32 tools, air-gap, SCIF. Run ert_scan to get a Godfather Report with dollar-denominated business impact.",
-  "vendor": {
-    "name": "NouchiX / SecRed Knowledge Inc.",
-    "url": "https://nouchix.com"
-  },
+  "name": "com.nouchix/pqc-khepra-mcp",
+  "title": "PQC-Khepra MCP — CMMC Autopilot & AI Security Recorder",
+  "description": "Post-quantum secure MCP server for CMMC compliance scanning, STIG validation, NIST 800-53 cross-mapping, and AI agent action attestation. Built on KHEPRA Protocol (USPTO #73565085). 36,195 pre-computed cross-framework mappings. ML-DSA-65 (NIST FIPS 204) signed attestation packages. FIPS 140-3 compatible.",
+  "version": "1.0.0",
   "repository": {
-    "url": "https://github.com/nouchix/PQC-Khepra-MCP",
+    "url": "https://github.com/nouchix/PQC-Khepra-MCP.git",
     "source": "github"
   },
-  "version": "1.0.0",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp:latest",
+      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp",
       "version": "1.0.0",
+      "runtimeHint": "docker",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "name": "KHEPRA_LICENSE_KEY",
-          "description": "License key for Sovereign/Pharaoh tier. Community tier runs without a key (free). Get a key at https://nouchix.com.",
+          "name": "KHEPRA_MODE",
+          "description": "Deployment mode: community (free) | sovereign (air-gapped) | ironbank (FedRAMP).",
+          "default": "community",
           "isRequired": false,
-          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "KHEPRA_LICENSE_KEY",
+          "description": "License key for AdinKhepra ASAF paid tiers. Leave empty for community mode.",
+          "isRequired": false,
           "isSecret": true
         },
         {
-          "name": "KHEPRA_MODE",
-          "description": "Deployment mode: sovereign (air-gapped, default), ironbank (DoD/IC), edge, hybrid.",
+          "name": "SUPABASE_URL",
+          "description": "Supabase project URL — required for SouHimBou AI Flight Recorder integration.",
           "isRequired": false,
-          "format": "string"
+          "isSecret": false
         },
         {
-          "name": "KHEPRA_HOME",
-          "description": "Data directory for compliance databases and generated reports. Default: /var/lib/khepra.",
+          "name": "SUPABASE_ANON_KEY",
+          "description": "Supabase anon key for Flight Recorder integration.",
           "isRequired": false,
-          "format": "string"
-        },
-        {
-          "name": "KHEPRA_LOG_DIR",
-          "description": "Log output directory. Default: /var/log/khepra.",
-          "isRequired": false,
-          "format": "string"
+          "isSecret": true
         }
       ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "ert_scan",
+      "description": "Enterprise Risk & Threat (ERT) scan. Runs full STIG/CMMC/NIST 800-171 compliance scan and returns prioritized findings with dollar-denominated risk scores."
+    },
+    {
+      "name": "stig_check",
+      "description": "Validate a system path or configuration file against RHEL-09-STIG controls. Returns pass/fail per control with remediation steps."
+    },
+    {
+      "name": "nist_map",
+      "description": "Map CCI identifiers or STIG findings to NIST 800-53 Rev 5 controls. Uses 36,195 pre-computed cross-framework mappings (STIG → CCI → NIST → CMMC)."
+    },
+    {
+      "name": "cmmc_assess",
+      "description": "Assess a system or artifact against CMMC Level 1, 2, or 3 practices. Returns a scored maturity report per practice domain."
+    },
+    {
+      "name": "godfather_report",
+      "description": "Generate a Godfather Report — an executive-facing, dollar-denominated cyber risk report from prior scan results. Suitable for C-suite and board briefings."
+    },
+    {
+      "name": "attest_export",
+      "description": "Export a PQC-signed (ML-DSA-65 / NIST FIPS 204) attestation package accepted by C3PAO intake, cyber insurance carriers, and RFP submissions."
+    },
+    {
+      "name": "agent_record",
+      "description": "Send AI agent tool calls and outputs to the SouHimBou AI Flight Recorder for tamper-evident capture with DAG-anchored PQC attestation."
     }
   ]
 }
