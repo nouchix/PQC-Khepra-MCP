@@ -35,7 +35,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     ./cmd/khepra-mcp
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM alpine:3.21
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates tzdata curl \
  && addgroup -g 10001 -S khepra \
