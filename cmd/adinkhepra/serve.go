@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/webui"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/webui"
 )
 
 // serveCmd starts the DAG visualization web server

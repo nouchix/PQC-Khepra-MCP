@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sca"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/vuln"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sca"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/vuln"
 )
 
 // ertCryptoCmd implements Package C: Tactical Weapons System

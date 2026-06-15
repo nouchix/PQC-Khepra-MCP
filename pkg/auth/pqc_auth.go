@@ -38,7 +38,7 @@ import (
 	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // =============================================================================

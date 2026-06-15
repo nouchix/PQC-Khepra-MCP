@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 )
 
 // ─── sbom_generate ────────────────────────────────────────────────────────────

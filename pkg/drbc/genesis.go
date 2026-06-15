@@ -13,7 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/kms"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/kms"
 )
 
 const (

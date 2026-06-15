@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/gsa"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/nist80171"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/nist80172"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance/rmf/artifacts"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stigs"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/gsa"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/nist80171"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/nist80172"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance/rmf/artifacts"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stigs"
 )
 
 // complianceCmd is the unified entry point for all CMMC/DoD compliance tasks

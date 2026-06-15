@@ -30,10 +30,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/config"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanner/network"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanners"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner/network"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanners"
 )
 
 // LaneSonar is the ERT lane constant for Sonar.

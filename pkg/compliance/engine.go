@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 // Engine orchestrates compliance checks

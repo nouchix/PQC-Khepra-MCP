@@ -19,8 +19,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 // CMMCScorecardResponse is the structured API response for the CMMC scorecard.

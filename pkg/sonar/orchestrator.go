@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanner/network"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner/network"
 )
 
 // SonarRuntime manages the lifecycle of the active scan.

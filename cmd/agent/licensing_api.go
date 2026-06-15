@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/billing"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/billing"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // Constants for shared literals

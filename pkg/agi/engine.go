@@ -9,19 +9,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/arsenal"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance"       // CMMC/SSP Engine
-	agiconfig "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/config" // Revert to valid pkg/config
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/forensics"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/intel"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ir" // Incident Response
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/llm"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/llm/ollama"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/lorentz"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanner"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/vuln"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/arsenal"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance"       // CMMC/SSP Engine
+	agiconfig "github.com/nouchix/PQC-Khepra-MCP/pkg/config" // Revert to valid pkg/config
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/forensics"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/intel"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ir" // Incident Response
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/llm"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/llm/ollama"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/vuln"
 )
 
 // Objective defines the high-level goal of the AGI

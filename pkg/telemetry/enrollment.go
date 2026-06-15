@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // EnrollmentRequest is the payload sent to enroll a device

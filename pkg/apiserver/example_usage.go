@@ -10,15 +10,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // ExampleUsage demonstrates how to start the Khepra API server
 //
 // Usage in cmd/agent/main.go:
 //
-//	import "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/apiserver"
+//	import "github.com/nouchix/PQC-Khepra-MCP/pkg/apiserver"
 //
 //	func main() {
 //	    // Initialize DAG (global singleton)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
 )
 
 // DriftReport encapsulates the differences between two states

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 // ─── GenerateAnonymousID ──────────────────────────────────────────────────────

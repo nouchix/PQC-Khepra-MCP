@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 // CKLGenerator creates DISA STIG Viewer-compatible .CKL files

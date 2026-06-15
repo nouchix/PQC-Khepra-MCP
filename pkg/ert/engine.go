@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sonar"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sonar"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 // Engine is the central ERT intelligence coordinator

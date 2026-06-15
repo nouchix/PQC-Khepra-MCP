@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/intel"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/intel"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/debug"
 	"golang.org/x/sys/windows/svc/eventlog"

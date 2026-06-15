@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/connectors"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/connectors"
 )
 
 const nemoClawNamePrefix = "NemoClaw @ "

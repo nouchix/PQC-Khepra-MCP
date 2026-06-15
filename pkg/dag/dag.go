@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // Store is the interface for DAG storage (memory, persistent, etc.)

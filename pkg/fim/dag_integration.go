@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 // GenerateDAGNode creates a DAG node from a FIM event.

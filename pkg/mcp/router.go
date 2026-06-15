@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	licpkg "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // ─── Security Boundary Interfaces ──────────────────────────────────────────────

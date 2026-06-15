@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/enumerate"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/enumerate"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 func discoverCmd(args []string) {

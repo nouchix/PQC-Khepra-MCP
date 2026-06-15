@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/compliance"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/compliance"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 func sspCmd(args []string) {

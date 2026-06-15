@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/agi"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 

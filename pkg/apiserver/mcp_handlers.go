@@ -31,10 +31,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/llm"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/supabase"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/llm"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/supabase"
 )
 
 // Protocol and algorithm constants used across MCP handlers.

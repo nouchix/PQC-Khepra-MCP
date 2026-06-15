@@ -14,12 +14,12 @@ import (
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/acme/autocert"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/asaf"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/auth"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sekhem"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/auth"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
 
 // Server represents the SEKHEM gateway — the divine boundary between clients and the inner realms.

@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // ─── File-Based Manifest Store ─────────────────────────────────────────────────

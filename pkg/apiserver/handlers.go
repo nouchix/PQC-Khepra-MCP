@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

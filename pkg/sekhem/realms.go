@@ -1,6 +1,6 @@
 package sekhem
 
-import "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
+import "github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
 
 // Realm defines the interface for each tier
 type Realm interface {

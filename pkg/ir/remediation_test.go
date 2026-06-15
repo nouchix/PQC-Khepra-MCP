@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 

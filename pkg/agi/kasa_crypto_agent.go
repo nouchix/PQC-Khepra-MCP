@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // ─── Threat Levels ─────────────────────────────────────────────────────────────

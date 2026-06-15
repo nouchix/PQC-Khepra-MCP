@@ -24,7 +24,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
 )
 
 // WAFAction enumerates what the WAF does with a matched request.

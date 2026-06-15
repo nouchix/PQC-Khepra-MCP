@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scanner"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 // localScanStore holds completed sovereign scan results keyed by scan_id.

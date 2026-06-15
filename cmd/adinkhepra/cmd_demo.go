@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/stig"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
 // Demo mode — generates a complete self-serve CMMC assessment in 60 seconds

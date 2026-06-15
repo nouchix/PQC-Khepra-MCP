@@ -3,7 +3,7 @@ package seshat
 import (
 	"testing"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 // ─── NewChronicle ───────────────────────────────────────────────────────────

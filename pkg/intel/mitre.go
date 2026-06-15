@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/intel/registry"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/intel/registry"
 )
 
 // --- MITRE ATT&CK Structure ---

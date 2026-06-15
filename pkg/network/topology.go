@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 )
 
 // Host represents a network host with services and accounts

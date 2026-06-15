@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/acp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/acp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 )
 
 // ─── acp_status (Read-Only) ────────────────────────────────────────────────────

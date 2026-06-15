@@ -3,7 +3,7 @@ package fingerprint
 import (
     "testing"
 
-    "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/audit"
+    "github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
 )
 
 func TestGenerateCompositeHashDeterministic(t *testing.T) {

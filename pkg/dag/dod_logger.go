@@ -3,7 +3,7 @@ package dag
 import (
 	"fmt"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/logging"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
 
 // LogDAGEventToDoD logs a DAG event to the DoD-compliant logger

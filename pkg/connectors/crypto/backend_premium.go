@@ -8,7 +8,7 @@ import (
 	"crypto/sha512"
 	"fmt"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // PremiumBackend implements CryptoBackend using proprietary AdinKhepra algorithms

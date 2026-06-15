@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
 )
 
 func TestNewOrchestrator(t *testing.T) {

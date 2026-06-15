@@ -16,10 +16,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/ea"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/ea"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // ─── CLI dispatch shim ────────────────────────────────────────────────────────

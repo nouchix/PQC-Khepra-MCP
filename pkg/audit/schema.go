@@ -1,7 +1,7 @@
 package audit
 
 import (
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 // Type Aliases for backward compatibility within the package (optional)

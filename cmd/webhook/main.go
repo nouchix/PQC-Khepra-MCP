@@ -620,10 +620,13 @@ Questions? security@nouchix.com
 		sanitizeHeader(cert.IssuedAt), sanitizeHeader(cert.ExpiresAt), cert.Score,
 		sanitizeHeader(cert.DAGNode), sanitizeHeader(cert.CertificateID))
 
-	// If CLI token present, add unlock note
+	// If CLI token present, add unlock note.
+	// sanitizeHeader strips CR/LF/NUL from the user-supplied client_reference_id
+	// to prevent email header/body injection (CWE-93, CodeQL: email-injection).
 	if cliToken != "" {
-		body += fmt.Sprintf("\nYour CLI session token %s has been activated.\n"+
-			"Your certificate is ready — re-run your asaf certify command to download.\n", cliToken)
+		safeCLIToken := sanitizeHeader(cliToken)
+		body += fmt.Sprintf("\nYour CLI session token %q has been activated.\n"+
+			"Your certificate is ready — re-run your asaf certify command to download.\n", safeCLIToken)
 	}
 
 	return sendMail([]string{to}, subject, body)
@@ -650,7 +653,11 @@ We apologize for the inconvenience.
 }
 
 func sendOperatorNotification(customerEmail, sessionID string, amountCents int64) {
-	subject := fmt.Sprintf("ASAF: New customer — %s ($%.2f)", customerEmail, float64(amountCents)/100)
+	// sanitizeHeader applied to all user-controlled values before embedding
+	// in SMTP Subject and body (CWE-93 / CodeQL: email-injection).
+	safeEmail := sanitizeHeader(customerEmail)
+	safeSession := sanitizeHeader(sessionID)
+	subject := fmt.Sprintf("ASAF: New customer — %s ($%.2f)", safeEmail, float64(amountCents)/100)
 	body := fmt.Sprintf(`From: ASAF Webhook <webhook@nouchix.com>
 To: %s
 Subject: %s
@@ -661,7 +668,7 @@ New paying customer:
   Amount:  $%.2f
 
 Certificate issued and emailed automatically.
-`, cfg.NotifyEmail, subject, sanitizeHeader(customerEmail), sanitizeHeader(sessionID), float64(amountCents)/100)
+`, cfg.NotifyEmail, subject, safeEmail, safeSession, float64(amountCents)/100)
 	sendMail([]string{cfg.NotifyEmail}, subject, body) //nolint:errcheck
 }
 
@@ -679,7 +686,9 @@ func sendMail(to []string, subject, body string) error {
 	}
 
 	// STARTTLS (port 587 — Gmail etc.)
-	// sanitizeEmailBody converts bare LFs to CRLF and strips injected header sequences.
+	// sanitizeEmailBody normalises CRLF and strips injected header sequences.
+	// All user-controlled values must have been sanitised by the caller before
+	// reaching this point (CWE-93, CodeQL: email-injection).
 	return smtp.SendMail(addr, auth, cfg.SMTPUser, to, []byte(sanitizeEmailBody(body)))
 }
 
@@ -712,6 +721,9 @@ func sendMailImplicitSSL(addr string, auth smtp.Auth, to []string, body string) 
 	if err != nil {
 		return fmt.Errorf("smtp data: %w", err)
 	}
+	// sanitizeEmailBody applied here as a defence-in-depth measure.
+	// All user-controlled values are sanitised by sanitizeHeader at call sites
+	// before body construction (CWE-93, CodeQL: email-injection).
 	_, err = fmt.Fprint(w, sanitizeEmailBody(body))
 	w.Close()
 	return err

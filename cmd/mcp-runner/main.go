@@ -28,7 +28,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // Version is injected at build time via -ldflags.

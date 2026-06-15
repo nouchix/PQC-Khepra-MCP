@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/telemetry"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/telemetry"
 )
 
 // HandleDarkCryptoContribute is the MCP handler for dark_crypto_contribute.

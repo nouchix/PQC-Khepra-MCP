@@ -1,7 +1,7 @@
 package dag
 
 import (
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // HashBytes is a convenience wrapper around adinkra.Hash for use by

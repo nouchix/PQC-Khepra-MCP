@@ -3,8 +3,8 @@ package apiserver
 import (
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // DAGStoreAdapter adapts the DAG store to the DAGStore interface

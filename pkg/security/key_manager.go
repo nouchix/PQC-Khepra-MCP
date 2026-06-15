@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // ─── Global Key Store ──────────────────────────────────────────────────────────

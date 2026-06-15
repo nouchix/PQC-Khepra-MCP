@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/types"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
 )
 
 // collectProcesses returns a live list of running processes.

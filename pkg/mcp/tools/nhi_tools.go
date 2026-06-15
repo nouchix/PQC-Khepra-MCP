@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/nhi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/nhi"
 )
 
 // ─── NHI Governance Tool Suite ─────────────────────────────────────────────────

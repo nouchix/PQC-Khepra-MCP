@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/maat"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
 )
 
 // Cycle represents the eternal feedback loop

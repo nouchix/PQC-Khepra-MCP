@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/attest"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attest"
 )
 
 // Syncer handles high-assurance reporting to the SaaS Motherboard

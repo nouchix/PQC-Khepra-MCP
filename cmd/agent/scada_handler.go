@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/scada"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/scada"
 )
 
 // ── Audit types ───────────────────────────────────────────────────────────────

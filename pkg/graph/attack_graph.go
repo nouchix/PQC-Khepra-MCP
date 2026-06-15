@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/connectors"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/nhi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/connectors"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/nhi"
 )
 
 // NodeType classifies a graph node.

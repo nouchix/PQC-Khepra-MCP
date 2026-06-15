@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/connectors"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/nhi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/connectors"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/nhi"
 )
 
 func makeAgent(id, name, env string, risk float64, pqc, managed bool) connectors.AgentSummary {

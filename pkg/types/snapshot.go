@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // AuditSnapshot represents the comprehensive output from AdinKhepra Sonar.
@@ -31,6 +31,7 @@ type AuditSnapshot struct {
 	Vulnerabilities []Vulnerability     `json:"vulnerabilities"`
 	Secrets         []SecretFinding     `json:"secrets"`
 	Containers      []ContainerFindings `json:"containers"`
+	WebFindings     []WebFinding        `json:"web_findings,omitempty"`
 
 	// Compliance & Threat Detection
 	Compliance      ComplianceReport   `json:"compliance"`
@@ -339,6 +340,32 @@ type SecretFinding struct {
 	Description string  `json:"description"`
 	Entropy     float64 `json:"entropy,omitempty"`
 	Redacted    string  `json:"redacted,omitempty"` // Partially redacted secret
+}
+
+// WebFinding represents a single finding from the web application scanner (Nuclei).
+// Fields align with Nuclei output and the integration tests in tests/integration/.
+type WebFinding struct {
+	// Core identification
+	TemplateID string   `json:"template_id"`
+	Name       string   `json:"name"`
+	Severity   string   `json:"severity"` // "critical", "high", "medium", "low", "info"
+	Tags       []string `json:"tags"`
+	CVEIDs     []string `json:"cve_ids,omitempty"`
+
+	// Target
+	URL       string `json:"url"`
+	MatchedAt string `json:"matched_at,omitempty"`
+
+	// Evidence
+	Description string `json:"description,omitempty"`
+	Reference   string `json:"reference,omitempty"`
+	ExtractedAt string `json:"extracted_at,omitempty"` // Timestamp of discovery
+
+	// ASAF / Khepra enrichment
+	// ParamifyCapability indicates which paramification technique was applied
+	// (e.g., "fuzzing", "reflection", "header-injection").
+	ParamifyCapability string `json:"paramify_capability,omitempty"`
+	DAGNodeID          string `json:"dag_node_id,omitempty"` // DAG attestation anchor
 }
 
 // ThreatIntelligence contains rootkit, malware, and anomaly detection

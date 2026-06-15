@@ -39,12 +39,12 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/config"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
-	khepramcp "github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/mcp/tools"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 )
 
 func main() {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/network"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/network"
 )
 
 func networkCmd(args []string) {

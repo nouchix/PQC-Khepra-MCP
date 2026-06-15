@@ -16,14 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/agi"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/billing"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/config"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/dag"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/license"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/net/tailnet"
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/sekhem"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/billing"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/net/tailnet"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
 
 const (

@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EtherVerseCodeMate/giza-cyber-shield/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/gin-gonic/gin"
 )
 
