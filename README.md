@@ -108,7 +108,7 @@ The Community tier starts immediately with no license key. You get `pqc_stig` an
 }
 ```
 
-Get a license key at [nouchix.com](https://nouchix.com) or email [sales@nouchix.com](mailto:sales@nouchix.com).
+Get a license key at [nouchix.com](https://nouchix.com) or email [contact@nouchix.com](mailto:contact@nouchix.com).
 
 ---
 
@@ -246,7 +246,7 @@ docker load < khepra-mcp.tar.gz
 | Pharaoh | Annual flat fee | Required | All 32 tools + priority support + SLA |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
-- Sovereign/Pharaoh: contact [sales@nouchix.com](mailto:sales@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+- Sovereign/Pharaoh: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
 
 ---
 
@@ -254,9 +254,9 @@ docker load < khepra-mcp.tar.gz
 
 Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executive roadmaps.
 
-- **Sales**: [sales@nouchix.com](mailto:sales@nouchix.com)
+- **Sales / General**: [contact@nouchix.com](mailto:contact@nouchix.com)
 - **Support**: [support@nouchix.com](mailto:support@nouchix.com)
 - **Website**: [https://nouchix.com](https://nouchix.com)
-- **Phone**: (332) 275-4335
+- **Phone**: (518) 304-4450
 
 Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
