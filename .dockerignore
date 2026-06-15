@@ -8,6 +8,7 @@
 !Dockerfile*
 !docker-compose*.yml
 !hardening_manifest.yaml
+!manifest.json
 !LICENSE
 !README.md
 !CHANGELOG.md
@@ -66,6 +67,7 @@ __pycache__/
 out/
 memory/
 tests/
+docs/
 
 # Large binaries and logs
 *.exe

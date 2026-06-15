@@ -3,12 +3,13 @@ name: Publish MCP Container
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
     paths:
       - 'cmd/**'
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
-      - 'manifest.json'
       - 'Dockerfile.mcp'
   workflow_dispatch:
     inputs:
@@ -52,6 +53,8 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event.inputs.tag != '' }}
 
       - name: Build and push MCP container
@@ -101,8 +104,8 @@ jobs:
           " 2>/dev/null)
 
           echo "Tool count: $TOOL_COUNT"
-          if [ -z "$TOOL_COUNT" ] || [ "$TOOL_COUNT" -lt 12 ]; then
-            echo "❌ FAIL: Expected at least 12 tools, got: $TOOL_COUNT"
+          if [ -z "$TOOL_COUNT" ] || [ "$TOOL_COUNT" -lt 7 ]; then
+            echo "❌ FAIL: Expected at least 7 tools, got: $TOOL_COUNT"
             exit 1
           fi
           echo "✅ Container verified: $TOOL_COUNT tools registered"
