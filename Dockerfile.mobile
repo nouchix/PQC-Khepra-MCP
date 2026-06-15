@@ -2,7 +2,7 @@
 #
 # Provides gomobile environment for building Android/iOS libraries
 
-FROM golang:1.25-bookworm
+FROM golang:1.26-bookworm
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \

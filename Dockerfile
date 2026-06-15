@@ -5,7 +5,7 @@
 # Run:    docker run --rm -i -e KHEPRA_LICENSE_KEY ghcr.io/nouchix/pqc-khepra-mcp:1.0.0
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /src
 
