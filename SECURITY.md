@@ -40,14 +40,15 @@ The following activities are **STRICTLY PROHIBITED** and constitute breach of co
 
 ### AUTHORIZED USE
 
-This software is licensed **ONLY** for use on:
+This software is available under a tiered licensing model:
 
-✅ DoD networks with active license validation via `telemetry.souhimbou.org`
-✅ Systems registered with valid DoD contract authorization
-✅ Installations with cryptographically-signed machine IDs
-✅ Government-owned and contractor-operated (GOCO) facilities under DoD authority
+✅ **Community tier** — Free, no license key required. Provides `pqc_stig` and 12 core compliance tools. May be used on any system for evaluation, open-source projects, and non-commercial compliance assessment.
 
-**License Validation**: Premium cryptographic features require online validation. Failure to maintain license compliance will result in automatic fallback to community edition with open-source cryptography only.
+✅ **Sovereign tier** — License key required. Authorized for DoD networks, air-gapped / SCIF environments, and contractor-operated systems under DoD authority. Zero egress — all operations run on the operator's infrastructure with no external network calls.
+
+✅ **Pharaoh (Iron Bank) tier** — License key required. Authorized for FedRAMP / IL4 / IL5 production deployments. FIPS 140-3 validated cryptographic path.
+
+**Proprietary features** (Sovereign/Pharaoh) require a valid license key validated offline via ML-DSA-65 signed `license.adinkhepra` file. No external validation endpoint is contacted in sovereign or ironbank modes. Failure to present a valid license key results in automatic fallback to Community tier functionality only.
 
 ### VIOLATION CONSEQUENCES
 
@@ -74,10 +75,9 @@ Unauthorized use, reverse engineering, or IP theft may result in:
 
 ### CONTACT INFORMATION
 
-**Security Issues**: security@souhimbou.ai (PGP key: `keys/security_contact.asc`)
-**License Inquiries**: support@souhimbou.ai
-**DoD Contracting**: souhimbou.d.kone.mil@army.mil (Secret clearance)
-**Legal Department**: legal@souhimbou.ai
+**Security Issues**: cybersouhimbou@secredknowledgeinc.tech (PGP key: `keys/security_contact.asc`)
+**License Inquiries**: contact@nouchix.com
+**Legal Department**: contact@nouchix.com
 
 **⚠️ DO NOT** disclose proprietary algorithm details in public security reports. Report IP-sensitive issues via encrypted channels only.
 
@@ -89,10 +89,8 @@ We actively support and provide security updates for the following versions of t
 
 | Version | Supported          | Security Updates | Terms |
 | ------- | ------------------ | ---------------- | ----- |
-| 5.1.x   | :white_check_mark: | Active           | Current Release |
-| 5.0.x   | :x:                | None             | End of Life (EOL) |
-| 4.0.x   | :white_check_mark: | Critical Only    | Long Term Support (LTS) |
-| < 4.0   | :x:                | None             | End of Life (EOL) |
+| 1.0.x   | :white_check_mark: | Active           | Current Release |
+| < 1.0   | :x:                | None             | End of Life (EOL) |
 
 > **Note:** "Active" means we provide bug fixes and security patches. "Critical Only" means we only patch Critical/High severity CVEs.
 
@@ -103,7 +101,7 @@ We take security issues seriously and appreciate the community's efforts to impr
 ### How to Report
 If you discover a security vulnerability in this project, please report it privately. **Do not disclose vulnerabilities in public issues or forums.**
 
-1.  **Email**: Send a detailed report to the Project Security Team at **skone@alumni.albany.edu**.
+1.  **Email**: Send a detailed report to the Project Security Team at **cybersouhimbou@secredknowledgeinc.tech**.
 ### Encryption & Secure Communication
 We support both standard PGP/GPG and Post-Quantum Cryptography (PQC) for secure communication.
 
@@ -112,9 +110,9 @@ We support both standard PGP/GPG and Post-Quantum Cryptography (PQC) for secure 
 - Key Fingerprint: `[Run 'gpg --fingerprint' on your key to get this]`
 
 **Post-Quantum Verification**:
-- For high-assurance communication, we utilize Dilithium and Kyber keys.
-- Public Identity Keys: `keys/id_dilithium.pub` and `keys/regalia_kyber.pub`.
-- Verify our signatures using the `khepra` CLI tools.
+- For high-assurance communication, we use ML-DSA-65 (FIPS 204) signing keys and ML-KEM-768 (FIPS 203) for key encapsulation — in conformance with CNSA 2.0 requirements and PQC-01-STIG-V1R1 controls PQC-01-000020 and PQC-01-000030.
+- Public identity keys: `keys/id_mldsa.pub` (ML-DSA-65 / FIPS 204).
+- Verify our signatures using the `khepra` CLI: `khepra verify --key keys/id_mldsa.pub <file>`.
 
 3.  **Details to Include**:
     - Project version and component (e.g., Agent, Dashboard, CLI).
@@ -153,11 +151,29 @@ We target **Level 2 (Advanced)** and **Level 3 (Expert)** practices for defense 
 - **Iron Bank Compliance**: All container images are hardened according to DoD Container Hardening Guide and scanned for CVEs before submission.
 
 ## Post-Quantum Cryptography (PQC)
-AdinKhepra proactively addresses the quantum threat by implementing **NIST-standardized PQC algorithms** (CRYSTALS-Kyber, CRYSTALS-Dilithium) for key exchange and digital signatures, ensuring long-term data protection against "Harvest Now, Decrypt Later" attacks.
+
+AdinKhepra implements NIST-finalized PQC algorithms in conformance with NSA CNSA 2.0 requirements and the controls defined in **[PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md)** — the world's first DoD-style Post-Quantum Cryptography STIG, authored by NouchiX / SecRed Knowledge Inc.
+
+| Algorithm | Standard | Role | CNSA 2.0 Approved |
+|-----------|----------|------|-------------------|
+| ML-DSA-65 | FIPS 204 | Digital signatures and attestation | Yes (Level 3 minimum) |
+| ML-KEM-768 | FIPS 203 | Key encapsulation | Yes (Level 3 minimum) |
+| AES-256-GCM | FIPS 197 | Symmetric encryption | Yes |
+| SHA-384 / SHA-512 | FIPS 180-4 | Hashing | Yes |
+
+All cryptographic operations in the ASAF attestation engine produce ML-DSA-65 signatures, providing tamper-evident audit records that are quantum-resistant against Harvest-Now-Decrypt-Later collection. The KHEPRA Protocol (USPTO #73565085, patent pending) extends ML-DSA-65 with Adinkra symbol-bound key derivation and DAG causal attestation chains, as described in PQC-01-STIG-V1R1 Section 5.
+
+**Deprecated algorithms with zero security (remove immediately if present):**
+- SIKE / SIDH — cryptanalytically broken 2022 (Castryck-Decru attack) — see PQC-01-000050
+- Rainbow — cryptanalytically broken 2022 (Beullens attack) — see PQC-01-000050
+
+Note: "CRYSTALS-Dilithium" and "CRYSTALS-Kyber" are the NIST competition names. The finalized NIST standards are ML-DSA (FIPS 204) and ML-KEM (FIPS 203) respectively. All AdinKhepra references use the finalized standard names.
 
 ---
 
 ## MCP Transport Security — Claude Code Attack Chain (Mitiga Labs, 2026-04-10)
+
+> **PQC context:** The MCP security controls in this section address behavioral and transport-layer threats. Post-quantum cryptographic requirements for MCP deployments — including ML-DSA-65 agent identity anchoring, application-layer message signing, and PQC-signed audit trails — are defined in [PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md) Section 3, controls PQC-01-A00010 through PQC-01-A00050.
 
 ### Threat Summary
 
@@ -178,7 +194,7 @@ A five-step supply chain attack can silently redirect Claude Code's MCP traffic 
 
 ### ASAF Event Taxonomy
 
-These events are emitted by `MCPTransportGuard` to the ASAF audit trail:
+These events are emitted by `MCPTransportGuard` to the ASAF audit trail. All entries are signed with ML-DSA-65 (FIPS 204) and written to an append-only DAG store, in conformance with PQC-01-A00030 (Agentic AI Audit Trail Cryptographic Integrity).
 
 | Event | Trigger | Severity |
 |---|---|---|
