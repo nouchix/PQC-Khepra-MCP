@@ -282,6 +282,215 @@ func main() {
 				"required": []string{"action"},
 			},
 		},
+
+		// ── SouHimBou AI: Step 01 — Discover & Classify Assets ───────────────
+		{
+			Name:           "discover_assets",
+			Description:    "Step 01 — Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
+			RiskClass:      "read_only", Scope: "asset:discover",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("discover_assets"),
+			AllowedBackend: "in-process", TimeoutMs: 60000,
+		},
+
+		// ── STIG Check ───────────────────────────────────────────────────────
+		{
+			Name:           "stig_check",
+			Description:    "Check a system path or configuration against STIG controls. Default: RHEL-09-STIG-V1R3. Returns CAT I/II/III findings with remediation guidance and compliance score.",
+			RiskClass:      "read_only", Scope: "stig:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("stig_check"),
+			AllowedBackend: "in-process", TimeoutMs: 60000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"framework": map[string]any{"type": "string", "description": "Compliance framework (default: RHEL-09-STIG-V1R3)"},
+				},
+			},
+		},
+
+		// ── PQC STIG — World's First DoD PQC STIG ───────────────────────────
+		{
+			Name:           "pqc_stig",
+			Description:    "World's First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
+			RiskClass:      "read_only", Scope: "stig:pqc",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("pqc_stig"),
+			AllowedBackend: "in-process", TimeoutMs: 60000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"scan_path": map[string]any{"type": "string", "description": "Path to scan (default: current directory)"},
+					"profile":   map[string]any{"type": "string", "description": "Scan profile: quick | full (default: full)"},
+				},
+			},
+		},
+
+		// ── CMMC Assessment ──────────────────────────────────────────────────
+		{
+			Name:           "cmmc_assess",
+			Description:    "CMMC Level 1/2/3 assessment via KHEPRA compliance database (36,195 STIG→CCI→NIST→CMMC mappings). Returns satisfaction score, gaps, C3PAO readiness flag, and PQC status.",
+			RiskClass:      "read_only", Scope: "compliance:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("cmmc_assess"),
+			AllowedBackend: "in-process", TimeoutMs: 60000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"level": map[string]any{"type": "string", "description": "CMMC level: '1', '2', or '3' (default: '2')"},
+				},
+			},
+		},
+
+		// ── Agent Record (SouHimBou AI Flight Recorder) ───────────────────────
+		{
+			Name:           "agent_record",
+			Description:    "Record an agent action in the SouHimBou AI Flight Recorder. In sovereign mode, records to PQC-signed DAG audit log. Required for AI flight recorder compliance evidence.",
+			RiskClass:      "read_only", Scope: "audit:write",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("agent_record"),
+			AllowedBackend: "in-process", TimeoutMs: 15000,
+			ArgsSchema: map[string]any{
+				"type":     "object",
+				"required": []string{"action"},
+				"properties": map[string]any{
+					"action":     map[string]any{"type": "string", "description": "Agent action to record"},
+					"agent_id":   map[string]any{"type": "string", "description": "Agent identifier"},
+					"tool_name":  map[string]any{"type": "string", "description": "Tool that was invoked"},
+					"session_id": map[string]any{"type": "string", "description": "Session identifier"},
+					"metadata":   map[string]any{"type": "object", "description": "Additional metadata"},
+				},
+			},
+		},
+
+		// ── Sovereign Offline Tools ───────────────────────────────────────────
+		{
+			Name:           "khepra_export_attestation",
+			Description:    "Export PQC-signed attestation package covering all active compliance frameworks. No network required. C3PAO-ready evidence artifact — ML-DSA-65 signed, DAG-anchored, NIST SP 800-171A compliant.",
+			RiskClass:      "read_only", Scope: "compliance:attest",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("khepra_export_attestation"),
+			AllowedBackend: "in-process", TimeoutMs: 120000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_path": map[string]any{"type": "string", "description": "Path to project root (default: current directory)"},
+				},
+			},
+		},
+		{
+			Name:           "khepra_export_poam",
+			Description:    "Export a DFARS 252.204-7012 POA&M (Plan of Action & Milestones) from the current DAG state. Maps open findings to remediation timelines. Required for CMMC conditional certification.",
+			RiskClass:      "read_only", Scope: "compliance:poam",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("khepra_export_poam"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+		},
+		{
+			Name:           "khepra_query_stig",
+			Description:    "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls, and CMMC practices by ID or keyword.",
+			RiskClass:      "read_only", Scope: "compliance:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("khepra_query_stig"),
+			AllowedBackend: "in-process", TimeoutMs: 5000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"control_id": map[string]any{"type": "string", "description": "Control ID (CCI-XXXXXX, SV-XXXXXX, AC-1, etc.)"},
+					"query":      map[string]any{"type": "string", "description": "Keyword search query"},
+					"framework":  map[string]any{"type": "string", "description": "Filter by framework: STIG, CCI, NIST-800-53, CMMC"},
+					"limit":      map[string]any{"type": "integer", "description": "Max results (default: 10)"},
+				},
+			},
+		},
+		{
+			Name:           "khepra_get_compliance_score",
+			Description:    "Fast compliance score without full scan. Returns current CMMC/NIST/STIG satisfaction percentages from cached DAG state.",
+			RiskClass:      "read_only", Scope: "compliance:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("khepra_get_compliance_score"),
+			AllowedBackend: "in-process", TimeoutMs: 5000,
+		},
+		{
+			Name:           "khepra_query_threat_intel",
+			Description:    "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT&CK mappings, and CNSA 2.0 quantum impact.",
+			RiskClass:      "read_only", Scope: "threat:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("khepra_query_threat_intel"),
+			AllowedBackend: "in-process", TimeoutMs: 10000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"query":      map[string]any{"type": "string", "description": "Search term (CVE ID, product name, or keyword)"},
+					"cve_id":     map[string]any{"type": "string", "description": "Specific CVE identifier (e.g. CVE-2024-12345)"},
+					"kev_only":   map[string]any{"type": "boolean", "description": "Filter to CISA KEV only (default: false)"},
+					"pqc_impact": map[string]any{"type": "boolean", "description": "Include CNSA 2.0 quantum impact assessment (default: false)"},
+					"limit":      map[string]any{"type": "integer", "description": "Max results (default: 10)"},
+				},
+			},
+		},
+		{
+			Name:           "khepra_get_dag_chain",
+			Description:    "Export the PQC-signed DAG chain for the current session. Returns all DAG nodes with ML-DSA-65 signatures and Adinkra symbol provenance.",
+			RiskClass:      "read_only", Scope: "dag:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("khepra_get_dag_chain"),
+			AllowedBackend: "in-process", TimeoutMs: 10000,
+		},
+
+		// ── SouHimBou AI: Flight Export (Step 03) ────────────────────────────
+		{
+			Name:           "flight_export",
+			Description:    "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls, verifies tamper chain, computes SOW pilot KPIs.",
+			RiskClass:      "read_only", Scope: "audit:read",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("flight_export"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+		},
+
+		// ── OWASP Agentic Top 10 for 2026 ────────────────────────────────────
+		{
+			Name:           "owasp_agent_assess",
+			Description:    "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence packet. 100% offline.",
+			RiskClass:      "read_only", Scope: "security:assess",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("owasp_agent_assess"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"profile": map[string]any{"type": "string", "description": "Assessment profile: quick | full (default: full)"},
+				},
+			},
+		},
+
+		// ── Dark Crypto Intelligence Network ──────────────────────────────────
+		{
+			Name:           "dark_crypto_contribute",
+			Description:    "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. No sensitive data leaves the machine. Returns global quantum exposure rank.",
+			RiskClass:      "read_only", Scope: "community:contribute",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("dark_crypto_contribute"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+		},
+
+		// ── SBOM Generation ───────────────────────────────────────────────────
+		{
+			Name:           "sbom_generate",
+			Description:    "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations. Falls back to go.mod/requirements.txt walk when syft is not in PATH.",
+			RiskClass:      "read_only", Scope: "sbom:generate",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("sbom_generate"),
+			AllowedBackend: "in-process", TimeoutMs: 180000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_path": map[string]any{"type": "string", "description": "Path to project directory (default: current directory)"},
+					"format":       map[string]any{"type": "string", "description": "Output format: cyclonedx | spdx (default: cyclonedx)"},
+				},
+			},
+		},
+
+		// ── STRIDE Threat Model ───────────────────────────────────────────────
+		{
+			Name:           "threat_model",
+			Description:    "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT&CK mappings. Detects project technology profile and produces a context-aware threat catalog. 100% offline.",
+			RiskClass:      "read_only", Scope: "threat:model",
+			SchemaVersion:  "1.0.0", SchemaHash: hash("threat_model"),
+			AllowedBackend: "in-process", TimeoutMs: 60000,
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_path": map[string]any{"type": "string", "description": "Path to project directory (default: current directory)"},
+					"framework":    map[string]any{"type": "string", "description": "Threat framework: STRIDE | PASTA | LINDDUN (default: STRIDE)"},
+				},
+			},
+		},
 	}
 
 	// Build canonical manifest (without signature)
