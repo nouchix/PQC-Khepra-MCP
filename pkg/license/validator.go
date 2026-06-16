@@ -3,6 +3,11 @@
 // License files (.adinkhepra) are JSON documents signed by the NouchiX
 // ML-DSA-65 private key. The binary validates them against the embedded
 // public key — no network required.
+//
+// NOTE on types: this file defines ParsedLicense for file-based validation.
+// The node-quota / EgyptianTier License struct lives in egyptian_tiers.go.
+// The sovereign device-bound KhepraLicense lives in sovereign.go.
+// TierCommunity is declared as an untyped string const in sovereign.go — use that.
 package license
 
 import (
@@ -26,39 +31,46 @@ import (
 var embeddedPublicKey []byte
 
 // ---------------------------------------------------------------------------
-// Types
+// Tier constants for file-based (.adinkhepra) validation.
+//
+// TierCommunity is intentionally NOT redeclared here — sovereign.go already
+// declares it as an untyped string constant ("community").
 // ---------------------------------------------------------------------------
 
-// Tier represents a KHEPRA license tier.
-type Tier string
-
 const (
-	TierCommunity Tier = "community"
-	TierSovereign Tier = "sovereign"
-	TierPharaoh   Tier = "pharaoh"
+	// TierSovereign grants NHI inventory, ERT crypto, and STIG automation.
+	TierSovereign = "sovereign"
+	// TierPharaoh grants all features including priority support and SLA.
+	TierPharaoh = "pharaoh"
 )
 
-// License represents a validated KHEPRA license.
-type License struct {
-	LicenseKey  string    `json:"license_key"`
-	Tier        Tier      `json:"tier"`
-	CustomerID  string    `json:"customer_id"`
-	IssuedAt    time.Time `json:"issued_at_parsed"`
-	ExpiresAt   time.Time `json:"expires_at_parsed"`
-	MachineID   string    `json:"machine_id,omitempty"`
+// ---------------------------------------------------------------------------
+// ParsedLicense — result of validating a .adinkhepra file.
+// For EgyptianTier node-quota licensing, see egyptian_tiers.go.
+// For sovereign device-bound licenses,  see sovereign.go / KhepraLicense.
+// ---------------------------------------------------------------------------
+
+// ParsedLicense is the validated in-memory representation of a .adinkhepra file.
+type ParsedLicense struct {
+	LicenseKey string    `json:"license_key"`
+	Tier       string    `json:"tier"`
+	CustomerID string    `json:"customer_id"`
+	IssuedAt   time.Time `json:"issued_at_parsed"`
+	ExpiresAt  time.Time `json:"expires_at_parsed"`
+	MachineID  string    `json:"machine_id,omitempty"`
 }
 
 // licenseFile is the raw JSON structure of a .adinkhepra file.
 type licenseFile struct {
-	LicenseKey  string `json:"license_key"`
-	Tier        string `json:"tier"`
-	CustomerID  string `json:"customer_id"`
-	IssuedAt    string `json:"issued_at"`
-	ExpiresAt   string `json:"expires_at"`
-	Version     string `json:"version"`
-	Algorithm   string `json:"algorithm"`
-	MachineID   string `json:"machine_id,omitempty"`
-	Signature   string `json:"signature"` // base64
+	LicenseKey string `json:"license_key"`
+	Tier       string `json:"tier"`
+	CustomerID string `json:"customer_id"`
+	IssuedAt   string `json:"issued_at"`
+	ExpiresAt  string `json:"expires_at"`
+	Version    string `json:"version"`
+	Algorithm  string `json:"algorithm"`
+	MachineID  string `json:"machine_id,omitempty"`
+	Signature  string `json:"signature"` // base64
 }
 
 // ---------------------------------------------------------------------------
@@ -69,8 +81,8 @@ type licenseFile struct {
 var ErrNoLicense = fmt.Errorf("no license file configured")
 
 // Validate reads and validates a .adinkhepra license file.
-// Returns ErrNoLicense if path is empty (caller can fall back to community tier).
-func Validate(licensePath string) (*License, error) {
+// Returns ErrNoLicense if path is empty (caller falls back to community tier).
+func Validate(licensePath string) (*ParsedLicense, error) {
 	if licensePath == "" {
 		return communityLicense(), ErrNoLicense
 	}
@@ -106,9 +118,9 @@ func Validate(licensePath string) (*License, error) {
 
 	issued, _ := time.Parse(time.RFC3339, lf.IssuedAt)
 
-	return &License{
+	return &ParsedLicense{
 		LicenseKey: lf.LicenseKey,
-		Tier:       Tier(lf.Tier),
+		Tier:       lf.Tier,
 		CustomerID: lf.CustomerID,
 		IssuedAt:   issued,
 		ExpiresAt:  expires,
@@ -117,8 +129,8 @@ func Validate(licensePath string) (*License, error) {
 }
 
 // ValidateFromEnv reads KHEPRA_LICENSE_PATH and validates the license.
-// Falls back to community tier if the variable is unset.
-func ValidateFromEnv() (*License, error) {
+// Falls back to community tier (ErrNoLicense) if the variable is unset.
+func ValidateFromEnv() (*ParsedLicense, error) {
 	return Validate(os.Getenv("KHEPRA_LICENSE_PATH"))
 }
 
@@ -175,16 +187,16 @@ func verifySignature(lf licenseFile) error {
 // Helpers
 // ---------------------------------------------------------------------------
 
-func communityLicense() *License {
-	return &License{
+func communityLicense() *ParsedLicense {
+	return &ParsedLicense{
 		LicenseKey: "COMMUNITY",
-		Tier:       TierCommunity,
+		Tier:       TierCommunity, // from sovereign.go: const TierCommunity = "community"
 		ExpiresAt:  time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 }
 
 // HasFeature returns true if the license tier includes the requested feature.
-func (l *License) HasFeature(feature string) bool {
+func (l *ParsedLicense) HasFeature(feature string) bool {
 	switch feature {
 	case "ert_scan", "stig_check", "cmmc_assess", "godfather_report",
 		"agent_record", "dag_attestation":
@@ -198,6 +210,6 @@ func (l *License) HasFeature(feature string) bool {
 }
 
 // DaysUntilExpiry returns days remaining on the license (negative = expired).
-func (l *License) DaysUntilExpiry() int {
+func (l *ParsedLicense) DaysUntilExpiry() int {
 	return int(time.Until(l.ExpiresAt).Hours() / 24)
 }

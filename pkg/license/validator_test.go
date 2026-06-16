@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nouchix/pqc-khepra-mcp/pkg/license"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // TestCommunityFallback — no license file → community tier
@@ -33,9 +33,9 @@ func TestExpiredLicense(t *testing.T) {
 
 // TestHasFeature — tier gating
 func TestHasFeature(t *testing.T) {
-	community := &license.License{Tier: license.TierCommunity}
-	sovereign := &license.License{Tier: license.TierSovereign}
-	pharaoh   := &license.License{Tier: license.TierPharaoh}
+	community := &license.ParsedLicense{Tier: license.TierCommunity}
+	sovereign := &license.ParsedLicense{Tier: license.TierSovereign}
+	pharaoh := &license.ParsedLicense{Tier: license.TierPharaoh}
 
 	if community.HasFeature("ert_scan") {
 		t.Error("community should NOT have ert_scan")
