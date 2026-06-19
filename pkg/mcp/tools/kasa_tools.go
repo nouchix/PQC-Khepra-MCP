@@ -29,7 +29,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/ea"
@@ -280,35 +279,25 @@ func HandleEAEvolve(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 }
 
 // HandleEAThreatScore calculates the composite threat score for a target path
-// using the EA KernelRouter. Returns a 0.0–1.0 score with per-dimension breakdown.
+// using the EA KernelRouter. Returns findings with per-agent risk scores.
 func HandleEAThreatScore(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	target, _ := call.Args["target"].(string)
 	if target == "" {
 		target = "."
 	}
 
-	// Use the EA KernelRouter for threat scoring
 	store := getKASAStore()
-	pub, priv, err := adinkra.GenerateDilithiumKey()
-	if err != nil {
-		return nil, nil, fmt.Errorf("ea_threat_score keygen: %w", err)
-	}
-
 	router := ea.NewKernelRouter(store)
-	input := ea.ERTRouteInput{
-		TargetPath: target,
-		Timestamp:  time.Now(),
-		PublicKey:  pub,
-	}
+	sec := ea.NewSecurityContext(target)
 
-	output, err := router.Route(ctx, input, priv)
+	results, err := router.Route(ctx, sec)
 	if err != nil {
 		return nil, []string{fmt.Sprintf("threat score routing: %v", err)}, nil
 	}
 
 	node := dag.Node{
 		Action: "ea_threat_score",
-		Symbol: "Dwennimmen", // Ram's horns — strength in adversity
+		Symbol: "Dwennimmen",
 		Time:   lorentz.StampNow(),
 		PQC: map[string]string{
 			"target": target,
@@ -319,7 +308,7 @@ func HandleEAThreatScore(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 
 	return map[string]any{
 		"target":      target,
-		"output":      output,
+		"results":     results,
 		"symbol":      "Dwennimmen",
 		"attested_at": lorentz.StampNow(),
 	}, nil, nil
@@ -335,26 +324,17 @@ func HandleEARiskSummary(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 	}
 
 	store := getKASAStore()
-	pub, priv, err := adinkra.GenerateDilithiumKey()
-	if err != nil {
-		return nil, nil, fmt.Errorf("ea_risk_summary keygen: %w", err)
-	}
-
 	router := ea.NewKernelRouter(store)
-	input := ea.ERTRouteInput{
-		TargetPath: target,
-		Timestamp:  time.Now(),
-		PublicKey:  pub,
-	}
+	sec := ea.NewSecurityContext(target)
 
-	summary, err := router.Route(ctx, input, priv)
+	results, err := router.Route(ctx, sec)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ea_risk_summary: %w", err)
 	}
 
 	node := dag.Node{
 		Action: "ea_risk_summary",
-		Symbol: "Gye_Nyame", // Supremacy — comprehensive view
+		Symbol: "Gye_Nyame",
 		Time:   lorentz.StampNow(),
 		PQC: map[string]string{
 			"target": target,
@@ -363,7 +343,7 @@ func HandleEARiskSummary(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 	}
 	store.Add(&node, []string{}) //nolint:errcheck
 
-	return summary, nil, nil
+	return results, nil, nil
 }
 
 // ── Ising Quantum Optimizer handler ──────────────────────────────────────────
