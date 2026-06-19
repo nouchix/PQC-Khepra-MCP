@@ -80,3 +80,9 @@ demo-snapshot.json
 ANONYMOUS_GIT_*.md
 .vercel
 .env*.local
+
+# Editor backup files
+*.exe~
+*.dll~
+*~
+
