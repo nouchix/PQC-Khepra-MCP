@@ -69,6 +69,9 @@ func getKASAStore() dag.Store {
 // vulnerability hunting every hour, internal pentest daily (NIST 800-53 CA-8),
 // CMMC compliance audit daily. Every action is DAG-attested with ML-DSA-65.
 func HandleKASAStart(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("kasa_start"); gate != nil {
+		return gate, nil, nil
+	}
 	engine := getKASA()
 	engine.Start()
 
@@ -234,6 +237,9 @@ func HandleKASACryptoAgent(ctx context.Context, call mcp.MCPToolCall) (any, []st
 // Optimizes for: NIST 800-171 control coverage, PQC readiness, threat posture.
 // Returns the fittest genome with Adinkra symbol binding and control mapping.
 func HandleEAEvolve(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("ea_evolve"); gate != nil {
+		return gate, nil, nil
+	}
 	generations := 10
 	if g, ok := call.Args["generations"].(float64); ok {
 		generations = int(g)
@@ -320,6 +326,9 @@ func HandleEAThreatScore(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 // Synthesizes: vulnerability exposure, compliance gap, PQC migration cost, blast radius.
 // This is the same engine used by the Godfather Report.
 func HandleEARiskSummary(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("ea_risk_summary"); gate != nil {
+		return gate, nil, nil
+	}
 	target, _ := call.Args["target"].(string)
 	if target == "" {
 		target = "."

@@ -30,6 +30,9 @@ import (
 // Searches: NVD CVE database, MITRE ATT&CK tactics/techniques.
 // Returns: CVE details, CVSS score, EPSS probability, ATT&CK TTP mapping.
 func HandleThreatLookup(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("threat_lookup"); gate != nil {
+		return gate, nil, nil
+	}
 	query, _ := call.Args["query"].(string)
 	if query == "" {
 		return nil, nil, fmt.Errorf("threat_lookup: query is required")
@@ -82,6 +85,9 @@ func HandleThreatLookup(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 // audit snapshot against a baseline. Uses the KHEPRA DriftEngine with Adinkra
 // symbol binding for DAG attestation.
 func HandleDriftDetect(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("drift_detect"); gate != nil {
+		return gate, nil, nil
+	}
 	// Build a minimal pair of snapshots to detect drift
 	baseline := &audit.AuditSnapshot{
 		Timestamp: time.Now().Add(-24 * time.Hour),
@@ -110,6 +116,9 @@ func HandleDriftDetect(ctx context.Context, call mcp.MCPToolCall) (any, []string
 // HandleIRIncident creates a new incident in the Khepra IR Manager.
 // Every incident is ML-DSA-65 signed at creation and DAG-attested.
 func HandleIRIncident(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("ir_incident"); gate != nil {
+		return gate, nil, nil
+	}
 	title, _ := call.Args["title"].(string)
 	severity, _ := call.Args["severity"].(string)
 	description, _ := call.Args["description"].(string)
@@ -145,6 +154,9 @@ func HandleIRIncident(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 // HandleIRAddIOC adds an Indicator of Compromise to an existing incident.
 // The IOC is ML-DSA-65 signed and DAG-recorded.
 func HandleIRAddIOC(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("ir_add_ioc"); gate != nil {
+		return gate, nil, nil
+	}
 	incidentID, _ := call.Args["incident_id"].(string)
 	iocType, _ := call.Args["ioc_type"].(string)
 	value, _ := call.Args["value"].(string)
@@ -181,6 +193,9 @@ func HandleIRAddIOC(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // a cryptographically verifiable audit trail of agent activity.
 // This is the SouHimBou AI entry point for evidence collection.
 func HandleFlightRecord(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("flight_record"); gate != nil {
+		return gate, nil, nil
+	}
 	toolName, _ := call.Args["tool_name"].(string)
 	scope, _ := call.Args["scope"].(string)
 	outcome, _ := call.Args["outcome"].(string)
