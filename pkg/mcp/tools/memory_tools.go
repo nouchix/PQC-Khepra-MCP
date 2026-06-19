@@ -114,7 +114,7 @@ func HandleFIMCheck(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 func HandleAuditExport(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	// Export the current DAG as a lightweight audit summary
 	store := getKASAStore()
-	nodes := store.Nodes()
+	nodes := store.All()
 
 	type auditRow struct {
 		ID     string `json:"id"`

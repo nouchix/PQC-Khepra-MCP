@@ -159,7 +159,7 @@ func HandleDAGWrite(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 		"node_id":    node.ID,
 		"action":     action,
 		"symbol":     symbol,
-		"dag_size":   len(store.Nodes()),
+		"dag_size":   len(store.All()),
 		"written_at": lorentz.StampNow(),
 	}, nil, nil
 }
@@ -171,7 +171,7 @@ func HandleDAGQuery(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 	filterSymbol, _ := call.Args["symbol"].(string)
 
 	store := getKASAStore()
-	all := store.Nodes()
+	all := store.All()
 	var matches []map[string]any
 	for _, n := range all {
 		if filterAction != "" && n.Action != filterAction {
@@ -201,7 +201,7 @@ func HandleDAGQuery(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // Verifies: node count, parent linkage, PQC metadata completeness.
 func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	store := getKASAStore()
-	nodes := store.Nodes()
+	nodes := store.All()
 
 	var warnings []string
 	var intact, broken int

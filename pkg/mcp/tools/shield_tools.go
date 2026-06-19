@@ -13,6 +13,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
@@ -35,7 +36,32 @@ func HandleThreatLookup(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 	}
 
 	kb := intel.NewKnowledgeBase()
-	result := kb.Search(query)
+
+	// Search tactics by name/ID match
+	var matchedTactics []intel.Tactic
+	for _, t := range kb.Tactics {
+		if strings.Contains(strings.ToLower(t.Name), strings.ToLower(query)) ||
+			strings.Contains(strings.ToLower(t.ID), strings.ToLower(query)) {
+			matchedTactics = append(matchedTactics, t)
+		}
+	}
+
+	// Search CVE/vulnerability map by ID or description
+	var matchedVulns []intel.Vulnerability
+	for id, v := range kb.Vulnerabilities {
+		if strings.Contains(strings.ToLower(id), strings.ToLower(query)) ||
+			strings.Contains(strings.ToLower(v.Description), strings.ToLower(query)) {
+			matchedVulns = append(matchedVulns, v)
+		}
+	}
+
+	result := map[string]any{
+		"query":    query,
+		"tactics":  matchedTactics,
+		"vulns":    matchedVulns,
+		"tactic_count": len(matchedTactics),
+		"vuln_count":   len(matchedVulns),
+	}
 
 	store := getKASAStore()
 	node := dag.Node{
@@ -196,12 +222,12 @@ func HandleFlightRecord(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 	}
 
 	frame, err := recorder.Record(flight.RecordInput{
-		ToolName:  toolName,
-		Scope:     scope,
-		Outcome:   flight.Outcome(outcome),
-		AgentID:   call.Identity.AgentID,
-		SessionID: call.Identity.SessionID,
-		Intent:    flight.BuildIntentSummary(toolName, scope, argKeys),
+		ToolName:      toolName,
+		ToolScope:     scope,
+		Outcome:       flight.Outcome(outcome),
+		AgentID:       call.Identity.AgentID,
+		SessionID:     call.Identity.SessionID,
+		IntentSummary: flight.BuildIntentSummary(toolName, scope, argKeys),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("flight_record: %w", err)
@@ -215,7 +241,7 @@ func HandleFlightRecord(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 func HandleOuroborosWAFEye(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	store := getKASAStore()
 	// The WAF eye reads recent SEKHEM events from the gateway store
-	nodes := store.Nodes()
+	nodes := store.All()
 	var wafEvents []map[string]any
 	for _, n := range nodes {
 		if len(n.Action) >= 3 && n.Action[:3] == "waf" {
@@ -243,7 +269,7 @@ func HandleOuroborosWAFEye(ctx context.Context, call mcp.MCPToolCall) (any, []st
 	return map[string]any{
 		"eye":         "WAF",
 		"events":      wafEvents,
-		"dag_total":   len(store.Nodes()),
+		"dag_total":   len(store.All()),
 		"observed_at": lorentz.StampNow(),
 	}, nil, nil
 }
@@ -252,7 +278,7 @@ func HandleOuroborosWAFEye(ctx context.Context, call mcp.MCPToolCall) (any, []st
 // STIG configuration drift from last known good state by querying the DAG.
 func HandleOuroborosSTIGEye(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	store := getKASAStore()
-	nodes := store.Nodes()
+	nodes := store.All()
 	var stigEvents []map[string]any
 	for _, n := range nodes {
 		if len(n.Action) >= 4 && n.Action[:4] == "stig" {
@@ -276,7 +302,7 @@ func HandleOuroborosSTIGEye(ctx context.Context, call mcp.MCPToolCall) (any, []s
 // monitors dependency manifests for newly disclosed CVEs by scanning DAG history.
 func HandleOuroborosVulnEye(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	store := getKASAStore()
-	nodes := store.Nodes()
+	nodes := store.All()
 	var vulnEvents []map[string]any
 	for _, n := range nodes {
 		if len(n.Action) >= 4 && n.Action[:4] == "vuln" {
@@ -300,7 +326,7 @@ func HandleOuroborosVulnEye(ctx context.Context, call mcp.MCPToolCall) (any, []s
 // baselines and monitors file paths for unauthorized changes.
 func HandleOuroborosFIMEye(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	store := getKASAStore()
-	nodes := store.Nodes()
+	nodes := store.All()
 	var fimEvents []map[string]any
 	for _, n := range nodes {
 		if len(n.Action) >= 8 && n.Action[:8] == "forensic" {

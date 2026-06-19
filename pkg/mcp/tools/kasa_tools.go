@@ -27,7 +27,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
@@ -149,7 +148,7 @@ func HandleKASAStatus(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 	engine := getKASA()
 	store := getKASAStore()
 
-	dagNodes := store.Nodes()
+	dagNodes := store.All()
 	taskSnapshots := make([]map[string]string, 0, len(engine.Tasks))
 	for _, t := range engine.Tasks {
 		taskSnapshots = append(taskSnapshots, map[string]string{
@@ -246,7 +245,6 @@ func HandleEAEvolve(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 
 	cfg := ea.EngineConfig{
 		PopulationSize: popSize,
-		Generations:    generations,
 		MutationRate:   0.1,
 		CrossoverRate:  0.7,
 	}
@@ -256,16 +254,20 @@ func HandleEAEvolve(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 		return nil, nil, fmt.Errorf("ea_evolve: %w", err)
 	}
 
-	result, err := engine.Run(ctx)
-	if err != nil {
-		return nil, nil, fmt.Errorf("ea_evolve run: %w", err)
+	// Run evolution for the requested number of generations
+	var best *ea.Individual
+	for i := 0; i < generations; i++ {
+		ind, err := engine.Evolve()
+		if err != nil {
+			return nil, nil, fmt.Errorf("ea_evolve generation %d: %w", i+1, err)
+		}
+		best = ind
 	}
 
-	// DAG-attest the EA result
 	store := getKASAStore()
 	node := dag.Node{
 		Action: "ea_evolve",
-		Symbol: "Nkyinkyim", // adaptability / the journey
+		Symbol: "Nkyinkyim",
 		Time:   lorentz.StampNow(),
 		PQC: map[string]string{
 			"generations": fmt.Sprintf("%d", generations),
@@ -275,7 +277,7 @@ func HandleEAEvolve(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 	}
 	store.Add(&node, []string{}) //nolint:errcheck
 
-	return result, nil, nil
+	return best, nil, nil
 }
 
 // HandleEAThreatScore calculates the composite threat score for a target path
@@ -383,7 +385,7 @@ func HandleQuantumOptimize(ctx context.Context, call mcp.MCPToolCall) (any, []st
 		PQC: map[string]string{
 			"spins":     fmt.Sprintf("%d", numSpins),
 			"steps":     fmt.Sprintf("%d", steps),
-			"energy":    fmt.Sprintf("%.6f", result.Energy),
+			"energy":    fmt.Sprintf("%.6f", result.BestEnergy),
 			"coherence": fmt.Sprintf("%.4f", coherence),
 			"agent":     "IsingOptimizer-v1",
 		},
@@ -391,7 +393,7 @@ func HandleQuantumOptimize(ctx context.Context, call mcp.MCPToolCall) (any, []st
 	store.Add(&node, []string{}) //nolint:errcheck
 
 	return map[string]any{
-		"energy":          result.Energy,
+		"best_energy":     result.BestEnergy,
 		"coherence_score": coherence,
 		"spins":           numSpins,
 		"annealing_steps": steps,
