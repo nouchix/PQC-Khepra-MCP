@@ -132,6 +132,14 @@ func (s *HardenedServer) runStdio(ctx context.Context) error {
 	reader := bufio.NewReader(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
 
+	// Strip UTF-8 BOM if present on Windows (PowerShell and some terminals
+	// inject \xEF\xBB\xBF before the first JSON line). Silently discard it.
+	bomLine, err := reader.Peek(3)
+	if err == nil && len(bomLine) >= 3 && bomLine[0] == 0xEF && bomLine[1] == 0xBB && bomLine[2] == 0xBF {
+		_, _ = reader.Discard(3)
+		s.logger.Println("[WARN] UTF-8 BOM stripped from stdin (Windows tool artifact)")
+	}
+
 	for {
 		select {
 		case <-ctx.Done():

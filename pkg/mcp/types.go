@@ -278,7 +278,7 @@ type Capabilities struct {
 
 // ToolsCapability advertises tool support.
 type ToolsCapability struct {
-	ListChanged bool `json:"listChanged,omitempty"`
+	ListChanged bool `json:"listChanged"` // Must be explicit — omitempty would serialize false as absent, breaking MCP 2025-11-25 validation
 }
 
 // ResourcesCapability advertises resource support.
