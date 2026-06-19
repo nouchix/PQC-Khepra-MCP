@@ -21,8 +21,8 @@ The only MCP compliance server that runs on your metal — with the **World's Fi
 | Tier | License Key | Tools | Telemetry | Egress |
 |------|-------------|-------|-----------|--------|
 | **Community** | ❌ Not required | `pqc_stig` + 12 core tools | Opt-in Dark Crypto Intel | Zero (sovereign mode) |
-| **Sovereign** | ✅ Required | All 32 tools | Zero | Zero |
-| **Pharaoh** | ✅ Required | All 32 tools + priority support | Zero | Zero |
+| **Sovereign** | ✅ Required | All 34 tools | Zero | Zero |
+| **Pharaoh** | ✅ Required | All 34 tools + priority support | Zero | Zero |
 
 > **Community tier is free.** Run `pqc_stig` to assess your project's quantum readiness against  
 > **PQC-01-STIG-V1R1** — the World's First DoD-style Post-Quantum Cryptography STIG — no license key needed.
@@ -44,11 +44,72 @@ KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. 
 
 ---
 
-## Quick Install — Community (No License Key)
+## Installation
 
-The Community tier starts immediately with no license key. You get `pqc_stig` and 12 core tools free.
+There are two delivery methods: **Docker** (recommended, no build required) and **compiled binary** (fastest startup, required for air-gap). Both support the same environment variables and all MCP clients.
 
-### Add to Claude Desktop (`claude_desktop_config.json`)
+Choose your path:
+
+| Method | Best For | Startup |
+|--------|----------|---------|
+| [Docker](#option-a-docker-recommended) | Most users, easiest setup | ~2s |
+| [Compiled Binary](#option-b-compiled-binary) | Air-gap, SCIF, performance | ~300ms |
+
+---
+
+### Option A: Docker (Recommended)
+
+Requires Docker Desktop or Docker Engine. The image is pre-built and ships the full compliance database — no additional downloads in sovereign mode.
+
+```bash
+# Pull once
+docker pull ghcr.io/nouchix/pqc-khepra-mcp:latest
+
+# Test it (should print the initialize response and exit)
+echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":0}' \
+  | docker run --rm -i -e KHEPRA_MODE=sovereign ghcr.io/nouchix/pqc-khepra-mcp:latest
+```
+
+---
+
+### Option B: Compiled Binary
+
+Requires Go 1.21+ for building, or download a pre-built release from [GitHub Releases](https://github.com/nouchix/PQC-Khepra-MCP/releases).
+
+```bash
+git clone https://github.com/nouchix/PQC-Khepra-MCP.git
+cd PQC-Khepra-MCP
+
+# Build (cross-compile for your OS)
+go build -o khepra-mcp ./cmd/khepra-mcp        # Linux / macOS
+go build -o khepra-mcp.exe ./cmd/khepra-mcp    # Windows
+
+# Test the binary
+echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":0}' \
+  | KHEPRA_MODE=sovereign ./khepra-mcp
+```
+
+#### Windows — using the batch launcher
+
+The repo ships a `run-mcp.bat` launcher for Windows. It uses the pre-built binary (fast path) and falls back to `go run` automatically:
+
+```bat
+:: run-mcp.bat is already in the repo at the root of PQC-Khepra-MCP
+:: Point your MCP client to: cmd /c C:\path\to\PQC-Khepra-MCP\run-mcp.bat
+```
+
+---
+
+## Adding to Your AI Client
+
+### Claude Desktop
+
+Config file location:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+#### Community tier — Docker (macOS / Linux)
 
 ```json
 {
@@ -66,18 +127,17 @@ The Community tier starts immediately with no license key. You get `pqc_stig` an
 }
 ```
 
-### Add to Cursor / VS Code (`.cursor/mcp.json` or `.vscode/mcp.json`)
+#### Community tier — Docker (Windows)
 
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "khepra": {
-      "type": "stdio",
       "command": "docker",
       "args": [
         "run", "--rm", "-i",
         "-e", "KHEPRA_MODE=sovereign",
-        "-v", "/var/lib/khepra:/var/lib/khepra",
+        "-v", "C:\\Users\\YourName\\.khepra:/var/lib/khepra",
         "ghcr.io/nouchix/pqc-khepra-mcp:latest"
       ]
     }
@@ -85,7 +145,44 @@ The Community tier starts immediately with no license key. You get `pqc_stig` an
 }
 ```
 
-## Quick Install — Sovereign / Pharaoh (License Key Required)
+#### Community tier — Binary (Windows, fastest startup)
+
+```json
+{
+  "mcpServers": {
+    "khepra": {
+      "command": "C:\\path\\to\\PQC-Khepra-MCP\\khepra-mcp.exe",
+      "args": [],
+      "env": {
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_NETWORK_POLICY": "lan",
+        "MCP_PQC_ENABLED": "true",
+        "KHEPRA_MANIFEST_PATH": "C:\\path\\to\\PQC-Khepra-MCP\\manifest.json"
+      }
+    }
+  }
+}
+```
+
+#### Community tier — Binary via batch launcher (Windows)
+
+```json
+{
+  "mcpServers": {
+    "khepra": {
+      "command": "cmd",
+      "args": ["/c", "C:\\path\\to\\PQC-Khepra-MCP\\run-mcp.bat"],
+      "env": {
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_NETWORK_POLICY": "lan",
+        "MCP_PQC_ENABLED": "true"
+      }
+    }
+  }
+}
+```
+
+#### Sovereign / Pharaoh tier (with license key)
 
 ```json
 {
@@ -108,7 +205,258 @@ The Community tier starts immediately with no license key. You get `pqc_stig` an
 }
 ```
 
-Get a license key at [nouchix.com](https://nouchix.com) or email [contact@nouchix.com](mailto:contact@nouchix.com).
+After editing, restart Claude Desktop. Verify in **Settings → Developer** — you should see `khepra` with status **running** and all tools listed.
+
+---
+
+### Cursor
+
+Config file: `.cursor/mcp.json` in your project root, or `~/.cursor/mcp.json` globally.
+
+#### Docker (macOS / Linux)
+
+```json
+{
+  "servers": {
+    "khepra": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "KHEPRA_MODE=sovereign",
+        "-v", "/var/lib/khepra:/var/lib/khepra",
+        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+#### Binary (macOS / Linux)
+
+```json
+{
+  "servers": {
+    "khepra": {
+      "type": "stdio",
+      "command": "/path/to/khepra-mcp",
+      "args": [],
+      "env": {
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_MANIFEST_PATH": "/path/to/PQC-Khepra-MCP/manifest.json"
+      }
+    }
+  }
+}
+```
+
+#### Binary (Windows)
+
+```json
+{
+  "servers": {
+    "khepra": {
+      "type": "stdio",
+      "command": "C:\\path\\to\\PQC-Khepra-MCP\\khepra-mcp.exe",
+      "args": [],
+      "env": {
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_MANIFEST_PATH": "C:\\path\\to\\PQC-Khepra-MCP\\manifest.json"
+      }
+    }
+  }
+}
+```
+
+---
+
+### VS Code (with GitHub Copilot or Cline extension)
+
+Config file: `.vscode/mcp.json` in your project, or user settings.
+
+```json
+{
+  "servers": {
+    "khepra": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "KHEPRA_MODE=sovereign",
+        "-v", "${env:HOME}/.khepra:/var/lib/khepra",
+        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+Or via user `settings.json` for the Cline extension:
+
+```json
+{
+  "cline.mcpServers": {
+    "khepra": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "KHEPRA_MODE=sovereign",
+        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+---
+
+### Windsurf
+
+Config file: `~/.codeium/windsurf/mcp_config.json`
+
+```json
+{
+  "mcpServers": {
+    "khepra": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "KHEPRA_MODE=sovereign",
+        "-v", "/var/lib/khepra:/var/lib/khepra",
+        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+---
+
+### Continue.dev
+
+Config file: `~/.continue/config.json` — add to the `experimental.modelContextProtocolServers` array:
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "name": "khepra",
+        "transport": {
+          "type": "stdio",
+          "command": "docker",
+          "args": [
+            "run", "--rm", "-i",
+            "-e", "KHEPRA_MODE=sovereign",
+            "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Cloud / SaaS AI Tools (Claude.ai, ChatGPT, Gemini, etc.)
+
+Cloud-based AI tools cannot directly spawn local subprocesses — they need an **HTTP/SSE bridge** to reach your local KHEPRA server. There are two approaches:
+
+#### Approach 1 — `mcp-remote` proxy (easiest, no server required)
+
+[`mcp-remote`](https://github.com/geelen/mcp-remote) tunnels a local stdio MCP server over HTTPS, making it accessible to any cloud tool. This is what the Kaggle MCP entry in the config above uses.
+
+```bash
+# Install once
+npm install -g mcp-remote
+
+# Start the bridge (exposes your local KHEPRA server at https://localhost:3000)
+KHEPRA_MODE=sovereign mcp-remote \
+  --server "docker run --rm -i -e KHEPRA_MODE=sovereign ghcr.io/nouchix/pqc-khepra-mcp:latest" \
+  --port 3000
+```
+
+Then in Claude.ai (or any cloud tool that accepts MCP SSE URLs):
+
+```
+MCP Server URL: http://localhost:3000/sse
+```
+
+> **Security note:** `mcp-remote` binds to localhost by default. Do not expose it to the public internet without TLS and authentication. In sovereign/ironbank mode, KHEPRA itself makes zero egress calls — only the bridge connection to the cloud tool carries data.
+
+#### Approach 2 — Self-hosted HTTP/SSE endpoint
+
+For teams running KHEPRA on a shared server (e.g., Hostinger VPS at `IP_ADDRESS`), start the server in HTTP mode:
+
+```bash
+# On your server — start KHEPRA in HTTP/SSE mode
+docker run -d \
+  -e KHEPRA_MODE=hybrid \
+  -e KHEPRA_HTTP_PORT=8443 \
+  -e KHEPRA_LICENSE_KEY="${KHEPRA_LICENSE_KEY}" \
+  -p 8443:8443 \
+  ghcr.io/nouchix/pqc-khepra-mcp:latest
+
+# Point your cloud tool to:
+# https://your-server.com:8443/sse
+```
+
+Then configure any cloud AI tool that supports MCP SSE:
+
+| Cloud Tool | Where to add MCP URL |
+|------------|---------------------|
+| Claude.ai (Pro/Team) | Settings → Integrations → MCP Servers |
+| OpenAI Assistants | API `tools` field with `type: "mcp"` |
+| Gemini for Workspace | Extensions → Custom MCP (preview) |
+| Glama.ai | Workspace → MCP Servers |
+| Smithery.ai | Catalog → Self-hosted server |
+
+> **Note:** HTTP/SSE mode (`hybrid`/`edge`) enables external connections. Always terminate TLS at a reverse proxy (nginx/Caddy) and restrict access by IP or API key. The `sovereign` mode refuses HTTP connections by design — air-gap integrity is preserved.
+
+#### Approach 3 — Smithery / MCP Registry (Community tier only)
+
+KHEPRA is listed on [Smithery.ai](https://smithery.ai) and the [MCP Registry](https://registry.modelcontextprotocol.io). Cloud tools that support registry-based discovery can install it directly:
+
+```
+Registry ID: io.github.nouchix/pqc-khepra-mcp
+```
+
+This runs the Community tier via Smithery's managed infrastructure. For sovereign deployment (air-gap, your data stays on your metal), use Options A or B above.
+
+---
+
+## Validation — Test Your Installation
+
+Run this from your terminal to verify the server responds correctly:
+
+```bash
+# Docker
+echo '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}' \
+  | docker run --rm -i -e KHEPRA_MODE=sovereign ghcr.io/nouchix/pqc-khepra-mcp:latest
+
+# Binary (Linux / macOS)
+echo '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}' \
+  | KHEPRA_MODE=sovereign ./khepra-mcp
+
+# Binary (Windows PowerShell)
+'{"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}' \
+  | & ".\khepra-mcp.exe"
+```
+
+Expected output: a JSON-RPC response listing all available tools. If you see `"tools": [...]` with 12+ entries — you're connected.
+
+#### Full protocol validation (Windows)
+
+```powershell
+# Runs the complete Claude Desktop handshake sequence and validates all responses
+.\scripts\test-mcp-handshake.ps1 -BinaryPath ".\khepra-mcp.exe"
+
+# Expected output:
+# [PASS] initialize | protocolVersion=2025-11-25 | listChanged=False
+# [PASS] tools/list | count=34
+# TRL-10 READY - Server passes full Claude Desktop protocol validation
+```
 
 ---
 
@@ -196,9 +544,14 @@ Set via `KHEPRA_MODE` environment variable. Unknown values are rejected at start
 |----------|----------|---------|-------------|
 | `KHEPRA_LICENSE_KEY` | Sovereign/Pharaoh only | — | License key. Community tier runs without one. Get at [nouchix.com](https://nouchix.com) |
 | `KHEPRA_MODE` | No | `sovereign` | Deployment mode: `sovereign`, `ironbank`, `hybrid`, `edge` |
+| `KHEPRA_MANIFEST_PATH` | No | `manifest.json` | Path to signed tool manifest file |
 | `KHEPRA_HOME` | No | `/var/lib/khepra` | Data and compliance DB directory |
 | `KHEPRA_LOG_DIR` | No | `/var/log/khepra` | Log directory |
 | `KHEPRA_DAG_PATH` | No | `~/.khepra/dag` | DAG audit chain storage path |
+| `KHEPRA_AUDIT_LOG_PATH` | No | `~/.khepra/audit.ndjson` | Signed audit log path |
+| `KHEPRA_MAX_CONCURRENT` | No | `5` | Max concurrent tool calls per agent |
+| `KHEPRA_NETWORK_POLICY` | No | `lan` | Network scope: `lan`, `none`, `unrestricted` |
+| `MCP_PQC_ENABLED` | No | `true` | Enable ML-DSA-65 PQC attestation on all responses |
 
 ---
 
@@ -230,7 +583,7 @@ docker load < khepra-mcp.tar.gz
 | NIST 800-171 | Rev 2 | 320 controls |
 | CMMC | Level 3 | Full practice set |
 | FedRAMP | High | Baseline scanning |
-| **PQC-01-STIG-V1R1** | V1R1 | **12 PQC controls (CNSA 2.0)** |
+| **PQC-01-STIG-V1R1** | V1R1 | **17 PQC controls (CNSA 2.0)** |
 | **Total** | | **36,195+ mappings** |
 
 ---
@@ -242,13 +595,11 @@ docker load < khepra-mcp.tar.gz
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
 | Community | Free | Not required | `pqc_stig` + 12 core tools |
-| Sovereign | Annual flat fee | Required | All 32 tools, air-gap, on-prem |
-| Pharaoh | Annual flat fee | Required | All 32 tools + priority support + SLA |
+| Sovereign | Annual flat fee | Required | All 34 tools, air-gap, on-prem |
+| Pharaoh | Annual flat fee | Required | All 34 tools + priority support + SLA |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
 - Sovereign/Pharaoh: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
-
----
 
 ---
 
@@ -325,7 +676,6 @@ Running continuously on constrained edge hardware since **May 12, 2026** to prov
 ---
 
 ## About NouchiX
-
 
 Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executive roadmaps.
 
