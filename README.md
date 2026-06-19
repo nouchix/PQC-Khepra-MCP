@@ -1,5 +1,6 @@
 # KHEPRA MCP Server
 
+[![smithery badge](https://smithery.ai/badge/skone/pqc-khepra-mcp)](https://smithery.ai/servers/skone/pqc-khepra-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io)
 [![License](https://img.shields.io/badge/License-Community%20%2F%20Commercial-green?style=for-the-badge)](https://nouchix.com)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
