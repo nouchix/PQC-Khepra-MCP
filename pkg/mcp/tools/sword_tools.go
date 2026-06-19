@@ -24,7 +24,6 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/graph"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/nhi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/packet"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanners"
@@ -252,15 +251,12 @@ func HandlePacketAnalyze(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 func HandleAttackGraph(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	// Build attack graph from current NHI inventory (no external agents needed)
 	nhiTracker := getNHI()
-	nhiRecords := nhiTracker.ListRecords()
-
-	// Convert NHI records to the format expected by graph.BuildAttackGraph
-	nhiPtrs := make([]*nhi.NHIRecord, len(nhiRecords))
-	for i := range nhiRecords {
-		nhiPtrs[i] = &nhiRecords[i]
+	nhiRecords, err := nhiTracker.Inventory()
+	if err != nil {
+		return nil, []string{fmt.Sprintf("attack_graph: nhi inventory: %v", err)}, nil
 	}
 
-	attackGraph := graph.BuildAttackGraph(nil, nhiPtrs)
+	attackGraph := graph.BuildAttackGraph(nil, nhiRecords)
 	graphJSON, err := attackGraph.ToJSON()
 	if err != nil {
 		return nil, nil, fmt.Errorf("attack_graph: %w", err)
