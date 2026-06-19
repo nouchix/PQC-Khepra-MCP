@@ -254,6 +254,14 @@ func (ws *WAFShield) Close() {
 	ws.cancelRotation()
 }
 
+// Rules returns a read-only copy of the WAF rule slice.
+// Used by external packages (e.g. transport_http) for logging/metrics.
+func (ws *WAFShield) Rules() []WAFRule {
+	out := make([]WAFRule, len(ws.rules))
+	copy(out, ws.rules)
+	return out
+}
+
 // ThreatChan returns the read-only channel of WAF threat events.
 // The Ouroboros WAFEye drains this channel each cycle.
 func (ws *WAFShield) ThreatChan() <-chan maat.Isfet {
