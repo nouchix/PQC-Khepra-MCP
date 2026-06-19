@@ -27,6 +27,9 @@ import (
 // Result is ML-DSA-65 signed and DAG-recorded under symbol Sankofa.
 // Suitable for DFIR evidence packages.
 func HandleForensicsCollect(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("forensic_snapshot"); gate != nil {
+		return gate, nil, nil
+	}
 	collector := forensics.NewCollector()
 	snapshot, err := collector.CollectSnapshot(ctx)
 	if err != nil {
@@ -57,6 +60,9 @@ func HandleForensicsCollect(ctx context.Context, call mcp.MCPToolCall) (any, []s
 // Monitors critical paths using the FIMWatcher with SHA-256 hash baselines.
 // Baseline is DAG-attested — future checks detect unauthorized modifications.
 func HandleFIMBaseline(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("fim_baseline"); gate != nil {
+		return gate, nil, nil
+	}
 	path, _ := call.Args["path"].(string)
 	if path == "" {
 		return nil, nil, fmt.Errorf("fim_baseline: path is required")
@@ -112,6 +118,9 @@ func HandleFIMCheck(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 
 // HandleAuditExport exports an audit report to CSV format for compliance submission.
 func HandleAuditExport(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("audit_dag_integrity"); gate != nil {
+		return gate, nil, nil
+	}
 	// Export the current DAG as a lightweight audit summary
 	store := getKASAStore()
 	nodes := store.All()

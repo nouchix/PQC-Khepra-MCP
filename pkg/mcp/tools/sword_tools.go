@@ -88,6 +88,9 @@ func HandleFingerprintDevice(ctx context.Context, call mcp.MCPToolCall) (any, []
 // Identifies open ports, banner-grabs services, and records the crawl artifact.
 // Maps to MITRE ATT&CK T1046 (Network Service Discovery).
 func HandlePortScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("port_scan"); gate != nil {
+		return gate, nil, nil
+	}
 	target, _ := call.Args["target"].(string)
 	if target == "" {
 		return nil, nil, fmt.Errorf("port_scan: target is required")
@@ -126,6 +129,9 @@ func HandlePortScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // Scans: Go modules, NPM, Python, container manifests, config files.
 // Returns: CVE IDs, CVSS scores, affected packages, and fix versions.
 func HandleVulnScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("vuln_scan"); gate != nil {
+		return gate, nil, nil
+	}
 	targetDir, _ := call.Args["target_dir"].(string)
 	if targetDir == "" {
 		targetDir = "."
@@ -162,6 +168,9 @@ func HandleVulnScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // Uses entropy analysis + pattern matching for AWS keys, GitHub tokens,
 // private keys, JWT secrets, database passwords, and more.
 func HandleSecretScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("secret_scan"); gate != nil {
+		return gate, nil, nil
+	}
 	targetDir, _ := call.Args["target_dir"].(string)
 	if targetDir == "" {
 		targetDir = "."
@@ -183,6 +192,9 @@ func HandleSecretScan(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 // HandleContainerScan analyzes Dockerfile and container manifests for
 // security misconfigurations and base image vulnerabilities.
 func HandleContainerScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("container_scan"); gate != nil {
+		return gate, nil, nil
+	}
 	imagePath, _ := call.Args["target_dir"].(string)
 	if imagePath == "" {
 		imagePath = "."
@@ -203,6 +215,9 @@ func HandleContainerScan(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 // HandleComplianceScan runs built-in compliance checks against CIS, STIG, and NIST baselines.
 // Returns pass/fail per control with remediation guidance.
 func HandleComplianceScan(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("compliance_scan"); gate != nil {
+		return gate, nil, nil
+	}
 	framework, _ := call.Args["framework"].(string)
 	if framework == "" {
 		framework = "ALL"
@@ -232,6 +247,9 @@ func HandleComplianceScan(ctx context.Context, call mcp.MCPToolCall) (any, []str
 // Extracts: protocol distribution, suspicious connections, DNS queries,
 // HTTP methods, potential C2 patterns.
 func HandlePacketAnalyze(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("packet_analyze"); gate != nil {
+		return gate, nil, nil
+	}
 	captureFile, _ := call.Args["capture_file"].(string)
 	if captureFile == "" {
 		return nil, nil, fmt.Errorf("packet_analyze: capture_file is required")
@@ -249,6 +267,9 @@ func HandlePacketAnalyze(ctx context.Context, call mcp.MCPToolCall) (any, []stri
 // Models lateral movement paths, privilege escalation vectors, and blast radius.
 // Returns a structured graph with per-path risk scores.
 func HandleAttackGraph(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("attack_graph"); gate != nil {
+		return gate, nil, nil
+	}
 	// Build attack graph from current NHI inventory (no external agents needed)
 	nhiTracker := getNHI()
 	nhiRecords, err := nhiTracker.Inventory()

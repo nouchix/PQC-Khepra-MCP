@@ -136,6 +136,9 @@ func HandlePQCKeygen(ctx context.Context, call mcp.MCPToolCall) (any, []string, 
 // HandleDAGWrite writes a manually-specified attested node to the shared KASA DAG.
 // Use this to attest arbitrary compliance events, human approvals, and audit points.
 func HandleDAGWrite(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("dag_write"); gate != nil {
+		return gate, nil, nil
+	}
 	action, _ := call.Args["action"].(string)
 	symbol, _ := call.Args["symbol"].(string)
 	if action == "" {
@@ -200,6 +203,9 @@ func HandleDAGQuery(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // HandleDAGAudit performs a full integrity audit of the KASA DAG.
 // Verifies: node count, parent linkage, PQC metadata completeness.
 func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("dag_audit"); gate != nil {
+		return gate, nil, nil
+	}
 	store := getKASAStore()
 	nodes := store.All()
 
@@ -244,6 +250,9 @@ func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // Engages: GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern.
 // Symbol binding: Eban (fortress/protection).
 func HandlePhantomStealth(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("phantom_stealth"); gate != nil {
+		return gate, nil, nil
+	}
 	symbol, _ := call.Args["symbol"].(string)
 	deviceID, _ := call.Args["device_id"].(string)
 	targetCity, _ := call.Args["target_city"].(string)
@@ -272,6 +281,9 @@ func HandlePhantomStealth(ctx context.Context, call mcp.MCPToolCall) (any, []str
 // HandleIdentityShroud encodes a strand (identity token, API key, or agent fingerprint)
 // using the Nkyinkyim mystery encoding for OPSEC identity protection.
 func HandleIdentityShroud(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("identity_shroud"); gate != nil {
+		return gate, nil, nil
+	}
 	strand, _ := call.Args["strand"].(string)
 	if strand == "" {
 		return nil, nil, fmt.Errorf("identity_shroud: strand is required")
@@ -289,6 +301,9 @@ func HandleIdentityShroud(ctx context.Context, call mcp.MCPToolCall) (any, []str
 
 // HandleIdentityEpiphany decodes a Nkyinkyim-shrouded strand back to plaintext.
 func HandleIdentityEpiphany(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("identity_epiphany"); gate != nil {
+		return gate, nil, nil
+	}
 	verse, _ := call.Args["verse"].(string)
 	if verse == "" {
 		return nil, nil, fmt.Errorf("identity_epiphany: verse is required")
@@ -312,6 +327,9 @@ func HandleIdentityEpiphany(ctx context.Context, call mcp.MCPToolCall) (any, []s
 // of the KHEPRA project. The backup is stored at the configured DRBC path.
 // Use HandleDRBCRestore to restore from this backup.
 func HandleDRBCBackup(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("drbc_backup"); gate != nil {
+		return gate, nil, nil
+	}
 	password, _ := call.Args["password"].(string)
 	if password == "" {
 		return nil, nil, fmt.Errorf("drbc_backup: password is required")
@@ -332,6 +350,9 @@ func HandleDRBCBackup(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 // HandleDRBCRestore restores the KHEPRA project from a DRBC genesis backup.
 // Requires the same password used during backup creation.
 func HandleDRBCRestore(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("drbc_restore"); gate != nil {
+		return gate, nil, nil
+	}
 	password, _ := call.Args["password"].(string)
 	targetDir, _ := call.Args["target_dir"].(string)
 	if password == "" || targetDir == "" {
