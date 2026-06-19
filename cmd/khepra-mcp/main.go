@@ -38,6 +38,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
@@ -236,11 +237,52 @@ func main() {
 	}
 
 	// ── Start HardenedServer ─────────────────────────────────────────────────
+	// Determine transport mode: HTTP/SSE if KHEPRA_HTTP_PORT is set and mode
+	// is non-air-gapped; stdio otherwise (sovereign/ironbank air-gap policy).
+	transportMode := khepramcp.TransportStdio
+	httpCfg := khepramcp.HTTPTransportConfig{}
+
+	if !runCfg.IsAirGapped {
+		if httpPort := os.Getenv("KHEPRA_HTTP_PORT"); httpPort != "" {
+			transportMode = khepramcp.TransportHTTP
+			httpCfg = khepramcp.HTTPTransportConfig{
+				ListenAddr:          ":" + httpPort,
+				MaxRequestSize:      4 << 20, // 4 MB
+				ReadTimeout:         30 * time.Second,
+				WriteTimeout:        0, // SSE streams must not time out mid-stream
+				AllowedOrigins:      allowedOriginsFromEnv(),
+				TLSCertFile:         os.Getenv("KHEPRA_TLS_CERT"),
+				TLSKeyFile:          os.Getenv("KHEPRA_TLS_KEY"),
+				EnableSecureHeaders: true,
+				SSE: khepramcp.SSEConfig{
+					MaxConns:    sseMaxConns(),
+					IdleTimeout: sseIdleTimeout(),
+					PingInterval: 30 * time.Second,
+				},
+			}
+			logger.Printf("  transport:      HTTP/SSE on port %s", httpPort)
+			if httpCfg.TLSCertFile != "" {
+				logger.Printf("  tls:           ENABLED (cert=%s)", httpCfg.TLSCertFile)
+			} else {
+				logger.Printf("  tls:           DISABLED (plain HTTP — use nginx/Fly TLS termination)")
+			}
+			logger.Printf("  cors_origins:   %v", httpCfg.AllowedOrigins)
+			logger.Printf("  sse_max_conns:  %d | sse_idle_timeout: %s",
+				httpCfg.SSE.MaxConns, httpCfg.SSE.IdleTimeout)
+		}
+	}
+
+	credential := any("stdio")
+	if transportMode == khepramcp.TransportHTTP {
+		credential = nil // HTTP transport resolves credentials per-request
+	}
+
 	server, err := khepramcp.NewHardenedServer(khepramcp.HardenedServerConfig{
-		Mode:       khepramcp.TransportStdio,
+		Mode:       transportMode,
 		Router:     router,
 		Logger:     logger,
-		Credential: "stdio", // Pre-authenticated for subprocess model
+		Credential: credential,
+		HTTPConfig: httpCfg,
 	})
 	if err != nil {
 		logger.Fatalf("FATAL: server construction failed: %v", err)
@@ -1027,3 +1069,55 @@ func sanitizeLog(s string) string {
 		return r
 	}, s)
 }
+
+// allowedOriginsFromEnv reads KHEPRA_CORS_ORIGINS (comma-separated).
+// Defaults to Smithery domains for edge/hybrid mode.
+// Wildcard "*" is explicitly rejected — no-wildcard CORS is a hard requirement.
+func allowedOriginsFromEnv() []string {
+	if v := os.Getenv("KHEPRA_CORS_ORIGINS"); v != "" {
+		var origins []string
+		for _, o := range strings.Split(v, ",") {
+			o = strings.TrimSpace(o)
+			if o == "*" {
+				// Wildcard CORS is prohibited (security policy). Skip silently
+				// and log on stderr so the operator knows.
+				log.Println("WARN: wildcard CORS origin '*' rejected — KHEPRA_CORS_ORIGINS must list explicit origins")
+				continue
+			}
+			if o != "" {
+				origins = append(origins, o)
+			}
+		}
+		if len(origins) > 0 {
+			return origins
+		}
+	}
+	// Secure defaults: Smithery domains for tool registry / discovery.
+	return []string{
+		"https://smithery.ai",
+		"https://server.smithery.ai",
+		"https://adinkhepra.com",
+		"https://souhimbou.ai",
+	}
+}
+
+// sseMaxConns returns the configured max concurrent SSE connections.
+func sseMaxConns() int {
+	if v := os.Getenv("KHEPRA_SSE_MAX_CONNS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 50 // Conservative default — prevents file descriptor exhaustion
+}
+
+// sseIdleTimeout returns the configured SSE stream max lifetime.
+func sseIdleTimeout() time.Duration {
+	if v := os.Getenv("KHEPRA_SSE_IDLE_TIMEOUT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return time.Duration(n) * time.Second
+		}
+	}
+	return 60 * time.Minute // Force reconnect every hour (token rotation)
+}
+
