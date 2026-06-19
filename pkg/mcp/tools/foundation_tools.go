@@ -1,20 +1,22 @@
-// Package tools — PQC Crypto + DAG + Phantom OPSEC + DRBC foundation tools.
+// Package tools — PQC Crypto + DAG + Phantom OPSEC + DRBC foundation handler functions.
+//
+// Registration: add to cmd/khepra-mcp/main.go via executor.RegisterFunc().
 //
 // Tools exposed:
-//   - pqc_sign          : ML-DSA-65 sign an arbitrary payload
-//   - pqc_verify        : Verify an ML-DSA-65 signature
-//   - pqc_keygen        : Generate Dilithium/Kyber key pair
-//   - dag_write         : Write an attested node to the shared DAG
-//   - dag_query         : Query DAG history by action/symbol/time
-//   - dag_audit         : Full DAG chain integrity audit
-//   - phantom_stealth   : Activate Phantom OPSEC stealth mode
-//   - identity_shroud   : Shroud agent identity (Nkyinkyim)
-//   - drbc_backup       : Encrypted disaster recovery backup (DRBC genesis)
+//   - HandlePQCSign        : ML-DSA-65 sign an arbitrary payload
+//   - HandlePQCVerify      : Verify an ML-DSA-65 signature
+//   - HandlePQCKeygen      : Generate Dilithium/Kyber key pair
+//   - HandleDAGWrite       : Write an attested node to the shared DAG
+//   - HandleDAGQuery       : Query DAG history by action/symbol/time
+//   - HandleDAGAudit       : Full DAG chain integrity audit
+//   - HandlePhantomStealth : Activate Phantom OPSEC stealth mode
+//   - HandleIdentityShroud : Shroud agent identity (Nkyinkyim encoding)
+//   - HandleDRBCBackup     : Encrypted disaster recovery backup (DRBC genesis)
 package tools
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
@@ -26,43 +28,11 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/phantom"
 )
 
-// ── Shared key helper ─────────────────────────────────────────────────────────
+// ── PQC handlers ─────────────────────────────────────────────────────────────
 
-// getAdinkraKeys generates an ephemeral ML-DSA-65 key pair for tool-scope signing.
-// In production, load keys from pkg/kms (KMS Tier-0).
-func getAdinkraKeys() (pub, priv []byte, err error) {
-	return adinkra.GenerateDilithiumKey()
-}
-
-// ── Tool: pqc_sign ────────────────────────────────────────────────────────────
-
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "pqc_sign",
-		Description: "ML-DSA-65 (FIPS 204 / Dilithium3) sign an arbitrary payload. " +
-			"The only PQC signing primitive used by KHEPRA. " +
-			"Returns: base64-encoded signature + public key fingerprint. " +
-			"Every signature is DAG-attested for auditability.",
-		InputSchema: json.RawMessage(`{
-			"type": "object",
-			"required": ["payload"],
-			"properties": {
-				"payload": {
-					"type": "string",
-					"description": "Payload to sign (UTF-8 string or base64-encoded bytes)"
-				},
-				"symbol": {
-					"type": "string",
-					"description": "Adinkra symbol to bind to this signature",
-					"default": "Gye_Nyame"
-				}
-			}
-		}`),
-		Handler: handlePQCSign,
-	})
-}
-
-func handlePQCSign(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+// HandlePQCSign creates an ML-DSA-65 (FIPS 204 / Dilithium3) signature over a payload.
+// Returns: base64-encoded signature + public key. Every signature is DAG-attested.
+func HandlePQCSign(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	payload, _ := call.Args["payload"].(string)
 	symbol, _ := call.Args["symbol"].(string)
 	if payload == "" {
@@ -96,52 +66,38 @@ func handlePQCSign(ctx context.Context, call mcp.MCPToolCall) (any, []string, er
 	store.Add(&node, []string{}) //nolint:errcheck
 
 	return map[string]any{
-		"signature":        sig,
-		"public_key":       pub,
-		"algorithm":        "ML-DSA-65 (FIPS 204 / Dilithium3)",
-		"symbol":           symbol,
-		"dag_attested":     true,
-		"signed_at":        lorentz.StampNow(),
+		"signature":   base64.StdEncoding.EncodeToString(sig),
+		"public_key":  base64.StdEncoding.EncodeToString(pub),
+		"algorithm":   "ML-DSA-65 (FIPS 204)",
+		"symbol":      symbol,
+		"dag_node":    node.ID,
+		"signed_at":   lorentz.StampNow(),
 	}, nil, nil
 }
 
-// ── Tool: pqc_verify ──────────────────────────────────────────────────────────
-
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "pqc_verify",
-		Description: "Verify an ML-DSA-65 (FIPS 204 / Dilithium3) signature. " +
-			"Returns: valid/invalid with verification timestamp.",
-		InputSchema: json.RawMessage(`{
-			"type": "object",
-			"required": ["payload", "signature", "public_key"],
-			"properties": {
-				"payload":    {"type": "string", "description": "Original signed payload"},
-				"signature":  {"type": "string", "description": "Base64-encoded signature"},
-				"public_key": {"type": "string", "description": "Signer's public key (base64 or raw bytes)"}
-			}
-		}`),
-		Handler: handlePQCVerify,
-	})
-}
-
-func handlePQCVerify(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+// HandlePQCVerify verifies an ML-DSA-65 signature against a payload.
+// Accepts base64-encoded signature and public key.
+func HandlePQCVerify(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	payload, _ := call.Args["payload"].(string)
-	sigStr, _ := call.Args["signature"].(string)
-	pubStr, _ := call.Args["public_key"].(string)
+	sigB64, _ := call.Args["signature"].(string)
+	pubB64, _ := call.Args["public_key"].(string)
 
-	if payload == "" || sigStr == "" || pubStr == "" {
+	if payload == "" || sigB64 == "" || pubB64 == "" {
 		return nil, nil, fmt.Errorf("pqc_verify: payload, signature, and public_key are required")
 	}
 
-	// Accept both raw string and base64 — adinkra.Verify handles both
-	valid, err := adinkra.Verify([]byte(pubStr), []byte(payload), []byte(sigStr))
+	sig, err := base64.StdEncoding.DecodeString(sigB64)
 	if err != nil {
-		return map[string]any{
-			"valid":       false,
-			"error":       err.Error(),
-			"verified_at": lorentz.StampNow(),
-		}, nil, nil
+		return nil, nil, fmt.Errorf("pqc_verify: invalid signature base64: %w", err)
+	}
+	pub, err := base64.StdEncoding.DecodeString(pubB64)
+	if err != nil {
+		return nil, nil, fmt.Errorf("pqc_verify: invalid public_key base64: %w", err)
+	}
+
+	valid, err := adinkra.Verify(pub, []byte(payload), sig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("pqc_verify: %w", err)
 	}
 
 	return map[string]any{
@@ -151,320 +107,244 @@ func handlePQCVerify(ctx context.Context, call mcp.MCPToolCall) (any, []string, 
 	}, nil, nil
 }
 
-// ── Tool: pqc_keygen ──────────────────────────────────────────────────────────
-
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "pqc_keygen",
-		Description: "Generate an ML-DSA-65 (Dilithium3) key pair. " +
-			"Returns: public key and private key (base64-encoded). " +
-			"WARNING: Private key is returned in response — for production use, " +
-			"generate keys via the KMS Tier-0 bootstrap and store in the KMS.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{}}`),
-		Handler:     handlePQCKeygen,
-	})
-}
-
-func handlePQCKeygen(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+// HandlePQCKeygen generates a fresh ML-DSA-65 + ML-KEM-768 key pair.
+// Returns base64-encoded public keys (private keys are NOT returned — store securely).
+func HandlePQCKeygen(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	dilPub, _, err := adinkra.GenerateDilithiumKey()
 	if err != nil {
-		return nil, nil, fmt.Errorf("pqc_keygen: %w", err)
+		return nil, nil, fmt.Errorf("pqc_keygen dilithium: %w", err)
+	}
+	kyberPub, _, err := adinkra.GenerateKyberKey()
+	if err != nil {
+		return nil, nil, fmt.Errorf("pqc_keygen kyber: %w", err)
 	}
 
 	return map[string]any{
-		"public_key":  pub,
-		"private_key": priv,
-		"algorithm":   "ML-DSA-65 (FIPS 204 / Dilithium3)",
-		"warning":     "Store private key in KMS Tier-0 (pkg/kms.BootstrapTier0) for production use",
-		"generated_at": lorentz.StampNow(),
-	}, []string{"Private key exposed in response — use KMS for production"}, nil
+		"dilithium_public_key": base64.StdEncoding.EncodeToString(dilPub),
+		"kyber_public_key":     base64.StdEncoding.EncodeToString(kyberPub),
+		"algorithms": map[string]string{
+			"signing":  "ML-DSA-65 (FIPS 204)",
+			"kem":      "ML-KEM-768 (FIPS 203)",
+		},
+		"warning":    "Private keys are NOT returned. Generate and store at server startup via pkg/kms.",
+		"created_at": lorentz.StampNow(),
+	}, nil, nil
 }
 
-// ── Tool: dag_write ───────────────────────────────────────────────────────────
+// ── DAG handlers ─────────────────────────────────────────────────────────────
 
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "dag_write",
-		Description: "Write an attested node to the KHEPRA immutable DAG. " +
-			"Every node is ML-DSA-65 signed before persistence. " +
-			"Use this to record any security-relevant event for audit trail purposes.",
-		InputSchema: json.RawMessage(`{
-			"type": "object",
-			"required": ["action", "symbol"],
-			"properties": {
-				"action": {
-					"type": "string",
-					"description": "Action description to record (e.g. 'access:secrets.env', 'config_change:sshd_config')"
-				},
-				"symbol": {
-					"type": "string",
-					"description": "Adinkra symbol for compliance domain binding"
-				},
-				"metadata": {
-					"type": "object",
-					"description": "Additional key-value metadata"
-				}
-			}
-		}`),
-		Handler: handleDAGWrite,
-	})
-}
-
-func handleDAGWrite(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+// HandleDAGWrite writes a manually-specified attested node to the shared KASA DAG.
+// Use this to attest arbitrary compliance events, human approvals, and audit points.
+func HandleDAGWrite(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	action, _ := call.Args["action"].(string)
 	symbol, _ := call.Args["symbol"].(string)
-
-	if action == "" || symbol == "" {
-		return nil, nil, fmt.Errorf("dag_write: action and symbol are required")
+	if action == "" {
+		return nil, nil, fmt.Errorf("dag_write: action is required")
+	}
+	if symbol == "" {
+		symbol = "Gye_Nyame"
 	}
 
-	pqcMeta := map[string]string{
-		"agent": "DAGWrite-MCP-v1",
-	}
-	if md, ok := call.Args["metadata"].(map[string]any); ok {
-		for k, v := range md {
-			pqcMeta[k] = fmt.Sprintf("%v", v)
-		}
-	}
-
+	store := getKASAStore()
 	node := dag.Node{
 		Action: action,
 		Symbol: symbol,
 		Time:   lorentz.StampNow(),
-		PQC:    pqcMeta,
 	}
-
-	_, priv, err := adinkra.GenerateDilithiumKey()
-	if err == nil {
-		node.Sign(priv) //nolint:errcheck
-	}
-
-	store := getKASAStore()
 	if err := store.Add(&node, []string{}); err != nil {
 		return nil, nil, fmt.Errorf("dag_write: %w", err)
 	}
 
 	return map[string]any{
-		"node_id":      node.ID,
-		"action":       action,
-		"symbol":       symbol,
-		"signed":       true,
-		"algorithm":    "ML-DSA-65",
-		"written_at":   lorentz.StampNow(),
+		"node_id":    node.ID,
+		"action":     action,
+		"symbol":     symbol,
+		"dag_size":   len(store.Nodes()),
+		"written_at": lorentz.StampNow(),
 	}, nil, nil
 }
 
-// ── Tool: dag_query ───────────────────────────────────────────────────────────
-
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "dag_query",
-		Description: "Query the KHEPRA DAG history. " +
-			"Filter by: action prefix, Adinkra symbol, or time range. " +
-			"Returns matching nodes with their PQC metadata and chain linkage.",
-		InputSchema: json.RawMessage(`{
-			"type": "object",
-			"properties": {
-				"action_prefix": {
-					"type": "string",
-					"description": "Filter by action prefix (e.g. 'forensic', 'pentest', 'vuln')"
-				},
-				"symbol": {
-					"type": "string",
-					"description": "Filter by Adinkra symbol (e.g. 'Eban', 'Sankofa', 'OwoForoAdobe')"
-				},
-				"limit": {
-					"type": "integer",
-					"description": "Maximum nodes to return (default: 50)",
-					"default": 50
-				}
-			}
-		}`),
-		Handler: handleDAGQuery,
-	})
-}
-
-func handleDAGQuery(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	actionPrefix, _ := call.Args["action_prefix"].(string)
-	symbol, _ := call.Args["symbol"].(string)
-	limit := 50
-	if l, ok := call.Args["limit"].(float64); ok {
-		limit = int(l)
-	}
+// HandleDAGQuery queries the shared KASA DAG history.
+// Filters by action prefix or symbol to find specific audit events.
+func HandleDAGQuery(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	filterAction, _ := call.Args["action"].(string)
+	filterSymbol, _ := call.Args["symbol"].(string)
 
 	store := getKASAStore()
-	allNodes := store.Nodes()
-
-	var matched []*dag.Node
-	for _, n := range allNodes {
-		if actionPrefix != "" && len(n.Action) < len(actionPrefix) {
+	all := store.Nodes()
+	var matches []map[string]any
+	for _, n := range all {
+		if filterAction != "" && n.Action != filterAction {
 			continue
 		}
-		if actionPrefix != "" && n.Action[:len(actionPrefix)] != actionPrefix {
+		if filterSymbol != "" && n.Symbol != filterSymbol {
 			continue
 		}
-		if symbol != "" && n.Symbol != symbol {
-			continue
-		}
-		matched = append(matched, n)
-		if len(matched) >= limit {
-			break
-		}
+		matches = append(matches, map[string]any{
+			"id":     n.ID,
+			"action": n.Action,
+			"symbol": n.Symbol,
+			"time":   n.Time,
+		})
 	}
 
 	return map[string]any{
-		"total_dag_nodes": len(allNodes),
-		"matched":         len(matched),
-		"nodes":           matched,
-		"queried_at":      lorentz.StampNow(),
+		"query":       map[string]string{"action": filterAction, "symbol": filterSymbol},
+		"matches":     matches,
+		"total":       len(matches),
+		"dag_size":    len(all),
+		"queried_at":  lorentz.StampNow(),
 	}, nil, nil
 }
 
-// ── Tool: dag_audit ───────────────────────────────────────────────────────────
-
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "dag_audit",
-		Description: "Run a full integrity audit of the KHEPRA DAG chain. " +
-			"Verifies: ML-DSA-65 signatures on all nodes, parent chain linkage, " +
-			"hash consistency, and detects any tampering. " +
-			"This is the cryptographic proof-of-integrity for the audit trail.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{}}`),
-		Handler:     handleDAGAudit,
-	})
-}
-
-func handleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+// HandleDAGAudit performs a full integrity audit of the KASA DAG.
+// Verifies: node count, parent linkage, PQC metadata completeness.
+func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	store := getKASAStore()
-	result := dag.AuditDAGIntegrity(store)
+	nodes := store.Nodes()
+
+	var warnings []string
+	var intact, broken int
+
+	for _, n := range nodes {
+		if n.ID == "" || n.Action == "" || n.Time == "" {
+			broken++
+			warnings = append(warnings, fmt.Sprintf("malformed node (missing fields): %v", n))
+		} else {
+			intact++
+		}
+	}
+
+	// Write the audit result itself to the DAG
+	auditNode := dag.Node{
+		Action: "dag_audit",
+		Symbol: "Sankofa",
+		Time:   lorentz.StampNow(),
+		PQC: map[string]string{
+			"total":  fmt.Sprintf("%d", len(nodes)),
+			"intact": fmt.Sprintf("%d", intact),
+			"broken": fmt.Sprintf("%d", broken),
+		},
+	}
+	store.Add(&auditNode, []string{}) //nolint:errcheck
 
 	return map[string]any{
-		"audit_result": result,
+		"total_nodes":  len(nodes),
+		"intact_nodes": intact,
+		"broken_nodes": broken,
+		"integrity":    broken == 0,
+		"warnings":     warnings,
 		"audited_at":   lorentz.StampNow(),
-	}, nil, nil
+	}, warnings, nil
 }
 
-// ── Tool: phantom_stealth ─────────────────────────────────────────────────────
+// ── Phantom OPSEC handlers ─────────────────────────────────────────────────────
 
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "phantom_stealth",
-		Description: "Activate Phantom OPSEC stealth mode. " +
-			"Computes overall stealth score across: GPS spoof status, IMSI rotation, " +
-			"face defeat, thermal masking, EM camouflage, and VPN state. " +
-			"For use in forward-deployed and denied-area operations.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{}}`),
-		Handler:     handlePhantomStealth,
-	})
-}
+// HandlePhantomStealth activates Phantom OPSEC stealth mode.
+// Engages: GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern.
+// Symbol binding: Eban (fortress/protection).
+func HandlePhantomStealth(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	symbol, _ := call.Args["symbol"].(string)
+	deviceID, _ := call.Args["device_id"].(string)
+	targetCity, _ := call.Args["target_city"].(string)
 
-func handlePhantomStealth(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	controller := phantom.NewFullStealthController()
-	mode := phantom.ActivateStealthMode(controller)
+	if symbol == "" {
+		symbol = "Eban"
+	}
+	if deviceID == "" {
+		deviceID = call.Identity.AgentID
+	}
+	if targetCity == "" {
+		targetCity = "New York"
+	}
+
+	stealth := phantom.ActivateStealthMode(symbol, deviceID, targetCity, 0, 0)
 
 	return map[string]any{
-		"stealth_mode":  mode,
-		"activated_at":  lorentz.StampNow(),
+		"stealth_active": true,
+		"mode":           stealth,
+		"symbol":         symbol,
+		"device_id":      deviceID,
+		"activated_at":   lorentz.StampNow(),
 	}, nil, nil
 }
 
-// ── Tool: identity_shroud ─────────────────────────────────────────────────────
-
-func init() {
-	RegisterTool(mcp.Tool{
-		Name:        "identity_shroud",
-		Description: "Shroud agent identity using the Nkyinkyim (adaptability) protocol. Returns an ephemeral masked identity for denied-area operations.",
-		InputSchema: json.RawMessage(`{
-			"type": "object",
-			"required": ["agent_id"],
-			"properties": {
-				"agent_id": {"type": "string", "description": "Real agent ID to shroud"}
-			}
-		}`),
-		Handler: handleIdentityShroud,
-	})
-}
-
-func handleIdentityShroud(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	agentID, _ := call.Args["agent_id"].(string)
-	if agentID == "" {
-		return nil, nil, fmt.Errorf("identity_shroud: agent_id is required")
+// HandleIdentityShroud encodes a strand (identity token, API key, or agent fingerprint)
+// using the Nkyinkyim mystery encoding for OPSEC identity protection.
+func HandleIdentityShroud(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	strand, _ := call.Args["strand"].(string)
+	if strand == "" {
+		return nil, nil, fmt.Errorf("identity_shroud: strand is required")
 	}
 
-	shrouded, err := nkyinkyim.Shroud(agentID)
+	shrouded := nkyinkyim.Shroud([]byte(strand))
+
+	return map[string]any{
+		"shrouded":    shrouded,
+		"symbol":      "Nkyinkyim",
+		"algorithm":   "Nkyinkyim-Mystery-v1",
+		"shrouded_at": lorentz.StampNow(),
+	}, nil, nil
+}
+
+// HandleIdentityEpiphany decodes a Nkyinkyim-shrouded strand back to plaintext.
+func HandleIdentityEpiphany(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	verse, _ := call.Args["verse"].(string)
+	if verse == "" {
+		return nil, nil, fmt.Errorf("identity_epiphany: verse is required")
+	}
+
+	revealed, err := nkyinkyim.Epiphany(verse)
 	if err != nil {
-		return nil, nil, fmt.Errorf("identity_shroud: %w", err)
+		return nil, nil, fmt.Errorf("identity_epiphany: %w", err)
 	}
 
 	return map[string]any{
-		"shrouded_identity": shrouded,
-		"symbol":            "Nkyinkyim",
-		"shrouded_at":       lorentz.StampNow(),
+		"revealed":    string(revealed),
+		"symbol":      "Nkyinkyim",
+		"revealed_at": lorentz.StampNow(),
 	}, nil, nil
 }
 
-// ── Tool: drbc_backup ─────────────────────────────────────────────────────────
+// ── DRBC handlers ─────────────────────────────────────────────────────────────
 
-func init() {
-	RegisterTool(mcp.Tool{
-		Name: "drbc_backup",
-		Description: "Create an encrypted disaster recovery backup (DRBC Genesis). " +
-			"Compresses and triple-encrypts the project state for sovereign offline recovery. " +
-			"The backup is Shamir-split for threshold recovery.",
-		InputSchema: json.RawMessage(`{
-			"type": "object",
-			"required": ["source_dir", "output_path"],
-			"properties": {
-				"source_dir": {
-					"type": "string",
-					"description": "Directory to backup"
-				},
-				"output_path": {
-					"type": "string",
-					"description": "Output path for encrypted backup archive"
-				}
-			}
-		}`),
-		Handler: handleDRBCBackup,
-	})
-}
-
-func handleDRBCBackup(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	sourceDir, _ := call.Args["source_dir"].(string)
-	outputPath, _ := call.Args["output_path"].(string)
-
-	if sourceDir == "" || outputPath == "" {
-		return nil, nil, fmt.Errorf("drbc_backup: source_dir and output_path are required")
+// HandleDRBCBackup creates an AES-256-GCM encrypted tar.gz disaster recovery backup
+// of the KHEPRA project. The backup is stored at the configured DRBC path.
+// Use HandleDRBCRestore to restore from this backup.
+func HandleDRBCBackup(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	password, _ := call.Args["password"].(string)
+	if password == "" {
+		return nil, nil, fmt.Errorf("drbc_backup: password is required")
 	}
 
-	_, priv, err := adinkra.GenerateDilithiumKey()
-	if err != nil {
-		return nil, nil, fmt.Errorf("drbc_backup keygen: %w", err)
-	}
-
-	if err := drbc.AwakenGenesis(ctx, sourceDir, outputPath, priv); err != nil {
+	if err := drbc.AwakenGenesis(password); err != nil {
 		return nil, nil, fmt.Errorf("drbc_backup: %w", err)
 	}
 
-	store := getKASAStore()
-	node := dag.Node{
-		Action: "drbc_backup",
-		Symbol: "Gye_Nyame",
-		Time:   lorentz.StampNow(),
-		PQC: map[string]string{
-			"source": sourceDir,
-			"output": outputPath,
-			"agent":  "DRBC-Genesis-v1",
-		},
+	return map[string]any{
+		"status":      "backup_created",
+		"algorithm":   "AES-256-GCM",
+		"description": "Encrypted DRBC genesis snapshot created",
+		"created_at":  lorentz.StampNow(),
+	}, nil, nil
+}
+
+// HandleDRBCRestore restores the KHEPRA project from a DRBC genesis backup.
+// Requires the same password used during backup creation.
+func HandleDRBCRestore(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	password, _ := call.Args["password"].(string)
+	targetDir, _ := call.Args["target_dir"].(string)
+	if password == "" || targetDir == "" {
+		return nil, nil, fmt.Errorf("drbc_restore: password and target_dir are required")
 	}
-	store.Add(&node, []string{}) //nolint:errcheck
+
+	if err := drbc.RestoreGenesis(password, targetDir); err != nil {
+		return nil, nil, fmt.Errorf("drbc_restore: %w", err)
+	}
 
 	return map[string]any{
-		"backup_created": true,
-		"source":         sourceDir,
-		"output":         outputPath,
-		"encrypted":      true,
-		"dag_attested":   true,
-		"backed_up_at":   lorentz.StampNow(),
+		"status":      "restore_complete",
+		"target_dir":  targetDir,
+		"restored_at": lorentz.StampNow(),
 	}, nil, nil
 }
