@@ -58,8 +58,7 @@ tools/
 deploy/
 aws-govcloud/
 data/
-keys/
-!pkg/license/keys/
+/keys/
 telemetry-keys/
 .venv/
 venv/
