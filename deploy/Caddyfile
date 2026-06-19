@@ -1,23 +1,13 @@
 # Caddyfile — reverse proxy for khepra-mcp
-# Phase 1: Plain HTTP on port 80 (no TLS until DNS A record is configured)
-# Phase 2: Uncomment mcp.souhimbou.ai block and remove :80 block for auto-TLS
+# Caddy auto-provisions Let's Encrypt TLS for mcp.souhimbou.ai
 
-:80 {
+mcp.souhimbou.ai {
     reverse_proxy khepra-mcp:8080
 
     header {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
+        Access-Control-Allow-Origin https://smithery.ai
     }
 }
-
-# Uncomment after DNS A record mcp.souhimbou.ai → 2.24.105.170 is live:
-# mcp.souhimbou.ai {
-#     reverse_proxy khepra-mcp:8080
-#     header {
-#         X-Content-Type-Options nosniff
-#         X-Frame-Options DENY
-#         Referrer-Policy strict-origin-when-cross-origin
-#     }
-# }
