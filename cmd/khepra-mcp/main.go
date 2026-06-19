@@ -450,6 +450,54 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// Detects project technology profile and generates a context-aware
 	// STRIDE threat catalog with NIST 800-53 / CMMC / ATT&CK mappings.
 	executor.RegisterFunc("threat_model", tools.HandleThreatModel)
+
+	// ── Sprint 1: KASA Brain (AGI + EA + Ising Quantum) ─────────────────────
+	executor.RegisterFunc("kasa_start", tools.HandleKASAStart)
+	executor.RegisterFunc("kasa_status", tools.HandleKASAStatus)
+	executor.RegisterFunc("ea_evolve", tools.HandleEAEvolve)
+	executor.RegisterFunc("ea_threat_score", tools.HandleEAThreatScore)
+	executor.RegisterFunc("ea_risk_summary", tools.HandleEARiskSummary)
+	executor.RegisterFunc("quantum_optimize", tools.HandleQuantumOptimize)
+
+	// ── Sprint 2: Shield (IR + Intel + Flight Recorder + Ouroboros WAF) ──────
+	executor.RegisterFunc("threat_lookup", tools.HandleThreatLookup)
+	executor.RegisterFunc("drift_detect", tools.HandleDriftDetect)
+	executor.RegisterFunc("ir_incident", tools.HandleIRIncident)
+	executor.RegisterFunc("ir_add_ioc", tools.HandleIRAddIOC)
+	executor.RegisterFunc("flight_record", tools.HandleFlightRecord)
+	executor.RegisterFunc("ouroboros_waf_eye", tools.HandleOuroborosWAFEye)
+	executor.RegisterFunc("ouroboros_stig_eye", tools.HandleOuroborosSTIGEye)
+	executor.RegisterFunc("ouroboros_vuln_eye", tools.HandleOuroborosVulnEye)
+	executor.RegisterFunc("ouroboros_fim_eye", tools.HandleOuroborosFIMEye)
+
+	// ── Sprint 3: Memory (Forensics + FIM + Audit) ──────────────────────────
+	executor.RegisterFunc("forensic_snapshot", tools.HandleForensicsCollect)
+	executor.RegisterFunc("fim_baseline", tools.HandleFIMBaseline)
+	executor.RegisterFunc("audit_dag_integrity", tools.HandleAuditExport)
+
+	// ── Sprint 4: Sword (Recon + Scanning + Attack Graph) ───────────────────
+	executor.RegisterFunc("enumerate_host", tools.HandleEnumerateHost)
+	executor.RegisterFunc("fingerprint_device", tools.HandleFingerprintDevice)
+	executor.RegisterFunc("port_scan", tools.HandlePortScan)
+	executor.RegisterFunc("vuln_scan", tools.HandleVulnScan)
+	executor.RegisterFunc("secret_scan", tools.HandleSecretScan)
+	executor.RegisterFunc("container_scan", tools.HandleContainerScan)
+	executor.RegisterFunc("compliance_scan", tools.HandleComplianceScan)
+	executor.RegisterFunc("packet_analyze", tools.HandlePacketAnalyze)
+	executor.RegisterFunc("attack_graph", tools.HandleAttackGraph)
+
+	// ── Sprint 5: Foundation (PQC Crypto + DAG + Phantom + DRBC) ────────────
+	executor.RegisterFunc("pqc_sign", tools.HandlePQCSign)
+	executor.RegisterFunc("pqc_verify", tools.HandlePQCVerify)
+	executor.RegisterFunc("pqc_keygen", tools.HandlePQCKeygen)
+	executor.RegisterFunc("dag_write", tools.HandleDAGWrite)
+	executor.RegisterFunc("dag_query", tools.HandleDAGQuery)
+	executor.RegisterFunc("dag_audit", tools.HandleDAGAudit)
+	executor.RegisterFunc("phantom_stealth", tools.HandlePhantomStealth)
+	executor.RegisterFunc("identity_shroud", tools.HandleIdentityShroud)
+	executor.RegisterFunc("identity_epiphany", tools.HandleIdentityEpiphany)
+	executor.RegisterFunc("drbc_backup", tools.HandleDRBCBackup)
+	executor.RegisterFunc("drbc_restore", tools.HandleDRBCRestore)
 }
 
 // ─── Manifest Loading ──────────────────────────────────────────────────────────
@@ -1031,6 +1079,275 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 					"scope":        map[string]any{"type": "string", "enum": []string{"application", "infrastructure", "ai-agent", "full"}, "description": "Threat modeling scope (default: application)"},
 				},
 			},
+		},
+
+		// ── Sprint 1: KASA Brain ─────────────────────────────────────────────
+		{Name: "kasa_start", Description: "Start the KASA AGI orchestrator with task assignment and DAG attestation",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:control",
+			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_start"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"tasks": map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Task descriptions for KASA to execute"},
+			}},
+		},
+		{Name: "kasa_status", Description: "Get KASA AGI orchestrator status including active tasks, DAG node count, and license tier",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_status"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "ea_evolve", Description: "Run N generations of the Evolutionary Algorithm to optimize security strategy genomes",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "ea:compute",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ea_evolve"), AllowedBackend: "in-process", TimeoutMs: 120000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"generations":     map[string]any{"type": "integer", "description": "Number of EA generations (default: 10)"},
+				"population_size": map[string]any{"type": "integer", "description": "Population size (default: 50)"},
+			}},
+		},
+		{Name: "ea_threat_score", Description: "EA KernelRouter composite threat score for a target path",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "ea:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ea_threat_score"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"target": map[string]any{"type": "string", "description": "Target path to score (default: current directory)"},
+			}},
+		},
+		{Name: "ea_risk_summary", Description: "EA KernelRouter full risk synthesis — vulnerability, compliance, PQC, blast radius",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "ea:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ea_risk_summary"), AllowedBackend: "in-process", TimeoutMs: 120000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"target": map[string]any{"type": "string", "description": "Target path for risk assessment"},
+			}},
+		},
+		{Name: "quantum_optimize", Description: "Ising model quantum-inspired optimizer for compliance control allocation",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "ising:compute",
+			SchemaVersion: "1.0.0", SchemaHash: hash("quantum_optimize"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"spins": map[string]any{"type": "integer", "description": "Number of Ising spins / control nodes (default: 16)"},
+				"steps": map[string]any{"type": "integer", "description": "Annealing steps (default: 1000)"},
+			}},
+		},
+
+		// ── Sprint 2: Shield ──────────────────────────────────────────────────
+		{Name: "threat_lookup", Description: "Query KHEPRA threat intel KB — CVE/MITRE ATT&CK tactics and techniques",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "threat:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("threat_lookup"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"query"}, "properties": map[string]any{
+				"query": map[string]any{"type": "string", "description": "CVE ID, MITRE technique, or keyword"},
+			}},
+		},
+		{Name: "drift_detect", Description: "Detect threat intelligence drift from compliance baseline",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "threat:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("drift_detect"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "ir_incident", Description: "Create a new incident in the KHEPRA IR Manager — ML-DSA-65 signed",
+			RiskClass: khepramcp.RiskDestructive, Scope: "ir:write", Destructive: true,
+			SchemaVersion: "1.0.0", SchemaHash: hash("ir_incident"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"title", "severity"}, "properties": map[string]any{
+				"title":       map[string]any{"type": "string", "description": "Incident title"},
+				"severity":    map[string]any{"type": "string", "description": "Severity: CRITICAL, HIGH, MEDIUM, LOW"},
+				"description": map[string]any{"type": "string", "description": "Incident description"},
+			}},
+		},
+		{Name: "ir_add_ioc", Description: "Add an Indicator of Compromise to an existing incident",
+			RiskClass: khepramcp.RiskDestructive, Scope: "ir:write", Destructive: true,
+			SchemaVersion: "1.0.0", SchemaHash: hash("ir_add_ioc"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"incident_id", "ioc_type", "value"}, "properties": map[string]any{
+				"incident_id": map[string]any{"type": "string", "description": "Incident ID to attach IOC to"},
+				"ioc_type":    map[string]any{"type": "string", "description": "IOC type: ip, domain, hash, url, email"},
+				"value":       map[string]any{"type": "string", "description": "IOC value"},
+			}},
+		},
+		{Name: "flight_record", Description: "Record an agent action to the SouHimBou Flight Recorder — ML-DSA-65 signed chain",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "audit:write",
+			SchemaVersion: "1.0.0", SchemaHash: hash("flight_record"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "audit-write",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"tool_name": map[string]any{"type": "string", "description": "Name of the tool being recorded"},
+				"scope":     map[string]any{"type": "string", "description": "Tool scope (e.g. ert:scan)"},
+				"outcome":   map[string]any{"type": "string", "description": "Outcome: ALLOWED, DENIED, ERROR"},
+			}},
+		},
+		{Name: "ouroboros_waf_eye", Description: "Ouroboros WAF monitoring eye — reads WAF events from SEKHEM pipeline",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "waf:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ouroboros_waf_eye"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "ouroboros_stig_eye", Description: "Ouroboros STIG drift eye — detects STIG configuration drift",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "stig:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ouroboros_stig_eye"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "ouroboros_vuln_eye", Description: "Ouroboros vulnerability watch — monitors for newly disclosed CVEs",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "vuln:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ouroboros_vuln_eye"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "ouroboros_fim_eye", Description: "Ouroboros FIM eye — baselines and monitors file integrity",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "fim:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("ouroboros_fim_eye"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+
+		// ── Sprint 3: Memory ──────────────────────────────────────────────────
+		{Name: "forensic_snapshot", Description: "Collect a forensic system state snapshot — processes, network, files",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "forensics:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("forensic_snapshot"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"critical_paths": map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Extra paths to include in snapshot"},
+			}},
+		},
+		{Name: "fim_baseline", Description: "Create or verify a file integrity monitoring baseline",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "fim:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("fim_baseline"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"path"}, "properties": map[string]any{
+				"path":   map[string]any{"type": "string", "description": "Root path to baseline"},
+				"action": map[string]any{"type": "string", "description": "create or verify (default: create)"},
+			}},
+		},
+		{Name: "audit_dag_integrity", Description: "Full DAG chain integrity audit — verifies PQC signatures and node linkage",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "dag:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("audit_dag_integrity"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+
+		// ── Sprint 4: Sword ──────────────────────────────────────────────────
+		{Name: "enumerate_host", Description: "Full host enumeration — system + network intelligence (T1082, T1049, T1016)",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "recon:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("enumerate_host"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "fingerprint_device", Description: "Hardware device fingerprint — MAC, CPU, disk, BIOS, TPM",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "recon:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("fingerprint_device"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "port_scan", Description: "TCP port scanner with service banner grabbing (T1046)",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "scan:network",
+			SchemaVersion: "1.0.0", SchemaHash: hash("port_scan"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"target"}, "properties": map[string]any{
+				"target": map[string]any{"type": "string", "description": "Target host/IP to scan"},
+			}},
+		},
+		{Name: "vuln_scan", Description: "Multi-ecosystem vulnerability scanner — Go, NPM, Python, containers",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "scan:vuln",
+			SchemaVersion: "1.0.0", SchemaHash: hash("vuln_scan"), AllowedBackend: "in-process", TimeoutMs: 120000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"target_dir": map[string]any{"type": "string", "description": "Directory to scan (default: current)"},
+			}},
+		},
+		{Name: "secret_scan", Description: "Detect exposed secrets, API keys, and credentials via entropy + patterns",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "scan:secrets",
+			SchemaVersion: "1.0.0", SchemaHash: hash("secret_scan"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"target_dir": map[string]any{"type": "string", "description": "Directory to scan (default: current)"},
+			}},
+		},
+		{Name: "container_scan", Description: "Dockerfile and container manifest security analysis",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "scan:container",
+			SchemaVersion: "1.0.0", SchemaHash: hash("container_scan"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"target_dir": map[string]any{"type": "string", "description": "Directory containing Dockerfiles"},
+			}},
+		},
+		{Name: "compliance_scan", Description: "CIS/STIG/NIST baseline compliance check with remediation guidance",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("compliance_scan"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"framework": map[string]any{"type": "string", "description": "Framework: CIS, STIG, NIST, ALL (default: ALL)"},
+			}},
+		},
+		{Name: "packet_analyze", Description: "Analyze Wireshark/tshark JSON capture — protocol distribution, C2 detection",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "forensics:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("packet_analyze"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"capture_file"}, "properties": map[string]any{
+				"capture_file": map[string]any{"type": "string", "description": "Path to Wireshark JSON export"},
+			}},
+		},
+		{Name: "attack_graph", Description: "Generate MITRE ATT&CK attack graph from NHI inventory — lateral movement + blast radius",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "threat:model",
+			SchemaVersion: "1.0.0", SchemaHash: hash("attack_graph"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+
+		// ── Sprint 5: Foundation (PQC + DAG + Phantom + DRBC) ────────────────
+		{Name: "pqc_sign", Description: "ML-DSA-65 (FIPS 204) sign an arbitrary payload — DAG-attested",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "pqc:sign",
+			SchemaVersion: "1.0.0", SchemaHash: hash("pqc_sign"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"payload"}, "properties": map[string]any{
+				"payload": map[string]any{"type": "string", "description": "Payload to sign (UTF-8 or base64)"},
+				"symbol":  map[string]any{"type": "string", "description": "Adinkra symbol to bind (default: Gye_Nyame)"},
+			}},
+		},
+		{Name: "pqc_verify", Description: "Verify an ML-DSA-65 signature against a payload",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "pqc:verify",
+			SchemaVersion: "1.0.0", SchemaHash: hash("pqc_verify"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"payload", "signature", "public_key"}, "properties": map[string]any{
+				"payload":    map[string]any{"type": "string", "description": "Original payload"},
+				"signature":  map[string]any{"type": "string", "description": "Base64-encoded ML-DSA-65 signature"},
+				"public_key": map[string]any{"type": "string", "description": "Base64-encoded public key"},
+			}},
+		},
+		{Name: "pqc_keygen", Description: "Generate ML-DSA-65 + ML-KEM-768 key pair (public keys only returned)",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "pqc:keygen",
+			SchemaVersion: "1.0.0", SchemaHash: hash("pqc_keygen"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "dag_write", Description: "Write a manually attested node to the KASA DAG",
+			RiskClass: khepramcp.RiskDestructive, Scope: "dag:write", Destructive: true,
+			SchemaVersion: "1.0.0", SchemaHash: hash("dag_write"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"action"}, "properties": map[string]any{
+				"action": map[string]any{"type": "string", "description": "Action label for the DAG node"},
+				"symbol": map[string]any{"type": "string", "description": "Adinkra symbol (default: Gye_Nyame)"},
+			}},
+		},
+		{Name: "dag_query", Description: "Query DAG history by action or symbol",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "dag:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("dag_query"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"action": map[string]any{"type": "string", "description": "Filter by action prefix"},
+				"symbol": map[string]any{"type": "string", "description": "Filter by Adinkra symbol"},
+			}},
+		},
+		{Name: "dag_audit", Description: "Full DAG chain integrity audit — node count, linkage, PQC metadata",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "dag:read",
+			SchemaVersion: "1.0.0", SchemaHash: hash("dag_audit"), AllowedBackend: "in-process", TimeoutMs: 10000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "phantom_stealth", Description: "Activate Phantom OPSEC stealth mode — GPS spoofing, thermal camouflage",
+			RiskClass: khepramcp.RiskDestructive, Scope: "phantom:control", Destructive: true,
+			SchemaVersion: "1.0.0", SchemaHash: hash("phantom_stealth"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"symbol":      map[string]any{"type": "string", "description": "OPSEC symbol binding (default: Eban)"},
+				"device_id":   map[string]any{"type": "string", "description": "Device identifier"},
+				"target_city": map[string]any{"type": "string", "description": "GPS spoof target city"},
+			}},
+		},
+		{Name: "identity_shroud", Description: "Nkyinkyim mystery encoding for OPSEC identity protection",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "phantom:identity",
+			SchemaVersion: "1.0.0", SchemaHash: hash("identity_shroud"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"strand"}, "properties": map[string]any{
+				"strand": map[string]any{"type": "string", "description": "Identity token to shroud"},
+			}},
+		},
+		{Name: "identity_epiphany", Description: "Decode a Nkyinkyim-shrouded identity back to plaintext",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "phantom:identity",
+			SchemaVersion: "1.0.0", SchemaHash: hash("identity_epiphany"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"verse"}, "properties": map[string]any{
+				"verse": map[string]any{"type": "string", "description": "Shrouded verse to decode"},
+			}},
+		},
+		{Name: "drbc_backup", Description: "AES-256-GCM encrypted disaster recovery backup (DRBC genesis)",
+			RiskClass: khepramcp.RiskDestructive, Scope: "drbc:write", Destructive: true,
+			SchemaVersion: "1.0.0", SchemaHash: hash("drbc_backup"), AllowedBackend: "in-process", TimeoutMs: 120000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"password"}, "properties": map[string]any{
+				"password": map[string]any{"type": "string", "description": "Encryption password for the DRBC backup"},
+			}},
+		},
+		{Name: "drbc_restore", Description: "Restore from a DRBC genesis backup",
+			RiskClass: khepramcp.RiskDestructive, Scope: "drbc:write", Destructive: true,
+			SchemaVersion: "1.0.0", SchemaHash: hash("drbc_restore"), AllowedBackend: "in-process", TimeoutMs: 120000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "required": []string{"password", "target_dir"}, "properties": map[string]any{
+				"password":   map[string]any{"type": "string", "description": "Decryption password"},
+				"target_dir": map[string]any{"type": "string", "description": "Target directory for restore"},
+			}},
 		},
 	}
 }
