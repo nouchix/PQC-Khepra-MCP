@@ -1,0 +1,1144 @@
+﻿{
+    "serverInfo":  {
+                       "name":  "pqc-khepra-mcp",
+                       "version":  "2.0.0"
+                   },
+    "authentication":  {
+                           "required":  false
+                       },
+    "tools":  [
+                  {
+                      "name":  "acp_status",
+                      "description":  "List active ACP credentials and their expiry status",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "acp_issue",
+                      "description":  "Issue a new PQC credential via the Agent Control Plane",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "agent_id":  {
+                                                                              "description":  "Agent identifier",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "scopes":  {
+                                                                            "items":  {
+                                                                                          "type":  "string"
+                                                                                      },
+                                                                            "type":  "array"
+                                                                        },
+                                                             "symbol":  {
+                                                                            "description":  "Adinkra symbol (default: Nkyinkyim)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "ttl_minutes":  {
+                                                                                 "description":  "Credential TTL in minutes",
+                                                                                 "type":  "number"
+                                                                             }
+                                                         },
+                                          "required":  [
+                                                           "agent_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "acp_revoke",
+                      "description":  "Revoke an active ACP credential",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "credential_id":  {
+                                                                                   "description":  "Credential ID to revoke",
+                                                                                   "type":  "string"
+                                                                               }
+                                                         },
+                                          "required":  [
+                                                           "credential_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "nhi_inventory",
+                      "description":  "List all non-human identities (service accounts, API keys, certificates)",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "nhi_orphans",
+                      "description":  "Identify orphaned non-human identities with no active owner",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "nhi_excessive",
+                      "description":  "Identify NHIs with overly broad permissions",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "max_scopes":  {
+                                                                                "description":  "Max scopes before flagging (default: 5)",
+                                                                                "type":  "number"
+                                                                            },
+                                                             "risk_threshold":  {
+                                                                                    "description":  "Min risk score to flag (default: 0.5)",
+                                                                                    "type":  "number"
+                                                                                }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "nhi_expired",
+                      "description":  "List expired or soon-to-expire non-human identities",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "nhi_revoke",
+                      "description":  "Revoke a non-human identity credential",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "nhi_id":  {
+                                                                            "description":  "NHI identifier to revoke",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "nhi_id"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_scan",
+                      "description":  "Run ERT security scan (SBOM, CVE, secrets, STIG, PQC inventory) in Docker sandbox",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework: CMMC_L2, NIST_800_171, etc.",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "image_ref":  {
+                                                                               "description":  "Container image to scan",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "lanes":  {
+                                                                           "description":  "Scan lanes: sca, horus, compliance",
+                                                                           "items":  {
+                                                                                         "type":  "string"
+                                                                                     },
+                                                                           "type":  "array"
+                                                                       },
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_readiness",
+                      "description":  "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_architect",
+                      "description":  "Package B: Live supply chain risk â€” Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_crypto",
+                      "description":  "Package C: PQC readiness attestation â€” source-level crypto primitive scan, SBOM crypto library inventory, weak primitive detection (MD5/SHA1/DES/RC4), CNSA 2.0 quantum risk context.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ert_godfather",
+                      "description":  "Package D: EA KernelRouter causal risk attestation. Runs STIG, PQC, SBOM, Network agents in parallel, produces board-level causal chain with CVSS-band dollar impact and DAG-signed evidence node.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "stig_check",
+                      "description":  "Check a system path or configuration against STIG controls. Default: RHEL-09-STIG-V1R3. Returns CAT I/II/III findings with remediation guidance and compliance score.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework (default: RHEL-09-STIG-V1R3)",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "pqc_stig",
+                      "description":  "World\u0027s First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "profile":  {
+                                                                             "description":  "Scan profile: quick | full (default: full)",
+                                                                             "type":  "string"
+                                                                         },
+                                                             "scan_path":  {
+                                                                               "description":  "Path to scan (default: current directory)",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "cmmc_assess",
+                      "description":  "CMMC Level 1/2/3 assessment via KHEPRA compliance database (36,195 STIGâ†’CCIâ†’NISTâ†’CMMC mappings). Returns satisfaction score, gaps, C3PAO readiness flag, and PQC status.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "level":  {
+                                                                           "description":  "CMMC level: \u00271\u0027, \u00272\u0027, or \u00273\u0027 (default: \u00272\u0027)",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "nist_map",
+                      "description":  "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "query":  {
+                                                                           "description":  "Search query (e.g. \u0027multi-factor authentication\u0027)",
+                                                                           "type":  "string"
+                                                                       },
+                                                             "top_k":  {
+                                                                           "description":  "Max results to return (default: 10, max: 50)",
+                                                                           "type":  "number"
+                                                                       }
+                                                         },
+                                          "required":  [
+                                                           "query"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "dag_attestation",
+                      "description":  "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "godfather_report",
+                      "description":  "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token â€” the full report is held until a human calls godfather_approve (30-min TTL).",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "approval_required":  {
+                                                                                       "description":  "Stage report for human review before delivery (default: false)",
+                                                                                       "type":  "boolean"
+                                                                                   },
+                                                             "engagement_id":  {
+                                                                                   "description":  "Optional engagement/ticket ID for traceability",
+                                                                                   "type":  "string"
+                                                                               },
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "scope":  {
+                                                                           "description":  "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "godfather_approve",
+                      "description":  "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use â€” token is consumed on delivery.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "staged_token":  {
+                                                                                  "description":  "Token returned by godfather_report when approval_required=true",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "required":  [
+                                                           "staged_token"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_export_attestation",
+                      "description":  "Export PQC-signed attestation package covering all active compliance frameworks. C3PAO-ready evidence artifact â€” ML-DSA-65 signed, DAG-anchored.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project root (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_export_poam",
+                      "description":  "Export a DFARS 252.204-7012 POA\u0026M (Plan of Action \u0026 Milestones) from the current DAG state. Maps open findings to remediation timelines.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "khepra_query_stig",
+                      "description":  "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls by ID or keyword.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "control_id":  {
+                                                                                "description":  "Control ID (CCI-XXXXXX, SV-XXXXXX, AC-1, etc.)",
+                                                                                "type":  "string"
+                                                                            },
+                                                             "framework":  {
+                                                                               "description":  "Filter by framework: STIG, CCI, NIST-800-53, CMMC",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "limit":  {
+                                                                           "description":  "Max results (default: 10)",
+                                                                           "type":  "integer"
+                                                                       },
+                                                             "query":  {
+                                                                           "description":  "Keyword search query",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_get_compliance_score",
+                      "description":  "Fast compliance score without full scan. Returns current CMMC/NIST/STIG satisfaction percentages from cached DAG state.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "khepra_query_threat_intel",
+                      "description":  "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT\u0026CK mappings.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "cve_id":  {
+                                                                            "description":  "Specific CVE identifier (e.g. CVE-2024-12345)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "kev_only":  {
+                                                                              "description":  "Filter to CISA KEV only (default: false)",
+                                                                              "type":  "boolean"
+                                                                          },
+                                                             "limit":  {
+                                                                           "description":  "Max results (default: 10)",
+                                                                           "type":  "integer"
+                                                                       },
+                                                             "pqc_impact":  {
+                                                                                "description":  "Include CNSA 2.0 quantum impact assessment (default: false)",
+                                                                                "type":  "boolean"
+                                                                            },
+                                                             "query":  {
+                                                                           "description":  "Search term (CVE ID, product name, or keyword)",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "khepra_get_dag_chain",
+                      "description":  "Export the PQC-signed DAG chain for the current session. Returns all DAG nodes with ML-DSA-65 signatures and Adinkra symbol provenance.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "khepra_watch",
+                      "description":  "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "action":  {
+                                                                            "description":  "Action: register | status | unregister",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "framework":  {
+                                                                               "description":  "Compliance framework for triggered scans",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "path":  {
+                                                                          "description":  "Filesystem path to watch",
+                                                                          "type":  "string"
+                                                                      },
+                                                             "watch_id":  {
+                                                                              "description":  "Watch ID (for status/unregister)",
+                                                                              "type":  "string"
+                                                                          }
+                                                         },
+                                          "required":  [
+                                                           "action"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "discover_assets",
+                      "description":  "Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "agent_record",
+                      "description":  "Record an agent action in the SouHimBou AI Flight Recorder. Records to PQC-signed DAG audit log.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "action":  {
+                                                                            "description":  "Agent action to record",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "agent_id":  {
+                                                                              "description":  "Agent identifier",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "metadata":  {
+                                                                              "description":  "Additional metadata",
+                                                                              "type":  "object"
+                                                                          },
+                                                             "session_id":  {
+                                                                                "description":  "Session identifier",
+                                                                                "type":  "string"
+                                                                            },
+                                                             "tool_name":  {
+                                                                               "description":  "Tool that was invoked",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "required":  [
+                                                           "action"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "flight_export",
+                      "description":  "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "owasp_agent_assess",
+                      "description":  "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "profile":  {
+                                                                             "description":  "Assessment profile: quick | full (default: full)",
+                                                                             "type":  "string"
+                                                                         }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "dark_crypto_contribute",
+                      "description":  "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. Returns global quantum exposure rank.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "sbom_generate",
+                      "description":  "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "format":  {
+                                                                            "description":  "Output format: cyclonedx | spdx (default: cyclonedx)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "threat_model",
+                      "description":  "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT\u0026CK mappings. 100% offline.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Threat framework: STRIDE | PASTA | LINDDUN (default: STRIDE)",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "project_path":  {
+                                                                                  "description":  "Path to project directory (default: current directory)",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "kasa_start",
+                      "description":  "Start the KASA autonomous security agent. Launches: vulnerability hunting hourly, internal pentest daily (NIST 800-53 CA-8), CMMC compliance audit daily. Every action is DAG-attested.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "kasa_status",
+                      "description":  "Check current status of the KASA autonomous agent: uptime, active tasks, threat score, and EA kernel generation.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "ea_evolve",
+                      "description":  "Run Evolutionary Algorithm threat evolution. Optimizes for: NIST 800-171 control coverage, PQC readiness, threat posture. Returns the fittest genome with Adinkra symbol binding.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "generations":  {
+                                                                                 "description":  "Number of EA generations (default: 10)",
+                                                                                 "type":  "number"
+                                                                             },
+                                                             "population_size":  {
+                                                                                     "description":  "Population size (default: 50)",
+                                                                                     "type":  "number"
+                                                                                 },
+                                                             "target":  {
+                                                                            "description":  "Target to evolve against (default: current directory)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ea_threat_score",
+                      "description":  "Calculate a composite threat score for a target using the EA kernel. Returns CVSS-band score, confidence interval, and contributing factors.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target":  {
+                                                                            "description":  "Target to score (default: current directory)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ea_risk_summary",
+                      "description":  "Synthesize EA-driven risk summary: vulnerability exposure, compliance gap, PQC migration cost, blast radius. Same engine as Godfather Report.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target":  {
+                                                                            "description":  "Target to summarize (default: current directory)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "quantum_optimize",
+                      "description":  "Run Ising model quantum-inspired optimization for attack surface analysis. Simulates quantum annealing to find optimal defense configuration.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target":  {
+                                                                            "description":  "Target system to optimize (default: current directory)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "threat_lookup",
+                      "description":  "Look up a CVE, IP, or domain against embedded CISA KEV + MITRE ATT\u0026CK databases. Returns CVE details, CVSS/EPSS scores, ATT\u0026CK TTP mapping.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "query":  {
+                                                                           "description":  "CVE ID, IP address, domain, or keyword to look up",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "required":  [
+                                                           "query"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "drift_detect",
+                      "description":  "Detect configuration drift between current state and a signed baseline. Uses the KHEPRA DriftEngine with Adinkra symbol binding.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "ir_incident",
+                      "description":  "Create a new incident in the KHEPRA IR Manager. Every incident is ML-DSA-65 signed at creation and DAG-attested.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "description":  {
+                                                                                 "description":  "Incident description",
+                                                                                 "type":  "string"
+                                                                             },
+                                                             "severity":  {
+                                                                              "description":  "Severity: critical | high | medium | low",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "title":  {
+                                                                           "description":  "Incident title",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "required":  [
+                                                           "title",
+                                                           "severity"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ir_add_ioc",
+                      "description":  "Add an Indicator of Compromise to an existing incident. The IOC is ML-DSA-65 signed and DAG-recorded.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "incident_id":  {
+                                                                                 "description":  "Incident ID to attach IOC to",
+                                                                                 "type":  "string"
+                                                                             },
+                                                             "ioc_type":  {
+                                                                              "description":  "IOC type: ip | domain | hash | url | email",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "value":  {
+                                                                           "description":  "IOC value",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "required":  [
+                                                           "incident_id",
+                                                           "ioc_type",
+                                                           "value"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "flight_record",
+                      "description":  "Record an agent tool call to the SouHimBou AI Flight Recorder with cryptographic attestation. Creates a cryptographically verifiable audit trail.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "outcome":  {
+                                                                             "description":  "Outcome: success | failure | partial",
+                                                                             "type":  "string"
+                                                                         },
+                                                             "scope":  {
+                                                                           "description":  "Scope/context of the call",
+                                                                           "type":  "string"
+                                                                       },
+                                                             "tool_name":  {
+                                                                               "description":  "Name of the tool that was called",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "required":  [
+                                                           "tool_name"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "ouroboros_waf_eye",
+                      "description":  "Ouroboros WAF Eye â€” real-time web application firewall status from the Mitochondrial API Server. Returns blocked requests, threat patterns, and active rules.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "ouroboros_stig_eye",
+                      "description":  "Ouroboros STIG Eye â€” continuous STIG compliance monitoring status. Returns current compliance posture and drift alerts.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "ouroboros_vuln_eye",
+                      "description":  "Ouroboros Vuln Eye â€” continuous vulnerability scanning status. Returns active CVEs, EPSS scores, and remediation priority.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "ouroboros_fim_eye",
+                      "description":  "Ouroboros FIM Eye â€” file integrity monitoring status. Returns hash baseline comparison and drift alerts.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "forensic_snapshot",
+                      "description":  "Collect a DFIR-grade forensic snapshot: processes, network connections, loaded modules, environment variables. ML-DSA-65 signed, DAG-attested.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "fim_baseline",
+                      "description":  "Create a file integrity monitoring baseline. Monitors critical paths using SHA-256 hash baselines. Baseline is DAG-attested.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "path":  {
+                                                                          "description":  "Directory path to baseline",
+                                                                          "type":  "string"
+                                                                      }
+                                                         },
+                                          "required":  [
+                                                           "path"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "audit_dag_integrity",
+                      "description":  "Full integrity audit of the KASA DAG. Verifies: node count, parent linkage, PQC metadata completeness, and signature chain.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "enumerate_host",
+                      "description":  "Enumerate host information: OS, kernel, network interfaces, running services, users, installed packages. MITRE ATT\u0026CK T1082.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target":  {
+                                                                            "description":  "Target host (default: localhost)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "fingerprint_device",
+                      "description":  "Fingerprint a network device: OS detection, service banners, protocol analysis. MITRE ATT\u0026CK T1046.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target":  {
+                                                                            "description":  "Target IP or hostname",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "target"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "port_scan",
+                      "description":  "TCP port scan with service banner grabbing. Identifies open ports and running services. MITRE ATT\u0026CK T1046.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "ports":  {
+                                                                           "description":  "Port range (default: 1-1024)",
+                                                                           "type":  "string"
+                                                                       },
+                                                             "target":  {
+                                                                            "description":  "Target IP or hostname",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "target"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "vuln_scan",
+                      "description":  "Scan project for known vulnerabilities in dependencies (Go, NPM, Python). Returns CVE IDs, CVSS scores, affected packages, and fix versions.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target_dir":  {
+                                                                                "description":  "Directory to scan (default: current directory)",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "secret_scan",
+                      "description":  "Scan for hardcoded secrets using entropy analysis + pattern matching. Detects: AWS keys, GitHub tokens, private keys, JWT secrets, database passwords.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target_dir":  {
+                                                                                "description":  "Directory to scan (default: current directory)",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "container_scan",
+                      "description":  "Analyze Dockerfile and container manifests for security misconfigurations and base image vulnerabilities.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "target_dir":  {
+                                                                                "description":  "Directory containing Dockerfile (default: current directory)",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "compliance_scan",
+                      "description":  "Run built-in compliance checks against CIS, STIG, and NIST baselines. Returns pass/fail per control with remediation guidance.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "framework":  {
+                                                                               "description":  "Framework: CIS | STIG | NIST | ALL (default: ALL)",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "packet_analyze",
+                      "description":  "Analyze a PCAP capture file. Extracts: protocol distribution, suspicious connections, DNS queries, HTTP methods, potential C2 patterns.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "capture_file":  {
+                                                                                  "description":  "Path to PCAP capture file",
+                                                                                  "type":  "string"
+                                                                              }
+                                                         },
+                                          "required":  [
+                                                           "capture_file"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "attack_graph",
+                      "description":  "Generate an attack graph from current NHI inventory. Models lateral movement paths, privilege escalation vectors, and blast radius.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "pqc_sign",
+                      "description":  "Sign arbitrary data with ML-DSA-65. Returns base64-encoded signature and public key ID. Air-gap safe.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "data":  {
+                                                                          "description":  "Data to sign (string or base64)",
+                                                                          "type":  "string"
+                                                                      },
+                                                             "symbol":  {
+                                                                            "description":  "Adinkra symbol to bind (default: Eban)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "data"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "pqc_verify",
+                      "description":  "Verify an ML-DSA-65 signature against data. Returns verification result and signer metadata.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "data":  {
+                                                                          "description":  "Original data that was signed",
+                                                                          "type":  "string"
+                                                                      },
+                                                             "signature":  {
+                                                                               "description":  "Base64-encoded signature",
+                                                                               "type":  "string"
+                                                                           }
+                                                         },
+                                          "required":  [
+                                                           "data",
+                                                           "signature"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "pqc_keygen",
+                      "description":  "Generate a new ML-DSA-65 keypair for agent identity. Returns public key (base64) and key ID. Private key is stored securely.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "dag_write",
+                      "description":  "Write a manually-specified attested node to the shared KASA DAG. Use for arbitrary compliance events, human approvals, and audit points.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "action":  {
+                                                                            "description":  "Action name for the DAG node",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "symbol":  {
+                                                                            "description":  "Adinkra symbol (default: Sankofa)",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "action"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "dag_query",
+                      "description":  "Query the KASA DAG for nodes matching criteria. Returns matched nodes with signatures and provenance.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "action":  {
+                                                                            "description":  "Filter by action name",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "limit":  {
+                                                                           "description":  "Max results (default: 20)",
+                                                                           "type":  "number"
+                                                                       },
+                                                             "symbol":  {
+                                                                            "description":  "Filter by Adinkra symbol",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "dag_audit",
+                      "description":  "Perform a full integrity audit of the KASA DAG. Verifies node count, parent linkage, PQC metadata completeness.",
+                      "inputSchema":  {
+                                          "type":  "object",
+                                          "properties":  {
+
+                                                         }
+                                      }
+                  },
+                  {
+                      "name":  "phantom_stealth",
+                      "description":  "Engage Phantom Network stealth mode. GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern. Symbol: Eban (fortress).",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "device_id":  {
+                                                                               "description":  "Device identifier to shroud",
+                                                                               "type":  "string"
+                                                                           },
+                                                             "symbol":  {
+                                                                            "description":  "Adinkra symbol (default: Eban)",
+                                                                            "type":  "string"
+                                                                        },
+                                                             "target_city":  {
+                                                                                 "description":  "City for GPS spoof anchor",
+                                                                                 "type":  "string"
+                                                                             }
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "identity_shroud",
+                      "description":  "Encode a strand (identity token, API key, agent fingerprint) using Nkyinkyim mystery encoding for OPSEC identity protection.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "strand":  {
+                                                                            "description":  "Identity strand to shroud",
+                                                                            "type":  "string"
+                                                                        }
+                                                         },
+                                          "required":  [
+                                                           "strand"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "identity_epiphany",
+                      "description":  "Decode a Nkyinkyim-shrouded strand back to plaintext. Reveals the original identity.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "verse":  {
+                                                                           "description":  "Shrouded verse to decode",
+                                                                           "type":  "string"
+                                                                       }
+                                                         },
+                                          "required":  [
+                                                           "verse"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "drbc_backup",
+                      "description":  "Create a DRBC genesis backup of the KHEPRA project. AES-256-GCM encrypted, ML-DSA-65 signed.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "password":  {
+                                                                              "description":  "Encryption password for the backup",
+                                                                              "type":  "string"
+                                                                          }
+                                                         },
+                                          "required":  [
+                                                           "password"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "drbc_restore",
+                      "description":  "Restore the KHEPRA project from a DRBC genesis backup. Requires the same password used during backup.",
+                      "inputSchema":  {
+                                          "properties":  {
+                                                             "password":  {
+                                                                              "description":  "Decryption password",
+                                                                              "type":  "string"
+                                                                          },
+                                                             "target_dir":  {
+                                                                                "description":  "Target directory for restore",
+                                                                                "type":  "string"
+                                                                            }
+                                                         },
+                                          "required":  [
+                                                           "password",
+                                                           "target_dir"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  }
+              ],
+    "resources":  [
+
+                  ],
+    "prompts":  [
+
+                ]
+}
