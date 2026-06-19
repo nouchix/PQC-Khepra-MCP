@@ -42,7 +42,7 @@ services:
 
   khepra-mcp:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     environment:
       - KHEPRA_MODE=edge
