@@ -95,7 +95,7 @@ On Windows, use backslashes: `C:\\Users\\USERNAME\\blackbox\\PQC-Khepra-MCP\\khe
 
 ### 6. Verify Installation
 
-After configuring, restart your MCP client. The server should appear with **35 tools** available.
+After configuring, restart your MCP client. The server should appear with **72 tools** available.
 
 You can also test manually:
 
@@ -105,7 +105,7 @@ echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-0
 
 Expected: A JSON-RPC response on stdout with `serverInfo.name: "khepra-mcp"`.
 
-### 7. Available Tool Categories (35 tools)
+### 7. Available Tool Categories (72 tools)
 
 - **Compliance**: `stig_check`, `cmmc_assess`, `pqc_stig`, `nist_map`, `compliance_scan`
 - **ERT Scanner**: `ert_scan`, `ert_readiness`, `ert_architect`, `ert_crypto`, `ert_godfather`
