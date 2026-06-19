@@ -1,44 +1,22 @@
 # deploy/docker-compose.vps.yml — Hostinger VPS (2.24.105.170)
-# 
-# Deploy: scp this file + Dockerfile + source to VPS, then:
-#   cd /opt/khepra && docker compose -f docker-compose.vps.yml up -d --build
 #
-# Prerequisites:
-#   - DNS A record: souhimbou.ai → 2.24.105.170
-#   - DNS A record: mcp.souhimbou.ai → 2.24.105.170 (optional — can use path routing)
-#   - Docker & Docker Compose installed (Hostinger Docker template)
-
-version: "3.9"
+# Deploy: cd /opt/khepra && docker compose -f deploy/docker-compose.vps.yml up -d --build
 
 services:
-  traefik:
-    image: traefik:v3.3
-    command:
-      - --api.dashboard=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      # Let's Encrypt auto-TLS
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.letsencrypt.acme.email=skone@alumni.albany.edu
-      - --certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json
-      # HTTP → HTTPS redirect
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # Access log for DFARS
-      - --accesslog=true
-      - --accesslog.filepath=/var/log/traefik/access.log
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik-acme:/acme
-      - traefik-logs:/var/log/traefik
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     networks:
       - khepra
     restart: unless-stopped
+    depends_on:
+      - khepra-mcp
 
   khepra-mcp:
     build:
@@ -54,26 +32,6 @@ services:
       - KHEPRA_CORS_ORIGINS=https://souhimbou.ai,https://adinkhepra.com,https://smithery.ai
     volumes:
       - khepra-data:/var/lib/khepra
-    labels:
-      - traefik.enable=true
-      # MCP endpoint — mcp.souhimbou.ai
-      - traefik.http.routers.mcp.rule=Host(`mcp.souhimbou.ai`)
-      - traefik.http.routers.mcp.tls=true
-      - traefik.http.routers.mcp.tls.certresolver=letsencrypt
-      - traefik.http.services.mcp.loadbalancer.server.port=8080
-      # Fallback — souhimbou.ai/mcp path
-      - traefik.http.routers.mcp-path.rule=Host(`souhimbou.ai`) && PathPrefix(`/mcp`)
-      - traefik.http.routers.mcp-path.tls=true
-      - traefik.http.routers.mcp-path.tls.certresolver=letsencrypt
-      - traefik.http.services.mcp-path.loadbalancer.server.port=8080
-      # .well-known route for Smithery discovery
-      - traefik.http.routers.mcp-wellknown.rule=Host(`mcp.souhimbou.ai`) && PathPrefix(`/.well-known`)
-      - traefik.http.routers.mcp-wellknown.tls=true
-      - traefik.http.routers.mcp-wellknown.tls.certresolver=letsencrypt
-      # Health endpoint
-      - traefik.http.routers.mcp-health.rule=Host(`mcp.souhimbou.ai`) && Path(`/health`)
-      - traefik.http.routers.mcp-health.tls=true
-      - traefik.http.routers.mcp-health.tls.certresolver=letsencrypt
     networks:
       - khepra
     restart: unless-stopped
@@ -85,8 +43,8 @@ services:
       start_period: 10s
 
 volumes:
-  traefik-acme:
-  traefik-logs:
+  caddy-data:
+  caddy-config:
   khepra-data:
 
 networks:
