@@ -1,198 +1,127 @@
-# KHEPRA MCP Server — AI Assistant Install Guide
+# PQC-Khepra-MCP — AI Agent Installation Guide
 
-This guide helps an AI assistant (Claude, Cline, Cursor, etc.) set up the KHEPRA MCP Server automatically.
+> This file helps AI coding agents (Cline, Claude, Cursor, Windsurf) automatically install and configure PQC-Khepra-MCP.
 
-## Step 1 — Check Docker
+## Prerequisites
 
-Verify Docker is installed and running:
+- **Go 1.22+** installed and in PATH
+- **Git** installed
 
-```bash
-docker --version
-docker info
-```
+## Installation Steps
 
-If Docker is not installed, direct the user to https://docs.docker.com/get-docker/ and stop.
-
-## Step 2 — Pull the Container
+### 1. Clone the Repository
 
 ```bash
-docker pull ghcr.io/nouchix/pqc-khepra-mcp:latest
+git clone https://github.com/nouchix/PQC-Khepra-MCP.git
+cd PQC-Khepra-MCP
 ```
 
-This is a ~200MB download. The container is fully self-contained — no external network calls after pull.
+### 2. Build the Binary
 
-## Step 3 — Choose Your Mode
+```bash
+go build -o khepra-mcp ./cmd/khepra-mcp/
+```
 
-**Community mode (free, no license required):**
+On Windows, the output will be `khepra-mcp.exe`.
+
+### 3. Create the Data Directory
+
+```bash
+# Linux/macOS
+mkdir -p ~/.khepra
+
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.khepra"
+```
+
+### 4. Configure MCP Client
+
+Add the following to your MCP client configuration:
+
+#### For Cline / VS Code (`settings.json` → `mcpServers`)
 
 ```json
 {
   "mcpServers": {
-    "khepra": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-e", "KHEPRA_MODE=community",
-        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
-      ]
-    }
-  }
-}
-```
-
-Community mode includes: `ert_scan`, `stig_check`, `nist_map`, `cmmc_assess`, `godfather_report`.
-
-**Paid tiers (Pilot/Program/Enterprise):** Require a `KHEPRA_LICENSE_KEY`.
-- Request evaluation key: [hello@nouchix.com](mailto:hello@nouchix.com)
-- Commercial license: [https://nouchix.com](https://nouchix.com)
-
-Ask the user: **"Do you want community mode (free) or do you have a license key?"**
-- Community: use config above and skip to Step 5.
-- Licensed: continue with key in Step 4.
-
-## Step 4 — Write the MCP Configuration
-
-Detect the user's MCP client and write the appropriate config:
-
-### Claude Desktop
-Config file: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
-
-```json
-{
-  "mcpServers": {
-    "khepra": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-e", "KHEPRA_LICENSE_KEY",
-        "-e", "KHEPRA_MODE=sovereign",
-        "-v", "/var/lib/khepra:/var/lib/khepra",
-        "-v", "/var/log/khepra:/var/log/khepra",
-        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
-      ],
+    "khepra-mcp": {
+      "command": "/path/to/PQC-Khepra-MCP/khepra-mcp",
+      "args": [],
       "env": {
-        "KHEPRA_LICENSE_KEY": "<USER_LICENSE_KEY>"
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_DATA_DIR": "/home/USER/.khepra",
+        "KHEPRA_NETWORK_POLICY": "lan",
+        "MCP_PQC_ENABLED": "true"
       }
     }
   }
 }
 ```
 
-### Cline / VS Code
-Config file: `~/.cline/mcp_settings.json` or VS Code settings
+#### For Claude Desktop (`claude_desktop_config.json`)
 
 ```json
 {
   "mcpServers": {
-    "khepra": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-e", "KHEPRA_LICENSE_KEY",
-        "-e", "KHEPRA_MODE=sovereign",
-        "-v", "/var/lib/khepra:/var/lib/khepra",
-        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
-      ],
+    "khepra-mcp": {
+      "command": "/path/to/PQC-Khepra-MCP/khepra-mcp",
+      "args": [],
       "env": {
-        "KHEPRA_LICENSE_KEY": "<USER_LICENSE_KEY>"
+        "KHEPRA_MODE": "sovereign",
+        "KHEPRA_DATA_DIR": "/home/USER/.khepra",
+        "KHEPRA_NETWORK_POLICY": "lan",
+        "MCP_PQC_ENABLED": "true"
       }
     }
   }
 }
 ```
 
-### Cursor
-Config file: `~/.cursor/mcp.json`
+**Important:** Replace `/path/to/PQC-Khepra-MCP/khepra-mcp` with the actual absolute path to the built binary, and `/home/USER/.khepra` with the actual home directory path.
 
-```json
-{
-  "servers": {
-    "khepra": {
-      "type": "stdio",
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-e", "KHEPRA_LICENSE_KEY",
-        "-e", "KHEPRA_MODE=sovereign",
-        "-v", "/var/lib/khepra:/var/lib/khepra",
-        "ghcr.io/nouchix/pqc-khepra-mcp:latest"
-      ],
-      "env": {
-        "KHEPRA_LICENSE_KEY": "<USER_LICENSE_KEY>"
-      }
-    }
-  }
-}
-```
+On Windows, use backslashes: `C:\\Users\\USERNAME\\blackbox\\PQC-Khepra-MCP\\khepra-mcp.exe`
 
-## ⚠️ Security Notice — Verify `~/.claude.json` Before Going Live
+### 5. Environment Variables Reference
 
-> **Read this before connecting KHEPRA MCP to Claude Code.**
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `KHEPRA_MODE` | No | `sovereign` | Deployment mode: `sovereign`, `ironbank`, `hybrid`, `edge` |
+| `KHEPRA_DATA_DIR` | No | `~/.khepra` | Directory for DAG storage, audit logs, and flight recorder |
+| `KHEPRA_NETWORK_POLICY` | No | `lan` | Network policy: `lan` (local only), `wan` (remote allowed) |
+| `MCP_PQC_ENABLED` | No | `true` | Enable ML-DSA-65 post-quantum signing on all tool calls |
+| `KHEPRA_MANIFEST_PATH` | No | `manifest.json` | Path to signed tool manifest |
+| `KHEPRA_LICENSE_KEY` | No | *(none)* | License key for Enterprise tier features |
+| `PHANTOM_SYMBOL` | No | `Eban` | Adinkra symbol binding for OPSEC identity |
+| `KHEPRA_MAX_CONCURRENT` | No | `5` | Max concurrent tool calls per agent |
 
-A supply chain attack (Mitiga Labs, April 2026) targets exactly this configuration step:
-a malicious npm package can silently rewrite `~/.claude.json` to proxy your MCP traffic
-through attacker infrastructure, intercepting your `KHEPRA_LICENSE_KEY` and any OAuth
-tokens. **Anthropic has ruled this out of scope — no patch is planned.**
+### 6. Verify Installation
 
-Run this immediately after writing the MCP config:
+After configuring, restart your MCP client. The server should appear with **35 tools** available.
 
-```powershell
-# Windows
-.\scripts\check-claude-json.ps1
-```
-```bash
-# macOS / Linux
-cat ~/.claude.json | python3 -m json.tool | grep -E "(mcpServers|localhost|127\.0\.0\.1|sessionStart|alreadyTrusted)"
-```
-
-**Every `mcpServers` entry must use `command: "docker"` or `command: "go"` — never a URL, never localhost.**
-
-Full incident response guide: [docs/MCP_SECURITY_RUNBOOK.md](docs/MCP_SECURITY_RUNBOOK.md)
-
----
-
-## Step 5 — Verify Installation
-
-Restart the MCP client. Then test with:
-
-```
-List the available KHEPRA tools
-```
-
-Expected: the assistant lists `ert_scan`, `stig_check`, `nist_map`, `cmmc_assess`, `godfather_report`.
-
-Then run a smoke test:
-
-```
-Run ert_scan on /tmp and show me the summary
-```
-
-## Air-Gap Deployment
-
-For SCIF / air-gapped environments:
+You can also test manually:
 
 ```bash
-# On internet-connected host:
-docker save ghcr.io/nouchix/pqc-khepra-mcp:latest | gzip > khepra-mcp-1.0.0.tar.gz
-
-# Transfer khepra-mcp-1.0.0.tar.gz via approved media
-
-# On air-gapped host:
-docker load < khepra-mcp-1.0.0.tar.gz
+echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}' | ./khepra-mcp
 ```
 
-Then use the same MCP config above — the container makes no network calls.
+Expected: A JSON-RPC response on stdout with `serverInfo.name: "khepra-mcp"`.
+
+### 7. Available Tool Categories (35 tools)
+
+- **Compliance**: `stig_check`, `cmmc_assess`, `pqc_stig`, `nist_map`, `compliance_scan`
+- **ERT Scanner**: `ert_scan`, `ert_readiness`, `ert_architect`, `ert_crypto`, `ert_godfather`
+- **Threat Intel**: `threat_model`, `threat_lookup`, `drift_detect`, `attack_graph`
+- **Incident Response**: `ir_incident`, `ir_add_ioc`
+- **KASA AI**: `kasa_start`, `kasa_status`, `ea_evolve`, `ea_threat_score`, `ea_risk_summary`, `quantum_optimize`
+- **PQC Crypto**: `pqc_sign`, `pqc_verify`, `pqc_keygen`
+- **DAG Attestation**: `dag_write`, `dag_query`, `dag_audit`, `dag_attestation`
+- **Forensics**: `forensic_snapshot`, `fim_baseline`, `audit_dag_integrity`
+- **Scanning**: `enumerate_host`, `fingerprint_device`, `port_scan`, `vuln_scan`, `secret_scan`, `container_scan`, `sbom_generate`
+- **Flight Recorder**: `agent_record`, `flight_record`, `flight_export`
+- **OPSEC**: `phantom_stealth`, `identity_shroud`, `identity_epiphany`
+- **Disaster Recovery**: `drbc_backup`, `drbc_restore`
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `docker: command not found` | Install Docker Desktop or Docker Engine |
-| `License validation failed` | Check `KHEPRA_LICENSE_KEY` value; contact support@nouchix.com |
-| `Container exits immediately` | Check `docker logs` for error; verify volume mounts exist |
-| Tools not appearing in client | Restart MCP client after config change |
-
-## Support
-
-- Email: [support@souhimbou.ai](mailto:support@souhimbou.ai)
-- Website: [https://souhimbou.ai](https://souhimbou.ai)
+- **"manifest not found"**: The binary looks for `manifest.json` in the current working directory. Either set `KHEPRA_MANIFEST_PATH` or run from the repo root.
+- **"PQC key generation failed"**: Ensure Go was built with CGO_ENABLED=0 (the binary uses pure-Go Cloudflare CIRCL).
+- **No tools showing**: Check that stdout contains only JSON-RPC frames (no log output). All logs go to stderr by design.
