@@ -144,6 +144,13 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	mux.HandleFunc("/mcp", t.handleRPC)        // POST /mcp — Smithery JSON-RPC
 	mux.HandleFunc("/sse", t.handleSSE)        // GET  /sse — Smithery SSE handshake
 
+	// MCP server-card.json — static server metadata for Smithery discovery (SEP-1649).
+	// Serves the tool manifest so Smithery can skip live scanning.
+	mux.HandleFunc("/.well-known/mcp/server-card.json", t.handleServerCard)
+
+	// Health check routes — Traefik + monitoring
+	mux.HandleFunc("/health", t.handleHealth)
+
 	// Internal / legacy routes
 	mux.HandleFunc("/mcp/v1/rpc", t.handleRPC)
 	mux.HandleFunc("/mcp/v1/health", t.handleHealth)
@@ -432,6 +439,37 @@ func (t *httpTransport) handleHealth(w http.ResponseWriter, _ *http.Request) {
 		"sse_max_conns": t.config.SSE.MaxConns,
 	})
 }
+
+// handleServerCard serves /.well-known/mcp/server-card.json for Smithery discovery.
+// Returns tool metadata from the router's manifest registry in MCP server-card format (SEP-1649).
+func (t *httpTransport) handleServerCard(w http.ResponseWriter, _ *http.Request) {
+	type serverCard struct {
+		ServerInfo struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"serverInfo"`
+		Authentication struct {
+			Required bool `json:"required"`
+		} `json:"authentication"`
+		Tools     []map[string]any `json:"tools"`
+		Resources []any            `json:"resources"`
+		Prompts   []any            `json:"prompts"`
+	}
+
+	card := serverCard{
+		Tools:     t.router.ListTools(),
+		Resources: []any{},
+		Prompts:   []any{},
+	}
+	card.ServerInfo.Name = HardenedServerName
+	card.ServerInfo.Version = HardenedServerVersion
+	card.Authentication.Required = false
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // 1h cache for Smithery
+	json.NewEncoder(w).Encode(card) //nolint:errcheck
+}
+
 
 // corsMiddleware enforces strict CORS — no wildcards ever.
 // Origins not in AllowedOrigins receive no CORS headers (browser blocks them).
