@@ -517,9 +517,21 @@ func (r *Router) ListTools() []map[string]any {
 		"properties": map[string]any{},
 	}
 
+	// Classified tools are hidden from public discovery (server-card.json,
+	// tools/list). They remain callable via authenticated Enterprise/Master
+	// tier sessions. Ref: AGENTS.md Non-Negotiable #3.
+	classifiedTools := map[string]bool{
+		"phantom_stealth":   true,
+		"identity_shroud":   true,
+		"identity_epiphany": true,
+	}
+
 	specs := r.registry.ListTools()
-	tools := make([]map[string]any, 0, len(specs))
+	result := make([]map[string]any, 0, len(specs))
 	for _, s := range specs {
+		if classifiedTools[s.Name] {
+			continue
+		}
 		schema := s.ArgsSchema
 		if schema == nil {
 			schema = noArgSchema
@@ -529,9 +541,9 @@ func (r *Router) ListTools() []map[string]any {
 			"description": s.Description,
 			"inputSchema": schema,
 		}
-		tools = append(tools, tool)
+		result = append(result, tool)
 	}
-	return tools
+	return result
 }
 
 // Events returns the event emitter for external access (e.g. telemetry hooks).

@@ -133,14 +133,14 @@ func main() {
 
 		// ── Compliance Reports & Evidence ──────────────────────────────────
 		{Name: "dag_attestation", Description: "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.", RiskClass: "read_only", Scope: "dag:read", Tier: "community", TimeoutMs: 10000},
-		{Name: "godfather_report", Description: "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).", RiskClass: "read_only", Scope: "compliance:report", Tier: "community", TimeoutMs: 30000,
+		{Name: "godfather_report", Description: "Generate an executive compliance report covering CMMC/STIG/NIST frameworks. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).", RiskClass: "read_only", Scope: "compliance:report", Tier: "community", TimeoutMs: 30000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
 				"framework":         {"type": "string", "description": "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)"},
 				"scope":             {"type": "string", "description": "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)"},
 				"approval_required": {"type": "boolean", "description": "Stage report for human review before delivery (default: false)"},
 				"engagement_id":     {"type": "string", "description": "Optional engagement/ticket ID for traceability"},
 			}}},
-		{Name: "godfather_approve", Description: "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.", RiskClass: "read_only", Scope: "compliance:report", Tier: "community", TimeoutMs: 5000,
+		{Name: "godfather_approve", Description: "Deliver a staged executive compliance report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.", RiskClass: "read_only", Scope: "compliance:report", Tier: "community", TimeoutMs: 5000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
 				"staged_token": {"type": "string", "description": "Token returned by godfather_report when approval_required=true"},
 			}, Required: []string{"staged_token"}}},
@@ -193,7 +193,7 @@ func main() {
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
 				"profile": {"type": "string", "description": "Assessment profile: quick | full (default: full)"},
 			}}},
-		{Name: "dark_crypto_contribute", Description: "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. Returns global quantum exposure rank.", RiskClass: "read_only", Scope: "community:contribute", Tier: "community", TimeoutMs: 30000},
+		{Name: "dark_crypto_contribute", Description: "Privacy-preserving contribution of anonymized cryptographic inventory to the Global Quantum Exposure Network. Returns aggregate quantum risk ranking.", RiskClass: "read_only", Scope: "community:contribute", Tier: "community", TimeoutMs: 30000},
 		{Name: "sbom_generate", Description: "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations.", RiskClass: "read_only", Scope: "sbom:generate", Tier: "pilot", TimeoutMs: 180000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
 				"project_path": {"type": "string", "description": "Path to project directory (default: current directory)"},
@@ -324,19 +324,19 @@ func main() {
 				"limit":  {"type": "number", "description": "Max results (default: 20)"},
 			}}},
 		{Name: "dag_audit", Description: "Perform a full integrity audit of the KASA DAG. Verifies node count, parent linkage, PQC metadata completeness.", RiskClass: "read_only", Scope: "dag:audit", Tier: "enterprise", TimeoutMs: 30000},
-		{Name: "phantom_stealth", Description: "Engage Phantom Network stealth mode. GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern. Symbol: Eban (fortress).", RiskClass: "destructive", Scope: "opsec:stealth", Tier: "enterprise", TimeoutMs: 30000, Destructive: true,
+		{Name: "phantom_stealth", Description: "Engage network security posture hardening mode. Reduces attack surface exposure through traffic obfuscation and endpoint protection.", RiskClass: "destructive", Scope: "opsec:stealth", Tier: "enterprise", TimeoutMs: 30000, Destructive: true,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
-				"symbol":      {"type": "string", "description": "Adinkra symbol (default: Eban)"},
-				"device_id":   {"type": "string", "description": "Device identifier to shroud"},
-				"target_city": {"type": "string", "description": "City for GPS spoof anchor"},
+				"symbol":      {"type": "string", "description": "Security profile (default: Eban)"},
+				"device_id":   {"type": "string", "description": "Device identifier"},
+				"target_city": {"type": "string", "description": "Deployment region"},
 			}}},
-		{Name: "identity_shroud", Description: "Encode a strand (identity token, API key, agent fingerprint) using Nkyinkyim mystery encoding for OPSEC identity protection.", RiskClass: "read_only", Scope: "opsec:shroud", Tier: "enterprise", TimeoutMs: 10000,
+		{Name: "identity_shroud", Description: "Encode a credential or token using post-quantum obfuscation for secure transport.", RiskClass: "read_only", Scope: "opsec:shroud", Tier: "enterprise", TimeoutMs: 10000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
-				"strand": {"type": "string", "description": "Identity strand to shroud"},
+				"strand": {"type": "string", "description": "Credential to encode"},
 			}, Required: []string{"strand"}}},
-		{Name: "identity_epiphany", Description: "Decode a Nkyinkyim-shrouded strand back to plaintext. Reveals the original identity.", RiskClass: "read_only", Scope: "opsec:reveal", Tier: "enterprise", TimeoutMs: 10000,
+		{Name: "identity_epiphany", Description: "Decode a PQC-obfuscated credential back to its original form.", RiskClass: "read_only", Scope: "opsec:reveal", Tier: "enterprise", TimeoutMs: 10000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
-				"verse": {"type": "string", "description": "Shrouded verse to decode"},
+				"verse": {"type": "string", "description": "Encoded credential to decode"},
 			}, Required: []string{"verse"}}},
 		{Name: "drbc_backup", Description: "Create a DRBC genesis backup of the KHEPRA project. AES-256-GCM encrypted, ML-DSA-65 signed.", RiskClass: "destructive", Scope: "drbc:write", Tier: "pilot", TimeoutMs: 120000, Destructive: true,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{

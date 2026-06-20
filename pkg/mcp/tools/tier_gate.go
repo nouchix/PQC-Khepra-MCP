@@ -33,6 +33,21 @@ var tierRank = map[string]int{
 	TierMaster:     3,
 }
 
+// ClassifiedTools are hidden from the public server-card.json and tools/list
+// response. They remain functional for authenticated Enterprise/Master tier
+// users via stdio transport or licensed HTTP calls.
+// Ref: AGENTS.md Non-Negotiable #3 — Phantom Network, NSOHIA are classified.
+var ClassifiedTools = map[string]bool{
+	"phantom_stealth":  true,
+	"identity_shroud":  true,
+	"identity_epiphany": true,
+}
+
+// IsClassified returns true if the tool must be hidden from public discovery.
+func IsClassified(toolName string) bool {
+	return ClassifiedTools[toolName]
+}
+
 // ─── Cached License (loaded once at first gate check) ──────────────────────────
 
 var (
