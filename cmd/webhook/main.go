@@ -673,7 +673,7 @@ Certificate issued and emailed automatically.
 }
 
 // sendMail supports both implicit SSL (port 465, Hostinger) and STARTTLS (port 587, Gmail).
-func sendMail(to []string, subject, body string) error {
+func sendMail(to []string, _ /* subject */, body string) error {
 	if cfg.SMTPUser == "" || cfg.SMTPPass == "" {
 		log.Printf("[webhook] SMTP not configured — skipping email to %v", to)
 		return nil
