@@ -226,7 +226,7 @@ echo "⚠️  Copy the contents of \${KEY_FILE} to NouchiX connection wizard"
         <div>
           <Label>Service Account Key (JSON)</Label>
           <Textarea
-            placeholder='{"type": "service_account", "project_id": "...", ...}'
+            placeholder='Paste your GCP service account JSON key here'
             value={serviceAccountKey}
             onChange={(e) => setServiceAccountKey(e.target.value)}
             className="mt-2 font-mono text-sm"

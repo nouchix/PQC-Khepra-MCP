@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
 
 // ─── Security Boundary Interfaces ──────────────────────────────────────────────
@@ -237,12 +238,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	id, err := r.demarc.Authenticate(ctx, cred)
 	if err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, "", "AUTH_FAILED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", call.ToolName, err)
+		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", khlog.SanitizeForLog(call.ToolName), err)
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 	if err := r.demarc.CheckCIDR(ctx, id, remoteAddr); err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, id.AgentID, "CIDR_DENIED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%q addr=%q: %v", id.AgentID, remoteAddr, err)
+		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%q addr=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(remoteAddr), err)
 		return nil, fmt.Errorf("CIDR check failed: %w", err)
 	}
 
@@ -355,12 +356,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 4: MCPGateway Policy (RBAC + Injection Scan) ──────────────────
 	if err := r.gateway.CheckPermission(id, spec.Scope); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "PERMISSION_DENIED", err.Error())
-		r.logger.Printf("[MCP:POLICY] permission denied: agent=%q scope=%q: %v", id.AgentID, spec.Scope, err)
+		r.logger.Printf("[MCP:POLICY] permission denied: agent=%q scope=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(spec.Scope), err)
 		return nil, fmt.Errorf("permission denied: %w", err)
 	}
 	if err := r.gateway.ScanForInjection(string(rawPayload)); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "INJECTION", err.Error())
-		r.logger.Printf("[MCP:POLICY] injection detected: agent=%q tool=%q: %v", id.AgentID, call.ToolName, err)
+		r.logger.Printf("[MCP:POLICY] injection detected: agent=%q tool=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(call.ToolName), err)
 		return nil, fmt.Errorf("injection detected: %w", err)
 	}
 
