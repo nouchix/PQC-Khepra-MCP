@@ -6,7 +6,6 @@
 package gateway
 
 import (
-	"strings"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -633,13 +632,3 @@ func FormatDuration(d time.Duration) string {
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
-// sanitizeLog removes newline characters from user-controlled strings before
-// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
-func sanitizeLog(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == '\n' || r == '\r' || r == '\t' {
-			return ' '
-		}
-		return r
-	}, s)
-}
