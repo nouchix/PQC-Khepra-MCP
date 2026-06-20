@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 )
 
@@ -268,7 +269,7 @@ func (c *ControlLayer) applyBackoff(limiter *RateLimiter) {
 
 	limiter.BackoffUntil = time.Now().Add(backoffDuration)
 	log.Printf("[CONTROL] Applied backoff to %q: %v (count: %d)",
-		limiter.IdentityID, backoffDuration, limiter.BackoffCount)
+		khlog.SanitizeForLog(limiter.IdentityID), backoffDuration, limiter.BackoffCount)
 }
 
 // UpdateTrustScore updates the trust score multiplier for an identity
