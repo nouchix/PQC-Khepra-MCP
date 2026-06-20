@@ -154,8 +154,9 @@ cd pkg/sca/testdata/tiny-project && go get golang.org/x/text@latest
 | **CMMC** | SC.L2-3.13.11 |
 | **MITRE ATT&CK** | T1600 (Weaken Encryption) |
 | **KHEPRA Tools** | `ert_crypto` → detect weak primitives, `pqc_stig` → CNSA 2.0 compliance |
+| **Status** | ✅ **FALSE POSITIVE** — Code uses `crypto/sha256` (FIPS-140-2 approved). CodeQL misidentifies the Khepra Lattice encoding (cosmetic hex→letter transform) as weak crypto. Has `#nosec G401` annotation. |
 
-**Remediation:** Replace any SHA-1/MD5 usage with SHA-256 or SHA3-256. Verify with `ert_crypto`.
+**Action:** No code change needed. Suppress with CodeQL annotation.
 
 ---
 
@@ -218,9 +219,9 @@ if !isLoopback(target) {
 | **File** | `pkg/drbc/restore.go:100` |
 | **CWE** | CWE-22 (Path Traversal) |
 | **Status** | ✅ PARTIALLY FIXED — Line 108-112 has zip slip guard, but CodeQL still flags line 100 |
-| **Risk** | LOW — guard exists at lines 110-112 |
+| **Status** | ✅ **MITIGATED** — Lines 108-112 have explicit zip slip guard with `strings.HasPrefix` containment check. CodeQL still flags line 100 because `filepath.Join` happens before the check (which is the standard Go idiom). |
 
-**Note:** Fix is already in place. CodeQL may need `// codeql-suppress` annotation or the check needs to be moved before `filepath.Join`.
+**Action:** No code change needed. CodeQL false positive — the guard IS present.
 
 ---
 
@@ -233,8 +234,9 @@ if !isLoopback(target) {
 | **CWE** | CWE-770 (Allocation of Resources Without Limits or Throttling) |
 | **NIST 800-53** | SC-5 (Denial of Service Protection) |
 | **MITRE ATT&CK** | T1499.004 (Application or System Exploitation) |
+| **Status** | ✅ **FALSE POSITIVE** — `topK` is already capped to 50 at line 270-272, then further bounded to `len(results)` at line 161-163. Has `//nolint:gosec` annotation. |
 
-**Remediation:** Cap `top_k` parameter to max 50, validate before allocation.
+**Action:** No code change needed. Suppress with CodeQL annotation.
 
 ---
 
