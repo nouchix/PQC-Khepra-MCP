@@ -304,7 +304,7 @@ export const SecureCredentialManager: React.FC<SecureCredentialManagerProps> = (
                 ...newCredential,
                 credentials: { ...newCredential.credentials, service_account_json: e.target.value }
               })}
-              placeholder='{"type": "service_account", ...}'
+              placeholder='Paste cloud provider JSON credentials here'
               rows={8}
             />
           </div>
