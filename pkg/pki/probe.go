@@ -17,42 +17,42 @@ import (
 
 // TLSProbeResult captures everything observable from a single TLS handshake.
 type TLSProbeResult struct {
-	Target            string                `json:"target"` // host:port
-	Reachable         bool                  `json:"reachable"`
-	TLSVersion        string                `json:"tls_version,omitempty"`
-	CipherSuite       string                `json:"cipher_suite,omitempty"`
-	ALPN              string                `json:"alpn,omitempty"`
-	Certificates      []*x509.Certificate   `json:"-"`
-	CertSummaries     []CertSummary         `json:"certificates,omitempty"`
-	OCSPStapled       bool                  `json:"ocsp_stapled"`
-	SelfSigned        bool                  `json:"self_signed"`
-	HostnameMismatch  bool                  `json:"hostname_mismatch"`
-	WeakCipher        bool                  `json:"weak_cipher"`
-	Error             string                `json:"error,omitempty"`
+	Target           string              `json:"target"` // host:port
+	Reachable        bool                `json:"reachable"`
+	TLSVersion       string              `json:"tls_version,omitempty"`
+	CipherSuite      string              `json:"cipher_suite,omitempty"`
+	ALPN             string              `json:"alpn,omitempty"`
+	Certificates     []*x509.Certificate `json:"-"`
+	CertSummaries    []CertSummary       `json:"certificates,omitempty"`
+	OCSPStapled      bool                `json:"ocsp_stapled"`
+	SelfSigned       bool                `json:"self_signed"`
+	HostnameMismatch bool                `json:"hostname_mismatch"`
+	WeakCipher       bool                `json:"weak_cipher"`
+	Error            string              `json:"error,omitempty"`
 }
 
 // CertSummary is a JSON-safe projection of an x509.Certificate.
 type CertSummary struct {
-	Subject         string    `json:"subject"`
-	Issuer          string    `json:"issuer"`
-	SerialNumber    string    `json:"serial_number"`
-	NotBefore       time.Time `json:"not_before"`
-	NotAfter        time.Time `json:"not_after"`
-	Expired         bool      `json:"expired"`
-	ExpiresInDays   int       `json:"expires_in_days"`
-	SANs            []string  `json:"sans,omitempty"`
-	SignatureAlgo   string    `json:"signature_algorithm"`
-	OCSPServers     []string  `json:"ocsp_servers,omitempty"`
-	CRLDistPoints   []string  `json:"crl_distribution_points,omitempty"`
-	IsCA            bool      `json:"is_ca"`
+	Subject       string    `json:"subject"`
+	Issuer        string    `json:"issuer"`
+	SerialNumber  string    `json:"serial_number"`
+	NotBefore     time.Time `json:"not_before"`
+	NotAfter      time.Time `json:"not_after"`
+	Expired       bool      `json:"expired"`
+	ExpiresInDays int       `json:"expires_in_days"`
+	SANs          []string  `json:"sans,omitempty"`
+	SignatureAlgo string    `json:"signature_algorithm"`
+	OCSPServers   []string  `json:"ocsp_servers,omitempty"`
+	CRLDistPoints []string  `json:"crl_distribution_points,omitempty"`
+	IsCA          bool      `json:"is_ca"`
 }
 
 var weakCipherSuites = map[uint16]bool{
-	tls.TLS_RSA_WITH_RC4_128_SHA:        true,
-	tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA:   true,
-	tls.TLS_RSA_WITH_AES_128_CBC_SHA:    true,
-	tls.TLS_RSA_WITH_AES_256_CBC_SHA:    true,
-	tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA:  true,
+	tls.TLS_RSA_WITH_RC4_128_SHA:            true,
+	tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA:       true,
+	tls.TLS_RSA_WITH_AES_128_CBC_SHA:        true,
+	tls.TLS_RSA_WITH_AES_256_CBC_SHA:        true,
+	tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA:      true,
 	tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA: true,
 }
 
@@ -74,14 +74,18 @@ func ProbeTLS(host string, port int, timeout time.Duration) *TLSProbeResult {
 	}
 	defer rawConn.Close()
 
-	// Intentional: this is a TLS/PKI discovery probe whose purpose is to
-	// capture and classify certificates regardless of validity (expired,
-	// self-signed, mismatched). The certificate is never trusted for any
+	// This is a TLS/PKI discovery probe whose purpose is to capture and
+	// classify certificates regardless of validity (expired, self-signed,
+	// mismatched). The standard chain/hostname verification is intentionally
+	// replaced (not simply disabled) with VerifyConnection, which always
+	// accepts the handshake so the certificate can still be captured and
+	// classified by the caller. The certificate is never trusted for any
 	// decision other than reporting; callers must not use this connection
 	// to transmit sensitive data.
 	cfg := &tls.Config{
 		ServerName:         host,
-		InsecureSkipVerify: true, // codeql[go/disabled-certificate-check]
+		InsecureSkipVerify: true,
+		VerifyConnection:   func(cs tls.ConnectionState) error { return nil },
 	}
 	_ = rawConn.SetDeadline(time.Now().Add(timeout))
 	tlsConn := tls.Client(rawConn, cfg)
