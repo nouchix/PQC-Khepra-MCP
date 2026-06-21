@@ -74,14 +74,14 @@ func ProbeTLS(host string, port int, timeout time.Duration) *TLSProbeResult {
 	}
 	defer rawConn.Close()
 
-	// codeql[go/disabled-certificate-check]: intentional — this is a TLS/PKI
-	// discovery probe whose purpose is to capture and classify certificates
-	// regardless of validity (expired, self-signed, mismatched). The
-	// certificate is never trusted for any decision other than reporting;
-	// callers must not use this connection to transmit sensitive data.
+	// Intentional: this is a TLS/PKI discovery probe whose purpose is to
+	// capture and classify certificates regardless of validity (expired,
+	// self-signed, mismatched). The certificate is never trusted for any
+	// decision other than reporting; callers must not use this connection
+	// to transmit sensitive data.
 	cfg := &tls.Config{
 		ServerName:         host,
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, // codeql[go/disabled-certificate-check]
 	}
 	_ = rawConn.SetDeadline(time.Now().Add(timeout))
 	tlsConn := tls.Client(rawConn, cfg)

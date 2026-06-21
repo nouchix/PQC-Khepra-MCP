@@ -64,11 +64,13 @@ func DetectTakeover(ctx context.Context, results []SubdomainResult, timeout time
 	}
 	client := &http.Client{
 		Timeout: timeout,
+		// Intentional: this scanner fingerprints dangling cloud resources by
+		// hostname/body markers regardless of certificate validity. The
+		// destination is restricted to resolved-public-IP hosts (see
+		// resolvesToPublicAddress below), and no response data is trusted
+		// for anything beyond matching a known "unclaimed resource" string.
 		Transport: &http.Transport{
-			// codeql[go/disabled-certificate-check]: intentional — this scanner
-			// fingerprints dangling cloud resources regardless of cert validity;
-			// the destination is constrained to resolved-public-IP hosts below.
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // codeql[go/disabled-certificate-check]
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -160,7 +162,7 @@ func fetchBody(ctx context.Context, client *http.Client, host string) string {
 		if err != nil {
 			continue
 		}
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) // codeql[go/request-forgery]: host was verified by resolvesToPublicAddress above, rejecting private/loopback/link-local targets
 		if err != nil {
 			continue
 		}
