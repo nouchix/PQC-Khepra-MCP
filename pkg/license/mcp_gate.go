@@ -232,10 +232,11 @@ func ParseMCPLicense() (*KhepraLicense, error) {
 		return nil, fmt.Errorf("license: KHEPRA_LICENSE_KEY parse failed: %w", err)
 	}
 
-	// Offline ML-DSA-65 verification using embedded master public key.
-	// masterPublicKey = nil → VerifySovereignLicense falls back to lic.SignerPublicKey.
-	// In production, embed the master pubkey here for pinning.
-	if err := VerifySovereignLicense(&lic, nil); err != nil {
+	// Offline ML-DSA-65 verification pinned to the compiled-in master public key
+	// (pkg/license/master_pubkey.go). Without pinning, VerifySovereignLicense
+	// would fall back to lic.SignerPublicKey — i.e. trust whatever key the
+	// license itself carries, which any self-signed license satisfies trivially.
+	if err := VerifySovereignLicense(&lic, MasterPublicKey); err != nil {
 		return nil, fmt.Errorf("license: sovereign verification failed: %w", err)
 	}
 

@@ -293,6 +293,14 @@ func newRevocationDatabase() *RevocationDatabase {
 	return &RevocationDatabase{entries: make(map[string]RevocationEntry)}
 }
 
+// NewRevocationDatabase creates an empty RevocationDatabase. Exported so callers
+// that build a SovereignLicenseAuthority around an externally-reconstructed root
+// key (e.g. cmd/issue-license, which recovers the key from Shamir shards rather
+// than calling NewSovereignLicenseAuthority) can populate the field directly.
+func NewRevocationDatabase() *RevocationDatabase {
+	return newRevocationDatabase()
+}
+
 func (rdb *RevocationDatabase) Add(entry RevocationEntry) {
 	rdb.mu.Lock()
 	rdb.entries[entry.LicenseID] = entry
