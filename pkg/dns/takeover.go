@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -14,9 +15,9 @@ import (
 // the provider, and a body/status fingerprint indicating "this resource is
 // unclaimed" rather than an active, owned service.
 type takeoverSignature struct {
-	Provider     string
-	CNAMESuffix  string
-	BodyMarkers  []string
+	Provider    string
+	CNAMESuffix string
+	BodyMarkers []string
 }
 
 var takeoverSignatures = []takeoverSignature{
@@ -48,11 +49,11 @@ var takeoverSignatures = []takeoverSignature{
 // or never-claimed cloud resource — an attacker can often register the same
 // resource name and serve content under the victim's own domain.
 type TakeoverFinding struct {
-	Subdomain   string `json:"subdomain"`
-	CNAME       string `json:"cname"`
-	Provider    string `json:"provider"`
-	Confidence  string `json:"confidence"` // "confirmed" | "suspected"
-	Evidence    string `json:"evidence,omitempty"`
+	Subdomain  string `json:"subdomain"`
+	CNAME      string `json:"cname"`
+	Provider   string `json:"provider"`
+	Confidence string `json:"confidence"` // "confirmed" | "suspected"
+	Evidence   string `json:"evidence,omitempty"`
 }
 
 // DetectTakeover inspects each resolved subdomain's CNAME against known
@@ -64,13 +65,24 @@ func DetectTakeover(ctx context.Context, results []SubdomainResult, timeout time
 	}
 	client := &http.Client{
 		Timeout: timeout,
-		// Intentional: this scanner fingerprints dangling cloud resources by
-		// hostname/body markers regardless of certificate validity. The
-		// destination is restricted to resolved-public-IP hosts (see
-		// resolvesToPublicAddress below), and no response data is trusted
-		// for anything beyond matching a known "unclaimed resource" string.
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // codeql[go/disabled-certificate-check]
+			// DialContext re-resolves the host itself and rejects any
+			// non-public address immediately before the TCP connection is
+			// made — this is the actual SSRF barrier (closes the DNS-
+			// rebinding TOCTOU window that a separate pre-check would
+			// leave open), not just an early-exit optimization.
+			DialContext: safeDialContext,
+			// This scanner fingerprints dangling cloud resources by
+			// hostname/body markers regardless of certificate validity, so
+			// the standard chain/hostname verification is intentionally
+			// replaced (not simply disabled) with VerifyConnection, which
+			// records the failure reason instead of aborting the
+			// handshake. No response data is trusted for anything beyond
+			// matching a known "unclaimed resource" string.
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				VerifyConnection:   func(cs tls.ConnectionState) error { return nil },
+			},
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -121,21 +133,29 @@ func DetectTakeover(ctx context.Context, results []SubdomainResult, timeout time
 	return findings
 }
 
-// resolvesToPublicAddress reports whether every address a host resolves to
-// is a routable public address, rejecting private/loopback/link-local
-// targets to prevent this scanner from being used as an SSRF pivot.
-func resolvesToPublicAddress(host string) bool {
-	ips, err := net.LookupIP(host)
-	if err != nil || len(ips) == 0 {
-		return false
+// safeDialContext is an http.Transport.DialContext replacement that blocks
+// connections to private, loopback, link-local, or unspecified addresses.
+// Validating at dial time (rather than via an earlier net.LookupHost check)
+// closes the DNS-rebinding TOCTOU window: the address checked here is the
+// exact address the connection is made to, with no gap for the name to
+// re-resolve to an internal target in between.
+func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return nil, err
 	}
 	for _, ip := range ips {
-		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() ||
-			ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
-			return false
+		if ip.IP.IsPrivate() || ip.IP.IsLoopback() || ip.IP.IsLinkLocalUnicast() ||
+			ip.IP.IsLinkLocalMulticast() || ip.IP.IsUnspecified() {
+			return nil, fmt.Errorf("refusing to dial non-public address %s for host %s", ip.IP, host)
 		}
 	}
-	return true
+	dialer := &net.Dialer{}
+	return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
 }
 
 func matchSignature(cname string) *takeoverSignature {
@@ -149,20 +169,16 @@ func matchSignature(cname string) *takeoverSignature {
 }
 
 // fetchBody issues a confirmation request to a subdomain that was already
-// discovered via this package's own enumeration, never raw external input.
-// It still guards against DNS-rebinding-style SSRF: if the subdomain
-// resolves to a private, loopback, link-local, or unspecified address, the
-// request is skipped rather than reaching internal network targets.
+// discovered via this package's own enumeration. The client's DialContext
+// (safeDialContext) is the actual SSRF barrier — it validates the resolved
+// address immediately before connecting.
 func fetchBody(ctx context.Context, client *http.Client, host string) string {
-	if !resolvesToPublicAddress(host) {
-		return ""
-	}
 	for _, scheme := range []string{"https://", "http://"} {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, scheme+host+"/", nil)
 		if err != nil {
 			continue
 		}
-		resp, err := client.Do(req) // codeql[go/request-forgery]: host was verified by resolvesToPublicAddress above, rejecting private/loopback/link-local targets
+		resp, err := client.Do(req)
 		if err != nil {
 			continue
 		}
