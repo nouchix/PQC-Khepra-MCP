@@ -418,13 +418,33 @@ func (t *httpTransport) handleToolsCall(ctx context.Context, req JSONRPCRequest,
 
 	resp, err := t.router.HandleToolCall(ctx, call, cred, remoteAddr)
 	if err != nil {
-		return JSONRPCResponse{
-			JSONRPC: "2.0", ID: req.ID,
-			Error: &JSONRPCError{Code: ErrCodeInternal, Message: err.Error()},
+		// MCP spec: tool errors go in result with isError=true
+		errResult := mcpCallToolResult{
+			Content: []mcpContentItem{{Type: "text", Text: err.Error()}},
+			IsError: true,
+		}
+		return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(errResult)}
+	}
+
+	// Convert MCPToolResponse → MCP-spec content array
+	var textContent string
+	if resp.IsError {
+		textContent = resp.ErrorMessage
+	} else {
+		respJSON, marshalErr := json.MarshalIndent(resp, "", "  ")
+		if marshalErr != nil {
+			textContent = fmt.Sprintf("{\"error\": \"marshal failed: %s\"}", marshalErr.Error())
+		} else {
+			textContent = string(respJSON)
 		}
 	}
 
-	return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(resp)}
+	result := mcpCallToolResult{
+		Content: []mcpContentItem{{Type: "text", Text: textContent}},
+		IsError: resp.IsError,
+	}
+
+	return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(result)}
 }
 
 // handleHealth returns a basic health check response.
