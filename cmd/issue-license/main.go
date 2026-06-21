@@ -13,6 +13,12 @@
 //	  -shards keys/root-ceremony/shard-1-of-5.json,keys/root-ceremony/shard-2-of-5.json,keys/root-ceremony/shard-3-of-5.json
 //
 // You will be prompted on stdin for each shard's passphrase.
+//
+// Output format defaults to raw JSON — boring, debuggable, and what real
+// enterprise/DoD customers and their security reviewers expect. Pass
+// -format=sacred to get the Sacred Runes encoding instead, for marketing
+// screenshots / demo material / community-tier use — never as the documented
+// default for paying customers. See pkg/license/sacred_license.go for why.
 package main
 
 import (
@@ -35,7 +41,13 @@ func main() {
 	tenant := flag.String("tenant", "SecRed Knowledge Inc.", "Tenant name")
 	ttl := flag.Duration("ttl", 365*24*time.Hour, "License validity duration (e.g. 8760h = 1 year)")
 	shardsFlag := flag.String("shards", "", "comma-separated paths to root-key Shamir shard files (need >= threshold)")
+	format := flag.String("format", "json", "output format for KHEPRA_LICENSE_KEY: json (default, primary) or sacred (opt-in, cosmetic)")
 	flag.Parse()
+
+	if *format != "json" && *format != "sacred" {
+		fmt.Fprintf(os.Stderr, "invalid -format %q: must be \"json\" or \"sacred\"\n", *format)
+		os.Exit(1)
+	}
 
 	logger := log.New(os.Stderr, "[issue-license] ", log.LstdFlags)
 
@@ -96,11 +108,15 @@ func main() {
 		logger.Fatalf("marshal failed: %v", err)
 	}
 
-	fmt.Println(string(licJSON))
+	sacred, err := license.EncodeLicenseDisplay(lic)
+	if err != nil {
+		logger.Fatalf("sacred encoding failed: %v", err)
+	}
 
-	// Self-check against the pinned master public key — the same check
-	// ParseMCPLicense performs. This confirms the license is something the
-	// real server will actually accept, not just something that verifies
+	// Self-check BOTH encodings against the pinned master public key
+	// regardless of which one is displayed — the same check ParseMCPLicense
+	// performs. Confirms the license is something the real server will
+	// actually accept, in either format, not just something that verifies
 	// against its own embedded key.
 	var check license.KhepraLicense
 	if err := json.Unmarshal(licJSON, &check); err != nil {
@@ -109,8 +125,30 @@ func main() {
 	if err := license.VerifySovereignLicense(&check, license.MasterPublicKey); err != nil {
 		logger.Fatalf("self-check verification against pinned master key FAILED: %v", err)
 	}
-	logger.Printf("✅ self-verification against pinned MasterPublicKey PASSED")
+
+	decoded, err := license.DecodeLicenseDisplay(sacred)
+	if err != nil {
+		logger.Fatalf("sacred round-trip decode FAILED: %v", err)
+	}
+	if err := license.VerifySovereignLicense(decoded, license.MasterPublicKey); err != nil {
+		logger.Fatalf("sacred round-trip self-check verification FAILED: %v", err)
+	}
+	logger.Printf("✅ self-verification PASSED for both raw JSON and Sacred Runes encoding")
+	logger.Printf("")
+
+	switch *format {
+	case "sacred":
+		logger.Printf("KHEPRA_LICENSE_KEY (-format=sacred — cosmetic only, see pkg/license/sacred_license.go):")
+		fmt.Println(sacred)
+		logger.Printf("")
+		logger.Printf("⚠️  Sacred Runes format is NOT the documented default — do not hand this to")
+		logger.Printf("   enterprise/DoD customers or their security reviewers as the primary value.")
+	default:
+		logger.Printf("KHEPRA_LICENSE_KEY:")
+		fmt.Println(string(licJSON))
+	}
+
 	logger.Printf("")
 	logger.Printf("Add to Claude Desktop config (claude_desktop_config.json) env block:")
-	logger.Printf("  \"KHEPRA_LICENSE_KEY\": \"<the JSON above>\"")
+	logger.Printf("  \"KHEPRA_LICENSE_KEY\": \"<the value above>\"")
 }
