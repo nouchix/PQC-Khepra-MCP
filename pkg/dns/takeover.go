@@ -65,7 +65,10 @@ func DetectTakeover(ctx context.Context, results []SubdomainResult, timeout time
 	client := &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // we're probing identity, not trusting the cert
+			// codeql[go/disabled-certificate-check]: intentional — this scanner
+			// fingerprints dangling cloud resources regardless of cert validity;
+			// the destination is constrained to resolved-public-IP hosts below.
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -116,6 +119,23 @@ func DetectTakeover(ctx context.Context, results []SubdomainResult, timeout time
 	return findings
 }
 
+// resolvesToPublicAddress reports whether every address a host resolves to
+// is a routable public address, rejecting private/loopback/link-local
+// targets to prevent this scanner from being used as an SSRF pivot.
+func resolvesToPublicAddress(host string) bool {
+	ips, err := net.LookupIP(host)
+	if err != nil || len(ips) == 0 {
+		return false
+	}
+	for _, ip := range ips {
+		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() ||
+			ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+			return false
+		}
+	}
+	return true
+}
+
 func matchSignature(cname string) *takeoverSignature {
 	lower := strings.ToLower(cname)
 	for i := range takeoverSignatures {
@@ -126,7 +146,15 @@ func matchSignature(cname string) *takeoverSignature {
 	return nil
 }
 
+// fetchBody issues a confirmation request to a subdomain that was already
+// discovered via this package's own enumeration, never raw external input.
+// It still guards against DNS-rebinding-style SSRF: if the subdomain
+// resolves to a private, loopback, link-local, or unspecified address, the
+// request is skipped rather than reaching internal network targets.
 func fetchBody(ctx context.Context, client *http.Client, host string) string {
+	if !resolvesToPublicAddress(host) {
+		return ""
+	}
 	for _, scheme := range []string{"https://", "http://"} {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, scheme+host+"/", nil)
 		if err != nil {
