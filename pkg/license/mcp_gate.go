@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ─── External Display Names ────────────────────────────────────────────────────
@@ -227,9 +228,22 @@ func ParseMCPLicense() (*KhepraLicense, error) {
 		return nil, ErrNoLicenseKey
 	}
 
+	// KHEPRA_LICENSE_KEY accepts either raw JSON or the Sacred Runes encoding
+	// produced by EncodeLicenseDisplay (see sacred_license.go). Valid JSON
+	// always starts with '{'; anything else is treated as Sacred-encoded.
+	// This is a format choice only — verification below is identical either way.
 	var lic KhepraLicense
-	if err := json.Unmarshal([]byte(raw), &lic); err != nil {
-		return nil, fmt.Errorf("license: KHEPRA_LICENSE_KEY parse failed: %w", err)
+	trimmed := strings.TrimSpace(raw)
+	if strings.HasPrefix(trimmed, "{") {
+		if err := json.Unmarshal([]byte(trimmed), &lic); err != nil {
+			return nil, fmt.Errorf("license: KHEPRA_LICENSE_KEY parse failed: %w", err)
+		}
+	} else {
+		decoded, err := DecodeLicenseDisplay(trimmed)
+		if err != nil {
+			return nil, fmt.Errorf("license: KHEPRA_LICENSE_KEY sacred decode failed: %w", err)
+		}
+		lic = *decoded
 	}
 
 	// Offline ML-DSA-65 verification pinned to the compiled-in master public key
