@@ -82,6 +82,11 @@ func ProbeTLS(host string, port int, timeout time.Duration) *TLSProbeResult {
 	// classified by the caller. The certificate is never trusted for any
 	// decision other than reporting; callers must not use this connection
 	// to transmit sensitive data.
+	//
+	// CodeQL's go/disabled-certificate-check query flags the literal
+	// InsecureSkipVerify:true regardless of this VerifyConnection
+	// override — it is a known/accepted finding for this code path,
+	// not a fix-needed vulnerability.
 	cfg := &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: true,
