@@ -72,22 +72,9 @@ func DetectTakeover(ctx context.Context, results []SubdomainResult, timeout time
 			// rebinding TOCTOU window that a separate pre-check would
 			// leave open), not just an early-exit optimization.
 			DialContext: safeDialContext,
-			// This scanner fingerprints dangling cloud resources by
-			// hostname/body markers regardless of certificate validity, so
-			// the standard chain/hostname verification is intentionally
-			// replaced (not simply disabled) with VerifyConnection, which
-			// records the failure reason instead of aborting the
-			// handshake. No response data is trusted for anything beyond
-			// matching a known "unclaimed resource" string.
-			//
-			// CodeQL's go/disabled-certificate-check query flags the
-			// literal InsecureSkipVerify:true regardless of this
-			// VerifyConnection override — it is a known/accepted finding
-			// for this code path, not a fix-needed vulnerability.
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-				VerifyConnection:   func(cs tls.ConnectionState) error { return nil },
-			},
+			// Enforce standard TLS verification (certificate chain and
+			// hostname) for HTTPS requests.
+			TLSClientConfig: &tls.Config{},
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
