@@ -97,6 +97,7 @@ const (
 	LaneHorusSecret ScanLane = "horus_secret" // Horus entropy-based secret detection
 	LaneHorusCompliance ScanLane = "horus_compliance" // Horus CIS/STIG/NIST checks
 	LaneHorusContainer ScanLane = "horus_container"  // Horus Dockerfile analysis
+	LaneDNSPKI     ScanLane = "dns_pki"    // Live DNS enumeration + TLS/PKI cert discovery
 )
 
 // AllLanes returns all scan lanes the orchestrator supports.
@@ -107,7 +108,8 @@ func AllLanes() []ScanLane {
 		LaneHorusSecret,
 		LaneHorusCompliance,
 		LaneHorusContainer,
-		LaneSonar, // Network/OSINT/Crawler (requires network target)
+		LaneSonar,  // Network/OSINT/Crawler (requires network target)
+		LaneDNSPKI, // DNS enumeration + live TLS/PKI cert discovery (requires network target)
 	}
 }
 

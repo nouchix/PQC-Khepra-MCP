@@ -191,6 +191,17 @@ func (s *CertificateScanner) Discover(rootDir string) ([]CryptoAsset, error) {
 	return assets, err
 }
 
+// AnalyzeCertificateAsset converts a live-discovered X.509 certificate (e.g.
+// from a TLS handshake probe in pkg/pki) into a CryptoAsset, reusing the same
+// risk classification and migration-path logic as the static filesystem
+// scanner. The location string identifies where the cert was found
+// (e.g. "tls://host:443") and is stored in FilePath for CBOM/SPDX export.
+func AnalyzeCertificateAsset(cert *x509.Certificate, location string) CryptoAsset {
+	asset := analyzeCertificate(cert, location)
+	asset.DiscoveryMethod = "tls_handshake_probe"
+	return asset
+}
+
 // analyzeCertificate extracts crypto metadata from X.509 cert
 func analyzeCertificate(cert *x509.Certificate, path string) CryptoAsset {
 	asset := CryptoAsset{
