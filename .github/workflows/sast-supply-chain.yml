@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload report (90-day C3PAO evidence)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: govulncheck-report-${{ github.sha }}
           path: govulncheck-report.txt
@@ -140,7 +140,7 @@ jobs:
             -json -licenses -std
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-cyclonedx-${{ github.sha }}
           path: sbom-cyclonedx.json
