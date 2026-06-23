@@ -170,7 +170,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Dockerfile (main app — no push)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -180,7 +180,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Dockerfile.mcp (MCP server — no push)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.mcp
