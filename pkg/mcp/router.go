@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"strings"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -10,12 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/sha3"
 
 	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/scanner"
 )
 
 // ─── Security Boundary Interfaces ──────────────────────────────────────────────
@@ -405,20 +406,17 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// Reset mistake counter on success
 	r.mistakes.RecordSuccess(id.AgentID)
 
-	// ── Step 5.5: Output Pipeline Filtering (NSA CSI MCP mandate) ───────────
+	// ── Step 5.5: Output Pipeline Filtering (NSA CSI MCP mandate) ────────────
 	// NSA MCP Security Design Considerations p.12-13:
 	// "Outputs from tools and models should never be treated as implicitly trusted,
 	// even if they originate from previously vetted components. Each output must be
 	// treated as untrusted input to the next phase of the pipeline."
 	//
-	// We serialize the result and run it through the same injection scanner used
-	// for inbound args. Non-fatal (warning-only): compliant security reports
-	// legitimately contain CVE IDs, exploit code snippets, and other patterns
-	// that superficially resemble injection — we warn but do not block.
+	// Phase A: injection scan (warn-only — security reports contain CVE patterns)
+	// Phase B: secret leakage scan (OWASP-MCP-04/05) via GitLeaks-derived patterns
 	if outputBytes, marshalOK := json.Marshal(result); marshalOK == nil {
+		// Phase A: prompt injection patterns in output
 		if outErr := r.gateway.ScanForInjection(string(outputBytes)); outErr != nil {
-			// Non-fatal: log and warn — security report outputs may contain
-			// CVE IDs or exploit patterns that match injection heuristics.
 			r.logger.Printf("[MCP:OUTPUT-FILTER] tool=%q potential injection pattern in output: %v (non-fatal)",
 				call.ToolName, outErr)
 			warnings = append(warnings, "output-filter: potential injection pattern in tool output — review before piping to next agent")

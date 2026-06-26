@@ -57,16 +57,20 @@ func (e *ValidationError) Error() string {
 // MaxArgSize is the maximum size of a single argument value in bytes.
 const MaxArgSize = 1 << 20 // 1MB
 
-// dangerousPatterns detects common command injection vectors.
+// dangerousPatterns detects common command injection vectors, including
+// base64-encoded payloads and brace-expansion attacks (defenter-class coverage).
 var dangerousPatterns = regexp.MustCompile(
 	`(?i)` +
 		`(\$\(.*\))` + // $() subshell
 		`|(\x60.*\x60)` + // backtick subshell
-		`|(;\s*(rm|dd|mkfs|wget|curl|nc|bash|sh|python|perl|ruby|php)\b)` + // semicolon-chained commands
-		`|(\|\s*(bash|sh|nc|python)\b)` + // pipe to shell
-		`|(&&\s*(rm|dd|wget|curl)\b)` + // && chained destructive
+		`|(;\s*(rm|dd|mkfs|wget|curl|nc|bash|sh|python|perl|ruby|php)\b)` + // semicolon-chained
+		`|(\|\s*(bash|sh|nc|python|base64)\b)` + // pipe to shell or base64 decode
+		`|(&& \s*(rm|dd|wget|curl)\b)` + // && chained destructive
 		`|(\beval\s*\()` + // eval()
-		`|(__import__|exec\s*\(|os\.system)`, // Python injection
+		`|(__import__|exec\s*\(|os\.system)` + // Python injection
+		`|([A-Za-z0-9+/]{20,}={0,2}\s*\|\s*base64\s+-d)` + // base64-encoded command pipe
+		`|(\{[^}]*\bdd\b[^}]*\})` + // brace expansion with dd
+		`|(\{[^}]*\brm\b[^}]*\})`, // brace expansion with rm
 )
 
 // ValidateToolArgs validates all arguments for a tool call.
