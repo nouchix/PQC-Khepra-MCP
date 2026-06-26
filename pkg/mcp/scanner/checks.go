@@ -1,17 +1,22 @@
 package scanner
 
-// checks.go — Seven active threat check implementations (T01–T16).
+// checks.go — Threat check implementations (T01–T16) + output secret scanner.
 //
-// Each check is a method on *Scanner returning ([]MCPFinding, error).
+// Each structural check is a method on *Scanner returning ([]MCPFinding, error).
 // All checks are read-only — no mutations to the server state.
 //
 // Active checks:    T01, T03, T06, T07, T10, T11, T16
+// Output scanner:   ScanOutputSecrets() — GitLeaks-derived 50-pattern corpus
 // Pending checks:   T02/T08 (require CallLog wired into handleToolsCall)
 //                   T04, T05, T09, T12, T13, T14, T15 (future work)
+//
+// Every finding is tagged with OWASPTag (OWASP-MCP-01..10) and, where
+// applicable, ASITag (ASI-01..10) for auditor-friendly coverage reporting.
 
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -46,6 +51,8 @@ func (s *Scanner) checkToolPoisoning(_ context.Context) ([]MCPFinding, error) {
 				findings = append(findings, MCPFinding{
 					ID:          fmt.Sprintf("T01-%03d", i*10+1),
 					ThreatClass: T01ToolPoisoning,
+					OWASPTag:    OWASPMCPTop10_03_ToolPoisoning,
+					ASITag:      OWASPASI01_AgentMemoryPoisoning,
 					Severity:    SeverityHigh,
 					Title:       "Tool description contains injection pattern",
 					Detail:      fmt.Sprintf("Tool %q description matches pattern %q — possible prompt injection vector", t.Name, pattern),
@@ -68,6 +75,8 @@ func (s *Scanner) checkToolPoisoning(_ context.Context) ([]MCPFinding, error) {
 			findings = append(findings, MCPFinding{
 				ID:          fmt.Sprintf("T01-%03d", i*10+2),
 				ThreatClass: T01ToolPoisoning,
+				OWASPTag:    OWASPMCPTop10_09_DataInjection,
+				ASITag:      OWASPASI01_AgentMemoryPoisoning,
 				Severity:    SeverityCritical,
 				Title:       "Tool description contains hidden control characters",
 				Detail:      fmt.Sprintf("Tool %q description contains non-printable characters — classic hidden injection vector. Quarantine and audit immediately.", t.Name),
@@ -101,6 +110,8 @@ func (s *Scanner) checkManifestRugPull(_ context.Context) ([]MCPFinding, error) 
 		findings = append(findings, MCPFinding{
 			ID:          fmt.Sprintf("T03-%03d", seq),
 			ThreatClass: T03ManifestRugPull,
+			OWASPTag:    OWASPMCPTop10_08_Typosquatting,
+			ASITag:      OWASPASI08_ShadowMCPServer,
 			Severity:    SeverityHigh,
 			Title:       "Tool added after baseline capture",
 			Detail:      fmt.Sprintf("Tool %q was not present at baseline — rug pull or unauthorized injection", name),
@@ -115,6 +126,8 @@ func (s *Scanner) checkManifestRugPull(_ context.Context) ([]MCPFinding, error) 
 		findings = append(findings, MCPFinding{
 			ID:          fmt.Sprintf("T03-%03d", seq),
 			ThreatClass: T03ManifestRugPull,
+			OWASPTag:    OWASPMCPTop10_08_Typosquatting,
+			ASITag:      OWASPASI08_ShadowMCPServer,
 			Severity:    SeverityHigh,
 			Title:       "Tool removed after baseline capture",
 			Detail:      fmt.Sprintf("Tool %q was present at baseline but is now missing — possible rug pull", name),
@@ -129,6 +142,7 @@ func (s *Scanner) checkManifestRugPull(_ context.Context) ([]MCPFinding, error) 
 		findings = append(findings, MCPFinding{
 			ID:          fmt.Sprintf("T10-%03d", seq),
 			ThreatClass: T10SchemaDrift,
+			OWASPTag:    OWASPMCPTop10_08_Typosquatting,
 			Severity:    SeverityMedium,
 			Title:       "Tool schema mutated after baseline",
 			Detail:      fmt.Sprintf("Tool %q name/description/schema hash changed since baseline — possible schema mutation attack", name),
@@ -153,6 +167,8 @@ func (s *Scanner) checkUnsignedResponse(_ context.Context) ([]MCPFinding, error)
 	return []MCPFinding{{
 		ID:          "T06-001",
 		ThreatClass: T06UnsignedResponse,
+		OWASPTag:    OWASPMCPTop10_07_MissingAuth,
+		ASITag:      OWASPASI05_UnsignedAttestation,
 		Severity:    SeverityCritical,
 		Title:       "MCP server has no PQC signing key — tool responses are unsigned",
 		Detail:      "No ML-DSA-65 (Dilithium) private key is configured. All tool responses lack cryptographic integrity seals. An adversary can tamper with responses without detection. Set KHEPRA_LICENSE_KEY or configure a signing key.",
@@ -174,6 +190,8 @@ func (s *Scanner) checkDAGGap(_ context.Context) ([]MCPFinding, error) {
 	return []MCPFinding{{
 		ID:          "T07-001",
 		ThreatClass: T07DAGGap,
+		OWASPTag:    OWASPMCPTop10_10_LoggingAuditFailures,
+		ASITag:      OWASPASI10_AuditGap,
 		Severity:    SeverityHigh,
 		Title:       "MCP server has no DAG audit logger — tool calls are not immutably recorded",
 		Detail:      "No DAG attestation store is wired to the server. Tool call provenance cannot be verified post-hoc. Configure pkg/dag.Store + DAGAttestor to close this gap. Required for DFARS 252.204-7012 and CMMC AU.3.045 compliance.",
@@ -195,6 +213,7 @@ func (s *Scanner) checkSchemaDrift(_ context.Context) ([]MCPFinding, error) {
 	return []MCPFinding{{
 		ID:          "T10-001",
 		ThreatClass: T10SchemaDrift,
+		OWASPTag:    OWASPMCPTop10_08_Typosquatting,
 		Severity:    SeverityMedium,
 		Title:       "Schema drift detection unconfigured — no baseline captured",
 		Detail:      "CaptureBaseline() was not called after tool registration. Without a baseline, manifest rug pull (T03) and schema mutation (T10) attacks cannot be detected. Call sc.CaptureBaseline() immediately after RegisterTool() calls complete.",
@@ -294,6 +313,8 @@ func (s *Scanner) checkPQCDowngrade(_ context.Context) ([]MCPFinding, error) {
 	return []MCPFinding{{
 		ID:          "T16-001",
 		ThreatClass: T16PQCDowngrade,
+		OWASPTag:    OWASPMCPTop10_07_MissingAuth,
+		ASITag:      OWASPASI05_UnsignedAttestation,
 		Severity:    severity,
 		Title:       "PQC signing key is not ML-DSA-65 — algorithm downgrade detected",
 		Detail:      detail,
@@ -301,4 +322,69 @@ func (s *Scanner) checkPQCDowngrade(_ context.Context) ([]MCPFinding, error) {
 		Framework:   "CMMC 2.0",
 		DetectedAt:  time.Now(),
 	}}, nil
+}
+
+// ── ScanOutputSecrets — GitLeaks-style output secret scanner ─────────────────
+//
+// Scans serialized tool output for secrets and PII before it reaches the LLM.
+// Returns MCPFindings tagged OWASP-MCP-04 / OWASP-MCP-05.
+// Called from router.go Step 5.5 (non-fatal: appends to warnings, does not block).
+//
+// compiledPatterns is lazily initialized on first call via init().
+var compiledSecretPatterns []*compiledSecretPattern
+
+type compiledSecretPattern struct {
+	Name     string
+	Re       *regexp.Regexp
+	Severity Severity
+}
+
+func init() {
+	for _, p := range SecretPatterns {
+		re, err := regexp.Compile(p.Pattern)
+		if err != nil {
+			// Malformed pattern — skip silently (should never happen)
+			continue
+		}
+		compiledSecretPatterns = append(compiledSecretPatterns, &compiledSecretPattern{
+			Name:     p.Name,
+			Re:       re,
+			Severity: p.Severity,
+		})
+	}
+}
+
+// ScanOutputSecrets scans raw bytes (serialized tool response) for secret patterns.
+// Returns findings tagged with OWASP-MCP-04 and OWASP-MCP-05.
+// Non-blocking: caller logs findings as warnings, does not halt execution.
+func ScanOutputSecrets(output []byte, toolName string) []MCPFinding {
+	text := string(output)
+	var findings []MCPFinding
+	seen := make(map[string]bool) // deduplicate by pattern name
+
+	for _, cp := range compiledSecretPatterns {
+		if seen[cp.Name] {
+			continue
+		}
+		if cp.Re.MatchString(text) {
+			seen[cp.Name] = true
+			owaspTag := OWASPMCPTop10_04_CommandInjection
+			if strings.HasPrefix(cp.Name, "pii-") {
+				owaspTag = OWASPMCPTop10_05_UnsanitizedResponse
+			}
+			findings = append(findings, MCPFinding{
+				ID:          fmt.Sprintf("SEC-%s-%s", toolName, cp.Name),
+				ThreatClass: T06UnsignedResponse, // closest structural class
+				OWASPTag:    owaspTag,
+				ASITag:      OWASPASI03_CredentialTheft,
+				Severity:    cp.Severity,
+				Title:       fmt.Sprintf("Secret pattern detected in tool output: %s", cp.Name),
+				Detail:      fmt.Sprintf("Tool %q response matches secret pattern %q. The LLM may inadvertently include this credential in its context window or subsequent outputs. Review and redact.", toolName, cp.Name),
+				Control:     "SC-28",
+				Framework:   "NIST 800-53",
+				DetectedAt:  time.Now(),
+			})
+		}
+	}
+	return findings
 }
