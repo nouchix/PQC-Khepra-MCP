@@ -72,7 +72,8 @@ type OWASPAgentAssessResult struct {
 	Mitigated          int          `json:"mitigated"`
 	Partial            int          `json:"partial"`
 	Unmitigated        int          `json:"unmitigated"`
-	CompositeScore     int          `json:"composite_score"` // 0-100
+	CompositeScore     int          `json:"composite_score"`     // ASI-weighted 0-100
+	MCPSecurityScore   *MCPSecScore `json:"mcp_security_score,omitempty"` // OWASP-MCP-01..10 scanner
 	ReadyForProduction bool         `json:"ready_for_production"`
 	DAGNodeID          string       `json:"dag_node_id"`
 	SignatureAlgorithm string       `json:"signature_algorithm"`
@@ -80,10 +81,23 @@ type OWASPAgentAssessResult struct {
 	ExecutiveSummary   string       `json:"executive_summary"`
 }
 
+// MCPSecScore is a compact view of scanner.MCPSecurityScore for JSON output.
+// Defined here to avoid importing pkg/mcp/scanner into the tools package.
+type MCPSecScore struct {
+	Overall        int     `json:"overall"`
+	Grade          string  `json:"grade"`
+	GuardCoverage  float64 `json:"guard_coverage"`
+	InputValidated bool    `json:"input_validated"`
+	AuthPosture    float64 `json:"auth_posture"`
+	CriticalCount  int     `json:"critical_count"`
+	HighCount      int     `json:"high_count"`
+	MediumCount    int     `json:"medium_count"`
+}
+
 // ─── handler ─────────────────────────────────────────────────────────────────
 
 // HandleOWASPAgentAssess assesses the MCP server deployment against the
-// OWASP Agentic Top 10 for 2026 (ASI01-ASI10).
+// OWASP Agentic Top 10 for 2026 (ASI01-ASI10) + OWASP MCP Top 10 scanner.
 func HandleOWASPAgentAssess(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	profile, _ := call.Args["profile"].(string)
 	if profile == "" {
@@ -133,9 +147,28 @@ func HandleOWASPAgentAssess(ctx context.Context, call mcp.MCPToolCall) (any, []s
 	// Generate a fake DAG node ID referencing this assessment
 	dagNodeID := fmt.Sprintf("dag-owasp-%d", time.Now().UnixNano())
 
+	// ─ OWASP MCP Top 10 live scanner score ────────────────────────────────
+	// Runs the T01–T16 structural scanner suite via Router.RunScannerAssessment()
+	// and embeds the weighted grade alongside the ASI10 composite score.
+	var mcpScore *MCPSecScore
+	if router, ok := call.Args["_router"].(*mcp.Router); ok && router != nil {
+		if _, score, err := router.RunScannerAssessment(); err == nil {
+			mcpScore = &MCPSecScore{
+				Overall:        score.Overall,
+				Grade:          score.Grade,
+				GuardCoverage:  score.GuardCoverage,
+				InputValidated: score.InputValidated,
+				AuthPosture:    score.AuthPosture,
+				CriticalCount:  score.CriticalCount,
+				HighCount:      score.HighCount,
+				MediumCount:    score.MediumCount,
+			}
+		}
+	}
+
 	result := &OWASPAgentAssessResult{
 		AssessmentID:       assessmentID,
-		Standard:           "OWASP Agentic Top 10",
+		Standard:           "OWASP Agentic Top 10 + OWASP MCP Top 10",
 		Version:            "2026",
 		AssessedAt:         assessedAt,
 		ServerName:         "khepra-mcp",
@@ -147,6 +180,7 @@ func HandleOWASPAgentAssess(ctx context.Context, call mcp.MCPToolCall) (any, []s
 		Partial:            partial,
 		Unmitigated:        unmitigated,
 		CompositeScore:     composite,
+		MCPSecurityScore:   mcpScore,
 		ReadyForProduction: readyForProd,
 		DAGNodeID:          dagNodeID,
 		SignatureAlgorithm: "ML-DSA-65",
