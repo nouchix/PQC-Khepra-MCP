@@ -34,9 +34,9 @@ const NewHomepage = () => {
                 className="h-10 w-auto"
               />
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-white">ASAF</span>
+                <span className="text-xl font-bold text-white">SouHimBou</span>
                 <span className="text-xs bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-500/30 font-mono">
-                  by NouchiX
+                  AI
                 </span>
               </div>
             </div>
