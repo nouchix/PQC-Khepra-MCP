@@ -208,6 +208,20 @@ func main() {
 		// ── Sprint 1: KASA Brain (AGI + EA + Quantum) ─────────────────────
 		{Name: "kasa_start", Description: "Start the KASA autonomous security agent. Launches: vulnerability hunting hourly, internal pentest daily (NIST 800-53 CA-8), CMMC compliance audit daily. Every action is DAG-attested.", RiskClass: "destructive", Scope: "kasa:control", Tier: "enterprise", TimeoutMs: 30000, Destructive: true},
 		{Name: "kasa_status", Description: "Check current status of the KASA autonomous agent: uptime, active tasks, threat score, and EA kernel generation.", RiskClass: "read_only", Scope: "kasa:read", Tier: "community", TimeoutMs: 5000},
+		{Name: "kasa_task", Description: "Inject a security directive into the KASA task queue, bound to an Adinkra symbol (Eban=defense, Sankofa=forensics, OwoForoAdobe=vigilance, Dwennimmen=remediation). Executed within KASA's next cognitive cycle (≤5s).", RiskClass: "read_only", Scope: "kasa:control", Tier: "community", TimeoutMs: 5000,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"description": {"type": "string", "description": "Task directive for KASA to execute"},
+				"symbol":      {"type": "string", "description": "Adinkra symbol binding (default: Eban)"},
+			}, Required: []string{"description"}}},
+		{Name: "kasa_scan", Description: "Run KASA's port/service scanner against a target, with AI threat analysis. Maps to MITRE ATT&CK T1046. Every finding is DAG-attested with ML-DSA-65.", RiskClass: "read_only", Scope: "kasa:scan", Tier: "community", TimeoutMs: 60000,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"target": {"type": "string", "description": "Scan target (default: 127.0.0.1)"},
+			}}},
+		{Name: "kasa_forensics", Description: "Trigger an immediate KASA forensic snapshot — processes, network connections, open ports, file hashes — compared against the last snapshot for anomaly detection. DAG-attested under symbol Sankofa.", RiskClass: "read_only", Scope: "kasa:forensics", Tier: "community", TimeoutMs: 30000},
+		{Name: "kasa_crypto_agent", Description: "Run the KASA Crypto Agent: detects tampering via entropy/structural feature analysis, computes a threat level, and auto-quarantines components above the Critical threshold with PQC-sealed forensic snapshots.", RiskClass: "read_only", Scope: "kasa:crypto", Tier: "community", TimeoutMs: 15000,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"component_id": {"type": "string", "description": "Component identifier to check for tampering (default: PQC-Khepra-MCP)"},
+			}}},
 		{Name: "ea_evolve", Description: "Run Evolutionary Algorithm threat evolution. Optimizes for: NIST 800-171 control coverage, PQC readiness, threat posture. Returns the fittest genome with Adinkra symbol binding.", RiskClass: "read_only", Scope: "kasa:evolve", Tier: "pilot", TimeoutMs: 120000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
 				"generations":     {"type": "number", "description": "Number of EA generations (default: 10)"},

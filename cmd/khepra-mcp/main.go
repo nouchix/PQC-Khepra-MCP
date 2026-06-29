@@ -484,6 +484,10 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// ── Sprint 1: KASA Brain (AGI + EA + Ising Quantum) ─────────────────────
 	executor.RegisterFunc("kasa_start", tools.HandleKASAStart)
 	executor.RegisterFunc("kasa_status", tools.HandleKASAStatus)
+	executor.RegisterFunc("kasa_task", tools.HandleKASATask)
+	executor.RegisterFunc("kasa_scan", tools.HandleKASAScan)
+	executor.RegisterFunc("kasa_forensics", tools.HandleKASAForensics)
+	executor.RegisterFunc("kasa_crypto_agent", tools.HandleKASACryptoAgent)
 	executor.RegisterFunc("ea_evolve", tools.HandleEAEvolve)
 	executor.RegisterFunc("ea_threat_score", tools.HandleEAThreatScore)
 	executor.RegisterFunc("ea_risk_summary", tools.HandleEARiskSummary)
@@ -1123,6 +1127,33 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:read",
 			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_status"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "read-only",
 			ArgsSchema: noArgSchema,
+		},
+		{Name: "kasa_task", Description: "Inject a security directive into the KASA task queue, bound to an Adinkra symbol (Eban=defense, Sankofa=forensics, OwoForoAdobe=vigilance, Dwennimmen=remediation). Executed within KASA's next cognitive cycle (≤5s)",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:control",
+			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_task"), AllowedBackend: "in-process", TimeoutMs: 5000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"description": map[string]any{"type": "string", "description": "Task directive for KASA to execute"},
+				"symbol":      map[string]any{"type": "string", "description": "Adinkra symbol binding (default: Eban)"},
+			}, "required": []string{"description"}},
+		},
+		{Name: "kasa_scan", Description: "Run KASA's port/service scanner against a target, with AI threat analysis. Maps to MITRE ATT&CK T1046 (Network Service Discovery). Every finding is DAG-attested with ML-DSA-65",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:scan",
+			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_scan"), AllowedBackend: "in-process", TimeoutMs: 60000, MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"target": map[string]any{"type": "string", "description": "Scan target (default: 127.0.0.1)"},
+			}},
+		},
+		{Name: "kasa_forensics", Description: "Trigger an immediate KASA forensic snapshot — running processes, network connections, open ports, file hashes — compared against the last snapshot for anomaly detection. DAG-attested under symbol Sankofa",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:forensics",
+			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_forensics"), AllowedBackend: "in-process", TimeoutMs: 30000, MaxPrivilege: "read-only",
+			ArgsSchema: noArgSchema,
+		},
+		{Name: "kasa_crypto_agent", Description: "Run the KASA Crypto Agent: detects tampering via entropy/structural feature analysis, computes a threat level, and auto-quarantines components above the Critical threshold with PQC-sealed forensic snapshots",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "kasa:crypto",
+			SchemaVersion: "1.0.0", SchemaHash: hash("kasa_crypto_agent"), AllowedBackend: "in-process", TimeoutMs: 15000, MaxPrivilege: "none",
+			ArgsSchema: map[string]any{"type": "object", "properties": map[string]any{
+				"component_id": map[string]any{"type": "string", "description": "Component identifier to check for tampering (default: PQC-Khepra-MCP)"},
+			}},
 		},
 		{Name: "ea_evolve", Description: "Run N generations of the Evolutionary Algorithm to optimize security strategy genomes",
 			RiskClass: khepramcp.RiskReadOnly, Scope: "ea:compute",
