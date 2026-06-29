@@ -2,12 +2,21 @@
 # Caddy auto-provisions Let's Encrypt TLS for mcp.souhimbou.ai
 
 mcp.souhimbou.ai {
-    reverse_proxy khepra-mcp:8080
+    reverse_proxy deploy-khepra-mcp-1:8080
+
+    @cors_preflight method OPTIONS
+    handle @cors_preflight {
+        header Access-Control-Allow-Origin *
+        header Access-Control-Allow-Methods *
+        header Access-Control-Allow-Headers *
+        header Access-Control-Max-Age 86400
+        respond 204
+    }
 
     header {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
-        Access-Control-Allow-Origin https://smithery.ai
+        Access-Control-Allow-Origin *
     }
 }
