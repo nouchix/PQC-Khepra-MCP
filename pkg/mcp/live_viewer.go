@@ -16,18 +16,35 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 )
 
 // LiveViewer broadcasts MCPEvents to connected SSE clients on a loopback port.
 type LiveViewer struct {
-	mu      sync.Mutex
-	clients map[chan []byte]bool
+	mu        sync.Mutex
+	clients   map[chan []byte]bool
+	graphPage []byte // dag-viewer.html contents, if loaded; nil falls back to the built-in terminal page
 }
 
 // NewLiveViewer creates an empty broadcaster.
 func NewLiveViewer() *LiveViewer {
 	return &LiveViewer{clients: make(map[chan []byte]bool)}
+}
+
+// LoadGraphPage reads dag-viewer.html (the full 3D DAG/CMMC viewer) from disk
+// and serves it at "/" instead of the built-in terminal-style page, same-origin
+// with /events so EventSource works without any CORS configuration. Safe to
+// call with a path that doesn't exist — it just leaves the built-in page active.
+func (v *LiveViewer) LoadGraphPage(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	v.mu.Lock()
+	v.graphPage = data
+	v.mu.Unlock()
+	return nil
 }
 
 // Push is an EventEmitter hook (see EventEmitter.AddHook) — call it with
@@ -95,6 +112,7 @@ func (v *LiveViewer) handleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*") // loopback-only server; safe to allow any origin (incl. file://)
 	w.WriteHeader(http.StatusOK)
 
 	ch := v.subscribe()
@@ -116,6 +134,15 @@ func (v *LiveViewer) handleSSE(w http.ResponseWriter, r *http.Request) {
 
 func (v *LiveViewer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	v.mu.Lock()
+	page := v.graphPage
+	v.mu.Unlock()
+
+	if page != nil {
+		w.Write(page) //nolint:errcheck
+		return
+	}
 	fmt.Fprint(w, liveViewerHTML)
 }
 

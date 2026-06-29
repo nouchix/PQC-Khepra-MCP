@@ -59,13 +59,16 @@ This is a real architectural call, not a neutral default — flagging it explici
 
 ### Phase 3 — Demo readiness for July 15
 
-1. Confirm the loopback SSE live viewer (`pkg/mcp/live_viewer.go`) renders KASA/EA/Ising events with readable labels — extend `liveViewerHTML`'s row rendering if KASA/EA event `Metadata` needs different formatting than plain tool-call exec/attest events.
-2. Decide and rehearse the actual demo sequence: e.g. `kasa_start` (autonomous agent boots) → narrate the live feed as KASA runs its own perimeter sweep/forensics → `ea_evolve` or `quantum_optimize` to show the adaptive/evolutionary angle → an `agent_record` or real tool call to show signed attestation of an external action. This directly demos "agentic AI accountability" without touching Product A's CMMC framing or Product B's separate dashboard.
-3. Re-run the full stdio+SSE smoke test end to end after Phase 1/2 changes, exactly as done earlier in this session, before calling it demo-ready.
+**CORRECTION (2026-06-29): the investor-grade 3D visual already exists. `dag-viewer.html` (identical copies at repo root `C:\Users\intel\blackbox\dag-viewer.html` and `PQC-Khepra-MCP\docs\dag-viewer.html`) is a complete, polished single-file 3D DAG/CMMC viewer — `3d-force-graph`, node inspector, search, 3D/table/raw tabs, CMMC control mapping, FAIR dollar-impact per finding, ML-DSA-65 signature display, full branding. There is nothing to build here. The only real gap: it renders from a hardcoded demo JSON blob (`<script id="data" type="application/json">`, no `fetch`/`EventSource` anywhere in the file) instead of live data. This replaces the old "build the missing frontend" framing entirely.**
+
+1. Confirm the loopback SSE live viewer (`pkg/mcp/live_viewer.go`) renders KASA/EA/Ising events with readable labels — extend `liveViewerHTML`'s row rendering if KASA/EA event `Metadata` needs different formatting than plain tool-call exec/attest events. (This is the small companion terminal-style feed; keep it as-is, it's already working.)
+2. Wire `dag-viewer.html` to live data instead of the static blob: replace the `<script id="data" type="application/json">` read with an `EventSource('/events')` (or a `/dag/graph`-style snapshot fetch) against `live_viewer.go`'s SSE endpoint, reshaping each `MCPEvent` into this file's existing `{nodes, links}` schema (`type`: prompt/tool/finding/control/attest — map `exec`→tool node, `attest`→attest node with `dag_hash` as `sig`). The file's branding already spans NouchiX/AdinKhepra/SouHimBou, so this is a Product C artifact any product can point at its own data — no segregation conflict.
+3. Decide and rehearse the actual demo sequence: e.g. `kasa_start` (autonomous agent boots) → narrate the live 3D graph growing as KASA runs its own perimeter sweep/forensics → `ea_evolve` or `quantum_optimize` to show the adaptive/evolutionary angle → an `agent_record` or real tool call to show signed attestation of an external action, watching it land as a new node in real time.
+4. Re-run the full stdio+SSE smoke test end to end after Phase 1/2 changes, exactly as done earlier in this session, before calling it demo-ready.
 
 ## Explicitly out of scope for July 15
 
 - Building a real trained ML model to replace `KASACryptoAgent`'s heuristic anomaly scoring. The agent shell is real; the "ML" is currently rule-based thresholds. Don't claim otherwise in the room; don't try to build a real model in two weeks.
 - Porting `mitochondrial-proxy` into Product C. It's an HTTP/web boundary concept with no current consumer in the stdio-first MCP model.
 - Wiring SEKHEM WAF into live request filtering. No live HTTP ingress exists in the demo path to filter.
-- Merging Product A's Compliance Graph UI with Product C's live feed, or building Product A's missing 3D graph at all. Per the segregation decision already made, Product B's dashboard is the intended consumer for a Presight-facing demo, not Product A's.
+- Building any new frontend from scratch. `dag-viewer.html` already exists and is demo-quality — see Phase 3 above. The only frontend work in scope is wiring it to live data.

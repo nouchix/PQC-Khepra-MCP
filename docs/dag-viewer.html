@@ -496,7 +496,10 @@
 
 <script>
 // ── Data ─────────────────────────────────────────────────────
-const RAW = JSON.parse(document.getElementById('data').textContent);
+// `RAW` starts as the embedded demo session below and is replaced in place
+// by ingestLiveEvent() once a live feed connects. If the feed never connects
+// or drops, RAW simply stays whatever it last was — no visible error state.
+let RAW = JSON.parse(document.getElementById('data').textContent);
 
 // ── Color Map ────────────────────────────────────────────────
 const C = {
@@ -726,8 +729,96 @@ window.addEventListener('resize', () => {
   }
 });
 
+// ── Live Feed (Khepra MCP loopback SSE) ────────────────────────
+// Connects to live_viewer.go's SSE endpoint (pkg/mcp/live_viewer.go, PQC-Khepra-MCP).
+// Falls back silently to the embedded demo data above if the feed never
+// connects or drops mid-session — by design, for live demo safety. No
+// disconnect banner, no blank state: worst case is the graph stops updating.
+const FEED_URL = new URLSearchParams(location.search).get('feed') || 'http://127.0.0.1:8765/events';
+let liveActive = false;
+let liveSeq = 0;
+const toolNodeByReqId = new Map();
+
+function nodeIdFor(prefix) { return `${prefix}-${++liveSeq}`; }
+
+function setLiveIndicator() {
+  const dot = document.querySelector('.live-dot');
+  const label = document.querySelector('.live-indicator span');
+  if (dot) dot.style.background = 'var(--green)';
+  if (label) label.textContent = 'LIVE · ML-DSA-65';
+}
+
+function refreshStatsBar() {
+  document.getElementById('stats-bar').innerHTML =
+    `<span>${RAW.meta.tool_calls}</span> tools &nbsp;·&nbsp;` +
+    `<span>${RAW.meta.findings}</span> findings &nbsp;·&nbsp;` +
+    `<span>${RAW.meta.attestations}</span> sigs`;
+}
+
+function ingestLiveEvent(ev) {
+  if (!liveActive) {
+    // First real event: swap the demo session out for a live one. This is
+    // the only moment the graph visibly changes — after this it only grows.
+    RAW = { meta: { session_id: 'live-' + (ev.timestamp || ''), tenant: 'live', tool_calls: 0,
+      attestations: 0, findings: 0, controls_mapped: 0, generated: ev.timestamp || '', license_tier: 'sovereign' },
+      nodes: [], links: [] };
+    liveActive = true;
+    setLiveIndicator();
+  }
+
+  const ts = (ev.timestamp || '').slice(11, 19);
+
+  if (ev.type === 'exec' && ev.metadata && ev.metadata.phase === 'start') {
+    const id = nodeIdFor('t');
+    toolNodeByReqId.set(ev.request_id, id);
+    RAW.nodes.push({ id, label: ev.tool_name || 'tool', type: 'tool', val: 12,
+      desc: `Tool execution · agent=${ev.agent_id || '-'}`, ts });
+  } else if (ev.type === 'attest') {
+    const toolId = toolNodeByReqId.get(ev.request_id);
+    const id = nodeIdFor('a');
+    RAW.nodes.push({ id, label: `ML-DSA-65 · ${ev.tool_name || 'tool'}`, type: 'attest', val: 6,
+      desc: 'Attestation on tool response — DAG-anchored', sig: ev.dag_hash || '', ts });
+    if (toolId) RAW.links.push({ source: toolId, target: id, w: 1 });
+  } else if (ev.success === false) {
+    const toolId = toolNodeByReqId.get(ev.request_id);
+    const id = nodeIdFor('f');
+    RAW.nodes.push({ id, label: ev.error_code || ev.type, type: 'finding', severity: 'CAT_II', val: 12,
+      desc: ev.error_msg || 'Policy/execution event', ts });
+    if (toolId) RAW.links.push({ source: toolId, target: id, w: 1 });
+  } else {
+    return; // ignore startup/shutdown/housekeeping events
+  }
+
+  RAW.meta.tool_calls = RAW.nodes.filter(n => n.type === 'tool').length;
+  RAW.meta.attestations = RAW.nodes.filter(n => n.type === 'attest').length;
+  RAW.meta.findings = RAW.nodes.filter(n => n.type === 'finding').length;
+  refreshStatsBar();
+
+  const activeTab = document.querySelector('.tab.active');
+  if (!activeTab || activeTab.textContent.includes('3D')) {
+    buildGraph(RAW.nodes, RAW.links);
+  }
+}
+
+function connectLiveFeed() {
+  let es;
+  try {
+    es = new EventSource(FEED_URL);
+  } catch (e) {
+    return; // silent fallback — demo data stays on screen
+  }
+  es.onmessage = (msg) => {
+    try { ingestLiveEvent(JSON.parse(msg.data)); } catch (e) { /* ignore malformed event */ }
+  };
+  es.onerror = () => {
+    // Silent by design: never blank the graph or show a disconnect state.
+    // If live data already arrived it stays visible; if not, demo data does.
+  };
+}
+
 // ── Init ─────────────────────────────────────────────────────
 buildGraph(RAW.nodes, RAW.links);
+connectLiveFeed();
 </script>
 </body>
 </html>
