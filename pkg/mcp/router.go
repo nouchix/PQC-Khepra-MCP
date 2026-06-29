@@ -524,6 +524,19 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	}
 	env.AttestationID = attestationID
 
+	// Emit a dedicated attestation event carrying the real DAG node ID, so
+	// external consumers (e.g. a live viewer hook) can show the actual signed
+	// node rather than just a generic tool-end event.
+	r.events.Emit(MCPEvent{
+		Type:      EventAttest,
+		ToolName:  call.ToolName,
+		AgentID:   id.AgentID,
+		RequestID: call.RequestID,
+		Success:   true,
+		DAGHash:   attestationID,
+		Metadata:  map[string]any{"phase": "signed"},
+	})
+
 	// PQC-sign the envelope.
 	signedEnv, err := r.attest.SignEnvelope(ctx, env)
 	if err != nil {
