@@ -133,7 +133,7 @@ const SimpleBilling = () => {
       currentSection="billing"
       browserNav={{
         title: 'Plans & Billing',
-        subtitle: 'ASAF by NouchiX — Agentic Security Attestation Framework',
+        subtitle: 'SouHimBou AI — Agentic Security Operations Center',
         tabs,
         showAddTab: false,
         rightContent: <DashboardToggle />
@@ -179,7 +179,7 @@ const SimpleBilling = () => {
                   disabled={plan.action === 'checkout' && loading}
                   onClick={() => {
                     if (plan.action === 'checkout') handleCheckout();
-                    if (plan.action === 'contact') window.location.href = 'mailto:skone@alumni.albany.edu?subject=ASAF Enterprise';
+                    if (plan.action === 'contact') window.location.href = 'mailto:skone@alumni.albany.edu?subject=SouHimBou%20AI%20Enterprise';
                   }}
                 >
                   {plan.action === 'checkout' && loading ? 'Redirecting...' : plan.cta}
@@ -196,7 +196,7 @@ const SimpleBilling = () => {
             <div>
               <div className="font-semibold text-yellow-400">What is the ADINKHEPRA badge?</div>
               <p className="text-sm text-muted-foreground">
-                A post-quantum cryptographic attestation seal issued by ASAF. Tamper-proof, timestamped, and verifiable by auditors, customers, and insurers.
+                A post-quantum cryptographic attestation seal issued by SouHimBou AI. Tamper-proof, timestamped, and verifiable by auditors, customers, and insurers.
                 Think SOC2 — but automated, continuous, and built for agentic AI.
               </p>
             </div>
