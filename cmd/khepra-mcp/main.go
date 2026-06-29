@@ -236,6 +236,24 @@ func main() {
 		logger.Fatalf("FATAL: router construction failed: %v", err)
 	}
 
+	// ── Live Viewer (optional, loopback-only) ────────────────────────────────
+	// Independent of KHEPRA_HTTP_PORT/transport mode: this does not change
+	// stdio transport or the sovereign/air-gap network posture. It binds
+	// 127.0.0.1 only and exists to make the signed attestation trail visible
+	// in real time (demo/operator use) while khepra-mcp talks to its MCP
+	// client over stdio exactly as it does today.
+	if viewerPort := os.Getenv("KHEPRA_VIEWER_PORT"); viewerPort != "" {
+		viewer := khepramcp.NewLiveViewer()
+		router.Events().AddHook(viewer.Push)
+		viewerAddr := "127.0.0.1:" + viewerPort
+		go func() {
+			if err := viewer.ListenAndServe(viewerAddr); err != nil {
+				logger.Printf("WARN: live viewer failed: %v", err)
+			}
+		}()
+		logger.Printf("  live viewer:    http://%s (loopback only — no egress, stdio transport unaffected)", viewerAddr)
+	}
+
 	// ── Start HardenedServer ─────────────────────────────────────────────────
 	// Determine transport mode: HTTP/SSE if KHEPRA_HTTP_PORT is set and mode
 	// is non-air-gapped; stdio otherwise (sovereign/ironbank air-gap policy).
