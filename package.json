@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.2.29",
+    "next": "15.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "framer-motion": "^11.3.19",
@@ -18,7 +18,15 @@
     "react-router-dom": "^6.26.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.2"
+    "tailwind-merge": "^2.5.2",
+    "date-fns": "^3.6.0",
+    "recharts": "^2.13.0",
+    "sonner": "^1.5.0",
+    "zod": "^3.23.8",
+    "@hookform/resolvers": "^3.9.0",
+    "react-hook-form": "^7.53.0",
+    "@tanstack/react-query": "^5.56.2",
+    "@xyflow/react": "^12.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",
