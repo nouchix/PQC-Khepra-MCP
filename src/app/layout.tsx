@@ -3,8 +3,8 @@ import Providers from "@/components/Providers";
 import "../index.css";
 
 export const metadata: Metadata = {
-  title: "ASAF by NouchiX — Agentic Security Attestation Framework",
-  description: "Scan, audit, and certify your AI agent deployments. Get your ADINKHEPRA badge — the enterprise security standard for agentic AI.",
+  title: "SouHimBou AI — Agentic Security Operations Center",
+  description: "The AI Security Architect for your Agentic SOC. Monitor, detect, investigate, and respond to threats across AI agent deployments. PQC-signed attestation included.",
 };
 
 export default function RootLayout({

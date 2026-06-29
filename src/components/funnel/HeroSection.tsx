@@ -51,8 +51,8 @@ export const HeroSection = () => {
 
               {/* Subheadline */}
               <p className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-xl">
-                ASAF runs readiness scans and maps findings to control-oriented evidence — so ISSMs and C3PAO prep teams get traceable outputs, not slide decks.
-                Earn your <span className="text-[#d4af37] font-semibold">ADINKHEPRA seal</span> when you certify. Agent gateways (e.g. NemoClaw profile) supported where in scope.
+                SouHimBou AI wraps your AI agents, attests every tool call to an immutable DAG, and flags anomalies before they become incidents — so security teams get traceable evidence, not guesswork.
+                Earn your <span className="text-[#d4af37] font-semibold">ADINKHEPRA seal</span> when you certify. CMMC, NIST 800-53, and STIG mappings included.
               </p>
             </div>
 
@@ -135,7 +135,7 @@ export const HeroSection = () => {
                   <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#00ffff]/15 border border-[#00ffff]/40 flex items-center justify-center text-xs font-bold text-[#00ffff]">2</div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-white">ASAF scans in ~60s</p>
+                      <p className="text-sm font-medium text-white">SouHimBou AI analyzes in ~60s</p>
                       <Server className="h-3.5 w-3.5 text-gray-500" />
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">STIG checks · CMMC control mapping · exposure surface · AI agent risk</p>
