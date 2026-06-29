@@ -37,8 +37,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    // Read as text first — Fly.io may return HTML error pages or
-    // gzip-encoded responses that res.json() can't decode directly.
+    // Read as text first — handle any non-JSON error responses gracefully.
     const text = await res.text();
     let data: unknown;
     try {
