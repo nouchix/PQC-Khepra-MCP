@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Shield, Activity, Link2, Users, Key, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "https://souhimbou-ai.fly.dev";
+const API = process.env.NEXT_PUBLIC_API_URL ?? "https://mcp.souhimbou.ai";
 
 type RiskClass = "read-only" | "sandboxed" | "destructive";
 
@@ -260,7 +260,7 @@ export default function MCPDashboard() {
         <div>
           <h1 className="text-xl font-semibold text-white">MCP Dashboard</h1>
           <p className="text-xs text-zinc-500 mt-0.5">
-            KHEPRA · Dilithium-3 signed tool call evidence
+            KHEPRA · ML-DSA-65 (FIPS 204) signed tool call evidence
           </p>
         </div>
         <div className="flex items-center gap-4">
