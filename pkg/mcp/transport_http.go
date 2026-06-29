@@ -155,6 +155,10 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	mux.HandleFunc("/mcp/v1/rpc", t.handleRPC)
 	mux.HandleFunc("/mcp/v1/health", t.handleHealth)
 
+	// Onboarding scan — REST convenience wrapper for souhimbou.ai funnel
+	// POST /api/v1/onboarding/scan — no auth required, rate-limited 10/min/IP
+	mux.HandleFunc("/api/v1/onboarding/scan", t.handleOnboardingScan)
+
 	// ── Bilateral security middleware chain (outer → inner = first-called → last-called) ──
 	//
 	//   ① secureHeadersMiddleware — OWASP response headers              (outermost)
@@ -208,7 +212,7 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	}()
 
 	t.logger.Printf("[MCP:HTTP] listening on %s", t.config.ListenAddr)
-	t.logger.Printf("[MCP:HTTP] routes: POST /mcp, GET /sse, POST /mcp/v1/rpc, GET /mcp/v1/health")
+	t.logger.Printf("[MCP:HTTP] routes: POST /mcp, GET /sse, POST /mcp/v1/rpc, GET /mcp/v1/health, POST /api/v1/onboarding/scan")
 
 	var err error
 	if t.config.TLSCertFile != "" && t.config.TLSKeyFile != "" {
