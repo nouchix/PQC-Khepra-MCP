@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // TestE2E_ERTScan_FullChain wires the real chain implementations
@@ -78,6 +79,13 @@ func TestE2E_ERTScan_FullChain(t *testing.T) {
 	})
 
 	// ── Wire Router ──────────────────────────────────────────────────
+	// Enterprise license required: ert_scan is gated at TierEnterprise (Pharaoh).
+	e2eLicense := &licpkg.KhepraLicense{
+		LicenseID: "e2e-test-enterprise",
+		Tier:      licpkg.TierEnterprise,
+		Tenant:    "E2E Test Suite",
+		ExpiresAt: time.Now().Add(365 * 24 * time.Hour),
+	}
 	router, err := NewRouter(RouterConfig{
 		Demarc:   demarc,
 		Poly:     poly,
@@ -86,6 +94,7 @@ func TestE2E_ERTScan_FullChain(t *testing.T) {
 		Executor: exec,
 		Attestor: attestor,
 		RateMax:  100,
+		License:  e2eLicense,
 	})
 	if err != nil {
 		t.Fatalf("NewRouter: %v", err)
