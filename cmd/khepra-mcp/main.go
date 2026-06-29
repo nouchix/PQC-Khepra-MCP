@@ -245,6 +245,18 @@ func main() {
 	if viewerPort := os.Getenv("KHEPRA_VIEWER_PORT"); viewerPort != "" {
 		viewer := khepramcp.NewLiveViewer()
 		router.Events().AddHook(viewer.Push)
+
+		// Serve the full 3D DAG/CMMC viewer (docs/dag-viewer.html) at "/" if
+		// present, same-origin with /events so EventSource needs no CORS config.
+		// Falls back to the built-in terminal page if the file isn't found —
+		// cwd is the repo root when launched via run-mcp.bat.
+		graphPagePath := getEnvOr("KHEPRA_VIEWER_HTML", "docs/dag-viewer.html")
+		if err := viewer.LoadGraphPage(graphPagePath); err != nil {
+			logger.Printf("  live viewer:    dag-viewer.html not found at %q, using built-in page (%v)", graphPagePath, err)
+		} else {
+			logger.Printf("  live viewer:    serving %s at /", graphPagePath)
+		}
+
 		viewerAddr := "127.0.0.1:" + viewerPort
 		go func() {
 			if err := viewer.ListenAndServe(viewerAddr); err != nil {
