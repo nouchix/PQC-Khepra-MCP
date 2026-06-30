@@ -161,6 +161,22 @@ const OnboardingOrchestrator: React.FC = () => {
     }
   };
 
+  const captureLead = async (emailVal: string) => {
+    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) return;
+    // Fire-and-forget — don't block UX
+    fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: emailVal,
+        target_url: target,
+        risk_score: result?.risk_score ?? null,
+        findings_count: result?.findings?.length ?? null,
+        source: 'onboarding',
+      }),
+    }).catch(() => {/* silent */});
+  };
+
   const handleCheckout = async () => {
     setCheckingOut(true);
     try {
@@ -322,6 +338,7 @@ const OnboardingOrchestrator: React.FC = () => {
               onChange={e => setEmail(e.target.value)}
               placeholder={email ? email : "Enter email to get certified"}
               className="bg-[#0a0a0a] border-gray-700 text-white placeholder:text-gray-600"
+              onBlur={e => captureLead(e.target.value)}
             />
             <Button
               onClick={handleCheckout}
