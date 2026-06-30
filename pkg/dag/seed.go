@@ -82,12 +82,17 @@ func SeedDemoNodes(store Store, cfg SeedConfig) int {
 
 	seeded := 0
 	seed := func(n *Node, parents []string) {
+		// MUST set parents before Sign() — ComputeHash() includes Parents in the
+		// content-addressed ID. If we set parents after signing, Add() rewrites
+		// n.Parents and the stored ID no longer matches the recomputed hash.
+		n.Parents = parents
 		if len(cfg.PrivKey) > 0 {
 			if err := n.Sign(cfg.PrivKey); err != nil {
 				log.Printf("[DAG-SEED] WARN: sign failed: %v", err)
 			}
 		}
-		if err := store.Add(n, parents); err != nil {
+		// Pass nil parents — n.Parents is already set; Add() must not overwrite.
+		if err := store.Add(n, nil); err != nil {
 			if err.Error() != "duplicate node" {
 				log.Printf("[DAG-SEED] WARN: Add failed: %v", err)
 			}

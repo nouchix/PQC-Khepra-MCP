@@ -102,6 +102,13 @@ func (b *DAGBridge) Hook(ev MCPEvent) {
 		},
 	}
 
+	// Parent link — set on the node BEFORE Sign() so ComputeHash() includes it.
+	// If we set parents after signing and pass them to Add(), Add() rewrites
+	// n.Parents and the stored ID no longer matches the recomputed hash.
+	if b.lastID != "" {
+		node.Parents = []string{b.lastID}
+	}
+
 	// Sign with session ML-DSA-65 key
 	if len(b.privKey) > 0 {
 		if err := node.Sign(b.privKey); err != nil {
@@ -110,13 +117,8 @@ func (b *DAGBridge) Hook(ev MCPEvent) {
 		}
 	}
 
-	// Parent link — chain this node to the previous one
-	parents := []string{}
-	if b.lastID != "" {
-		parents = []string{b.lastID}
-	}
-
-	if err := b.store.Add(node, parents); err != nil {
+	// Pass nil parents — n.Parents is already set; Add() must not overwrite.
+	if err := b.store.Add(node, nil); err != nil {
 		// Duplicate node (same tool/time combo) is benign — skip silently
 		if err.Error() != "duplicate node" {
 			log.Printf("[DAGBridge] WARN: Add failed for tool=%s: %v", ev.ToolName, err)
