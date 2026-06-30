@@ -4,31 +4,34 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 
 /**
  * POST /api/checkout
- * Creates a Stripe Checkout Session for the ASAF Certify plan ($99/mo).
- * Uses Stripe REST API directly — no SDK dependency required.
+ * Creates a Stripe Checkout Session for the ADINKHEPRA Certify plan ($99/mo).
  *
  * Required env vars:
- *   STRIPE_SECRET_KEY     — sk_live_... or sk_test_...
+ *   STRIPE_SECRET_KEY         — sk_live_... or sk_test_...
  *
  * Optional env vars:
- *   STRIPE_PRICE_ID       — price_... (pre-created recurring subscription price)
- *                           If not set, uses inline price_data ($99/mo)
- *   NEXT_PUBLIC_APP_URL   — https://www.souhimbou.ai (used for redirect URLs)
+ *   STRIPE_PRICE_ID           — A *recurring* price_... ID. If set AND the
+ *                               price is recurring, it takes precedence.
+ *                               IMPORTANT: must be a subscription price —
+ *                               one-time prices will cause a Stripe error.
+ *   NEXT_PUBLIC_APP_URL       — https://www.souhimbou.ai
+ *
+ * NOTE: We default to inline price_data (no pre-created price needed) so
+ * checkout always works out of the box without Stripe dashboard setup.
  */
 export async function POST(req: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  const priceId   = process.env.STRIPE_PRICE_ID;
   const appUrl    = process.env.NEXT_PUBLIC_APP_URL || 'https://www.souhimbou.ai';
 
   if (!stripeKey) {
     return NextResponse.json(
-      { error: 'Stripe is not configured on this server. Please contact support@souhimbou.ai' },
+      { error: 'Stripe is not configured. Please contact support@souhimbou.ai' },
       { status: 500 }
     );
   }
 
   const body  = await req.json().catch(() => ({}));
-  const email = body.email as string | undefined;
+  const email = typeof body.email === 'string' ? body.email.trim() : undefined;
 
   // Build form-encoded body for Stripe API
   const params = new URLSearchParams({
@@ -39,19 +42,13 @@ export async function POST(req: NextRequest) {
     'billing_address_collection': 'auto',
   });
 
-  if (priceId) {
-    // Use pre-created price (preferred — set STRIPE_PRICE_ID in Vercel env)
-    params.set('line_items[0][price]',    priceId);
-    params.set('line_items[0][quantity]', '1');
-  } else {
-    // Inline price_data fallback — creates price on the fly, no pre-setup needed
-    params.set('line_items[0][price_data][currency]',                  'usd');
-    params.set('line_items[0][price_data][product_data][name]',        'ADINKHEPRA Certification');
-    params.set('line_items[0][price_data][product_data][description]', 'ML-DSA-65 signed certification badge. Renews automatically. Cancel anytime.');
-    params.set('line_items[0][price_data][unit_amount]',               '9900'); // $99.00
-    params.set('line_items[0][price_data][recurring][interval]',       'month');
-    params.set('line_items[0][quantity]',                              '1');
-  }
+  // Inline price_data — always creates a $99/mo recurring subscription price
+  params.set('line_items[0][price_data][currency]',                  'usd');
+  params.set('line_items[0][price_data][product_data][name]',        'ADINKHEPRA Certification');
+  params.set('line_items[0][price_data][product_data][description]', 'ML-DSA-65 signed certification badge · CMMC/STIG compliance evidence · Renews monthly. Cancel anytime.');
+  params.set('line_items[0][price_data][unit_amount]',               '9900');
+  params.set('line_items[0][price_data][recurring][interval]',       'month');
+  params.set('line_items[0][quantity]',                              '1');
 
   if (email) {
     params.set('customer_email', email);
@@ -66,14 +63,14 @@ export async function POST(req: NextRequest) {
     body: params.toString(),
   });
 
+  const responseData = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    return NextResponse.json(
-      { error: err.error?.message || 'Failed to create checkout session' },
-      { status: response.status }
-    );
+    // Surface the exact Stripe error to the toast for immediate diagnosis
+    const msg = (responseData as any)?.error?.message
+      || `Stripe error ${response.status}`;
+    return NextResponse.json({ error: msg }, { status: response.status });
   }
 
-  const session = await response.json();
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ url: (responseData as any).url });
 }
