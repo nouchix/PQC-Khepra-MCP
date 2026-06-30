@@ -50,6 +50,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -230,6 +231,37 @@ func NewFabric(cfg FabricConfig) (*Fabric, error) {
 		"signed", rec != nil,
 	)
 	return f, nil
+}
+
+// ─── Global Process Fabric ────────────────────────────────────────────────────
+
+// global is the process-level Fabric singleton.
+// Initialized once via sync.Once. All MCP tool handlers and API handlers
+// that don't have an explicit Fabric injected should use Global().
+var (
+	globalFabric     *Fabric
+	globalFabricOnce sync.Once
+)
+
+// Global returns the process-level Flight Fabric.
+// It is created on first call with default config (AgentID="souhimbou-global").
+// Subsequent calls return the same instance — the chain is continuous.
+//
+// Usage in tool handlers:
+//
+//	fabric := flight.Global()
+//	fabric.Absorb(ctx, flight.Event{ ... })
+func Global() *Fabric {
+	globalFabricOnce.Do(func() {
+		f, err := NewFabric(FabricConfig{AgentID: "souhimbou-global"})
+		if err != nil {
+			// Fallback: create a fabric that silently no-ops on Absorb.
+			// This should never happen in practice.
+			f = &Fabric{log: slog.Default()}
+		}
+		globalFabric = f
+	})
+	return globalFabric
 }
 
 // ─── Absorb: The Core Gravitational Method ────────────────────────────────────

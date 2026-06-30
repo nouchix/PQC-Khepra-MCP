@@ -4,43 +4,43 @@
 //
 // WHAT IT DOES:
 //
-//   Takes any AI agent target (MCP server, OpenAI endpoint, LangServe API,
-//   generic HTTP agent) and runs the full KHEPRA security stack against it —
-//   combining existing codebase scanning capabilities with AI-specific probes.
+//	Takes any AI agent target (MCP server, OpenAI endpoint, LangServe API,
+//	generic HTTP agent) and runs the full KHEPRA security stack against it —
+//	combining existing codebase scanning capabilities with AI-specific probes.
 //
 // SCANNING LAYERS (in order — all results absorbed by Flight Fabric):
 //
-//   Layer 1 — Network Surface (pkg/scanner/network)
-//     TCP port sweep → open ports, banners, service fingerprints
-//     TLS/PKI inspection → cert validity, weak ciphers, expiry
-//     DNS enumeration → A/AAAA/CNAME/NS/MX/SPF/DMARC (via pkg/ert/lane_dns_pki)
+//	Layer 1 — Network Surface (pkg/scanner/network)
+//	  TCP port sweep → open ports, banners, service fingerprints
+//	  TLS/PKI inspection → cert validity, weak ciphers, expiry
+//	  DNS enumeration → A/AAAA/CNAME/NS/MX/SPF/DMARC (via pkg/ert/lane_dns_pki)
 //
-//   Layer 2 — Service Discovery
-//     HTTP discovery: probe /, /health, /metrics, /api, /openapi.json
-//     MCP discovery: probe /mcp, list_tools JSON-RPC
-//     Agent fingerprinting: identify framework (LangChain/OpenAI/Ollama/custom)
+//	Layer 2 — Service Discovery
+//	  HTTP discovery: probe /, /health, /metrics, /api, /openapi.json
+//	  MCP discovery: probe /mcp, list_tools JSON-RPC
+//	  Agent fingerprinting: identify framework (LangChain/OpenAI/Ollama/custom)
 //
-//   Layer 3 — Horus Static Analysis (pkg/scanners)
-//     Secret scan: entropy-based credential detection in responses
-//     Vuln scan: manifest/dependency CVEs if repo path given
-//     Compliance: CMMC/NIST control gap detection
+//	Layer 3 — Horus Static Analysis (pkg/scanners)
+//	  Secret scan: entropy-based credential detection in responses
+//	  Vuln scan: manifest/dependency CVEs if repo path given
+//	  Compliance: CMMC/NIST control gap detection
 //
-//   Layer 4 — Adversarial AI Probes (probe_suite.go)
-//     Category A — Injection (SQLi/XSS/SSTI/shell through tool params)
-//     Category B — Exfiltration (prompt injection, context extraction)
-//     Category C — Permission abuse (rapid fire, scope escalation, path traversal)
-//     Category D — Identity/Auth (forged headers, replay, PQC signature test)
-//     Category E — Availability (oversized payload, depth bomb, unicode attack)
+//	Layer 4 — Adversarial AI Probes (probe_suite.go)
+//	  Category A — Injection (SQLi/XSS/SSTI/shell through tool params)
+//	  Category B — Exfiltration (prompt injection, context extraction)
+//	  Category C — Permission abuse (rapid fire, scope escalation, path traversal)
+//	  Category D — Identity/Auth (forged headers, replay, PQC signature test)
+//	  Category E — Availability (oversized payload, depth bomb, unicode attack)
 //
-//   Layer 5 — KASA Behavioral Analysis
-//     Score response patterns against all probes
-//     Detect: anomalous response timing, error pattern leakage, reflection
+//	Layer 5 — KASA Behavioral Analysis
+//	  Score response patterns against all probes
+//	  Detect: anomalous response timing, error pattern leakage, reflection
 //
-//   Layer 6 — Report Generation (report.go)
-//     Signed ScanReport: ML-DSA-65 over findings hash
-//     CMMC/NIST control mapping per finding
-//     Risk score: 0.0–10.0 (CVSS-compatible scale)
-//     DAG attestation: immutable evidence node
+//	Layer 6 — Report Generation (report.go)
+//	  Signed ScanReport: ML-DSA-65 over findings hash
+//	  CMMC/NIST control mapping per finding
+//	  Risk score: 0.0–10.0 (CVSS-compatible scale)
+//	  DAG attestation: immutable evidence node
 //
 // IP assignment: SOUHIMBOU DOH KONE LLC. Licensed to SecRed Knowledge Inc.
 package souhimbou
@@ -65,6 +65,7 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/flight"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner/network"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanners"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sonar"
 )
 
 // ─── Agent Target ─────────────────────────────────────────────────────────────
@@ -73,12 +74,12 @@ import (
 type AgentType string
 
 const (
-	AgentTypeMCP       AgentType = "mcp"        // MCP JSON-RPC server
-	AgentTypeOpenAI    AgentType = "openai"      // OpenAI-compatible API
-	AgentTypeLangServe AgentType = "langserve"   // LangChain LangServe /invoke
-	AgentTypeOllama    AgentType = "ollama"      // Ollama /api/generate
-	AgentTypeHTTP      AgentType = "http"        // Generic HTTP agent
-	AgentTypeUnknown   AgentType = "unknown"     // Auto-detect
+	AgentTypeMCP       AgentType = "mcp"       // MCP JSON-RPC server
+	AgentTypeOpenAI    AgentType = "openai"    // OpenAI-compatible API
+	AgentTypeLangServe AgentType = "langserve" // LangChain LangServe /invoke
+	AgentTypeOllama    AgentType = "ollama"    // Ollama /api/generate
+	AgentTypeHTTP      AgentType = "http"      // Generic HTTP agent
+	AgentTypeUnknown   AgentType = "unknown"   // Auto-detect
 )
 
 // AgentTarget defines what to scan.
@@ -156,19 +157,19 @@ type ScanFinding struct {
 	Category string `json:"category"` // ProbeCategory or Horus category
 
 	// Classification
-	Severity    string  `json:"severity"`    // CRITICAL / HIGH / MEDIUM / LOW / INFO
-	RiskScore   float64 `json:"risk_score"`  // 0.0–10.0 (CVSS-compatible)
+	Severity    string  `json:"severity"`   // CRITICAL / HIGH / MEDIUM / LOW / INFO
+	RiskScore   float64 `json:"risk_score"` // 0.0–10.0 (CVSS-compatible)
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 
 	// Evidence
-	Probe      string         `json:"probe,omitempty"`      // Probe name that triggered this
+	Probe      string         `json:"probe,omitempty"`       // Probe name that triggered this
 	RawPayload string         `json:"raw_payload,omitempty"` // Sanitized payload used
-	Response   string         `json:"response,omitempty"`   // First 256 bytes of response
+	Response   string         `json:"response,omitempty"`    // First 256 bytes of response
 	Evidence   map[string]any `json:"evidence,omitempty"`
 
 	// Remediation
-	Remediation string   `json:"remediation,omitempty"`
+	Remediation  string   `json:"remediation,omitempty"`
 	CMCCControls []string `json:"cmmc_controls,omitempty"` // e.g. ["AC.L2-3.1.2", "AU.3.045"]
 	NISTControls []string `json:"nist_controls,omitempty"` // e.g. ["AC-2", "AU-12"]
 
@@ -186,32 +187,32 @@ type AgentScanReport struct {
 	Tier      string    `json:"tier"`
 
 	// Timing
-	StartedAt   time.Time     `json:"started_at"`
-	CompletedAt time.Time     `json:"completed_at"`
-	DurationMs  int64         `json:"duration_ms"`
+	StartedAt   time.Time `json:"started_at"`
+	CompletedAt time.Time `json:"completed_at"`
+	DurationMs  int64     `json:"duration_ms"`
 
 	// Discovery
-	OpenPorts    []PortInfo   `json:"open_ports,omitempty"`
-	TLSInfo      *TLSInfo     `json:"tls_info,omitempty"`
-	AgentTools   []AgentTool  `json:"agent_tools,omitempty"`
-	DetectedType AgentType    `json:"detected_type"`
+	OpenPorts    []PortInfo  `json:"open_ports,omitempty"`
+	TLSInfo      *TLSInfo    `json:"tls_info,omitempty"`
+	AgentTools   []AgentTool `json:"agent_tools,omitempty"`
+	DetectedType AgentType   `json:"detected_type"`
 
 	// Risk
-	RiskScore float64   `json:"risk_score"`     // 0.0–10.0
+	RiskScore float64   `json:"risk_score"` // 0.0–10.0
 	RiskLevel RiskLevel `json:"risk_level"`
-	KASAScore float64   `json:"kasa_score"`      // KASA behavioral anomaly
+	KASAScore float64   `json:"kasa_score"` // KASA behavioral anomaly
 
 	// Findings
 	Findings []ScanFinding `json:"findings"`
 	Stats    ScanStats     `json:"stats"`
 
 	// Audit Chain
-	DAGNodeID  string `json:"dag_node_id"`
-	Signed     bool   `json:"signed"`
-	Signature  string `json:"signature,omitempty"` // ML-DSA-65 over report hash
+	DAGNodeID string `json:"dag_node_id"`
+	Signed    bool   `json:"signed"`
+	Signature string `json:"signature,omitempty"` // ML-DSA-65 over report hash
 
 	// Summary
-	Summary string `json:"summary"`
+	Summary string   `json:"summary"`
 	Errors  []string `json:"errors,omitempty"`
 }
 
@@ -258,20 +259,29 @@ type AgentTool struct {
 // AgentScanner orchestrates the full omnipotent security scan of an AI agent.
 // All results are absorbed by the Flight Fabric into the signed chain.
 type AgentScanner struct {
-	fabric  *flight.Fabric
-	dagStore dag.Store
-	log     *slog.Logger
+	fabric    *flight.Fabric
+	dagStore  dag.Store
+	log       *slog.Logger
 
-	// ERT scan orchestrator — reuses existing multi-lane scan infrastructure
+	// sonarOrch is the unified Sonar scanner — the backbone layer.
+	// Runs port scan, web crawler, Horus vuln/secrets/compliance/container in parallel.
+	sonarOrch *sonar.UnifiedOrchestrator
+
+	// ertOrch runs the ERT multi-lane scan (DNS/PKI, SCA, SAST)
 	ertOrch *ert.ScanOrchestrator
 }
 
 // NewAgentScanner creates a scanner that uses the Fabric as its evidence chain.
 func NewAgentScanner(fabric *flight.Fabric, dagStore dag.Store) *AgentScanner {
-	// Wire up the ERT ScanOrchestrator with all available lanes
+	// ── Sonar Unified Orchestrator (the backbone) ────────────────────────────
+	// Runs port scan + crawler + Horus vuln/secrets/compliance/container — all
+	// in parallel with built-in DAG attestation.
+	sonarOrch := sonar.NewUnifiedOrchestrator(nil, dagStore, nil)
+
+	// ── ERT ScanOrchestrator (DNS/PKI lane + SCA) ────────────────────────────
 	orch := ert.NewScanOrchestrator()
 	orch.RegisterLane(ert.NewSonarLane(ert.SonarLaneConfig{
-		NetworkPolicy:  config.NetworkPolicyUnrestricted, // scanner reaches internet targets
+		NetworkPolicy:  config.NetworkPolicyUnrestricted,
 		MaxConcurrency: 100,
 		ScanTimeout:    3 * time.Second,
 	}))
@@ -284,10 +294,11 @@ func NewAgentScanner(fabric *flight.Fabric, dagStore dag.Store) *AgentScanner {
 	orch.RegisterLane(ert.NewHorusSecretLane())
 
 	return &AgentScanner{
-		fabric:   fabric,
-		dagStore: dagStore,
-		log:      slog.With("component", "agent-scanner"),
-		ertOrch:  orch,
+		fabric:    fabric,
+		dagStore:  dagStore,
+		log:       slog.With("component", "agent-scanner"),
+		sonarOrch: sonarOrch,
+		ertOrch:   orch,
 	}
 }
 
@@ -358,9 +369,30 @@ func (s *AgentScanner) Scan(ctx context.Context, target AgentTarget) (*AgentScan
 		s.runHorusStatic(ctx, target, addFinding, addErr)
 	}
 
-	// ── Layer 4: Adversarial AI Probes ─────────────────────────────────────
+	// ── Layer 4: Adversarial AI Probes + Sonar scan in parallel ─────────────
+	// Both run concurrently — probes blast the agent while Sonar sweeps the surface.
+	var probeWg sync.WaitGroup
+	var probeFindings []ScanFinding
+	var probeMu sync.Mutex
+
+	// Kick off Sonar backbone scan in parallel goroutine
+	probeWg.Add(1)
+	go func() {
+		defer probeWg.Done()
+		sonarFindings := s.runSonarScan(ctx, target, addErr)
+		probeMu.Lock()
+		probeFindings = append(probeFindings, sonarFindings...)
+		probeMu.Unlock()
+	}()
+
+	// Run adversarial probe suite
 	suite := NewProbeSuite(target, s.fabric)
-	probeFindings := suite.Run(ctx)
+	adversarialFindings := suite.Run(ctx)
+	probeMu.Lock()
+	probeFindings = append(probeFindings, adversarialFindings...)
+	probeMu.Unlock()
+
+	probeWg.Wait()
 	for _, pf := range probeFindings {
 		addFinding(pf)
 	}
@@ -571,12 +603,12 @@ func (s *AgentScanner) inspectTLS(ctx context.Context, host, rawURL string, addF
 			addFinding(ScanFinding{
 				ID: "tls-selfsigned", Layer: "network", Category: "tls",
 				Severity: "MEDIUM", RiskScore: 5.0,
-				Title:       "Self-signed TLS certificate",
-				Description: fmt.Sprintf("Agent uses a self-signed cert for %s. No trust chain.", info.Subject),
+				Title:        "Self-signed TLS certificate",
+				Description:  fmt.Sprintf("Agent uses a self-signed cert for %s. No trust chain.", info.Subject),
 				CMCCControls: []string{"IA.L2-3.5.3", "SC.L2-3.13.10"},
 				NISTControls: []string{"IA-5", "SC-17"},
-				Remediation: "Replace with a CA-signed certificate.",
-				FrameID:     fid,
+				Remediation:  "Replace with a CA-signed certificate.",
+				FrameID:      fid,
 			})
 		}
 
@@ -588,9 +620,9 @@ func (s *AgentScanner) inspectTLS(ctx context.Context, host, rawURL string, addF
 			addFinding(ScanFinding{
 				ID: "tls-expiry", Layer: "network", Category: "tls",
 				Severity: severity, RiskScore: 6.0,
-				Title:       fmt.Sprintf("TLS certificate expires in %d days", info.DaysRemaining),
-				Description: "Certificate near expiry will cause agent connection failures.",
-				Remediation: "Renew certificate immediately.",
+				Title:        fmt.Sprintf("TLS certificate expires in %d days", info.DaysRemaining),
+				Description:  "Certificate near expiry will cause agent connection failures.",
+				Remediation:  "Renew certificate immediately.",
 				CMCCControls: []string{"SC.L2-3.13.10"},
 				NISTControls: []string{"SC-17"},
 			})
@@ -609,12 +641,12 @@ func (s *AgentScanner) inspectTLS(ctx context.Context, host, rawURL string, addF
 			addFinding(ScanFinding{
 				ID: "tls-cipher", Layer: "network", Category: "tls",
 				Severity: "HIGH", RiskScore: 7.5,
-				Title:       fmt.Sprintf("Weak TLS cipher: %s", info.Cipher),
-				Description: "Agent accepts weak TLS ciphers that can be broken offline.",
-				Remediation: "Configure TLS 1.3 only with AEAD ciphers (AES-GCM, ChaCha20-Poly1305).",
+				Title:        fmt.Sprintf("Weak TLS cipher: %s", info.Cipher),
+				Description:  "Agent accepts weak TLS ciphers that can be broken offline.",
+				Remediation:  "Configure TLS 1.3 only with AEAD ciphers (AES-GCM, ChaCha20-Poly1305).",
 				CMCCControls: []string{"SC.L2-3.13.8"},
 				NISTControls: []string{"SC-8"},
-				FrameID:     fid,
+				FrameID:      fid,
 			})
 		}
 	}
@@ -736,13 +768,13 @@ func (s *AgentScanner) probeMCP(
 					addFinding(ScanFinding{
 						ID: "mcp-tool-" + t.Name, Layer: "service", Category: "tool_exposure",
 						Severity: "MEDIUM", RiskScore: 5.5,
-						Title:       fmt.Sprintf("Destructive MCP tool exposed: %s", t.Name),
-						Description: fmt.Sprintf("Tool %q has destructive risk class and is discoverable without authentication via %s.", t.Name, path),
-						Probe:       "MCP tools/list",
+						Title:        fmt.Sprintf("Destructive MCP tool exposed: %s", t.Name),
+						Description:  fmt.Sprintf("Tool %q has destructive risk class and is discoverable without authentication via %s.", t.Name, path),
+						Probe:        "MCP tools/list",
 						CMCCControls: []string{"AC.L2-3.1.1", "AC.L2-3.1.2"},
 						NISTControls: []string{"AC-6", "AC-3"},
-						Remediation: "Require authentication for tools/list. Apply least-privilege tool scoping.",
-						FrameID:     fid,
+						Remediation:  "Require authentication for tools/list. Apply least-privilege tool scoping.",
+						FrameID:      fid,
 					})
 				}
 			}
@@ -760,17 +792,17 @@ func (s *AgentScanner) probeHTTPPaths(
 	addFinding func(ScanFinding),
 ) {
 	sensitivePaths := map[string]string{
-		"/metrics":        "Prometheus metrics exposed (may reveal internals)",
-		"/.env":           ".env file accessible (potential secret leakage)",
-		"/api/keys":       "API key management endpoint exposed",
-		"/openapi.json":   "Full OpenAPI spec exposed (attack surface map)",
-		"/swagger.json":   "Swagger spec exposed",
-		"/v1/models":      "Model list exposed (OpenAI-compatible)",
-		"/api/generate":   "Ollama API exposed without auth",
-		"/_health":        "Health endpoint (may reveal version info)",
-		"/debug/pprof":    "Go pprof debugging endpoint exposed — CRITICAL",
-		"/debug/vars":     "Go expvar endpoint exposed — HIGH",
-		"/.git/config":    "Git repository exposed",
+		"/metrics":                 "Prometheus metrics exposed (may reveal internals)",
+		"/.env":                    ".env file accessible (potential secret leakage)",
+		"/api/keys":                "API key management endpoint exposed",
+		"/openapi.json":            "Full OpenAPI spec exposed (attack surface map)",
+		"/swagger.json":            "Swagger spec exposed",
+		"/v1/models":               "Model list exposed (OpenAI-compatible)",
+		"/api/generate":            "Ollama API exposed without auth",
+		"/_health":                 "Health endpoint (may reveal version info)",
+		"/debug/pprof":             "Go pprof debugging endpoint exposed — CRITICAL",
+		"/debug/vars":              "Go expvar endpoint exposed — HIGH",
+		"/.git/config":             "Git repository exposed",
 		"/api/v1/chat/completions": "LLM chat endpoint exposed",
 	}
 
@@ -817,20 +849,20 @@ func (s *AgentScanner) probeHTTPPaths(
 			})
 
 			f := ScanFinding{
-				ID:          "http-path-" + strings.ReplaceAll(path, "/", "-"),
-				Layer:       "service",
-				Category:    "information_disclosure",
-				Severity:    severity,
-				RiskScore:   score,
-				Title:       fmt.Sprintf("Sensitive path accessible: %s (HTTP %d)", path, resp.StatusCode),
-				Description: desc,
-				Probe:       "HTTP GET " + path,
-				Response:    truncate(string(body), 256),
-				Evidence:    map[string]any{"path": path, "status": resp.StatusCode},
+				ID:           "http-path-" + strings.ReplaceAll(path, "/", "-"),
+				Layer:        "service",
+				Category:     "information_disclosure",
+				Severity:     severity,
+				RiskScore:    score,
+				Title:        fmt.Sprintf("Sensitive path accessible: %s (HTTP %d)", path, resp.StatusCode),
+				Description:  desc,
+				Probe:        "HTTP GET " + path,
+				Response:     truncate(string(body), 256),
+				Evidence:     map[string]any{"path": path, "status": resp.StatusCode},
 				CMCCControls: []string{"AC.L2-3.1.3", "CM.L2-3.4.6"},
 				NISTControls: []string{"AC-17", "CM-11"},
-				Remediation: fmt.Sprintf("Restrict %s behind authentication or remove it from production.", path),
-				FrameID:     fid,
+				Remediation:  fmt.Sprintf("Restrict %s behind authentication or remove it from production.", path),
+				FrameID:      fid,
 			}
 
 			if len(leaks) > 0 {
@@ -870,15 +902,15 @@ func (s *AgentScanner) runHorusStatic(
 		})
 		addFinding(ScanFinding{
 			ID: "horus-secret-" + sec.Type, Layer: "horus", Category: "secret",
-			Severity:    "CRITICAL",
-			RiskScore:   9.8,
-			Title:       fmt.Sprintf("Hardcoded secret: %s", sec.Type),
-			Description: fmt.Sprintf("Found %s in %s (entropy: %.2f). Value: %s", sec.Type, sec.File, sec.Entropy, sec.Redacted),
-			Evidence:    map[string]any{"file": sec.File, "type": sec.Type, "entropy": sec.Entropy},
+			Severity:     "CRITICAL",
+			RiskScore:    9.8,
+			Title:        fmt.Sprintf("Hardcoded secret: %s", sec.Type),
+			Description:  fmt.Sprintf("Found %s in %s (entropy: %.2f). Value: %s", sec.Type, sec.File, sec.Entropy, sec.Redacted),
+			Evidence:     map[string]any{"file": sec.File, "type": sec.Type, "entropy": sec.Entropy},
 			CMCCControls: []string{"IA.L2-3.5.10", "IA.L2-3.5.11"},
 			NISTControls: []string{"IA-5", "SC-12"},
-			Remediation: "Remove secrets from source. Use environment variables or a secret manager.",
-			FrameID:     fid,
+			Remediation:  "Remove secrets from source. Use environment variables or a secret manager.",
+			FrameID:      fid,
 		})
 	}
 
@@ -894,15 +926,15 @@ func (s *AgentScanner) runHorusStatic(
 		})
 		addFinding(ScanFinding{
 			ID: "horus-cve-" + v.ID, Layer: "horus", Category: "vulnerability",
-			Severity:    v.Severity,
-			RiskScore:   7.5, // default CVSS when not available
-			Title:       fmt.Sprintf("%s: %s (%s@%s)", v.ID, v.Description, v.Package, v.Version),
-			Description: v.Description,
-			Evidence:    map[string]any{"cve": v.ID, "package": v.Package, "fixed_in": v.FixedIn},
+			Severity:     v.Severity,
+			RiskScore:    7.5, // default CVSS when not available
+			Title:        fmt.Sprintf("%s: %s (%s@%s)", v.ID, v.Description, v.Package, v.Version),
+			Description:  v.Description,
+			Evidence:     map[string]any{"cve": v.ID, "package": v.Package, "fixed_in": v.FixedIn},
 			CMCCControls: []string{"SI.L1-3.14.1", "SI.L2-3.14.4"},
 			NISTControls: []string{"SI-2", "RA-5"},
-			Remediation: fmt.Sprintf("Upgrade %s to version %s or later.", v.Package, v.FixedIn),
-			FrameID:     fid,
+			Remediation:  fmt.Sprintf("Upgrade %s to version %s or later.", v.Package, v.FixedIn),
+			FrameID:      fid,
 		})
 	}
 }
@@ -1004,7 +1036,277 @@ func (s *AgentScanner) runERTScan(
 	return findings
 }
 
-// ─── Probe helpers ────────────────────────────────────────────────────────────
+// ─── Sonar Backbone Scan ──────────────────────────────────────────────────────
+
+// runSonarScan invokes pkg/sonar.UnifiedOrchestrator — the omnipotent backbone scanner.
+//
+// It runs all scan types in parallel:
+//   - TCP port scan          (pkg/scanner + pkg/scanner/network)
+//   - Web crawler            (pkg/scanner.RunCrawler)
+//   - Horus vuln scan        (pkg/scanners — CVE manifest matching)
+//   - Horus secret scan      (pkg/scanners — entropy + regex)
+//   - Horus compliance scan  (pkg/scanners — CIS/STIG/NIST checks)
+//   - Horus container scan   (pkg/scanners — Dockerfile misconfig)
+//
+// All results are converted to ScanFindings and absorbed into the Flight Fabric.
+func (s *AgentScanner) runSonarScan(
+	ctx context.Context,
+	target AgentTarget,
+	addErr func(string),
+) []ScanFinding {
+	if s.sonarOrch == nil {
+		return nil
+	}
+
+	host := extractHost(target.URL)
+	if host == "" {
+		return nil
+	}
+
+	s.log.Info("Sonar backbone scan starting", "host", host)
+
+	scanTypes := []sonar.ScanType{
+		sonar.ScanTypePort,
+		sonar.ScanTypeVuln,
+		sonar.ScanTypeSecrets,
+		sonar.ScanTypeCompliance,
+		sonar.ScanTypeContainer,
+	}
+	// Crawler only on pro/enterprise — it actively follows links
+	if target.Tier == "pro" || target.Tier == "enterprise" {
+		scanTypes = append(scanTypes, sonar.ScanTypeCrawler)
+	}
+
+	req := sonar.UnifiedScanRequest{
+		Target:      host,
+		ScanTypes:   scanTypes,
+		Concurrency: 100,
+		Timeout:     3 * time.Minute,
+		Options: map[string]string{
+			"compliance_framework": "cis", // CIS + STIG
+		},
+	}
+	if target.RepoPath != "" {
+		// For static analysis lanes, use repo path as target
+		req.Target = target.RepoPath
+	}
+
+	sonarResult, err := s.sonarOrch.ExecuteScan(ctx, req)
+	if err != nil {
+		addErr(fmt.Sprintf("sonar scan: %v", err))
+		return nil
+	}
+	if sonarResult == nil {
+		return nil
+	}
+
+	// Absorb Sonar completion into Fabric
+	s.fabric.Absorb(ctx, flight.Event{
+		Source:   "SonarBackbone",
+		Name:     "SONAR_SCAN_COMPLETE",
+		Category: flight.CategoryScan,
+		Detail: map[string]any{
+			"request_id": sonarResult.RequestID,
+			"target":     sonarResult.Target,
+			"duration":   sonarResult.Duration.String(),
+			"ports":      len(sonarResult.NetworkData),
+			"vulns":      len(sonarResult.Vulnerabilities),
+			"secrets":    len(sonarResult.Secrets),
+			"dag_node":   sonarResult.DAGNodeID,
+		},
+	})
+
+	var findings []ScanFinding
+
+	// ── Network data → findings ────────────────────────────────────────────
+	// NetworkData from pkg/scanner/network: richer than PortResults, includes banners.
+	for _, pr := range sonarResult.NetworkData {
+		if pr.State != "open" {
+			continue
+		}
+		severity, title := portRisk(pr.Port, pr.Service, pr.Banner)
+		if severity == "INFO" {
+			continue
+		}
+		fid := s.fabric.Absorb(ctx, flight.Event{
+			Source: "SonarNetwork", Name: fmt.Sprintf("PORT_%d", pr.Port),
+			Category: flight.CategoryScan, Severity: strings.ToLower(severity),
+			Detail: map[string]any{"port": pr.Port, "service": pr.Service},
+		})
+		findings = append(findings, ScanFinding{
+			ID:           fmt.Sprintf("sonar-net-%d", pr.Port),
+			Layer:        "sonar-network",
+			Category:     "port_exposure",
+			Severity:     severity,
+			RiskScore:    portRiskScore(pr.Port),
+			Title:        title,
+			Description:  fmt.Sprintf("Port %d (%s) open. Banner: %s", pr.Port, pr.Service, truncate(pr.Banner, 64)),
+			Evidence:     map[string]any{"port": pr.Port, "service": pr.Service, "banner": pr.Banner},
+			CMCCControls: []string{"CM.L2-3.4.1", "SC.L2-3.13.1"},
+			NISTControls: []string{"CM-7", "SC-7"},
+			Remediation:  fmt.Sprintf("Restrict port %d with firewall rules.", pr.Port),
+			FrameID:      fid,
+		})
+	}
+
+	// ── Vulnerability findings ─────────────────────────────────────────────
+	for _, v := range sonarResult.Vulnerabilities {
+		fid := s.fabric.Absorb(ctx, flight.Event{
+			Source: "SonarHorus-Vuln", Name: v.ID,
+			Category: flight.CategoryScan, Severity: strings.ToLower(v.Severity),
+			Detail: map[string]any{"cve": v.ID, "package": v.Package},
+		})
+		findings = append(findings, ScanFinding{
+			ID:           "sonar-cve-" + v.ID,
+			Layer:        "sonar-horus",
+			Category:     "vulnerability",
+			Severity:     v.Severity,
+			RiskScore:    7.5,
+			Title:        fmt.Sprintf("%s in %s@%s", v.ID, v.Package, v.Version),
+			Description:  v.Description,
+			Evidence:     map[string]any{"cve": v.ID, "package": v.Package, "fixed_in": v.FixedIn},
+			CMCCControls: []string{"SI.L1-3.14.1", "SI.L2-3.14.4"},
+			NISTControls: []string{"SI-2", "RA-5"},
+			Remediation:  fmt.Sprintf("Upgrade %s to %s or later.", v.Package, v.FixedIn),
+			FrameID:      fid,
+		})
+	}
+
+	// ── Secret findings ───────────────────────────────────────────────────
+	for _, sec := range sonarResult.Secrets {
+		fid := s.fabric.Absorb(ctx, flight.Event{
+			Source: "SonarHorus-Secrets", Name: "SECRET_" + sec.Type,
+			Category: flight.CategoryScan, Severity: "catastrophic",
+			Detail: map[string]any{"type": sec.Type, "file": sec.File, "entropy": sec.Entropy},
+		})
+		findings = append(findings, ScanFinding{
+			ID:           "sonar-secret-" + sec.Type,
+			Layer:        "sonar-horus",
+			Category:     "secret",
+			Severity:     "CRITICAL",
+			RiskScore:    9.8,
+			Title:        fmt.Sprintf("Hardcoded secret: %s", sec.Type),
+			Description:  fmt.Sprintf("%s found in %s (entropy %.2f): %s", sec.Type, sec.File, sec.Entropy, sec.Redacted),
+			Evidence:     map[string]any{"file": sec.File, "type": sec.Type, "entropy": sec.Entropy},
+			CMCCControls: []string{"IA.L2-3.5.10", "IA.L2-3.5.11"},
+			NISTControls: []string{"IA-5", "SC-12"},
+			Remediation:  "Remove from source. Use environment variables or a vault.",
+			FrameID:      fid,
+		})
+	}
+
+	// ── Compliance findings ────────────────────────────────────────────────
+	if sonarResult.ComplianceReport != nil {
+		cr := sonarResult.ComplianceReport
+		for i, cf := range cr.Findings {
+			if strings.EqualFold(cf.Status, "pass") {
+				continue // only surface failures
+			}
+			safeTitle := strings.ReplaceAll(truncate(cf.Title, 32), " ", "_")
+			fid := s.fabric.Absorb(ctx, flight.Event{
+				Source: "SonarHorus-Compliance", Name: "CTRL_FAIL_" + safeTitle,
+				Category: flight.CategoryScan, Severity: strings.ToLower(cf.Severity),
+				Detail: map[string]any{"title": cf.Title, "framework": cr.Framework, "status": cf.Status},
+			})
+			findings = append(findings, ScanFinding{
+				ID:           fmt.Sprintf("sonar-compliance-%d", i),
+				Layer:        "sonar-horus",
+				Category:     "compliance",
+				Severity:     cf.Severity,
+				RiskScore:    complianceSeverityScore(cf.Severity),
+				Title:        fmt.Sprintf("Compliance failure [%s]: %s", cr.Framework, cf.Title),
+				Description:  cf.Description,
+				Evidence:     map[string]any{"check": cf.Title, "framework": cr.Framework, "status": cf.Status},
+				CMCCControls: []string{cr.Framework},
+				NISTControls: []string{cr.Framework},
+				Remediation:  cf.Remediation,
+				FrameID:      fid,
+			})
+		}
+	}
+
+	// ── Container findings ────────────────────────────────────────────────
+	if sonarResult.ContainerFindings != nil {
+		for _, m := range sonarResult.ContainerFindings.Misconfigurations {
+			fid := s.fabric.Absorb(ctx, flight.Event{
+				Source: "SonarHorus-Container", Name: "CONTAINER_MISCONFIG",
+				Category: flight.CategoryScan, Severity: "warning",
+				Detail: map[string]any{"issue": m},
+			})
+			findings = append(findings, ScanFinding{
+				ID:           fmt.Sprintf("sonar-container-%x", len(m)),
+				Layer:        "sonar-horus",
+				Category:     "container",
+				Severity:     "MEDIUM",
+				RiskScore:    5.0,
+				Title:        "Container misconfiguration: " + truncate(m, 60),
+				Description:  m,
+				CMCCControls: []string{"CM.L2-3.4.1", "CM.L2-3.4.2"},
+				NISTControls: []string{"CM-6", "CM-7"},
+				Remediation:  "Follow CIS Docker Benchmark. Run as non-root, use read-only filesystem.",
+				FrameID:      fid,
+			})
+		}
+	}
+
+	// ── Crawler findings ──────────────────────────────────────────────────
+	// CrawlerFinding uses SpiderFoot event format: Event/Module/Data/Source/Type
+	for _, cf := range sonarResult.CrawlerData {
+		// Only flag findings with sensitive data patterns
+		data := cf.Data
+		if !containsAny(data, []string{"admin", "debug", "internal", ".env", "password", "secret", "token", "key"}) {
+			continue
+		}
+		eventLabel := cf.Event
+		if eventLabel == "" {
+			eventLabel = cf.Type
+		}
+		fid := s.fabric.Absorb(ctx, flight.Event{
+			Source: "SonarCrawler", Name: "SENSITIVE_FINDING_" + eventLabel,
+			Category: flight.CategoryScan, Severity: "warning",
+			Detail: map[string]any{"event": cf.Event, "module": cf.Module, "data": truncate(data, 64)},
+		})
+		findings = append(findings, ScanFinding{
+			ID:           fmt.Sprintf("sonar-crawler-%x", len(data)),
+			Layer:        "sonar-crawler",
+			Category:     "information_disclosure",
+			Severity:     "LOW",
+			RiskScore:    3.0,
+			Title:        fmt.Sprintf("Crawler sensitive finding [%s]: %s", eventLabel, truncate(data, 60)),
+			Description:  fmt.Sprintf("Crawler module %s found: %s", cf.Module, data),
+			Evidence:     map[string]any{"event": cf.Event, "module": cf.Module, "source": cf.Source},
+			CMCCControls: []string{"AC.L2-3.1.3"},
+			NISTControls: []string{"AC-17"},
+			Remediation:  "Review and restrict access to discovered sensitive paths/resources.",
+			FrameID:      fid,
+		})
+	}
+
+	s.log.Info("Sonar backbone scan complete",
+		"findings", len(findings),
+		"ports", len(sonarResult.NetworkData),
+		"vulns", len(sonarResult.Vulnerabilities),
+		"secrets", len(sonarResult.Secrets),
+		"duration", sonarResult.Duration,
+	)
+
+	return findings
+}
+
+// complianceSeverityScore maps compliance check severity to a risk score.
+func complianceSeverityScore(severity string) float64 {
+	switch strings.ToUpper(severity) {
+	case "CRITICAL":
+		return 9.0
+	case "HIGH":
+		return 7.5
+	case "MEDIUM":
+		return 5.0
+	default:
+		return 3.0
+	}
+}
+
 
 func probeOpenAI(ctx context.Context, client *http.Client, baseURL string) bool {
 	req, _ := http.NewRequestWithContext(ctx, "GET", baseURL+"/v1/models", nil)
@@ -1140,11 +1442,11 @@ func inferToolRisk(name, desc string) string {
 
 func detectSecretLeakage(body []byte) []string {
 	patterns := map[string]string{
-		"OpenAI key":   `sk-[a-zA-Z0-9]{48}`,
-		"GitHub PAT":   `ghp_[a-zA-Z0-9]{36}`,
-		"AWS key":      `AKIA[A-Z0-9]{16}`,
-		"Slack token":  `xoxb-[0-9]{11}-`,
-		"PEM key":      "-----BEGIN",
+		"OpenAI key":  `sk-[a-zA-Z0-9]{48}`,
+		"GitHub PAT":  `ghp_[a-zA-Z0-9]{36}`,
+		"AWS key":     `AKIA[A-Z0-9]{16}`,
+		"Slack token": `xoxb-[0-9]{11}-`,
+		"PEM key":     "-----BEGIN",
 	}
 	var found []string
 	content := string(body)
