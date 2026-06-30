@@ -225,7 +225,7 @@ const InlineScanWidget = () => {
             <div className="bg-gradient-to-r from-[#d4af37]/10 to-[#b8860b]/10 border border-[#d4af37]/40 rounded-xl p-4 space-y-3">
               <div className="flex items-start gap-2">
                 <Lock className="h-4 w-4 text-[#d4af37] shrink-0 mt-0.5" />
-                <p className="text-sm text-white font-semibold">Get your ADINKHEPRA certification — <span className="text-[#d4af37]">$99/mo</span></p>
+                <p className="text-sm text-white font-semibold">Get your ADINKHEPRA certification — <span className="text-[#d4af37]">$99 one-time</span></p>
               </div>
               <p className="text-xs text-gray-400">PQC-signed badge · Full CMMC/STIG audit · Shareable with CISOs and auditors</p>
               <Button
