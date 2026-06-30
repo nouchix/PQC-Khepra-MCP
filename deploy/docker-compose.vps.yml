@@ -26,10 +26,12 @@ services:
       context: ..
       dockerfile: Dockerfile
     environment:
-      - KHEPRA_MODE=edge
+      - KHEPRA_MODE=hybrid
       - KHEPRA_NETWORK_POLICY=wan
       - KHEPRA_HTTP_PORT=8080
       - KHEPRA_DATA_DIR=/var/lib/khepra
+      - KHEPRA_DAG_PATH=/var/lib/khepra/dag
+      - KHEPRA_DAG_SEED_DEMO=true
       - KHEPRA_MANIFEST_PATH=/app/manifest.json
       - MCP_PQC_ENABLED=true
       - KHEPRA_CORS_ORIGINS=https://souhimbou.ai,https://adinkhepra.com,https://smithery.ai
