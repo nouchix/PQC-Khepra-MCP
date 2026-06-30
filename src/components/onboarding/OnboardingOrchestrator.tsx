@@ -328,7 +328,7 @@ const OnboardingOrchestrator: React.FC = () => {
                 <div className="font-semibold text-white">Get your ADINKHEPRA certification</div>
                 <p className="text-sm text-gray-400 mt-1">
                   Earn a cryptographically-signed badge that proves this deployment is enterprise-safe.
-                  Share it with your CISO, auditors, and customers. Renews automatically.
+                  Share it with your CISO, auditors, and customers.
                 </p>
               </div>
             </div>
@@ -346,11 +346,11 @@ const OnboardingOrchestrator: React.FC = () => {
               className="w-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold py-5"
             >
               {checkingOut ? 'Redirecting to Stripe...' : (
-                <>Get ADINKHEPRA Certified — $99/mo <ArrowRight className="h-4 w-4 ml-2" /></>
+                <>Get ADINKHEPRA Certified — $99 one-time <ArrowRight className="h-4 w-4 ml-2" /></>
               )}
             </Button>
             <p className="text-xs text-center text-gray-600">
-              Billed monthly via Stripe. Cancel anytime. Certification issued within minutes of payment.
+              One-time payment via Stripe. No recurring charges. Certification issued within minutes.
             </p>
           </div>
 
