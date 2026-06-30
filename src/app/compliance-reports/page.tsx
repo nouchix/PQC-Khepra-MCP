@@ -1,6 +1,4 @@
 "use client";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ComplianceReports from "@/pages/ComplianceReports";
-export default function Page() {
-  return <ProtectedRoute><ComplianceReports /></ProtectedRoute>;
-}
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

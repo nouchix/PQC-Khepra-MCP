@@ -1,3 +1,4 @@
 "use client";
-import Episode3 from "@/pages/blog/Episode3";
-export default Episode3;
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

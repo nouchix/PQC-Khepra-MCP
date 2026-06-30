@@ -1,6 +1,4 @@
 "use client";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import EvidenceCollectionMVP from "@/pages/EvidenceCollectionMVP";
-export default function Page() {
-  return <ProtectedRoute><EvidenceCollectionMVP /></ProtectedRoute>;
-}
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;
