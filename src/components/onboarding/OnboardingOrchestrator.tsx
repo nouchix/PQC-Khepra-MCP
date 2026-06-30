@@ -32,15 +32,26 @@ const SCAN_PHASES = [
   'Generating risk score...',
 ];
 
-async function triggerScan(target: string): Promise<string> {
+interface TriggerResponse {
+  scan_id?: string;
+  // Direct result fields (MCP synchronous response)
+  risk_score?: number;
+  exposed?: boolean;
+  auth_weakness?: boolean;
+  open_integrations?: number;
+  findings?: { severity: 'critical' | 'high' | 'medium' | 'low'; text: string }[];
+  certified?: boolean;
+  status?: string;
+}
+
+async function triggerScan(target: string): Promise<TriggerResponse> {
   const res = await fetch('/api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target_url: target }),
   });
   if (!res.ok) throw new Error(`Scan failed: ${res.status}`);
-  const data = await res.json();
-  return data.scan_id;
+  return res.json();
 }
 
 async function pollScan(scanId: string): Promise<ScanResult> {
@@ -116,8 +127,34 @@ const OnboardingOrchestrator: React.FC = () => {
     setPhase(0);
     setProgress(5);
     try {
-      const id = await triggerScan(target.trim());
-      setScanId(id);
+      const response = await triggerScan(target.trim());
+
+      // MCP is synchronous: if findings are in the POST response, go straight to results.
+      if (response.findings && response.findings.length > 0) {
+        const direct: ScanResult = {
+          scan_id: response.scan_id ?? 'local',
+          risk_score: response.risk_score ?? 50,
+          exposed: response.exposed ?? false,
+          auth_weakness: response.auth_weakness ?? false,
+          open_integrations: response.open_integrations ?? 0,
+          findings: response.findings,
+          certified: response.certified ?? false,
+        };
+        setProgress(100);
+        setTimeout(() => {
+          setResult(direct);
+          setStep('results');
+        }, 600);
+        return;
+      }
+
+      // Async mode: backend returned a scan_id only — start polling
+      if (response.scan_id) {
+        setScanId(response.scan_id);
+      } else {
+        // No findings and no scan_id — show a generic safe result
+        throw new Error('No scan result returned');
+      }
     } catch (e: any) {
       setError(`Scan failed: ${e.message}. Please try again or contact support.`);
       setStep('input');
