@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from '@/lib/router-compat';
 import { useAuth } from '@/hooks/useAuth';

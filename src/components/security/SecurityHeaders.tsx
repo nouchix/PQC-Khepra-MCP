@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, ReactNode } from 'react';
 
 interface SecurityHeadersProps {

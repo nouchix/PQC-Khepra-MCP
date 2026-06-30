@@ -1,3 +1,4 @@
+"use client";
 /**
  * Enterprise Integrations Hub
  * Centralized management for DISA STIGs API, Open Controls, and ML-powered integrations

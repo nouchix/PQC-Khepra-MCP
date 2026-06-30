@@ -1,3 +1,4 @@
+"use client";
 /**
  * STIG Threat Intelligence Component
  * Correlates threat intelligence with STIG requirements

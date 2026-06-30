@@ -1,3 +1,4 @@
+"use client";
 import { PageLayout } from '@/components/PageLayout';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

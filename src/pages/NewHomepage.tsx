@@ -1,3 +1,4 @@
+"use client";
 import { useNavigate } from '@/lib/router-compat';
 import { Button } from '@/components/ui/button';
 import { Shield, Menu, LogIn, X } from 'lucide-react';

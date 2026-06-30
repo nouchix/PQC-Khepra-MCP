@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { DashboardToggle } from '@/components/DashboardToggle';

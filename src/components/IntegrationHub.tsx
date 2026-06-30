@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { useIntegrations, IntegrationTemplate } from '@/hooks/useIntegrations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
