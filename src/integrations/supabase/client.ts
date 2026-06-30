@@ -1,20 +1,37 @@
 // src/integrations/supabase/client.ts
 //
-// SOVEREIGN MODE — Supabase client replaced with local ASAF API stub.
+// DUAL-MODE CLIENT — SouHimBou AI / AdinKhepra ASAF
 //
-// This stub satisfies all existing import sites that reference `supabase.rpc()`,
-// `supabase.from()`, `supabase.auth.*`, etc. without throwing runtime errors.
-// All data operations return empty successful responses so views render
-// gracefully without a Supabase connection.
+// Mode A — SaaS (souhimbou.ai): When NEXT_PUBLIC_SUPABASE_URL +
+//   NEXT_PUBLIC_SUPABASE_ANON_KEY are present, this creates a real
+//   @supabase/supabase-js client. Auth, DB, storage all work.
 //
-// Long-term: individual views will be migrated to call the ASAF agent API
-// directly. This stub is the zero-disruption bridge during that migration.
+// Mode B — Sovereign (air-gap, DoD bare-metal): When those env vars are
+//   absent, the stub activates. All calls return graceful empty responses.
+//   No Supabase dependency at runtime. Zero egress. Air-gappable.
 //
-// ASAF agent API: http://localhost:45444/api/v1/
+// Switching modes: set/unset the env vars. No code changes needed.
+//
+// IP assignment: SOUHIMBOU DOH KONE LLC. Licensed to SecRed Knowledge Inc.
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { createClient } from '@supabase/supabase-js';
+
+// ── Env resolution ────────────────────────────────────────────────────────────
+// Support both Next.js (NEXT_PUBLIC_*) and legacy Vite (VITE_*) prefixes.
+const SUPABASE_URL =
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
+  '';
+
+const SUPABASE_ANON_KEY =
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_PUBLISHABLE_KEY) ||
+  '';
+
+// ── ASAF sovereign agent (local, for RPC routing in sovereign mode) ───────────
 const ASAF_API = 'http://localhost:45444/api/v1';
 
-// Lightweight fetch wrapper for ASAF agent calls
 const asafFetch = async (path: string, opts?: RequestInit) => {
   try {
     const resp = await fetch(`${ASAF_API}${path}`, {
@@ -28,13 +45,43 @@ const asafFetch = async (path: string, opts?: RequestInit) => {
   return null;
 };
 
-// ── Query builder stub ────────────────────────────────────────────────────────
-// Mimics the Supabase PostgREST builder.
-// - Supports full method chaining (select, eq, order, limit, etc.)
-// - Is thenable: `const { data, error } = await supabase.from(...).select().eq(...)` works
-// - Uses `any` for data so code using data.map(), data.name etc. type-checks without null guards
+// ── Mode A — Real Supabase client ─────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+let _realClient: ReturnType<typeof createClient> | null = null;
+
+function getRealClient(): ReturnType<typeof createClient> | null {
+  if (_realClient) return _realClient;
+  if (!isSaaS) return null;
+  try {
+    _realClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        // Use PKCE flow — Supabase default since v2.
+        // Tokens are stored in localStorage; SSR pages use cookies via middleware.
+        flowType: 'pkce',
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+    });
+  } catch (e) {
+    console.error('[SouHimBou] Failed to create Supabase client:', e);
+    return null;
+  }
+  return _realClient;
+}
+
+// Whether the real client is active for this runtime
+const isSaaS = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+if (isSaaS) {
+  console.debug('[SouHimBou] Supabase SaaS mode active — real client initialised');
+} else {
+  console.debug('[SouHimBou] Sovereign stub mode active — no Supabase URL configured');
+}
+
+// ── Mode B — Sovereign stub ───────────────────────────────────────────────────
+// Mimics the Supabase PostgREST query builder — fully chainable, thenable.
+
 type QueryResult = { data: any; error: any | null; count?: number | null };
 
 interface QueryStub extends Promise<QueryResult> {
@@ -68,11 +115,9 @@ interface QueryStub extends Promise<QueryResult> {
   csv: () => QueryStub;
   returns: <T>() => QueryStub;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const makeQueryStub = (_table: string): QueryStub => {
   const base = Promise.resolve<QueryResult>({ data: null, error: null, count: null });
-
   const stub: QueryStub = Object.assign(base, {
     select: () => makeQueryStub(_table),
     insert: () => makeQueryStub(_table),
@@ -104,26 +149,21 @@ const makeQueryStub = (_table: string): QueryStub => {
     csv: () => makeQueryStub(_table),
     returns: () => makeQueryStub(_table),
   });
-
   return stub;
 };
 
-// ── Auth stub ─────────────────────────────────────────────────────────────────
-// Auth operations are handled by AuthProvider.tsx — this stub is a no-op fallback.
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const authStub = {
   getSession: () => Promise.resolve({ data: { session: null as any }, error: null }),
   getUser: () => Promise.resolve({ data: { user: null as any }, error: null }),
   onAuthStateChange: (_cb: any) => ({ data: { subscription: { unsubscribe: () => {} } } }),
-  signInWithPassword: async (_creds: any) => ({ data: null as any, error: null as any }),
-  signUp: async (_creds: any) => ({ data: null as any, error: null as any }),
+  signInWithPassword: async (_creds: any) => ({ data: null as any, error: { message: 'Sovereign mode — Supabase not configured' } }),
+  signUp: async (_creds: any) => ({ data: null as any, error: { message: 'Sovereign mode — Supabase not configured' } }),
   signOut: async () => ({ error: null }),
   resetPasswordForEmail: async (_email: string, _opts?: any) => ({ error: null }),
   updateUser: async (_attrs: any) => ({ data: { user: null as any }, error: null }),
   refreshSession: async (_opts?: any) => ({ data: { session: null as any, user: null as any }, error: null }),
   setSession: async (_tokens: { access_token: string; refresh_token: string }) => ({ data: { session: null as any, user: null as any }, error: null }),
-  // MFA API stub
+  exchangeCodeForSession: async (_code: string) => ({ data: { session: null as any, user: null as any }, error: null }),
   mfa: {
     listFactors: async () => ({ data: { all: [] as any[], totp: [] as any[], phone: [] as any[] }, error: null }),
     enroll: async (_opts: any) => ({ data: null as any, error: null }),
@@ -132,7 +172,6 @@ const authStub = {
     verify: async (_opts: any) => ({ data: null as any, error: null }),
     challengeAndVerify: async (_opts: any) => ({ data: null as any, error: null }),
   },
-  // Admin API stub — service role operations (admin panel only)
   admin: {
     getUserById: async (_uid: string) => ({ data: { user: null as any }, error: null }),
     listUsers: async (_opts?: any) => ({ data: { users: [] as any[] }, error: null }),
@@ -141,58 +180,42 @@ const authStub = {
     updateUserById: async (_uid: string, _attrs: any) => ({ data: { user: null as any }, error: null }),
   },
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
-// ── RPC stub ──────────────────────────────────────────────────────────────────
-// Maps known RPC calls to ASAF agent endpoints where available.
+// ── RPC — sovereign ASAF routes + unknown-function fallback ───────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const rpc = async (fnName: string, params?: any) => {
-  // Route known RPC functions to ASAF agent
+const rpcStub = async (fnName: string, params?: any) => {
   const rpcRoutes: Record<string, string> = {
-    'get_current_user_role': '/me/role',
-    'is_sunsum_diminished': '/auth/lockout-check',
-    'record_ritual_lapse': '/auth/record-failure',
+    get_current_user_role: '/me/role',
+    is_sunsum_diminished: '/auth/lockout-check',
+    record_ritual_lapse: '/auth/record-failure',
   };
-
   const route = rpcRoutes[fnName];
   if (route) {
-    const result = await asafFetch(route, {
-      method: 'POST',
-      body: JSON.stringify(params ?? {}),
-    });
+    const result = await asafFetch(route, { method: 'POST', body: JSON.stringify(params ?? {}) });
     return { data: result ?? null, error: null };
   }
-
-  // Unknown RPC — return null gracefully
-  console.debug(`[ASAF-STUB] Unmapped RPC: ${fnName}`, params);
+  console.debug(`[SouHimBou-Stub] Unmapped RPC: ${fnName}`, params);
   return { data: null, error: null };
 };
 
 // ── Functions stub ────────────────────────────────────────────────────────────
-// Mimics supabase.functions.invoke() for Edge Function calls.
 
 const functionsStub = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invoke: async (fnName: string, options?: { body?: any; headers?: Record<string, string> }) => {
     const result = await asafFetch(`/functions/${fnName}`, {
       method: 'POST',
       body: JSON.stringify(options?.body ?? {}),
     });
-    if (result !== null) {
-      return { data: result, error: null };
-    }
-    console.debug(`[ASAF-STUB] Edge Function not routed: ${fnName}`);
+    if (result !== null) return { data: result, error: null };
+    console.debug(`[SouHimBou-Stub] Edge Function not routed: ${fnName}`);
     return { data: null, error: null };
   },
 };
 
 // ── Storage stub ──────────────────────────────────────────────────────────────
 
-const storage = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+const storageStub = {
   from: (_bucket: string) => ({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     upload: async (_path: string, _file: any) => ({ data: null as any, error: null }),
     download: async (_path: string) => ({ data: null as any, error: null }),
     getPublicUrl: (_path: string) => ({ data: { publicUrl: '' } }),
@@ -201,27 +224,51 @@ const storage = {
   }),
 };
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Channel stub ──────────────────────────────────────────────────────────────
 
-export const supabase = {
-  auth: authStub,
-  functions: functionsStub,
-  rpc,
-  storage,
-  from: (table: string) => makeQueryStub(table),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  channel: (_name: string) => {
-    // Channel stub: fully chainable with .on().on().subscribe()
-    const makeChannel = (): any => ({
-      on: (_event: string, _filter: any, _cb: any) => makeChannel(),
-      subscribe: (_cb?: any) => makeChannel(),
-      unsubscribe: () => Promise.resolve('ok'),
-    });
-    return makeChannel();
+const makeChannelStub = (): any => ({
+  on: (_event: string, _filter: any, _cb: any) => makeChannelStub(),
+  subscribe: (_cb?: any) => makeChannelStub(),
+  unsubscribe: () => Promise.resolve('ok'),
+});
+
+// ── Main export — unified API regardless of mode ──────────────────────────────
+
+function getClient() {
+  if (isSaaS) {
+    const real = getRealClient();
+    if (real) return real;
+    // Real client init failed — fall back to stub with a warning
+    console.error('[SouHimBou] Real Supabase client failed to init — falling back to stub');
+  }
+
+  // Sovereign stub
+  return {
+    auth: authStub,
+    functions: functionsStub,
+    rpc: rpcStub,
+    storage: storageStub,
+    from: (table: string) => makeQueryStub(table),
+    channel: (_name: string) => makeChannelStub(),
+    removeChannel: (_ch: any) => {},
+  };
+}
+
+// Proxy so callers can do `supabase.auth.*`, `supabase.from(...)`, etc.
+// The proxy defers resolution to call-time so SSR module loading order
+// doesn't matter.
+export const supabase = new Proxy({} as ReturnType<typeof getClient>, {
+  get(_target, prop: string) {
+    const client = getClient();
+    const val = (client as any)[prop];
+    return typeof val === 'function' ? val.bind(client) : val;
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  removeChannel: (_ch: any) => {},
-};
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** True when running against real Supabase (SaaS mode). */
+export const isSaaSMode = isSaaS;
 
 // Type re-export for files that import from types.ts
 export type { Database } from './types';
