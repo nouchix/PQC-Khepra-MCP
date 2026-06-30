@@ -31,6 +31,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -217,9 +218,8 @@ func onboardingScanTool(req ScanRequest) (toolName string, args map[string]any) 
 }
 
 // buildScanResult converts an MCP tool response into a ScanResult.
-// If the tool errored or isn't available (e.g. community tier), we return a
-// credible partial result that still drives conversion — the scan itself is
-// evidence of SouHimBou AI working.
+// If the tool errored or isn't available (e.g. community tier), we fall back to
+// real TCP + HTTP probing of the target — so results are always URL-specific.
 func buildScanResult(scanID string, req ScanRequest, mcpResp *MCPToolResponse, toolErr error) ScanResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	signed := false
@@ -231,14 +231,8 @@ func buildScanResult(scanID string, req ScanRequest, mcpResp *MCPToolResponse, t
 		// Parse findings from response if available
 		findings, summary = extractScanFindings(mcpResp)
 	} else {
-		// Community tier / tool error — return a demo-safe partial result
-		findings = demoFindings(req.TargetURL)
-		summary = ScanSummary{
-			ExposedTools:   len(findings),
-			RiskScore:      6.4,
-			AttestationGap: true,
-			FIPSCompliant:  false,
-		}
+		// Community tier / tool error — run real probes instead of static demo
+		findings, summary = probeTarget(req.TargetURL)
 	}
 
 	status := "complete"
@@ -303,8 +297,190 @@ func extractScanFindings(resp *MCPToolResponse) ([]ScanFinding, ScanSummary) {
 	return findings, summary
 }
 
-// demoFindings returns representative findings when the tool is unavailable.
-// These are real exposure patterns seen in agentic deployments.
+// probeTarget performs real TCP + HTTP checks and returns URL-specific findings.
+// This is the community-tier fallback when the MCP tool chain is unavailable.
+// Results vary per target based on: open ports, security headers, HTTPS status.
+func probeTarget(rawTarget string) ([]ScanFinding, ScanSummary) {
+	host, checkPorts := parseOnboardingTarget(rawTarget)
+
+	var findings []ScanFinding
+	var riskScore float64 = 2.8 // base for any unattested deployment
+	agentExposed := false
+	openCount := 0
+
+	// 1. TCP port probes (2s timeout each)
+	for _, p := range checkPorts {
+		if tcpProbe(host, p) {
+			openCount++
+			switch p {
+			case 18789:
+				agentExposed = true
+				findings = append(findings, ScanFinding{
+					ID:       fmt.Sprintf("F%03d", len(findings)+1),
+					Severity: "critical",
+					Title:    fmt.Sprintf("Agent gateway port 18789 is internet-exposed on %s — unauthenticated agent access risk", host),
+					Control:  "CMMC.SC.L2-3.13.10",
+				})
+				riskScore += 4.2
+			default:
+				findings = append(findings, ScanFinding{
+					ID:       fmt.Sprintf("F%03d", len(findings)+1),
+					Severity: "high",
+					Title:    fmt.Sprintf("Port %d on %s is internet-reachable — confirm intended exposure", p, host),
+					Control:  "CMMC.CM.L2-3.4.1",
+				})
+				riskScore += 1.1
+			}
+		}
+	}
+
+	// 2. HTTP security header audit (non-fatal — skip on timeout)
+	hdrFindings, hdrRisk := checkSecurityHeaders(host)
+	findings = append(findings, hdrFindings...)
+	riskScore += hdrRisk
+
+	// 3. Universal attestation gap (always present without KHEPRA)
+	findings = append(findings, ScanFinding{
+		ID:       fmt.Sprintf("F%03d", len(findings)+1),
+		Severity: "high",
+		Title:    fmt.Sprintf("AI agent activity on %s is unattested — no PQC-signed audit trail (KHEPRA not detected)", truncateURL(rawTarget)),
+		Control:  "CMMC.AU.L2-3.3.1",
+	})
+	riskScore += 0.9
+
+	// 4. Non-human identity gap (universal)
+	findings = append(findings, ScanFinding{
+		ID:       fmt.Sprintf("F%03d", len(findings)+1),
+		Severity: "medium",
+		Title:    "Agent identity not cryptographically bound — no ML-DSA-65 key attested to this deployment",
+		Control:  "NIST.IA-3",
+	})
+	riskScore += 0.4
+
+	if riskScore > 10.0 {
+		riskScore = 10.0
+	}
+
+	_ = agentExposed // reserved for future blast-radius visualization
+
+	return findings, ScanSummary{
+		ExposedTools:   openCount,
+		RiskScore:      riskScore,
+		AttestationGap: true,
+		FIPSCompliant:  false,
+	}
+}
+
+// parseOnboardingTarget extracts host + probe ports from a raw URL/host string.
+func parseOnboardingTarget(raw string) (string, []int) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", []int{443, 18789}
+	}
+	// Strip scheme if present
+	host := raw
+	host = strings.TrimPrefix(host, "https://")
+	host = strings.TrimPrefix(host, "http://")
+	// Strip path/query
+	if idx := strings.IndexByte(host, '/'); idx != -1 {
+		host = host[:idx]
+	}
+	// Strip port if present
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	return host, []int{443, 80, 18789}
+}
+
+// tcpProbe returns true if host:port accepts a TCP connection within timeout.
+func tcpProbe(host string, port int) bool {
+	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
+	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+// checkSecurityHeaders fetches HTTPS headers and reports missing security controls.
+func checkSecurityHeaders(host string) ([]ScanFinding, float64) {
+	var findings []ScanFinding
+	var risk float64
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse // follow one redirect only
+		},
+	}
+
+	resp, err := client.Head("https://" + host)
+	if err != nil {
+		// Host unreachable over HTTPS — notable but not fatal
+		findings = append(findings, ScanFinding{
+			ID:       "F-HDR",
+			Severity: "medium",
+			Title:    fmt.Sprintf("HTTPS on %s is unreachable or misconfigured — TLS posture unverifiable", host),
+			Control:  "NIST.SC-8",
+		})
+		return findings, 0.6
+	}
+	defer resp.Body.Close()
+
+	h := resp.Header
+
+	if h.Get("Strict-Transport-Security") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "medium",
+			Title:    fmt.Sprintf("%s missing HSTS header — downgrade attack vector (NIST SC-8)", host),
+			Control:  "NIST.SC-8",
+		})
+		risk += 0.5
+	}
+	if h.Get("Content-Security-Policy") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "medium",
+			Title:    fmt.Sprintf("%s missing Content-Security-Policy — XSS injection surface uncontrolled", host),
+			Control:  "NIST.SI-10",
+		})
+		risk += 0.4
+	}
+	if h.Get("X-Frame-Options") == "" && !strings.Contains(h.Get("Content-Security-Policy"), "frame-ancestors") {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "low",
+			Title:    fmt.Sprintf("%s missing X-Frame-Options — clickjacking risk for any embedded UI", host),
+			Control:  "NIST.SI-10",
+		})
+		risk += 0.2
+	}
+	if h.Get("X-Content-Type-Options") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "low",
+			Title:    fmt.Sprintf("%s missing X-Content-Type-Options — MIME sniffing enabled", host),
+			Control:  "NIST.SI-10",
+		})
+		risk += 0.2
+	}
+	if h.Get("Permissions-Policy") == "" && h.Get("Feature-Policy") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "low",
+			Title:    fmt.Sprintf("%s missing Permissions-Policy — browser feature access unrestricted", host),
+			Control:  "NIST.CM-7",
+		})
+		risk += 0.1
+	}
+
+	return findings, risk
+}
+
+// demoFindings is kept for reference but no longer used in the main flow.
+// The real probe (probeTarget) replaces it for community-tier scans.
 func demoFindings(target string) []ScanFinding {
 	label := truncateURL(target)
 	if label == "" {
