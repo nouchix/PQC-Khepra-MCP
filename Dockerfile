@@ -45,6 +45,7 @@ WORKDIR /app
 
 COPY --from=builder /out/khepra-mcp /usr/local/bin/khepra-mcp
 COPY manifest.json /app/manifest.json
+COPY docs/ /app/docs/
 
 # Data directories (empty at build time; populated via volume or init container)
 RUN mkdir -p /var/lib/khepra /var/log/khepra \
