@@ -328,7 +328,7 @@ func (e *flightRecorderEye) Gaze() []maat.Isfet {
 			Source:    "FlightRecorder:" + f.AgentID,
 			Certainty: 0.80,
 			Omens: []maat.Omen{
-				{Name: "tool",  Value: f.ToolName, Malevolence: 0.8},
+				{Name: "tool",  Value: f.ToolName, Malevolence: riskToMalevolence(f.RiskClass)},
 				{Name: "agent", Value: f.AgentID,  Malevolence: 0.0},
 			},
 		})
