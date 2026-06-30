@@ -1,0 +1,28 @@
+node_modules
+.git
+.next
+*.log
+dist
+build
+coverage
+.env.local
+.env*.local
+packages/dag-viewer/node_modules
+
+# Go binaries — never needed by Next.js build
+*.exe
+bin/
+pkg/
+cmd/
+*.go
+go.mod
+go.sum
+
+# Large data files
+pkg/stig/data/
+
+# Other non-frontend (root-level only — prefix / prevents matching src/integrations/supabase/)
+/supabase/
+/n8n-nodes/
+/services/
+/vendor/

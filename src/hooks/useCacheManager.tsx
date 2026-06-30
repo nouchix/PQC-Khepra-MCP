@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { cacheManager } from '@/lib/cacheManager';
 import { toast } from 'sonner';

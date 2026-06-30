@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from '@/lib/router-compat';
 import {

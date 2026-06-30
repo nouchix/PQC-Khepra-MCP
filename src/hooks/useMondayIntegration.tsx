@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useOrganization } from './useOrganization';
 import { supabase } from '@/integrations/supabase/client';

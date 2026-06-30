@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from '@/lib/router-compat';
 import { supabase } from '@/integrations/supabase/client';

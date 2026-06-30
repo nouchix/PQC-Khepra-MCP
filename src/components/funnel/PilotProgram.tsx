@@ -1,3 +1,4 @@
+"use client";
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Zap, Shield, FileText, BarChart3, Users, Star } from 'lucide-react';

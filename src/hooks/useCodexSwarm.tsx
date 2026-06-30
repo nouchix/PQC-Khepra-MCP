@@ -1,3 +1,4 @@
+"use client";
 /**
  * Codex Agent Swarm Hook
  * React hook for managing AI agent swarm operations

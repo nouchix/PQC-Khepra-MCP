@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'asaf_openrouter_key';

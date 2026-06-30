@@ -1,3 +1,4 @@
+"use client";
 // Cache Management Utilities
 export class CacheManager {
   private static instance: CacheManager;

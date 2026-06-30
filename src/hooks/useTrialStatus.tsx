@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { useSubscription } from './useSubscription';

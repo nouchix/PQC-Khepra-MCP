@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { useOrganizationContext } from "@/components/OrganizationProvider";
 import { Button } from "@/components/ui/button";
