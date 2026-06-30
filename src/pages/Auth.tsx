@@ -21,8 +21,11 @@ const Auth = () => {
   // Honor redirect param — users clicking a billing plan come back here after auth
   const redirectTo = searchParams.get('redirect') || '/dashboard';
   const pendingPlan = searchParams.get('plan') || '';
+  // Post-payment registration: Stripe sent the user here after anonymous checkout
+  const registered = searchParams.get('registered') === '1';
+  const paidPlan   = searchParams.get('plan') || '';
 
-  const [isLogin, setIsLogin] = useState(mode !== 'reset');
+  const [isLogin, setIsLogin] = useState(mode !== 'reset' && !registered);
   const [showPasswordReset, setShowPasswordReset] = useState(mode === 'reset');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -152,12 +155,22 @@ const Auth = () => {
       }
       toast({ title: "Registration Failed", description, variant: "destructive" });
     } else {
-      toast({
-        title: "Registration Successful",
-        description: "Check your email to verify your account, then sign in to accept legal terms.",
-        variant: "default"
-      });
-      setIsLogin(true);
+      if (registered) {
+        // Post-payment: account created — send them straight to the product
+        toast({
+          title: "Account Created!",
+          description: `Check your email to verify, then you're all set. Welcome to SouHimBou AI!`,
+          variant: "default"
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Registration Successful",
+          description: "Check your email to verify your account, then sign in to accept legal terms.",
+          variant: "default"
+        });
+        setIsLogin(true);
+      }
     }
   };
 
@@ -474,8 +487,23 @@ const Auth = () => {
             <span>UNCLASSIFIED // FOUO</span>
           </Badge>
 
-          {/* Contextual banner when redirecting from billing */}
-          {pendingPlan && (
+          {/* Post-payment success banner: Stripe sent anonymous user here to create account */}
+          {registered && paidPlan && (
+            <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
+              <div className="text-left">
+                <p className="text-sm font-semibold text-green-400">Payment received — you're almost in!</p>
+                <p className="text-xs text-green-300/80 mt-0.5">
+                  Create your account below to activate your{' '}
+                  <strong className="capitalize">{paidPlan.replace(/_/g, ' ')}</strong> plan.
+                  Use the same email you entered at checkout.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Contextual banner when redirecting from billing (old auth-first flow) */}
+          {pendingPlan && !registered && (
             <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary shrink-0" />
               <p className="text-xs text-primary text-left">
