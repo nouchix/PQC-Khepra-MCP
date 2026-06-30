@@ -4,51 +4,130 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 
 /**
  * POST /api/checkout
- * Creates a Stripe Checkout Session for the ADINKHEPRA Certify plan ($99/mo).
  *
- * Required env vars:
- *   STRIPE_SECRET_KEY         — sk_live_... or sk_test_...
+ * Plan-aware Stripe Checkout Session creator.
+ * Accepts { plan, email } — routes to the correct price ID and mode.
  *
- * Optional env vars:
- *   STRIPE_PRICE_ID           — A *recurring* price_... ID. If set AND the
- *                               price is recurring, it takes precedence.
- *                               IMPORTANT: must be a subscription price —
- *                               one-time prices will cause a Stripe error.
- *   NEXT_PUBLIC_APP_URL       — https://www.souhimbou.ai
+ * Canonical price IDs (SecRed Knowledge Inc. — souhimbou.ai):
+ *   certify         → price_1TiVvxDqGyad2D3VlUm3ba6s  $99     one-time  (mode: payment)
+ *   starter         → price_1TiVXPDqGyad2D3VSpr7L05X  $299/mo recurring (mode: subscription)
+ *   professional    → price_1TiVXoDqGyad2D3V5AZQ0EiW  $999/mo recurring (mode: subscription)
+ *   enterprise      → price_1TiVvyDqGyad2D3V4mszc5v5  $500/mo recurring (mode: subscription)
+ *   sovereign       → price_1TiVXoDqGyad2D3Vr78bgbTI  $2999/mo recurring (mode: subscription)
+ *   diagnostic      → price_1TiVXpDqGyad2D3VXMnYnrZP  $1500   one-time  (mode: payment)
+ *   advisory        → price_1TiVXqDqGyad2D3VQizyv9o7  $5000   one-time  (mode: payment)
+ *   deadline_sprint → price_1TiVw1DqGyad2D3VTs0ewSp0  $15000  one-time  (mode: payment)
  *
- * NOTE: We default to inline price_data (no pre-created price needed) so
- * checkout always works out of the box without Stripe dashboard setup.
+ * Required env vars (Vercel):
+ *   STRIPE_SECRET_KEY
+ *   STRIPE_PRICE_CERTIFY
+ *   STRIPE_PRICE_STARTER
+ *   STRIPE_PRICE_PROFESSIONAL
+ *   STRIPE_PRICE_ENTERPRISE
+ *   STRIPE_PRICE_SOVEREIGN
+ *   STRIPE_PRICE_DIAGNOSTIC
+ *   STRIPE_PRICE_ADVISORY
+ *   STRIPE_PRICE_DEADLINE_SPRINT
  */
+
+// Price catalog — maps plan slug → { priceId env var, mode, label }
+type StripePlan = {
+  envKey: string;
+  fallbackPriceId: string;         // canonical ID — only used if env var not set
+  mode: 'payment' | 'subscription';
+  label: string;
+  successPath: string;
+};
+
+const PLANS: Record<string, StripePlan> = {
+  certify: {
+    envKey: 'STRIPE_PRICE_CERTIFY',
+    fallbackPriceId: 'price_1TiVvxDqGyad2D3VlUm3ba6s',
+    mode: 'payment',
+    label: 'ADINKHEPRA Certify',
+    successPath: '/onboarding?certified=1&session_id={CHECKOUT_SESSION_ID}',
+  },
+  starter: {
+    envKey: 'STRIPE_PRICE_STARTER',
+    fallbackPriceId: 'price_1TiVXPDqGyad2D3VSpr7L05X',
+    mode: 'subscription',
+    label: 'SouHimBou AI Starter',
+    successPath: '/dashboard?plan=starter&session_id={CHECKOUT_SESSION_ID}',
+  },
+  professional: {
+    envKey: 'STRIPE_PRICE_PROFESSIONAL',
+    fallbackPriceId: 'price_1TiVXoDqGyad2D3V5AZQ0EiW',
+    mode: 'subscription',
+    label: 'SouHimBou AI Professional',
+    successPath: '/dashboard?plan=professional&session_id={CHECKOUT_SESSION_ID}',
+  },
+  enterprise: {
+    envKey: 'STRIPE_PRICE_ENTERPRISE',
+    fallbackPriceId: 'price_1TiVvyDqGyad2D3V4mszc5v5',
+    mode: 'subscription',
+    label: 'SouHimBou AI Enterprise',
+    successPath: '/dashboard?plan=enterprise&session_id={CHECKOUT_SESSION_ID}',
+  },
+  sovereign: {
+    envKey: 'STRIPE_PRICE_SOVEREIGN',
+    fallbackPriceId: 'price_1TiVXoDqGyad2D3Vr78bgbTI',
+    mode: 'subscription',
+    label: 'ADINKHEPRA ASAF Sovereign',
+    successPath: '/dashboard?plan=sovereign&session_id={CHECKOUT_SESSION_ID}',
+  },
+  diagnostic: {
+    envKey: 'STRIPE_PRICE_DIAGNOSTIC',
+    fallbackPriceId: 'price_1TiVXpDqGyad2D3VXMnYnrZP',
+    mode: 'payment',
+    label: 'Diagnostic Assessment',
+    successPath: '/dashboard?plan=diagnostic&session_id={CHECKOUT_SESSION_ID}',
+  },
+  advisory: {
+    envKey: 'STRIPE_PRICE_ADVISORY',
+    fallbackPriceId: 'price_1TiVXqDqGyad2D3VQizyv9o7',
+    mode: 'payment',
+    label: 'Advisory Package',
+    successPath: '/dashboard?plan=advisory&session_id={CHECKOUT_SESSION_ID}',
+  },
+  deadline_sprint: {
+    envKey: 'STRIPE_PRICE_DEADLINE_SPRINT',
+    fallbackPriceId: 'price_1TiVw1DqGyad2D3VTs0ewSp0',
+    mode: 'payment',
+    label: 'Deadline Sprint',
+    successPath: '/dashboard?plan=deadline_sprint&session_id={CHECKOUT_SESSION_ID}',
+  },
+};
+
 export async function POST(req: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL || 'https://www.souhimbou.ai';
+  const appUrl    = process.env.NEXT_PUBLIC_APP_URL || 'https://souhimbou.ai';
 
   if (!stripeKey) {
     return NextResponse.json(
-      { error: 'Stripe is not configured. Please contact support@souhimbou.ai' },
+      { error: 'Stripe is not configured. Contact support@souhimbou.ai' },
       { status: 500 }
     );
   }
 
   const body  = await req.json().catch(() => ({}));
   const email = typeof body.email === 'string' ? body.email.trim() : undefined;
+  const planKey = (typeof body.plan === 'string' ? body.plan : 'certify').toLowerCase();
 
-  // Build form-encoded body for Stripe API
+  const plan = PLANS[planKey] ?? PLANS.certify;
+
+  // Resolve price ID: prefer env var, fall back to canonical ID hardcoded above
+  const priceId = process.env[plan.envKey] || plan.fallbackPriceId;
+
   const params = new URLSearchParams({
-    mode: 'subscription',
-    'success_url': `${appUrl}/onboarding?certified=1&session_id={CHECKOUT_SESSION_ID}`,
+    mode: plan.mode,
+    'success_url': `${appUrl}${plan.successPath}`,
     'cancel_url':  `${appUrl}/onboarding?cancelled=1`,
     'allow_promotion_codes':      'true',
     'billing_address_collection': 'auto',
   });
 
-  // Inline price_data — always creates a $99/mo recurring subscription price
-  params.set('line_items[0][price_data][currency]',                  'usd');
-  params.set('line_items[0][price_data][product_data][name]',        'ADINKHEPRA Certification');
-  params.set('line_items[0][price_data][product_data][description]', 'ML-DSA-65 signed certification badge · CMMC/STIG compliance evidence · Renews monthly. Cancel anytime.');
-  params.set('line_items[0][price_data][unit_amount]',               '9900');
-  params.set('line_items[0][price_data][recurring][interval]',       'month');
-  params.set('line_items[0][quantity]',                              '1');
+  params.set('line_items[0][price]',    priceId);
+  params.set('line_items[0][quantity]', '1');
 
   if (email) {
     params.set('customer_email', email);
@@ -66,9 +145,8 @@ export async function POST(req: NextRequest) {
   const responseData = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    // Surface the exact Stripe error to the toast for immediate diagnosis
-    const msg = (responseData as any)?.error?.message
-      || `Stripe error ${response.status}`;
+    const msg = (responseData as any)?.error?.message || `Stripe error ${response.status}`;
+    console.error(`[checkout] plan=${planKey} price=${priceId} mode=${plan.mode} error:`, msg);
     return NextResponse.json({ error: msg }, { status: response.status });
   }
 
