@@ -57,7 +57,15 @@ This is a real architectural call, not a neutral default — flagging it explici
 2. Port forward anything in category (b) into PQC-Khepra-MCP so it becomes the strict superset.
 3. Document the decision (canonical = Product C) in both repos' top-level CLAUDE.md/AGENTS.md so future sessions don't re-fork by accident.
 
-### Phase 3 — Demo readiness for July 15
+### Phase 3 — SUPERSEDED by concurrent work (2026-06-30)
+
+The user is working concurrently in the built-in Antigravity agent coder on this same repo, with an auto-commit-on-save system active. Antigravity's track has moved past the original Phase 3 scope below: it built a real `/api/v1/dag/history` REST endpoint (`pkg/mcp/dag_bridge.go`, wired into `transport_http.go`'s HTTP transport), backed by a "Master DAG" with ML-DSA-65 signing and actual KASA/SEKHEM wiring (commit `f256a89`), fixed same-origin SSE issues (`3700694`), and extended `docs/dag-viewer.html`'s live-feed JS to fetch DAG history on load before connecting SSE, with named-event support (`snapshot`/`live`) — all backward-compatible with the loopback `live_viewer.go` SSE feed built earlier today (the `es.onmessage` fallback still catches unnamed events).
+
+**Do not keep hand-editing `docs/dag-viewer.html` in parallel** — that recreates the exact fork-drift problem diagnosed in Phase 2 for the Go packages. Treat `docs/dag-viewer.html` as Antigravity's actively-owned file for now. The root-level `C:\Users\intel\blackbox\dag-viewer.html` copy is now stale (last edited by this session, pre-history-fetch) — needs reconciling or removing, not silently re-diverging.
+
+Original Phase 3 plan below, kept for reference / in case Antigravity's track stalls:
+
+### Phase 3 (original plan) — Demo readiness for July 15
 
 **CORRECTION (2026-06-29): the investor-grade 3D visual already exists. `dag-viewer.html` (identical copies at repo root `C:\Users\intel\blackbox\dag-viewer.html` and `PQC-Khepra-MCP\docs\dag-viewer.html`) is a complete, polished single-file 3D DAG/CMMC viewer — `3d-force-graph`, node inspector, search, 3D/table/raw tabs, CMMC control mapping, FAIR dollar-impact per finding, ML-DSA-65 signature display, full branding. There is nothing to build here. The only real gap: it renders from a hardcoded demo JSON blob (`<script id="data" type="application/json">`, no `fetch`/`EventSource` anywhere in the file) instead of live data. This replaces the old "build the missing frontend" framing entirely.**
 
