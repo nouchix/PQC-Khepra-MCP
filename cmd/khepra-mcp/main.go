@@ -28,7 +28,6 @@
 package main
 
 import (
-	"strings"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -37,15 +36,18 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
 
 func main() {
@@ -169,11 +171,39 @@ func main() {
 	registerToolHandlers(executor)
 
 	// 7. DAG Attestor — PQC-signed audit trail
-	// dag.NewStore() selects PersistentMemory (sovereign) or Memory (SaaS/edge)
-	// based on KHEPRA_MODE. This is already resolved in runCfg above.
+	// dag.NewStore() selects PersistentMemory (sovereign/ironbank/hybrid) or
+	// Memory (edge) based on KHEPRA_MODE. Hybrid mode enables the Aaru Realm
+	// (persistent DAG cache on the volume) while still allowing HTTP transport.
 	_ = runCfg // consumed above; dag.NewStore() re-reads KHEPRA_MODE internally
 	dagStore := dag.NewStore()
 	attestor := khepramcp.NewDAGAttestor(dagStore, symbol, privKey)
+
+	// ── KASA Engine — Autonomous Security Auditor ────────────────────────────
+	// Continuous loops: forensic snapshots, vuln hunting, internal pentest, CMMC audit.
+	// All findings are written as ML-DSA-65-signed DAG nodes to dagStore.
+	kasaEngine := agi.NewEngine(dagStore)
+	kasaEngine.Start()
+	logger.Printf("[KASA] Autonomous security auditor online (mode=%s)", sekhem.ModeFromEnv())
+
+	// ── Sekhem Triad — Polymorphic Security Gateway ──────────────────────────
+	// Encapsulates pkg/dag behind the full autonomous security stack:
+	//   DuatRealm (always): WAFShield (8 rules, Kyber-1024) + Wedjat Eyes + Ouroboros Cycle
+	//   AaruRealm (hybrid+): coordination + persistent DAG cache
+	//   AtenRealm (sovereign+): supreme air-gapped orchestration
+	// Duat.Awaken() starts the WAFShield + Ouroboros security loop.
+	sekhemTriad, triadErr := sekhem.NewSekhemTriad(kasaEngine, dagStore, sekhem.ModeFromEnv())
+	if triadErr != nil {
+		// Non-fatal: WAF runs without Aaru/Aten if those fail
+		logger.Printf("WARN: SekhemTriad partial init: %v — DuatRealm only", triadErr)
+	}
+	if sekhemTriad != nil {
+		if hErr := sekhemTriad.Harmonize(); hErr != nil {
+			logger.Printf("WARN: SekhemTriad Harmonize error: %v", hErr)
+		} else {
+			logger.Printf("[Sekhem] Triad harmonized — %d realm(s) active (WAF+KASA+DAG protection online)",
+				sekhemTriad.GetActiveRealmCount())
+		}
+	}
 
 	// ── Assemble Router ──────────────────────────────────────────────────────
 	//
@@ -206,6 +236,19 @@ func main() {
 		logger.Printf("signed audit log: %s", auditLogPath)
 	}
 
+	// ── Demo seeding: populate chain with realistic nodes for CISO/prospect demos ──
+	// Runs only if KHEPRA_DAG_SEED_DEMO=true AND chain has < 10 nodes.
+	// Seeding happens before the router starts so demo nodes are already in the
+	// history endpoint when the first browser connects.
+	seededCount := dag.SeedDemoNodes(dagStore, dag.SeedConfig{
+		MinNodes:      10,
+		PrivKey:       privKey,
+		ServerVersion: "1.0.0",
+	})
+	if seededCount > 0 {
+		logger.Printf("[DAG-SEED] %d demo nodes seeded into Master DAG", seededCount)
+	}
+
 	// Derive HMAC root key for per-invocation tokens from the ML-DSA-65 session key
 	invocationRootKey := khepramcp.DeriveRootKey(privKey)
 
@@ -235,6 +278,14 @@ func main() {
 	if err != nil {
 		logger.Fatalf("FATAL: router construction failed: %v", err)
 	}
+
+	// ── DAGBridge: wire ML-DSA-65 signing into the live event stream ─────────
+	// Every EventAttest emitted by the router → signed dag.Node → dagStore.Add().
+	// Uses the same session privKey as DAGAttestor so the whole chain shares
+	// one verifiable identity. pubKey stored in genesis tail for offline audit.
+	dagBridge := khepramcp.NewDAGBridge(dagStore, privKey, pubKey)
+	router.Events().AddHook(dagBridge.Hook)
+	logger.Printf("[DAGBridge] ML-DSA-65 signing bridge active — key_id=%s", keyID)
 
 	// ── Live Viewer (optional, loopback-only) ────────────────────────────────
 	// Independent of KHEPRA_HTTP_PORT/transport mode: this does not change
@@ -275,6 +326,14 @@ func main() {
 	if !runCfg.IsAirGapped {
 		if httpPort := os.Getenv("KHEPRA_HTTP_PORT"); httpPort != "" {
 			transportMode = khepramcp.TransportHTTP
+
+			// Wire the SEKHEM WAFShield from the active DuatRealm into the HTTP transport.
+			// This activates bilateral security: ingress 8-rule scan + egress secret scrub.
+			var wafShield *sekhem.WAFShield
+			if sekhemTriad != nil && sekhemTriad.DuatRealm != nil {
+				wafShield = sekhemTriad.DuatRealm.WAFShield
+			}
+
 			httpCfg = khepramcp.HTTPTransportConfig{
 				ListenAddr:          ":" + httpPort,
 				MaxRequestSize:      4 << 20, // 4 MB
@@ -284,9 +343,12 @@ func main() {
 				TLSCertFile:         os.Getenv("KHEPRA_TLS_CERT"),
 				TLSKeyFile:          os.Getenv("KHEPRA_TLS_KEY"),
 				EnableSecureHeaders: true,
+				// Sovereign security stack: WAF + persistent DAG history endpoint
+				WAF:      wafShield,
+				DagStore: dagStore,
 				SSE: khepramcp.SSEConfig{
-					MaxConns:    sseMaxConns(),
-					IdleTimeout: sseIdleTimeout(),
+					MaxConns:     sseMaxConns(),
+					IdleTimeout:  sseIdleTimeout(),
 					PingInterval: 30 * time.Second,
 				},
 			}
@@ -319,8 +381,14 @@ func main() {
 	}
 
 	// ── Register Shutdown Hooks ──────────────────────────────────────────────
-	// 0. Stop heartbeat daemon (handled by sovereign telemetry_client.go)
-	// (no separate daemon to stop — sovereign stack manages its own lifecycle)
+	// 0. Stop KASA engine + Sekhem Triad
+	server.OnShutdown(func() {
+		kasaEngine.Stop()
+		if sekhemTriad != nil {
+			sekhemTriad.Stop()
+		}
+		logger.Println("[Sekhem] Triad stopped — WAF/KASA/DAG protection offline")
+	})
 	// 1. Zero-out PQC private key material
 	server.OnShutdown(func() {
 		for i := range privKey {

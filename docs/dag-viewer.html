@@ -827,8 +827,85 @@ function connectLiveFeed() {
 }
 
 // ── Init ─────────────────────────────────────────────────────
+// Phase 1: Fetch persisted Master DAG from REST endpoint (/api/v1/dag/history).
+//          This populates the graph from disk history (KASA findings, forensics,
+//          pentest nodes, MCP attestations) without waiting for live SSE events.
+// Phase 2: Connect SSE feed for real-time updates.
+// Silent fallback: if /api/v1/dag/history is unavailable, demo data stays on screen.
+
+function ingestDAGNode(n) {
+  // Convert a dag.Node (from /api/v1/dag/history) into a graph-compatible node.
+  // dag.Node fields: id, action, symbol, time, pqc_metadata, hash, parents, signature
+  if (!n || !n.id) return;
+  if (RAW.nodes.find(x => x.id === n.id)) return; // deduplicate
+
+  const ts = (n.time || '').slice(11, 19);
+  const action = (n.action || '').toLowerCase();
+  const pqc = n.pqc_metadata || {};
+  let type = 'control'; // default
+
+  if (action.startsWith('forensic-snapshot') || action.startsWith('forensic-data')) {
+    type = 'control';
+  } else if (action.startsWith('vuln-discovered') || action.startsWith('pentest-vuln')) {
+    type = 'finding';
+  } else if (action.startsWith('pentest-start') || action.startsWith('pentest-discovery')) {
+    type = 'tool';
+  } else if (action.startsWith('pentest-complete')) {
+    type = 'attest';
+  } else if (action.includes('attest') || action.includes('mcp_tool')) {
+    type = 'attest';
+  } else if (action === 'genesis_constellation') {
+    type = 'control';
+  }
+
+  const label = n.action
+    ? n.action.split(':')[0].replace(/_/g, ' ')
+    : n.symbol || 'node';
+  const desc = pqc['agent'] ? `Agent: ${pqc['agent']}` : n.symbol || '';
+
+  RAW.nodes.push({ id: n.id, label, type, val: type === 'finding' ? 14 : 8,
+    desc, sig: n.hash || '', ts });
+
+  // Add edges for parents
+  (n.parents || []).forEach(pid => {
+    if (RAW.nodes.find(x => x.id === pid)) {
+      RAW.links.push({ source: pid, target: n.id, w: 1 });
+    }
+  });
+
+  // Update stats
+  RAW.meta.tool_calls    = RAW.nodes.filter(x => x.type === 'tool').length;
+  RAW.meta.attestations  = RAW.nodes.filter(x => x.type === 'attest').length;
+  RAW.meta.findings      = RAW.nodes.filter(x => x.type === 'finding').length;
+}
+
+async function loadDAGHistory() {
+  try {
+    const resp = await fetch('/api/v1/dag/history', { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return;
+    const { nodes, count } = await resp.json();
+    if (!nodes || !nodes.length) return;
+
+    // Switch to live mode and inject historical nodes
+    liveActive = true;
+    RAW = { meta: { session_id: 'dag-history', tenant: 'vps', tool_calls: 0,
+      attestations: 0, findings: 0, controls_mapped: 0,
+      generated: new Date().toISOString(), license_tier: 'hybrid' },
+      nodes: [], links: [] };
+
+    nodes.forEach(n => ingestDAGNode(n));
+    refreshStatsBar();
+    buildGraph(RAW.nodes, RAW.links);
+    setLiveIndicator();
+    console.log(`[DAG] Loaded ${count} nodes from Master DAG history`);
+  } catch (e) {
+    // Silent fallback — demo data stays on screen
+    console.debug('[DAG] history endpoint unavailable, using demo data:', e.message);
+  }
+}
+
 buildGraph(RAW.nodes, RAW.links);
-connectLiveFeed();
+loadDAGHistory().then(() => connectLiveFeed());
 </script>
 </body>
 </html>

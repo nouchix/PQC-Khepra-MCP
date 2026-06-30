@@ -31,10 +31,12 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
@@ -86,6 +88,12 @@ type HTTPTransportConfig struct {
 	// When nil, the WAF layer is skipped (not recommended for production).
 	WAF *sekhem.WAFShield
 
+	// DagStore is the persistent DAG store (pkg/dag).
+	// When non-nil, the /api/v1/dag/history and /api/v1/dag/stats endpoints are
+	// activated, serving the full attested node chain for the dag-viewer and
+	// C3PAO evidence export. When nil, those routes return 503.
+	DagStore dag.Store
+
 	// Gateway is the 4-layer Khepra Secure Gateway (Firewall → Auth → Anomaly → RateLimit).
 	// When non-nil, it is applied OUTSIDE the SEKHEM WAF layer:
 	//   secureHeaders → cors → Gateway → SEKHEM WAF → mux
@@ -106,6 +114,7 @@ type httpTransport struct {
 	httpServer  *http.Server
 	sseConns    atomic.Int32 // active SSE connections
 	sseEventSeq atomic.Int64 // monotonic SSE event-id counter
+	dagStore    dag.Store    // Master DAG — serves /api/v1/dag/history
 }
 
 // newHTTPTransport creates an HTTP transport wired to the given router.
@@ -129,10 +138,11 @@ func newHTTPTransport(router *Router, cred any, logger *log.Logger, cfg HTTPTran
 		cfg.SSE.PingInterval = 30 * time.Second
 	}
 	return &httpTransport{
-		router: router,
-		cred:   cred,
-		logger: logger,
-		config: cfg,
+		router:   router,
+		cred:     cred,
+		logger:   logger,
+		config:   cfg,
+		dagStore: cfg.DagStore,
 	}
 }
 
@@ -173,6 +183,14 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 
 	// GET /dag-viewer — serves docs/dag-viewer.html with live SSE pre-configured
 	mux.HandleFunc("/dag-viewer", t.handleDAGViewer)
+
+	// GET /api/v1/dag/history — full attested DAG node chain (dag-viewer + C3PAO export)
+	// Returns the complete persisted DAG from disk, sorted by timestamp ascending.
+	// Protected by SEKHEM WAF + CORS. No auth required — nodes contain no secrets.
+	mux.HandleFunc("/api/v1/dag/history", t.handleDAGHistory)
+
+	// GET /api/v1/dag/stats — lightweight DAG metrics (node count, timestamps)
+	mux.HandleFunc("/api/v1/dag/stats", t.handleDAGStats)
 
 	// ── Bilateral security middleware chain (outer → inner = first-called → last-called) ──
 	//
@@ -810,4 +828,81 @@ func (t *httpTransport) handleDAGViewer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	http.ServeFile(w, r, "docs/dag-viewer.html")
+}
+
+// handleDAGHistory — GET /api/v1/dag/history
+//
+// Returns the full persisted Master DAG as a JSON array sorted by time ascending.
+// This is fetched by dag-viewer.html on page load to populate the 3D graph
+// immediately from disk history (before any SSE events arrive).
+//
+// Also used for C3PAO evidence export and OSCAL generation.
+// Protected by SEKHEM WAF + CORS. Nodes contain no secret material.
+func (t *httpTransport) handleDAGHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+	if t.dagStore == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, `{"error":"dag store not initialized","nodes":[],"count":0}`)
+		return
+	}
+
+	nodes := t.dagStore.All()
+
+	// Sort by time ascending (genesis → most recent)
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Time < nodes[j].Time
+	})
+
+	type historyResponse struct {
+		Nodes []*dag.Node `json:"nodes"`
+		Count int         `json:"count"`
+	}
+	resp := historyResponse{
+		Nodes: nodes,
+		Count: len(nodes),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store") // audit chain must not be cached
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		t.logger.Printf("[DAG-HISTORY] encode error: %v", err)
+	}
+}
+
+// handleDAGStats — GET /api/v1/dag/stats
+//
+// Lightweight endpoint returning node count, first/last timestamps.
+// Used by monitoring, health checks, and dag-viewer status bar.
+func (t *httpTransport) handleDAGStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+	if t.dagStore == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, `{"error":"dag store not initialized","node_count":0}`)
+		return
+	}
+
+	nodes := t.dagStore.All()
+	count := len(nodes)
+
+	var firstTime, lastTime string
+	for _, n := range nodes {
+		if firstTime == "" || n.Time < firstTime {
+			firstTime = n.Time
+		}
+		if lastTime == "" || n.Time > lastTime {
+			lastTime = n.Time
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"node_count":%d,"first_node_time":%q,"last_node_time":%q,"dag_store":"active"}`,
+		count, firstTime, lastTime)
 }
