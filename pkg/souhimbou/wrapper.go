@@ -125,7 +125,9 @@ func (w *Wrapper) Intercept(ctx context.Context, call ToolCall) (ToolResult, err
 
 	// ── ① SEKHEM WAFShield ────────────────────────────────────────────────────
 	if blocked, reason, ruleID := w.runWAF(ctx, call); blocked {
-		// Absorb the WAF verdict into the Fabric chain
+		// Absorb the WAF verdict into the Fabric chain.
+		// isfetReason enriches the audit record with the specific Maat violation type.
+		isfetCtx := isfetReason(nil) // baseline: "WAF rule matched"
 		w.fabric.AbsorbWAFVerdict(ctx, ruleID, call.ClientIP, "/mcp/tool/"+call.ToolName, true, "catastrophic")
 
 		result.FrameID = w.fabric.Absorb(ctx, flight.Event{
@@ -137,7 +139,7 @@ func (w *Wrapper) Intercept(ctx context.Context, call ToolCall) (ToolResult, err
 			Blocked:   true,
 			Severity:  "catastrophic",
 			RiskClass: call.RiskClass,
-			Detail:    map[string]any{"tool": call.ToolName, "rule": ruleID},
+			Detail:    map[string]any{"tool": call.ToolName, "rule": ruleID, "isfet": isfetCtx},
 		})
 
 		w.agent.publish(AgentEvent{

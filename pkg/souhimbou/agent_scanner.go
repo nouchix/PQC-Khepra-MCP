@@ -1473,6 +1473,8 @@ func tlsVersionName(v uint16) string {
 	}
 }
 
+// cvssToScore normalises a raw CVSS score — returns a minimum of 3.0 for
+// unscored findings so they still contribute to aggregate risk.
 func cvssToScore(cvss float64) float64 {
 	if cvss <= 0 {
 		return 3.0
@@ -1484,10 +1486,10 @@ func computeRiskScore(findings []ScanFinding, kasaScore float64) float64 {
 	if len(findings) == 0 {
 		return kasaScore * 5.0 // KASA alone
 	}
-	// Weighted sum of finding risk scores, normalized
+	// Weighted sum of finding risk scores (clamped via cvssToScore), normalised
 	total := 0.0
 	for _, f := range findings {
-		total += f.RiskScore
+		total += cvssToScore(f.RiskScore)
 	}
 	avg := total / float64(len(findings))
 	// Blend with KASA behavioral score

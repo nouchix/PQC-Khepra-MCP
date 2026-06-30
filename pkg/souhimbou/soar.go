@@ -296,8 +296,11 @@ func (e *SOAREngine) Playbooks() []string {
 // ─── Action Dispatcher ────────────────────────────────────────────────────────
 
 // runAction dispatches a single playbook action.
+// pb provides the playbook context (name, symbol) for DAG audit attribution.
 func (e *SOAREngine) runAction(ctx context.Context, pb *Playbook, act PlaybookAction, staging bool) error {
-	e.log.Debug("running action", "action", act.Action, "staging", staging)
+	e.log.Debug("running action",
+		"playbook", pb.Name, "symbol", pb.Symbol,
+		"action", act.Action, "staging", staging)
 
 	switch act.Action {
 	case "log_dag":
@@ -308,14 +311,16 @@ func (e *SOAREngine) runAction(ctx context.Context, pb *Playbook, act PlaybookAc
 
 	case "revoke_agent_token":
 		if staging {
-			e.log.Info("[STAGING] would revoke agent token", "params", act.Params)
+			e.log.Info("[STAGING] would revoke agent token",
+				"playbook", pb.Name, "params", act.Params)
 			return nil
 		}
 		return e.actionRevokeToken(ctx, act.Params)
 
 	case "apply_rate_limit":
 		if staging {
-			e.log.Info("[STAGING] would apply rate limit", "params", act.Params)
+			e.log.Info("[STAGING] would apply rate limit",
+				"playbook", pb.Name, "params", act.Params)
 			return nil
 		}
 		return e.actionRateLimit(ctx, act.Params)
@@ -325,13 +330,15 @@ func (e *SOAREngine) runAction(ctx context.Context, pb *Playbook, act PlaybookAc
 
 	case "open_incident_ticket":
 		if staging {
-			e.log.Info("[STAGING] would open incident ticket", "params", act.Params)
+			e.log.Info("[STAGING] would open incident ticket",
+				"playbook", pb.Name, "params", act.Params)
 			return nil
 		}
 		return e.actionOpenTicket(ctx, act.Params)
 
 	default:
-		e.log.Warn("unknown playbook action (skipped)", "action", act.Action)
+		e.log.Warn("unknown playbook action (skipped)",
+			"playbook", pb.Name, "action", act.Action)
 		return nil
 	}
 }
