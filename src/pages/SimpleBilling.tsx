@@ -236,31 +236,26 @@ const SimpleBilling = () => {
       .catch(err => setStats(s => ({ ...s, loading: false, error: err.message })));
   }, []);
 
-  // After returning from auth with a pending plan, auto-trigger checkout
-  useEffect(() => {
-    const pendingPlan = sessionStorage.getItem('billing_plan_pending');
-    if (user && pendingPlan) {
-      sessionStorage.removeItem('billing_plan_pending');
-      // Small delay so the page renders before redirecting to Stripe
-      setTimeout(() => handleCheckout(pendingPlan), 300);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  // After Stripe success an unauthenticated user is sent to /auth?registered=1&plan=xxx.
+  // If they were already logged in when they paid, this effect is a no-op.
+  // (The old sessionStorage pending-plan mechanism is no longer needed — Stripe
+  //  handles the redirect and auth happens after payment, not before.)
 
   const handleCheckout = async (planKey: string) => {
-    // Gate checkout behind auth — unauthenticated users see the billing page
-    // (marketing shock-and-awe) but must sign in to pay
-    if (!user) {
-      sessionStorage.setItem('billing_plan_pending', planKey);
-      navigate(`/auth?redirect=/billing&plan=${planKey}`);
-      return;
-    }
     setLoading(planKey);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planKey }),
+        body: JSON.stringify({
+          plan: planKey,
+          // Pass email so Stripe pre-fills the checkout form
+          email: user?.email,
+          // Tell the API whether to send the user to /dashboard (logged in)
+          // or /auth?registered=1 (anonymous — they need to create an account
+          // after paying)
+          loggedIn: !!user,
+        }),
       });
       const data = await res.json();
       if (data.url) {
