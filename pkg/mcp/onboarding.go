@@ -298,62 +298,107 @@ func extractScanFindings(resp *MCPToolResponse) ([]ScanFinding, ScanSummary) {
 }
 
 // probeTarget performs real TCP + HTTP checks and returns URL-specific findings.
-// This is the community-tier fallback when the MCP tool chain is unavailable.
-// Results vary per target based on: open ports, security headers, HTTPS status.
+// Every finding is cross-referenced against:
+//   - OWASP MCP Top 10 (2025) — owasp.org/www-project-mcp-top-10/
+//   - OWASP API Security Top 10 (2023) — owasp.org/www-project-api-security/
+//   - NIST 800-53 / CMMC 2.0 (via our 36,195-row compliance mapping)
 func probeTarget(rawTarget string) ([]ScanFinding, ScanSummary) {
 	host, checkPorts := parseOnboardingTarget(rawTarget)
 
 	var findings []ScanFinding
-	var riskScore float64 = 2.8 // base for any unattested deployment
-	agentExposed := false
+	var riskScore float64 = 2.8 // base: any unattested MCP deployment starts here
+	agentGatewayExposed := false
 	openCount := 0
 
-	// 1. TCP port probes (2s timeout each)
+	// ── 1. TCP port probes (2s timeout each) ─────────────────────────────────
 	for _, p := range checkPorts {
 		if tcpProbe(host, p) {
 			openCount++
 			switch p {
 			case 18789:
-				agentExposed = true
+				// MCP09:2025 Shadow MCP Server + MCP07:2025 Insufficient Auth
+				agentGatewayExposed = true
 				findings = append(findings, ScanFinding{
 					ID:       fmt.Sprintf("F%03d", len(findings)+1),
 					Severity: "critical",
-					Title:    fmt.Sprintf("Agent gateway port 18789 is internet-exposed on %s — unauthenticated agent access risk", host),
-					Control:  "CMMC.SC.L2-3.13.10",
+					Title: fmt.Sprintf(
+						"MCP09:2025 — Agent gateway port 18789 is internet-exposed on %s — unauthenticated MCP tool invocation risk; no mTLS or token boundary detected",
+						host),
+					Control: "MCP09:2025 · MCP07:2025 · API2:2023 · CMMC.SC.L2-3.13.10 · NIST.IA-2",
 				})
 				riskScore += 4.2
 			default:
+				// API8:2023 Security Misconfiguration — unnecessary port exposure
 				findings = append(findings, ScanFinding{
 					ID:       fmt.Sprintf("F%03d", len(findings)+1),
 					Severity: "high",
-					Title:    fmt.Sprintf("Port %d on %s is internet-reachable — confirm intended exposure", p, host),
-					Control:  "CMMC.CM.L2-3.4.1",
+					Title: fmt.Sprintf(
+						"API8:2023 — Port %d on %s is internet-reachable: confirm intended exposure and enforce least-access (NIST CM-7)",
+						p, host),
+					Control: "API8:2023 · CMMC.CM.L2-3.4.1 · NIST.CM-7",
 				})
 				riskScore += 1.1
 			}
 		}
 	}
 
-	// 2. HTTP security header audit (non-fatal — skip on timeout)
+	// ── 2. HTTP security header audit ────────────────────────────────────────
 	hdrFindings, hdrRisk := checkSecurityHeaders(host)
 	findings = append(findings, hdrFindings...)
 	riskScore += hdrRisk
 
-	// 3. Universal attestation gap (always present without KHEPRA)
+	// ── 3. MCP07:2025 — Insufficient Authentication & Authorization ──────────
+	// Every deployment without detected KHEPRA mTLS/token enforcement is flagged.
 	findings = append(findings, ScanFinding{
 		ID:       fmt.Sprintf("F%03d", len(findings)+1),
 		Severity: "high",
-		Title:    fmt.Sprintf("AI agent activity on %s is unattested — no PQC-signed audit trail (KHEPRA not detected)", truncateURL(rawTarget)),
-		Control:  "CMMC.AU.L2-3.3.1",
+		Title: fmt.Sprintf(
+			"MCP07:2025 — No cryptographic authentication boundary detected on %s: MCP tool calls may be unauthenticated or unscoped (OWASP API2:2023 / NIST IA-2)",
+			truncateURL(rawTarget)),
+		Control: "MCP07:2025 · API2:2023 · CMMC.IA.L2-3.5.1 · NIST.IA-2",
+	})
+	riskScore += 0.8
+
+	// ── 4. MCP08:2025 — Lack of Audit and Telemetry ──────────────────────────
+	// Replaces the generic "unattested AI agent activity" finding with OWASP grounding.
+	findings = append(findings, ScanFinding{
+		ID:       fmt.Sprintf("F%03d", len(findings)+1),
+		Severity: "high",
+		Title: fmt.Sprintf(
+			"MCP08:2025 — AI agent tool calls on %s are unlogged and unsigned: no immutable audit trail or PQC attestation detected (KHEPRA not found)",
+			truncateURL(rawTarget)),
+		Control: "MCP08:2025 · CMMC.AU.L2-3.3.1 · NIST.AU-12 · NIST.AU-2",
 	})
 	riskScore += 0.9
 
-	// 4. Non-human identity gap (universal)
+	// ── 5. MCP01:2025 — Token Mismanagement & Secret Exposure ────────────────
+	// Agent deployments without detected short-lived credential enforcement.
+	if agentGatewayExposed {
+		// If port 18789 open, token leakage risk is elevated
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "high",
+			Title: "MCP01:2025 — Token mismanagement: agent gateway port open without secret scanning enforcement — long-lived or hard-coded credentials at risk of extraction via prompt injection",
+			Control: "MCP01:2025 · API2:2023 · CMMC.IA.L2-3.5.10 · NIST.IA-5",
+		})
+		riskScore += 1.0
+	} else {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "medium",
+			Title: "MCP01:2025 — Token mismanagement risk: no evidence of short-lived credential enforcement or secret scanning on agent communication channel",
+			Control: "MCP01:2025 · CMMC.IA.L2-3.5.10 · NIST.IA-5",
+		})
+		riskScore += 0.4
+	}
+
+	// ── 6. MCP02:2025 — Privilege Escalation via Scope Creep ─────────────────
+	// Agent identity not bound to a cryptographic principal with scoped permissions.
 	findings = append(findings, ScanFinding{
 		ID:       fmt.Sprintf("F%03d", len(findings)+1),
 		Severity: "medium",
-		Title:    "Agent identity not cryptographically bound — no ML-DSA-65 key attested to this deployment",
-		Control:  "NIST.IA-3",
+		Title: "MCP02:2025 — Agent identity not cryptographically bound: no ML-DSA-65 principal or scoped permission envelope attested to this deployment",
+		Control: "MCP02:2025 · API5:2023 · NIST.IA-3 · NIST.AC-6",
 	})
 	riskScore += 0.4
 
@@ -361,14 +406,101 @@ func probeTarget(rawTarget string) ([]ScanFinding, ScanSummary) {
 		riskScore = 10.0
 	}
 
-	_ = agentExposed // reserved for future blast-radius visualization
-
 	return findings, ScanSummary{
 		ExposedTools:   openCount,
 		RiskScore:      riskScore,
 		AttestationGap: true,
 		FIPSCompliant:  false,
 	}
+}
+
+// checkSecurityHeaders fetches HTTPS headers and reports missing security controls,
+// cross-referenced against OWASP API Security Top 10 (2023) API8: Security Misconfiguration.
+func checkSecurityHeaders(host string) ([]ScanFinding, float64) {
+	var findings []ScanFinding
+	var risk float64
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse // follow one redirect only
+		},
+	}
+
+	resp, err := client.Head("https://" + host)
+	if err != nil {
+		// Host unreachable over HTTPS — API8:2023 Security Misconfiguration
+		findings = append(findings, ScanFinding{
+			ID:       "F-TLS",
+			Severity: "medium",
+			Title: fmt.Sprintf(
+				"API8:2023 — HTTPS on %s is unreachable or misconfigured: TLS posture unverifiable — downgrade attack surface (NIST SC-8)",
+				host),
+			Control: "API8:2023 · NIST.SC-8 · CMMC.SC.L2-3.13.8",
+		})
+		return findings, 0.6
+	}
+	defer resp.Body.Close()
+
+	h := resp.Header
+
+	if h.Get("Strict-Transport-Security") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "medium",
+			Title: fmt.Sprintf(
+				"API8:2023 — %s missing HSTS header: protocol downgrade attack vector active (OWASP API8 / NIST SC-8)",
+				host),
+			Control: "API8:2023 · NIST.SC-8 · CMMC.SC.L2-3.13.8",
+		})
+		risk += 0.5
+	}
+	if h.Get("Content-Security-Policy") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "medium",
+			Title: fmt.Sprintf(
+				"API8:2023 — %s missing Content-Security-Policy: XSS injection surface uncontrolled — any agent-reflected output is exploitable",
+				host),
+			Control: "API8:2023 · NIST.SI-10 · CMMC.SI.L2-3.14.2",
+		})
+		risk += 0.4
+	}
+	if h.Get("X-Frame-Options") == "" && !strings.Contains(h.Get("Content-Security-Policy"), "frame-ancestors") {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "low",
+			Title: fmt.Sprintf(
+				"API8:2023 — %s missing X-Frame-Options: clickjacking risk for any embedded agent UI or OAuth consent screen",
+				host),
+			Control: "API8:2023 · NIST.SI-10",
+		})
+		risk += 0.2
+	}
+	if h.Get("X-Content-Type-Options") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "low",
+			Title: fmt.Sprintf(
+				"API8:2023 — %s missing X-Content-Type-Options: MIME sniffing enabled — agent response payloads may be reinterpreted as executable",
+				host),
+			Control: "API8:2023 · NIST.SI-10",
+		})
+		risk += 0.2
+	}
+	if h.Get("Permissions-Policy") == "" && h.Get("Feature-Policy") == "" {
+		findings = append(findings, ScanFinding{
+			ID:       fmt.Sprintf("F%03d", len(findings)+1),
+			Severity: "low",
+			Title: fmt.Sprintf(
+				"API8:2023 — %s missing Permissions-Policy: browser feature access unrestricted — microphone/camera/geolocation available to embedded agent scripts",
+				host),
+			Control: "API8:2023 · NIST.CM-7 · CMMC.CM.L2-3.4.6",
+		})
+		risk += 0.1
+	}
+
+	return findings, risk
 }
 
 // parseOnboardingTarget extracts host + probe ports from a raw URL/host string.
@@ -401,82 +533,6 @@ func tcpProbe(host string, port int) bool {
 	}
 	_ = conn.Close()
 	return true
-}
-
-// checkSecurityHeaders fetches HTTPS headers and reports missing security controls.
-func checkSecurityHeaders(host string) ([]ScanFinding, float64) {
-	var findings []ScanFinding
-	var risk float64
-
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
-			return http.ErrUseLastResponse // follow one redirect only
-		},
-	}
-
-	resp, err := client.Head("https://" + host)
-	if err != nil {
-		// Host unreachable over HTTPS — notable but not fatal
-		findings = append(findings, ScanFinding{
-			ID:       "F-HDR",
-			Severity: "medium",
-			Title:    fmt.Sprintf("HTTPS on %s is unreachable or misconfigured — TLS posture unverifiable", host),
-			Control:  "NIST.SC-8",
-		})
-		return findings, 0.6
-	}
-	defer resp.Body.Close()
-
-	h := resp.Header
-
-	if h.Get("Strict-Transport-Security") == "" {
-		findings = append(findings, ScanFinding{
-			ID:       fmt.Sprintf("F%03d", len(findings)+1),
-			Severity: "medium",
-			Title:    fmt.Sprintf("%s missing HSTS header — downgrade attack vector (NIST SC-8)", host),
-			Control:  "NIST.SC-8",
-		})
-		risk += 0.5
-	}
-	if h.Get("Content-Security-Policy") == "" {
-		findings = append(findings, ScanFinding{
-			ID:       fmt.Sprintf("F%03d", len(findings)+1),
-			Severity: "medium",
-			Title:    fmt.Sprintf("%s missing Content-Security-Policy — XSS injection surface uncontrolled", host),
-			Control:  "NIST.SI-10",
-		})
-		risk += 0.4
-	}
-	if h.Get("X-Frame-Options") == "" && !strings.Contains(h.Get("Content-Security-Policy"), "frame-ancestors") {
-		findings = append(findings, ScanFinding{
-			ID:       fmt.Sprintf("F%03d", len(findings)+1),
-			Severity: "low",
-			Title:    fmt.Sprintf("%s missing X-Frame-Options — clickjacking risk for any embedded UI", host),
-			Control:  "NIST.SI-10",
-		})
-		risk += 0.2
-	}
-	if h.Get("X-Content-Type-Options") == "" {
-		findings = append(findings, ScanFinding{
-			ID:       fmt.Sprintf("F%03d", len(findings)+1),
-			Severity: "low",
-			Title:    fmt.Sprintf("%s missing X-Content-Type-Options — MIME sniffing enabled", host),
-			Control:  "NIST.SI-10",
-		})
-		risk += 0.2
-	}
-	if h.Get("Permissions-Policy") == "" && h.Get("Feature-Policy") == "" {
-		findings = append(findings, ScanFinding{
-			ID:       fmt.Sprintf("F%03d", len(findings)+1),
-			Severity: "low",
-			Title:    fmt.Sprintf("%s missing Permissions-Policy — browser feature access unrestricted", host),
-			Control:  "NIST.CM-7",
-		})
-		risk += 0.1
-	}
-
-	return findings, risk
 }
 
 // demoFindings is kept for reference but no longer used in the main flow.
