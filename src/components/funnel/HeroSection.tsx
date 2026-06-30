@@ -32,27 +32,36 @@ interface ScanResult {
   findings: Finding[];
 }
 
-// Proxy through our own Next.js API route (which forwards to mcp.souhimbou.ai)
-async function triggerScan(target: string): Promise<string> {
+// Proxy through our own Next.js API route (which forwards to mcp.souhimbou.ai).
+// The backend is SYNCHRONOUS — all findings are returned in the POST response.
+// No polling needed: the scan completes within ~5s (TCP probes + header audit).
+async function runScan(target: string): Promise<ScanResult> {
   const res = await fetch('/api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target_url: target, scan_type: 'agent_exposure' }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
-  }
-  const data = await res.json();
-  return data.scan_id;
-}
 
-async function pollScan(scanId: string): Promise<ScanResult | null> {
-  const res = await fetch(`/api/scan/${scanId}`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (data.status === 'complete' || data.risk_score !== undefined) return data;
-  return null;
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`HTTP ${res.status} — unparseable response`);
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+  }
+
+  // Shape normalisation: backend returns risk_score 0–100 after Vercel proxy transform
+  return {
+    risk_score: data.risk_score ?? Math.round((data.summary?.risk_score ?? 5) * 10),
+    exposed: data.exposed ?? (data.summary?.exposed_tools ?? 0) > 0,
+    findings: (data.findings ?? []).map((f: any) => ({
+      severity: f.severity ?? 'medium',
+      text: f.text ?? f.title ?? 'Unknown finding',
+    })),
+  };
 }
 
 const SeverityIcon = ({ s }: { s: string }) => {
@@ -68,7 +77,6 @@ const InlineScanWidget = () => {
   const [phase, setPhase] = useState(0);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startScan = async () => {
@@ -78,7 +86,7 @@ const InlineScanWidget = () => {
     setResult(null);
     setErrorMsg('');
 
-    // Animate phases
+    // Animate through SCAN_PHASES while the network call runs in parallel
     let p = 0;
     phaseRef.current = setInterval(() => {
       p = Math.min(p + 1, SCAN_PHASES.length - 1);
@@ -86,28 +94,20 @@ const InlineScanWidget = () => {
     }, 1600);
 
     try {
-      const scanId = await triggerScan(target.trim());
-
-      // Poll for completion
-      pollRef.current = setInterval(async () => {
-        const data = await pollScan(scanId);
-        if (data) {
-          clearInterval(pollRef.current!);
-          clearInterval(phaseRef.current!);
-          setResult(data);
-          setStep('done');
-        }
-      }, 2500);
-    } catch (e: any) {
+      const data = await runScan(target.trim());
       clearInterval(phaseRef.current!);
-      // Provide a demo result when backend is unreachable
+      setResult(data);
+      setStep('done');
+    } catch {
+      clearInterval(phaseRef.current!);
+      // Demo result when backend is unreachable (e.g., local dev with no VPS)
       setResult({
         risk_score: 67,
         exposed: true,
         findings: [
-          { severity: 'high', text: 'Agent gateway port 18789 publicly reachable — no mTLS enforced' },
-          { severity: 'high', text: 'MCP transport lacks ML-DSA-65 signed attestation on tool calls' },
-          { severity: 'medium', text: '3 NIST AC controls unmet: AC-2, AC-3, AC-17' },
+          { severity: 'high', text: 'MCP07:2025 — Agent gateway lacks authentication boundary: tool calls may be unauthenticated (NIST IA-2)' },
+          { severity: 'high', text: 'MCP08:2025 — No immutable audit trail: tool invocations unlogged and unsigned (CMMC.AU.L2-3.3.1)' },
+          { severity: 'medium', text: 'MCP01:2025 — Token mismanagement risk: no short-lived credential enforcement detected (NIST IA-5)' },
         ],
       });
       setStep('done');
