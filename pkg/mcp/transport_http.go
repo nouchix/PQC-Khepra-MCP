@@ -722,9 +722,10 @@ func (t *httpTransport) handleMCPAsk(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleDAGEvents — GET /events
-// SSE relay for the 3D DAG viewer. Broadcasts all router events (exec, attest)
-// as JSON-encoded server-sent events. The dag-viewer.html ingestLiveEvent()
-// handler parses these directly.
+// SSE relay for the 3D DAG viewer. On connect:
+//  1. Sends a snapshot of up to 100 historical events from the in-memory buffer
+//  2. Then streams real-time exec/attest events as they arrive
+//
 // Usage: open dag-viewer.html?feed=https://mcp.souhimbou.ai/events
 func (t *httpTransport) handleDAGEvents(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -743,9 +744,31 @@ func (t *httpTransport) handleDAGEvents(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no") // disable nginx/Caddy buffering
 
-	// Subscribe to the router event bus
+	emitter := t.router.Events()
+
+	// ── Phase 1: Replay historical snapshot ─────────────────────────────────
+	// Send buffered events from this session's history so the viewer is never
+	// blank. Capped at 100 most recent exec/attest events.
+	snapshot := emitter.Snapshot()
+	if len(snapshot) > 100 {
+		snapshot = snapshot[len(snapshot)-100:]
+	}
+	for _, ev := range snapshot {
+		if ev.Type != EventExec && ev.Type != EventAttest {
+			continue
+		}
+		data, err := json.Marshal(ev)
+		if err != nil {
+			continue
+		}
+		seq := t.sseEventSeq.Add(1)
+		fmt.Fprintf(w, "event: snapshot\nid: %d\ndata: %s\n\n", seq, data) //nolint:errcheck
+	}
+	fl.Flush()
+
+	// ── Phase 2: Subscribe to real-time event bus ───────────────────────────
 	ch := make(chan MCPEvent, 64)
-	t.router.Events().AddHook(func(ev MCPEvent) {
+	emitter.AddHook(func(ev MCPEvent) {
 		select {
 		case ch <- ev:
 		default:
@@ -772,7 +795,7 @@ func (t *httpTransport) handleDAGEvents(w http.ResponseWriter, r *http.Request) 
 				continue
 			}
 			seq := t.sseEventSeq.Add(1)
-			fmt.Fprintf(w, "id: %d\ndata: %s\n\n", seq, data) //nolint:errcheck
+			fmt.Fprintf(w, "event: live\nid: %d\ndata: %s\n\n", seq, data) //nolint:errcheck
 			fl.Flush()
 		}
 	}
