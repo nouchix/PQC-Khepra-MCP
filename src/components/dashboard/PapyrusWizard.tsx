@@ -1,3 +1,4 @@
+"use client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MessageSquare, Sparkles, HelpCircle } from "lucide-react";
 import { useState } from "react";

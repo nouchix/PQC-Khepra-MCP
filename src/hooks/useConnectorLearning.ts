@@ -1,3 +1,4 @@
+"use client";
 /**
  * useConnectorLearning — Learning Mode hook for the Connector SDK
  *

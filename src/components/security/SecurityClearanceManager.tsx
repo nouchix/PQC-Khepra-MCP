@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSecurityClearance, SecurityClearanceLevel } from '@/hooks/useSecurityClearance';

@@ -1,3 +1,4 @@
+"use client";
 /**
  * DoD Comprehensive STIG-Codex Center
  * Unified STIG-First compliance automation interface integrating 

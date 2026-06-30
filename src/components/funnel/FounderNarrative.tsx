@@ -1,3 +1,4 @@
+"use client";
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Award, Globe, BookOpen, Shield } from 'lucide-react';

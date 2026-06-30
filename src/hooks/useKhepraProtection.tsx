@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';

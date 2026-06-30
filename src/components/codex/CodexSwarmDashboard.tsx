@@ -1,3 +1,4 @@
+"use client";
 /**
  * Codex Agent Swarm Dashboard
  * Master interface for AI-powered STIG-Connector SuperPolymorphic API

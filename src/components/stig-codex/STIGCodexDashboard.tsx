@@ -1,3 +1,4 @@
+"use client";
 /**
  * STIG-Codex Dashboard
  * Comprehensive STIG-first compliance automation interface

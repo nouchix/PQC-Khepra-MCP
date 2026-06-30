@@ -1,3 +1,4 @@
+"use client";
 import { ReactNode } from 'react';
 import { Lock, Crown, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';

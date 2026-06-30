@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { PageLayout } from '@/components/PageLayout';
 import { GitHubCodexSecurityMonitor } from '@/components/security/GitHubCodexSecurityMonitor';

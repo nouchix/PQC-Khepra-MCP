@@ -1,3 +1,4 @@
+"use client";
 /**
  * Secure storage hook to replace direct localStorage usage for sensitive data
  * Uses sessionStorage for temporary data and localStorage only for non-sensitive app state

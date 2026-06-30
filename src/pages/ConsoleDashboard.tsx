@@ -1,3 +1,4 @@
+"use client";
 import { useMemo, useState, useEffect } from 'react';
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { ConsoleHome } from '@/components/console/ConsoleHome';

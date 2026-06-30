@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useOrganizationContext } from "@/components/OrganizationProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

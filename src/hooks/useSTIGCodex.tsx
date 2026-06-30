@@ -1,3 +1,4 @@
+"use client";
 /**
  * Enhanced STIG-Codex Hook
  * Comprehensive STIG-first compliance automation with real-time monitoring
