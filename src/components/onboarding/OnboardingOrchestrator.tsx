@@ -8,8 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Search, CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_ASAF_API_URL || 'http://localhost:45444';
-const API_KEY = process.env.NEXT_PUBLIC_ASAF_API_KEY || '';
+// All requests go through the Next.js server-side proxy → mcp.souhimbou.ai
+// Never call the backend directly from the browser.
 
 type Step = 'input' | 'scanning' | 'results' | 'upgrade';
 
@@ -33,10 +33,10 @@ const SCAN_PHASES = [
 ];
 
 async function triggerScan(target: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/v1/scans/trigger`, {
+  const res = await fetch('/api/scan', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
-    body: JSON.stringify({ target_url: target, scan_type: 'full' }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_url: target }),
   });
   if (!res.ok) throw new Error(`Scan failed: ${res.status}`);
   const data = await res.json();
@@ -44,9 +44,7 @@ async function triggerScan(target: string): Promise<string> {
 }
 
 async function pollScan(scanId: string): Promise<ScanResult> {
-  const res = await fetch(`${API_BASE}/api/v1/scans/${scanId}`, {
-    headers: { 'Authorization': API_KEY },
-  });
+  const res = await fetch(`/api/scan/${scanId}`);
   if (!res.ok) throw new Error(`Poll failed: ${res.status}`);
   return res.json();
 }
@@ -121,10 +119,7 @@ const OnboardingOrchestrator: React.FC = () => {
       const id = await triggerScan(target.trim());
       setScanId(id);
     } catch (e: any) {
-      setError(
-        `Scan failed: ${e.message}. ` +
-        `Ensure NEXT_PUBLIC_ASAF_API_URL points to your running ASAF backend (currently: ${API_BASE}).`
-      );
+      setError(`Scan failed: ${e.message}. Please try again or contact support.`);
       setStep('input');
     }
   };
@@ -249,7 +244,6 @@ const OnboardingOrchestrator: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg space-y-6">
-          {/* Risk score */}
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-white">Scan complete — <span className="font-mono text-[#00ffff]">{target}</span></h2>
             <div className="flex items-center justify-center gap-3">
@@ -259,7 +253,6 @@ const OnboardingOrchestrator: React.FC = () => {
             </div>
           </div>
 
-          {/* Findings */}
           <div className="bg-[#111] border border-gray-800 rounded-xl p-5 space-y-3">
             <div className="text-sm font-semibold text-gray-300">{result.findings.length} findings</div>
             {result.findings.map((f, i) => (
@@ -275,7 +268,6 @@ const OnboardingOrchestrator: React.FC = () => {
             ))}
           </div>
 
-          {/* Free result footer */}
           <div className="bg-[#111] border border-gray-800 rounded-xl p-5 space-y-4">
             <div className="flex items-start gap-3">
               <Lock className="h-5 w-5 text-[#d4af37] shrink-0 mt-0.5" />
@@ -287,24 +279,13 @@ const OnboardingOrchestrator: React.FC = () => {
                 </p>
               </div>
             </div>
-            {email && (
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="bg-[#0a0a0a] border-gray-700 text-white"
-              />
-            )}
-            {!email && (
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Enter email to get certified"
-                className="bg-[#0a0a0a] border-gray-700 text-white placeholder:text-gray-600"
-              />
-            )}
+            <Input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder={email ? email : "Enter email to get certified"}
+              className="bg-[#0a0a0a] border-gray-700 text-white placeholder:text-gray-600"
+            />
             <Button
               onClick={handleCheckout}
               disabled={checkingOut}
