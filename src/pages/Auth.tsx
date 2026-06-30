@@ -18,6 +18,10 @@ import PasswordResetOTP from '@/components/auth/PasswordResetOTP';
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode');
+  // Honor redirect param — users clicking a billing plan come back here after auth
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const pendingPlan = searchParams.get('plan') || '';
+
   const [isLogin, setIsLogin] = useState(mode !== 'reset');
   const [showPasswordReset, setShowPasswordReset] = useState(mode === 'reset');
   const [email, setEmail] = useState('');
@@ -29,7 +33,7 @@ const Auth = () => {
   const [securityClearance, setSecurityClearance] = useState('UNCLASSIFIED');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
-  useUserAgreements(); // Just call it if needed for side effects, or remove if truly unnecessary
+  useUserAgreements();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -47,7 +51,7 @@ const Auth = () => {
     if (password) {
       setPasswordStrengthData(checkPasswordStrength(password));
     }
-  }, [password]); // Remove checkPasswordStrength from dependencies to prevent infinite loop
+  }, [password]);
 
   const [timerTick, setTimerTick] = useState(0);
 
@@ -61,11 +65,12 @@ const Auth = () => {
     return () => clearInterval(interval);
   }, [isAccountLocked()]);
 
+  // After auth, return to where the user came from (e.g. /billing after clicking a plan)
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      navigate(redirectTo);
     }
-  }, [user, navigate]);
+  }, [user, navigate, redirectTo]);
 
 
   const handlePasswordResetSuccess = () => {
@@ -124,8 +129,8 @@ const Auth = () => {
       toast({ title: "Authentication Failed", description, variant: "destructive" });
     } else {
       await trackAuthAttempt(true, email, { userAgent: navigator.userAgent, timestamp: new Date().toISOString() });
-      toast({ title: "Access Granted", description: "Checking legal compliance...", variant: "default" });
-      navigate('/dashboard');
+      toast({ title: "Access Granted", description: pendingPlan ? `Returning to complete your ${pendingPlan.replace(/_/g,' ')} plan…` : "Welcome back.", variant: "default" });
+      navigate(redirectTo);
     }
   };
 
@@ -468,6 +473,16 @@ const Auth = () => {
             <Shield className="h-3 w-3" />
             <span>UNCLASSIFIED // FOUO</span>
           </Badge>
+
+          {/* Contextual banner when redirecting from billing */}
+          {pendingPlan && (
+            <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-xs text-primary text-left">
+                Sign in to complete your <strong className="capitalize">{pendingPlan.replace(/_/g, ' ')}</strong> plan selection. You'll be returned to billing automatically.
+              </p>
+            </div>
+          )}
 
           {isAccountLocked() && (
             <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
