@@ -1,3 +1,4 @@
 "use client";
-import HallOfFame from "@/pages/HallOfFame";
-export default HallOfFame;
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;
