@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { DashboardToggle } from '@/components/DashboardToggle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import {
   ArrowRight, ChevronRight,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const ASAF_API = (import.meta as any).env?.VITE_ASAF_API_URL
   ?? process.env.NEXT_PUBLIC_ASAF_API_URL
@@ -225,6 +227,8 @@ const SimpleBilling = () => {
   const [loading, setLoading] = useState<string>(''); // which planKey is checking out
   const [stats, setStats] = useState<UsageStats>({ scansTotal: null, dagNodes: null, loading: true, error: null });
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUsageStats()
@@ -232,7 +236,25 @@ const SimpleBilling = () => {
       .catch(err => setStats(s => ({ ...s, loading: false, error: err.message })));
   }, []);
 
+  // After returning from auth with a pending plan, auto-trigger checkout
+  useEffect(() => {
+    const pendingPlan = sessionStorage.getItem('billing_plan_pending');
+    if (user && pendingPlan) {
+      sessionStorage.removeItem('billing_plan_pending');
+      // Small delay so the page renders before redirecting to Stripe
+      setTimeout(() => handleCheckout(pendingPlan), 300);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const handleCheckout = async (planKey: string) => {
+    // Gate checkout behind auth — unauthenticated users see the billing page
+    // (marketing shock-and-awe) but must sign in to pay
+    if (!user) {
+      sessionStorage.setItem('billing_plan_pending', planKey);
+      navigate(`/auth?redirect=/billing&plan=${planKey}`);
+      return;
+    }
     setLoading(planKey);
     try {
       const res = await fetch('/api/checkout', {
