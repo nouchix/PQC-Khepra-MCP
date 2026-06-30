@@ -177,13 +177,13 @@ const OnboardingOrchestrator: React.FC = () => {
     }).catch(() => {/* silent */});
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (plan = 'certify') => {
     setCheckingOut(true);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, plan }),
       });
       const data = await res.json();
       if (data.url) {

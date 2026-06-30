@@ -16,36 +16,47 @@ const ASAF_KEY = (import.meta as any).env?.VITE_ASAF_API_KEY
   ?? process.env.NEXT_PUBLIC_ASAF_API_KEY
   ?? '';
 
+/**
+ * Billing plan definitions — aligned with canonical Stripe price IDs.
+ * Certify is a ONE-TIME payment ($99), not subscription.
+ * Enterprise is a $500/mo subscription.
+ */
 const PLANS = [
   {
     name: 'Free',
     price: '$0',
+    priceSuffix: '/mo',
     description: 'Scan any AI agent deployment. Get your exposure report.',
     features: ['Unlimited scans', 'Exposure report', 'Basic risk score', 'Community support'],
     cta: 'Current Plan',
     ctaVariant: 'outline' as const,
     highlight: false,
     action: 'free' as const,
+    planKey: '',
   },
   {
     name: 'Certify',
     price: '$99',
-    description: 'Full compliance audit + ADINKHEPRA certification badge.',
+    priceSuffix: ' one-time',
+    description: 'Full compliance audit + ADINKHEPRA certification badge. 72 MCP tools · ML-DSA-65 PQC attestation · 36,195 STIG/CMMC mappings.',
     features: ['Everything in Free', 'Full NIST/STIG audit', 'ADINKHEPRA badge (PDF + API)', 'Shareable attestation report', 'Email support'],
-    cta: 'Upgrade to Certify',
+    cta: 'Earn Your ADINKHEPRA Seal',
     ctaVariant: 'default' as const,
     highlight: true,
     action: 'checkout' as const,
+    planKey: 'certify',
   },
   {
     name: 'Enterprise',
-    price: '$499',
+    price: '$500',
+    priceSuffix: '/mo',
     description: 'Continuous monitoring + attestation API + team seats.',
     features: ['Everything in Certify', 'Continuous monitoring', 'Attestation API access', 'Up to 10 team seats', 'Priority support', 'Custom compliance frameworks'],
-    cta: 'Contact Sales',
+    cta: 'Upgrade to Enterprise',
     ctaVariant: 'outline' as const,
     highlight: false,
-    action: 'contact' as const,
+    action: 'checkout' as const,
+    planKey: 'enterprise',
   },
 ];
 
@@ -76,7 +87,7 @@ async function fetchUsageStats(): Promise<{ scansTotal: number; dagNodes: number
   return {
     scansTotal: scansData.total ?? 0,
     dagNodes: healthData.dag_nodes ?? 0,
-    licenseScore: null, // No score endpoint yet — hide until available
+    licenseScore: null,
   };
 }
 
@@ -97,13 +108,19 @@ const SimpleBilling = () => {
       .catch(err => setStats(s => ({ ...s, loading: false, error: err.message })));
   }, []);
 
-  const handleCheckout = async () => {
+  /**
+   * Initiates a Stripe Checkout session for the given plan.
+   * plan must match a key in /api/checkout PLANS map:
+   *   'certify' → $99 one-time (price_1TiVvxDqGyad2D3VlUm3ba6s)
+   *   'enterprise' → $500/mo subscription (price_1TiVvyDqGyad2D3V4mszc5v5)
+   */
+  const handleCheckout = async (plan = 'certify') => {
     setLoading(true);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ plan }),
       });
       const data = await res.json();
       if (data.url) {
@@ -162,7 +179,10 @@ const SimpleBilling = () => {
                     </Badge>
                   )}
                 </CardTitle>
-                <div className="text-3xl font-bold">{plan.price}<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+                <div className="text-3xl font-bold">
+                  {plan.price}
+                  <span className="text-sm font-normal text-muted-foreground">{plan.priceSuffix}</span>
+                </div>
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -179,7 +199,7 @@ const SimpleBilling = () => {
                   className="w-full"
                   disabled={plan.action === 'checkout' && loading}
                   onClick={() => {
-                    if (plan.action === 'checkout') handleCheckout();
+                    if (plan.action === 'checkout') handleCheckout(plan.planKey);
                     if (plan.action === 'contact') window.location.href = 'mailto:skone@alumni.albany.edu?subject=SouHimBou%20AI%20Enterprise';
                   }}
                 >
@@ -197,8 +217,9 @@ const SimpleBilling = () => {
             <div>
               <div className="font-semibold text-yellow-400">What is the ADINKHEPRA badge?</div>
               <p className="text-sm text-muted-foreground">
-                A post-quantum cryptographic attestation seal issued by SouHimBou AI. Tamper-proof, timestamped, and verifiable by auditors, customers, and insurers.
-                Think SOC2 — but automated, continuous, and built for agentic AI.
+                A post-quantum cryptographic attestation seal issued by SouHimBou AI. Tamper-proof, timestamped,
+                and verifiable by auditors, customers, and insurers. Think SOC2 — but automated, continuous,
+                and built for agentic AI.
               </p>
             </div>
           </CardContent>
@@ -249,7 +270,7 @@ const SimpleBilling = () => {
               <p className="text-xs text-muted-foreground/60">
                 Upgrade to Certify to generate your first invoice. Invoices are delivered by Stripe and stored here automatically.
               </p>
-              <Button variant="outline" size="sm" onClick={handleCheckout} disabled={loading}>
+              <Button variant="outline" size="sm" onClick={() => handleCheckout('certify')} disabled={loading}>
                 <Download className="h-3.5 w-3.5 mr-2" />
                 {loading ? 'Redirecting...' : 'Get Certify Plan'}
               </Button>
