@@ -729,12 +729,16 @@ window.addEventListener('resize', () => {
   }
 });
 
-// ── Live Feed (Khepra MCP loopback SSE) ────────────────────────
-// Connects to live_viewer.go's SSE endpoint (pkg/mcp/live_viewer.go, PQC-Khepra-MCP).
-// Falls back silently to the embedded demo data above if the feed never
-// connects or drops mid-session — by design, for live demo safety. No
-// disconnect banner, no blank state: worst case is the graph stops updating.
-const FEED_URL = new URLSearchParams(location.search).get('feed') || 'http://127.0.0.1:8765/events';
+// ── Live Feed (Khepra MCP SSE) ────────────────────────────────
+// Auto-detects the correct feed URL:
+//   - When served from mcp.souhimbou.ai/dag-viewer → connects to /events (same-origin)
+//   - When opened from 127.0.0.1 (local dev) → connects to http://127.0.0.1:<port>/events
+//   - ?feed=<url> URL param overrides everything
+const _isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+const _defaultFeed = _isLocal
+  ? `${location.protocol}//${location.host}/events`
+  : '/events'; // same-origin relative — works for any HTTPS deployment
+const FEED_URL = new URLSearchParams(location.search).get('feed') || _defaultFeed;
 let liveActive = false;
 let liveSeq = 0;
 const toolNodeByReqId = new Map();
@@ -807,9 +811,15 @@ function connectLiveFeed() {
   } catch (e) {
     return; // silent fallback — demo data stays on screen
   }
-  es.onmessage = (msg) => {
-    try { ingestLiveEvent(JSON.parse(msg.data)); } catch (e) { /* ignore malformed event */ }
+  // Handle both 'snapshot' (historical replay) and 'live' (real-time) events.
+  // The server sends 'event: snapshot' for buffered history on connect,
+  // then 'event: live' for real-time events as tools are called.
+  const handler = (msg) => {
+    try { ingestLiveEvent(JSON.parse(msg.data)); } catch (e) { /* ignore malformed */ }
   };
+  es.addEventListener('snapshot', handler);
+  es.addEventListener('live', handler);
+  es.onmessage = handler; // fallback for unnamed events
   es.onerror = () => {
     // Silent by design: never blank the graph or show a disconnect state.
     // If live data already arrived it stays visible; if not, demo data does.

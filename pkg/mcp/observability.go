@@ -189,6 +189,17 @@ func (e *EventEmitter) Flush() []MCPEvent {
 	return events
 }
 
+// Snapshot returns a copy of buffered events WITHOUT clearing the buffer.
+// Safe to call from concurrent SSE connections — each new client receives
+// the same historical replay without consuming the buffer.
+func (e *EventEmitter) Snapshot() []MCPEvent {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	snap := make([]MCPEvent, len(e.buffer))
+	copy(snap, e.buffer)
+	return snap
+}
+
 // Stats returns summary statistics from buffered events.
 func (e *EventEmitter) Stats() map[string]any {
 	e.mu.Lock()
