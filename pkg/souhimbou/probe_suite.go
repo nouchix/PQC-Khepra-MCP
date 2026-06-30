@@ -140,11 +140,12 @@ func (s *ProbeSuite) Run(ctx context.Context) []ScanFinding {
 	var wg sync.WaitGroup
 	var findings []ScanFinding
 
+probeLoop:
 	for _, probe := range s.probes {
 		probe := probe
 		select {
 		case <-ctx.Done():
-			break
+			break probeLoop // exit the for loop, not just the select
 		default:
 		}
 
@@ -436,7 +437,7 @@ func categoryBExfiltration() []*Probe {
 	}
 }
 
-func evalExfilResponse(keyword, title string) func(*Probe, *ProbeResponse) *ScanFinding {
+func evalExfilResponse(_, title string) func(*Probe, *ProbeResponse) *ScanFinding {
 	return func(probe *Probe, resp *ProbeResponse) *ScanFinding {
 		if resp.StatusCode == 0 || resp.Body == "" {
 			return nil

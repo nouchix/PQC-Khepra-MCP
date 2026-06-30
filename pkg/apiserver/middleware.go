@@ -89,7 +89,6 @@ func CORSMiddleware(allowedOrigins ...string) gin.HandlerFunc {
 		"https://www.adinkhepra.com":      true,
 		"https://adinkhepra.dev":          true,
 		"https://souhimbou.ai":            true,
-		"https://souhimbou.ai":           true,
 		"https://www.souhimbou.ai":       true,
 		"https://gateway.souhimbou.ai":   true,
 		"https://telemetry.souhimbou.ai": true,

@@ -339,6 +339,12 @@ func (s *Server) setupRoutes() {
 	// ASAF recording routes — nil-safe, no-op when WithASAFRecorder not called
 	s.setupASAFRoutes(pubV1, v1)
 
+	// ── AI Agent Scanner (Presight demo + enterprise scan surface) ────────────
+	// POST /api/v1/scan/agent        — trigger (public — no auth for demo funnel)
+	// GET  /api/v1/scan/agent/stream — SSE progress stream (public)
+	// GET  /api/v1/scan/agent/:id    — full report retrieval (authenticated)
+	s.setupAgentScanRoutes(pubV1, v1)
+
 	// WebSocket endpoints (auth via query param or first message)
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
