@@ -159,6 +159,13 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	// POST /api/v1/onboarding/scan — no auth required, rate-limited 10/min/IP
 	mux.HandleFunc("/api/v1/onboarding/scan", t.handleOnboardingScan)
 
+	// Khepra AI chat — NLChatPanel convenience endpoint
+	// POST /api/v1/mcp/ask — proxied from souhimbou.ai frontend
+	mux.HandleFunc("/api/v1/mcp/ask", t.handleMCPAsk)
+
+	// Root path — friendly API info (prevents 404 on direct browser visit)
+	mux.HandleFunc("/", t.handleRoot)
+
 	// ── Bilateral security middleware chain (outer → inner = first-called → last-called) ──
 	//
 	//   ① secureHeadersMiddleware — OWASP response headers              (outermost)
@@ -599,6 +606,110 @@ func (t *httpTransport) writeJSONError(w http.ResponseWriter, id any, code int, 
 		JSONRPC: "2.0",
 		ID:      id,
 		Error:   &JSONRPCError{Code: code, Message: msg},
+	})
+}
+
+// handleRoot serves GET / with a friendly JSON service description.
+// Prevents Caddy/Go from returning a bare "404 page not found" when
+// developers or monitoring tools probe the root path.
+func (t *httpTransport) handleRoot(w http.ResponseWriter, r *http.Request) {
+	// Only handle the exact root path — let other paths fall through to 404.
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		"service": HardenedServerName,
+		"version": HardenedServerVersion,
+		"status":  "ok",
+		"docs":    "https://souhimbou.ai",
+		"health":  "/mcp/v1/health",
+		"endpoints": []string{
+			"/api/v1/onboarding/scan",
+			"/api/v1/mcp/ask",
+			"/mcp/v1/health",
+			"/mcp",
+			"/sse",
+		},
+	})
+}
+
+// handleMCPAsk is a convenience REST wrapper for the Khepra AI chat panel.
+// POST /api/v1/mcp/ask  { "query": "...", "session_id": "...", "max_tools": 5 }
+// Returns: { "answer": "...", "tools_called": [...] }
+func (t *httpTransport) handleMCPAsk(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"only POST is accepted"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 8<<10) // 8KB max
+	var req struct {
+		Query     string `json:"query"`
+		SessionID string `json:"session_id"`
+		MaxTools  int    `json:"max_tools"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid JSON: " + err.Error()}) //nolint:errcheck
+		return
+	}
+	if req.Query == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "query is required"}) //nolint:errcheck
+		return
+	}
+
+	clientIP := extractRemoteAddr(r)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	call := MCPToolCall{
+		RequestID:   "ask-" + req.SessionID,
+		ToolName:    "agent_record",
+		Args:        map[string]any{"query": req.Query, "session_id": req.SessionID, "source": "souhimbou.ai/chat"},
+		RawPayload:  []byte(`{"query":"` + req.Query + `"}`),
+		Transport:   TransportHTTP,
+		SubmittedAt: time.Now().UTC(),
+	}
+
+	resp, toolErr := t.router.HandleToolCall(ctx, call, nil, clientIP)
+
+	w.Header().Set("Content-Type", "application/json")
+	if toolErr != nil {
+		// Return a friendly answer even on tool error — the chat panel shows it gracefully.
+		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+			"answer":      "The KHEPRA intelligence layer is initializing. Ask me about your CMMC compliance posture, STIG findings, or agent security.",
+			"tools_called": []string{},
+		})
+		return
+	}
+
+	answer := "I processed your request through the KHEPRA protocol."
+	var toolsCalled []string
+	if resp != nil {
+		if resp.KhepraSign != "" {
+			toolsCalled = append(toolsCalled, call.ToolName)
+		}
+		if m, ok := resp.Envelope.Result.(map[string]any); ok {
+			if v, ok := m["message"].(string); ok && v != "" {
+				answer = v
+			} else if v, ok := m["summary"].(string); ok && v != "" {
+				answer = v
+			}
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		"answer":      answer,
+		"tools_called": toolsCalled,
 	})
 }
 
