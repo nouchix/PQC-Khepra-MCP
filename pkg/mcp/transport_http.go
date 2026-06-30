@@ -166,6 +166,14 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	// Root path — friendly API info (prevents 404 on direct browser visit)
 	mux.HandleFunc("/", t.handleRoot)
 
+	// GET /events — SSE relay: broadcasts router event stream for dag-viewer.html
+	// Connect dag-viewer.html with: ?feed=https://mcp.souhimbou.ai/events
+	// Protected by CORS (same as other routes). No auth required for read-only event stream.
+	mux.HandleFunc("/events", t.handleDAGEvents)
+
+	// GET /dag-viewer — serves docs/dag-viewer.html with live SSE pre-configured
+	mux.HandleFunc("/dag-viewer", t.handleDAGViewer)
+
 	// ── Bilateral security middleware chain (outer → inner = first-called → last-called) ──
 	//
 	//   ① secureHeadersMiddleware — OWASP response headers              (outermost)
@@ -713,3 +721,70 @@ func (t *httpTransport) handleMCPAsk(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleDAGEvents — GET /events
+// SSE relay for the 3D DAG viewer. Broadcasts all router events (exec, attest)
+// as JSON-encoded server-sent events. The dag-viewer.html ingestLiveEvent()
+// handler parses these directly.
+// Usage: open dag-viewer.html?feed=https://mcp.souhimbou.ai/events
+func (t *httpTransport) handleDAGEvents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fl, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // disable nginx/Caddy buffering
+
+	// Subscribe to the router event bus
+	ch := make(chan MCPEvent, 64)
+	t.router.Events().AddHook(func(ev MCPEvent) {
+		select {
+		case ch <- ev:
+		default:
+			// drop if consumer is too slow — never block the router
+		}
+	})
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			fmt.Fprintf(w, ": ping\n\n") //nolint:errcheck
+			fl.Flush()
+		case ev := <-ch:
+			if ev.Type != EventExec && ev.Type != EventAttest {
+				continue // only relay exec/attest events
+			}
+			data, err := json.Marshal(ev)
+			if err != nil {
+				continue
+			}
+			seq := t.sseEventSeq.Add(1)
+			fmt.Fprintf(w, "id: %d\ndata: %s\n\n", seq, data) //nolint:errcheck
+			fl.Flush()
+		}
+	}
+}
+
+// handleDAGViewer — GET /dag-viewer
+// Serves docs/dag-viewer.html (the 3D compliance graph) with the SSE feed
+// pre-pointed at /events on the same origin. No CORS needed.
+func (t *httpTransport) handleDAGViewer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.ServeFile(w, r, "docs/dag-viewer.html")
+}
