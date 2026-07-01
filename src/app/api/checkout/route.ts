@@ -105,6 +105,66 @@ const PLANS: Record<string, StripePlan> = {
     successPath:     '/dashboard?plan=deadline_sprint&session_id={CHECKOUT_SESSION_ID}',
     anonSuccessPath: '/auth?registered=1&plan=deadline_sprint&session_id={CHECKOUT_SESSION_ID}',
   },
+
+  // ── ASAF Annual Licenses (adinkhepra.com) ─────────────────────────────────
+  // Canonical ASAF price IDs — SecRed Knowledge Inc. / adinkhepra.com
+  // All mode: payment (one-time annual). NOT subscriptions.
+  // ╔══════════════════════════════════════════════════════════════════════╗
+  // ║  advisory          price_1ToLStDqGyad2D3V3EhostGw  $5,000   one-time║
+  // ║  pilot             price_1ToL8YDqGyad2D3VeAqysC9n  $45,000  one-time║
+  // ║  program_std       price_1ToLCLDqGyad2D3V2Q1FVfb4  $75,000  one-time║
+  // ║  program_adv       price_1ToLGbDqGyad2D3V0SFQJGdQ  $120,000 one-time║
+  // ║  enterprise        price_1ToLJaDqGyad2D3VROEhndOP  $150,000 one-time║
+  // ║  enterprise_multi  price_1ToLN8DqGyad2D3VFMeAmiWC  $250,000 one-time║
+  // ╚══════════════════════════════════════════════════════════════════════╝
+  asaf_advisory: {
+    envKey: 'STRIPE_PRICE_ASAF_ADVISORY',
+    fallbackPriceId: 'price_1ToLStDqGyad2D3V3EhostGw',
+    mode: 'payment',
+    label: 'AdinKhepra ASAF — Remediation Advisory ($5K)',
+    successPath:     '/onboarding?plan=asaf_advisory&session_id={CHECKOUT_SESSION_ID}',
+    anonSuccessPath: '/onboarding?plan=asaf_advisory&session_id={CHECKOUT_SESSION_ID}',
+  },
+  asaf_pilot: {
+    envKey: 'STRIPE_PRICE_ASAF_PILOT',
+    fallbackPriceId: 'price_1ToL8YDqGyad2D3VeAqysC9n',
+    mode: 'payment',
+    label: 'AdinKhepra ASAF — Pilot Deployment ($45K/yr)',
+    successPath:     '/onboarding?plan=asaf_pilot&session_id={CHECKOUT_SESSION_ID}',
+    anonSuccessPath: '/onboarding?plan=asaf_pilot&session_id={CHECKOUT_SESSION_ID}',
+  },
+  asaf_program_std: {
+    envKey: 'STRIPE_PRICE_ASAF_PROGRAM_STD',
+    fallbackPriceId: 'price_1ToLCLDqGyad2D3V2Q1FVfb4',
+    mode: 'payment',
+    label: 'AdinKhepra ASAF — Program Standard ($75K/yr)',
+    successPath:     '/onboarding?plan=asaf_program_std&session_id={CHECKOUT_SESSION_ID}',
+    anonSuccessPath: '/onboarding?plan=asaf_program_std&session_id={CHECKOUT_SESSION_ID}',
+  },
+  asaf_program_adv: {
+    envKey: 'STRIPE_PRICE_ASAF_PROGRAM_ADV',
+    fallbackPriceId: 'price_1ToLGbDqGyad2D3V0SFQJGdQ',
+    mode: 'payment',
+    label: 'AdinKhepra ASAF — Program Advanced ($120K/yr)',
+    successPath:     '/onboarding?plan=asaf_program_adv&session_id={CHECKOUT_SESSION_ID}',
+    anonSuccessPath: '/onboarding?plan=asaf_program_adv&session_id={CHECKOUT_SESSION_ID}',
+  },
+  asaf_enterprise: {
+    envKey: 'STRIPE_PRICE_ASAF_ENTERPRISE',
+    fallbackPriceId: 'price_1ToLJaDqGyad2D3VROEhndOP',
+    mode: 'payment',
+    label: 'AdinKhepra ASAF — Enterprise ($150K/yr)',
+    successPath:     '/onboarding?plan=asaf_enterprise&session_id={CHECKOUT_SESSION_ID}',
+    anonSuccessPath: '/onboarding?plan=asaf_enterprise&session_id={CHECKOUT_SESSION_ID}',
+  },
+  asaf_enterprise_multi: {
+    envKey: 'STRIPE_PRICE_ASAF_ENTERPRISE_MULTI',
+    fallbackPriceId: 'price_1ToLN8DqGyad2D3VFMeAmiWC',
+    mode: 'payment',
+    label: 'AdinKhepra ASAF — Enterprise Multi-Site ($250K/yr)',
+    successPath:     '/onboarding?plan=asaf_enterprise_multi&session_id={CHECKOUT_SESSION_ID}',
+    anonSuccessPath: '/onboarding?plan=asaf_enterprise_multi&session_id={CHECKOUT_SESSION_ID}',
+  },
 };
 
 export async function POST(req: NextRequest) {
