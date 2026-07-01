@@ -35,7 +35,7 @@ func errUnsupportedOS() error { return fmt.Errorf(errUnsupportedOSFmt, runtime.G
 func collectField[T any](label string, fn func() (T, error), set func(T)) {
 	v, err := fn()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect %s: %v\n", label, err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect %s: %v\n", label, err)
 		return
 	}
 	set(v)

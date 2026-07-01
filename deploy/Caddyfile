@@ -3,7 +3,11 @@
 
 # ── mcp.souhimbou.ai — khepra-mcp MCP/HTTP server ──────────────────────────
 mcp.souhimbou.ai {
-    reverse_proxy deploy-khepra-mcp-1:8080
+    reverse_proxy deploy-khepra-mcp-1:8080 {
+        # Required for SSE (Server-Sent Events): disable Caddy response buffering.
+        # Without this, Caddy holds the stream causing ECONNRESET on mcp-remote.
+        flush_interval -1
+    }
 
     @cors_preflight method OPTIONS
     handle @cors_preflight {

@@ -34,28 +34,28 @@ func CollectDeviceFingerprint() (audit.DeviceFingerprint, error) {
 	cpuSig, err := collectCPUSignature()
 	if err != nil {
 		// Non-fatal, continue with empty value
-		fmt.Printf("[WARN] Failed to collect CPU signature: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect CPU signature: %v\n", err)
 	}
 	fp.CPUSignature = cpuSig
 
 	// Collect disk serial numbers
 	diskSerials, err := collectDiskSerials()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect disk serials: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect disk serials: %v\n", err)
 	}
 	fp.DiskSerials = diskSerials
 
 	// Collect BIOS/SMBIOS UUID (Windows/Linux)
 	biosSerial, err := collectBIOSSerial()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect BIOS serial: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect BIOS serial: %v\n", err)
 	}
 	fp.BIOSSerial = biosSerial
 
 	// Collect motherboard ID
 	mbID, err := collectMotherboardID()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect motherboard ID: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect motherboard ID: %v\n", err)
 	}
 	fp.MotherboardID = mbID
 
