@@ -1,13 +1,24 @@
-# deploy/docker-compose.vps.yml — Hostinger VPS (2.24.105.170)
+# deploy/docker-compose.vps.yml — Hostinger VPS (187.124.225.91)
 #
-# Deploy: cd /opt/khepra && docker compose -f deploy/docker-compose.vps.yml up -d --build
+# Services:
+#   caddy          — TLS termination + reverse proxy (ports 80/443)
+#   khepra-mcp     — MCP stdio server (internal only, port 8080)
+#   sekhem-gateway — SEKHEM REST/SSE/WS apiserver (port 9090, routes via Caddy)
+#
+# Deploy:
+#   cd /opt/khepra
+#   git pull
+#   docker compose -f deploy/docker-compose.vps.yml up -d --build
 
 services:
+
+  # ── Caddy TLS + Reverse Proxy ──────────────────────────────────────────────
   caddy:
     image: caddy:2-alpine
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"    # HTTP/3
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -20,7 +31,11 @@ services:
     restart: unless-stopped
     depends_on:
       - khepra-mcp
+      - sekhem-gateway
 
+  # ── khepra-mcp: MCP stdio server (internal) ───────────────────────────────
+  # Note: this service is not directly exposed via HTTP.
+  # Caddy routes mcp.souhimbou.ai → this container on port 8080.
   khepra-mcp:
     build:
       context: ..
@@ -46,6 +61,43 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  # ── SEKHEM Gateway: REST/SSE/WS apiserver ─────────────────────────────────
+  # Exposed at gateway.souhimbou.ai via Caddy.
+  # New routes from P0 sprint:
+  #   POST /api/v1/scan/agent        — 6-layer omnipotent agent scan
+  #   GET  /api/v1/scan/agent/stream — SSE real-time scan progress
+  #   GET  /api/v1/scan/agent/:id    — full report (authenticated)
+  sekhem-gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile.apiserver
+    environment:
+      - PORT=9090
+      - TLS_ENABLED=false
+      - HOST=0.0.0.0
+      - DEBUG=false
+      - KHEPRA_DATA_DIR=/var/lib/khepra
+      - KHEPRA_SERVICE_SECRET=${KHEPRA_SERVICE_SECRET}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - LLM_PROVIDER=ollama
+      - LLM_URL=http://ollama:11434
+      - LLM_MODEL=llama3.1:8b
+      - TELEMETRY_URL=https://telemetry.souhimbou.ai
+      - ASAF_ALLOW_EVAL_WITHOUT_LICENSE=true
+    volumes:
+      - khepra-data:/var/lib/khepra
+    networks:
+      - khepra
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
   caddy-data:
