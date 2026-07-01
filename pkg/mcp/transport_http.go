@@ -25,6 +25,8 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,6 +35,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -115,6 +118,7 @@ type httpTransport struct {
 	sseConns    atomic.Int32 // active SSE connections
 	sseEventSeq atomic.Int64 // monotonic SSE event-id counter
 	dagStore    dag.Store    // Master DAG — serves /api/v1/dag/history
+	sessions    sync.Map     // sessionID(string) → chan []byte (MCP SSE protocol)
 }
 
 // newHTTPTransport creates an HTTP transport wired to the given router.
@@ -152,7 +156,8 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 
 	// Smithery-compatible routes (primary)
 	mux.HandleFunc("/mcp", t.handleRPC)        // POST /mcp — Smithery JSON-RPC
-	mux.HandleFunc("/sse", t.handleSSE)        // GET  /sse — Smithery SSE handshake
+	mux.HandleFunc("/sse", t.handleSSE)        // GET  /sse — MCP SSE handshake
+	mux.HandleFunc("/message", t.handleMessage) // POST /message?sessionId=xxx — MCP SSE protocol
 
 	// MCP server-card.json — static server metadata for Smithery discovery (SEP-1649).
 	// Serves the tool manifest so Smithery can skip live scanning.
@@ -315,14 +320,38 @@ func (t *httpTransport) handleSSE(w http.ResponseWriter, r *http.Request) {
 		return true
 	}
 
-	// 1. Connected event
+	// 1. Connected event (informational — not part of MCP protocol, just metadata)
 	if !writeEvent("connected", fmt.Sprintf(`{"server":"khepra-mcp","version":"%s","sse_max_age_s":%d}`,
 		HardenedServerVersion, int(t.config.SSE.IdleTimeout.Seconds()))) {
 		return
 	}
 
-	t.logger.Printf("[MCP:SSE] stream opened — active=%d/%d remote=%s",
-		int(current), t.config.SSE.MaxConns, sanitizeForLog(extractRemoteAddr(r)))
+	// 2. Endpoint event — REQUIRED by MCP SSE protocol (2024-11-05 spec).
+	// Tells mcp-remote the URL to POST JSON-RPC messages to.
+	// Without this event, the client has no channel to send initialize/tools/call,
+	// causing every request to time out after 60s.
+	sessID := newSessionID()
+	sessCh := make(chan []byte, 64)
+	t.sessions.Store(sessID, sessCh)
+	defer t.sessions.Delete(sessID)
+
+	// Determine the public base URL from the request so the endpoint URL is absolute.
+	// mcp-remote requires an absolute URL or a path it can resolve relative to /sse.
+	scheme := "https"
+	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
+		scheme = "http"
+	}
+	host := r.Host
+	if fwdHost := r.Header.Get("X-Forwarded-Host"); fwdHost != "" {
+		host = fwdHost
+	}
+	endpointURL := scheme + "://" + host + "/message?sessionId=" + sessID
+	if !writeEvent("endpoint", endpointURL) {
+		return
+	}
+
+	t.logger.Printf("[MCP:SSE] stream opened — session=%s active=%d/%d remote=%s",
+		sessID[:8], int(current), t.config.SSE.MaxConns, sanitizeForLog(extractRemoteAddr(r)))
 
 	pingTick := time.NewTicker(t.config.SSE.PingInterval)
 	defer pingTick.Stop()
@@ -340,14 +369,24 @@ func (t *httpTransport) handleSSE(w http.ResponseWriter, r *http.Request) {
 		case <-streamCtx.Done():
 			// Stream lifetime expired — close gracefully
 			writeEvent("stream-closed", `{"reason":"idle_timeout","reconnect":true}`) //nolint:errcheck
-			t.logger.Printf("[MCP:SSE] stream closed (timeout) — remote=%s",
-				sanitizeForLog(extractRemoteAddr(r)))
+			t.logger.Printf("[MCP:SSE] stream closed (timeout) — session=%s remote=%s",
+				sessID[:8], sanitizeForLog(extractRemoteAddr(r)))
 			return
+
+		case msg := <-sessCh:
+			// Relay JSON-RPC response back to client through the SSE stream
+			seq := t.sseEventSeq.Add(1)
+			_, werr := fmt.Fprintf(w, "id: %d\nevent: message\ndata: %s\n\n", seq, msg)
+			if werr != nil {
+				t.logger.Printf("[MCP:SSE] session=%s write error: %v", sessID[:8], werr)
+				return
+			}
+			flusher.Flush()
 
 		case <-pingTick.C:
 			if !writeEvent("ping", `{}`) {
-				t.logger.Printf("[MCP:SSE] stream closed (client disconnect) — remote=%s",
-					sanitizeForLog(extractRemoteAddr(r)))
+				t.logger.Printf("[MCP:SSE] stream closed (client disconnect) — session=%s remote=%s",
+					sessID[:8], sanitizeForLog(extractRemoteAddr(r)))
 				return
 			}
 
@@ -356,6 +395,97 @@ func (t *httpTransport) handleSSE(w http.ResponseWriter, r *http.Request) {
 			writeEvent("token-expiring", `{"action":"reconnect_and_refresh_token"}`) //nolint:errcheck
 		}
 	}
+}
+
+// handleMessage processes POST /message?sessionId=xxx — the MCP SSE protocol message endpoint.
+//
+// mcp-remote POSTs JSON-RPC requests here after receiving the endpoint URL from the SSE stream.
+// Responses are sent back through the SSE channel (not in the HTTP response body).
+// Returns 202 Accepted immediately after queuing the response.
+func (t *httpTransport) handleMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "only POST is supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessID := r.URL.Query().Get("sessionId")
+	if sessID == "" {
+		http.Error(w, `{"error":"missing sessionId"}`, http.StatusBadRequest)
+		return
+	}
+
+	val, ok := t.sessions.Load(sessID)
+	if !ok {
+		http.Error(w, `{"error":"session not found or expired"}`, http.StatusNotFound)
+		return
+	}
+	sessCh := val.(chan []byte)
+
+	body := http.MaxBytesReader(w, r.Body, t.config.MaxRequestSize)
+	defer body.Close()
+	data, err := io.ReadAll(body)
+	if err != nil {
+		http.Error(w, `{"error":"request body error"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req JSONRPCRequest
+	if err := json.Unmarshal(data, &req); err != nil {
+		http.Error(w, `{"error":"parse error"}`, http.StatusBadRequest)
+		return
+	}
+
+	cred := t.extractCredential(r)
+	remoteAddr := extractRemoteAddr(r)
+
+	// notifications/* are fire-and-forget — no response needed per MCP spec
+	if strings.HasPrefix(req.Method, "notifications/") {
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	var resp JSONRPCResponse
+	switch req.Method {
+	case "initialize":
+		resp = t.handleInitialize(req)
+	case "ping":
+		resp = JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(map[string]string{"status": "pong"})}
+	case "tools/list":
+		tools := t.router.ListTools()
+		resp = JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(map[string]any{"tools": tools})}
+	case "tools/call":
+		resp = t.handleToolsCall(r.Context(), req, cred, remoteAddr)
+	default:
+		resp = JSONRPCResponse{
+			JSONRPC: "2.0", ID: req.ID,
+			Error: &JSONRPCError{Code: ErrCodeMethodNotFound, Message: fmt.Sprintf("method not found: %s", req.Method)},
+		}
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, `{"error":"marshal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	select {
+	case sessCh <- respBytes:
+	default:
+		t.logger.Printf("[MCP:SSE] session=%s response channel full — dropping", sessID[:8])
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
+// newSessionID generates a cryptographically random 16-byte hex session identifier.
+func newSessionID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 // handleRPC processes a JSON-RPC request over HTTP.
