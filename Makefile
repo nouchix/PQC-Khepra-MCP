@@ -1,8 +1,71 @@
 APP?=adinkhepra
 AGENT?=adinkhepra-agent
 GATEWAY?=khepra-gateway
+HUB?=asaf-hub
+
+# UI source and embed target
+STARGATE_DIR?=../Adinkhepra-ASAF
+HUB_DIST?=cmd/asaf-hub/dist
 
 all: build
+
+# ── ASAF Stargate Hub ──────────────────────────────────────────────────────────
+# Full build: Next.js static export → go:embed → asaf-hub binary
+.PHONY: build-hub
+build-hub:
+	@echo "[STARGATE] Building Next.js UI..."
+	cd $(STARGATE_DIR) && npm ci && npm run build
+	@echo "[STARGATE] Copying static export to embed target..."
+	@if exist $(HUB_DIST) rmdir /s /q $(HUB_DIST)
+	xcopy /E /I /Q "$(STARGATE_DIR)\out" "$(HUB_DIST)"
+	@echo "[STARGATE] Building asaf-hub binary..."
+	go build -o bin/$(HUB).exe ./cmd/asaf-hub
+	@echo "[STARGATE] bin/$(HUB).exe ready"
+	@echo "[STARGATE]   Hub UI:   http://localhost:8443/"
+	@echo "[STARGATE]   MCP:      http://localhost:8444/mcp"
+	@echo "[STARGATE]   Fleet:    http://localhost:8443/api/v1/fleet/*"
+
+# Quick Go-only build (no UI rebuild — uses existing dist/)
+.PHONY: build-hub-go
+build-hub-go:
+	go build -o bin/$(HUB).exe ./cmd/asaf-hub
+	@echo "[STARGATE] bin/$(HUB).exe built (no UI rebuild)"
+
+# Run the hub in development mode (no UI embed, dev placeholder shown)
+.PHONY: run-hub
+run-hub: build-hub-go
+	KHEPRA_MODE=sovereign \
+	KHEPRA_HUB_PORT=8443 \
+	KHEPRA_MCP_PORT=8444 \
+	PHANTOM_SYMBOL=Eban \
+	./bin/$(HUB).exe
+
+# Secure (stripped) production build
+.PHONY: build-hub-secure
+build-hub-secure:
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/$(HUB).exe ./cmd/asaf-hub
+
+# ── ASAF Stargate Reporter (endpoint agent) ────────────────────────────────────
+REPORTER?=khepra-reporter
+
+.PHONY: build-reporter
+build-reporter:
+	go build -o bin/$(REPORTER).exe ./cmd/khepra-reporter
+	@echo "[REPORTER] bin/$(REPORTER).exe ready"
+	@echo "[REPORTER] Usage:"
+	@echo "[REPORTER]   ASAF_HUB_URL=https://asaf.corp.mil:8443 ./bin/$(REPORTER).exe"
+
+.PHONY: build-reporter-secure
+build-reporter-secure:
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/$(REPORTER).exe ./cmd/khepra-reporter
+
+# Cross-compile reporter for Linux (for deployment to RHEL/Ubuntu endpoints)
+.PHONY: build-reporter-linux
+build-reporter-linux:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" \
+		-o bin/$(REPORTER)-linux-amd64 ./cmd/khepra-reporter
+	@echo "[REPORTER] Linux binary: bin/$(REPORTER)-linux-amd64"
+
 
 build:
 	go mod tidy
