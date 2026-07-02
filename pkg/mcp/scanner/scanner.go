@@ -147,7 +147,10 @@ func (s *Scanner) computeSnapshot() *SnapshotManifest {
 
 	var combined strings.Builder
 	for _, k := range keys {
-		combined.WriteString(k + "=" + hashes[k] + "\n")
+		combined.WriteString(k)
+		combined.WriteString("=")
+		combined.WriteString(hashes[k])
+		combined.WriteString("\n")
 	}
 	mhSum := sha256.Sum256([]byte(combined.String()))
 
