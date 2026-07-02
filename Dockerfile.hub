@@ -1,0 +1,107 @@
+# Dockerfile.hub — ASAF Stargate Hub Production Image
+#
+# Multi-stage build:
+#   Stage 1: Build Next.js UI (Stargate)
+#   Stage 2: Build asaf-hub Go binary
+#   Stage 3: Minimal runtime image (scratch + ca-certificates)
+#
+# Usage:
+#   docker build -f Dockerfile.hub -t ghcr.io/nouchix/asaf-hub:latest .
+#   docker run -p 8443:8443 -p 8444:8444 \
+#     -e KHEPRA_MODE=sovereign \
+#     -e KHEPRA_LICENSE_KEY=... \
+#     -e KHEPRA_ORG_NAME="SecRed Knowledge Inc." \
+#     -v /opt/asaf-data:/home/asaf/.khepra \
+#     ghcr.io/nouchix/asaf-hub:latest
+#
+# Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
+# Patent Pending: USPTO #73565085
+
+# ── Stage 1: Build Next.js Stargate UI ────────────────────────────────────────
+FROM node:20-alpine AS ui-builder
+
+WORKDIR /ui
+
+# Cache node_modules separately
+COPY ../Adinkhepra-ASAF/package.json ../Adinkhepra-ASAF/package-lock.json ./
+RUN npm ci --prefer-offline
+
+# Copy source
+COPY ../Adinkhepra-ASAF/ .
+
+# Build static export
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# Verify output exists
+RUN ls -la out/index.html
+
+# ── Stage 2: Build Go Hub Binary ──────────────────────────────────────────────
+FROM golang:1.23-alpine AS go-builder
+
+ARG VERSION=1.5.0
+ARG BUILD_DATE
+ARG GIT_COMMIT
+
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+WORKDIR /src
+
+# Cache Go modules
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Copy built UI into embed target
+COPY --from=ui-builder /ui/out ./cmd/asaf-hub/dist
+
+# Build hub binary
+RUN go build \
+    -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION}" \
+    -o /bin/asaf-hub \
+    ./cmd/asaf-hub
+
+# Verify binary
+RUN /bin/asaf-hub --version 2>&1 || true
+
+# ── Stage 3: Runtime Image ────────────────────────────────────────────────────
+FROM scratch
+
+# CA certificates for TLS (outbound connections to Iron Bank registry etc.)
+COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Hub binary
+COPY --from=go-builder /bin/asaf-hub /asaf-hub
+
+# Non-root execution: UID 1001, GID 0 (OpenShift compatible)
+USER 1001:0
+
+# Data volume: DAG store, audit log, fleet registry, manifest
+VOLUME ["/home/asaf/.khepra"]
+
+# Expose Hub API + Stargate UI (8443) and PQC-MCP (8444)
+EXPOSE 8443 8444
+
+# Environment defaults — override at runtime
+ENV KHEPRA_MODE=sovereign \
+    KHEPRA_HUB_PORT=8443 \
+    KHEPRA_MCP_PORT=8444 \
+    KHEPRA_DATA_PATH=/home/asaf/.khepra/hub \
+    PHANTOM_SYMBOL=Eban \
+    KHEPRA_PRODUCT_NAME="ASAF Stargate"
+
+# Security labels for Iron Bank compliance
+LABEL org.opencontainers.image.title="ASAF Stargate Hub" \
+      org.opencontainers.image.description="PQC-secured CMMC compliance platform. USPTO #73565085." \
+      org.opencontainers.image.vendor="SecRed Knowledge Inc. / SOUHIMBOU DOH KONE LLC" \
+      org.opencontainers.image.licenses="Proprietary" \
+      org.opencontainers.image.source="https://github.com/nouchix/PQC-Khepra-MCP" \
+      mil.dso.ironbank.image.keywords="cmmc,nist,stig,pqc,ml-dsa,compliance,doD" \
+      mil.dso.ironbank.image.type="commercial"
+
+ENTRYPOINT ["/asaf-hub"]
