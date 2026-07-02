@@ -258,7 +258,7 @@ func SeedDemoNodes(store Store, cfg SeedConfig) int {
 			"session_id":  "demo-session-001",
 			"dag_hash":    "sha256:8f4a2b1c9d3e",
 			"risk_class":  "high",
-			"key_scheme":  "ML-DSA-65-Dilithium3",
+			"key_scheme":  "ML-DSA-65-Dilithium3", // gitleaks:allow
 			"signed":      "true",
 		},
 	}
@@ -275,7 +275,7 @@ func SeedDemoNodes(store Store, cfg SeedConfig) int {
 			"session_id":  "demo-session-002",
 			"dag_hash":    "sha256:3c7f9a5d1e2b",
 			"risk_class":  "medium",
-			"key_scheme":  "ML-DSA-65-Dilithium3",
+			"key_scheme":  "ML-DSA-65-Dilithium3", // gitleaks:allow
 			"signed":      "true",
 		},
 	}

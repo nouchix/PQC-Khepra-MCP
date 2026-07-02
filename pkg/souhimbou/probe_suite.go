@@ -600,8 +600,8 @@ func categoryDAuth() []*Probe {
 			Category: ProbeCatAuth,
 			OWASP:    "LLM09",
 			BuildRequest: func(baseURL string, at AgentType) *http.Request {
-				// JWT with 'alg: none' (CVE pattern)
-				forgedJWT := "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9."
+				// JWT with 'alg: none' (CVE pattern) — intentional probe payload // gitleaks:allow
+				forgedJWT := "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9." // gitleaks:allow
 				req := buildToolCallRequest(baseURL, at, "admin_action", map[string]any{"action": "list_all"})
 				if req != nil {
 					req.Header.Set("Authorization", "Bearer "+forgedJWT)

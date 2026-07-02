@@ -97,7 +97,7 @@ func (b *DAGBridge) Hook(ev MCPEvent) {
 			"session_id":  ev.SessionID,
 			"dag_hash":    ev.DAGHash,
 			"risk_class":  ev.RiskClass,
-			"key_scheme":  "ML-DSA-65-Dilithium3",
+			"key_scheme":  "ML-DSA-65-Dilithium3", // gitleaks:allow
 			"signed":      "true",
 		},
 	}

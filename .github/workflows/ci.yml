@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+  workflow_call:  # Allows this workflow to be called as a reusable workflow
 
 concurrency:
   group: ci-${{ github.ref }}
