@@ -29,7 +29,7 @@ jobs:
       issues: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Determine target URL
         id: target
@@ -71,7 +71,7 @@ jobs:
       issues: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: ZAP API Scan against OpenAPI spec
         uses: zaproxy/action-api-scan@v0.7.0
@@ -101,7 +101,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install shcheck (OWASP Secure Headers checker)
         run: pip install requests
