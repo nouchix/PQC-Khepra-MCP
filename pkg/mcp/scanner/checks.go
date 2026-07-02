@@ -285,8 +285,8 @@ func (s *Scanner) checkStaleCredential(_ context.Context) ([]MCPFinding, error) 
 // CMMC SC.3.177
 
 const (
-	mlDSA65PrivKeyMin = 3900 // bytes
-	mlDSA65PrivKeyMax = 4200 // bytes
+	mlDSA65PrivKeyMin = 3900 // bytes — ML-DSA-65 lower bound (FIPS 204) // gitleaks:allow
+	mlDSA65PrivKeyMax = 4200 // bytes — ML-DSA-65 upper bound (FIPS 204) // gitleaks:allow
 )
 
 func (s *Scanner) checkPQCDowngrade(_ context.Context) ([]MCPFinding, error) {
