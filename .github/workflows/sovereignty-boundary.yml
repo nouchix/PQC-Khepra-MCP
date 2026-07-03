@@ -1,0 +1,25 @@
+name: Sovereignty Boundary Guard
+
+# TRL10 control: prove — on every PR — that no customer CUI data plane (Hub :8443,
+# Fleet API, customer DAG, scan findings, credential vault) is pinned to a NouchiX
+# vendor host. Pure bash: no Go/Node toolchain, so it cannot be broken by dependency
+# or toolchain drift. Policy: MEMORY.md § Sovereignty Boundary Policy (TRL10 control).
+
+on:
+  push:
+    branches: [main, 'release/*', 'claude/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boundary:
+    name: Sovereignty Boundary Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run boundary guard
+        run: bash scripts/sovereignty_boundary_guard.sh
