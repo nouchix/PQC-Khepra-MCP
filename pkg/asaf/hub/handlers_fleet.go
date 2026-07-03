@@ -8,35 +8,68 @@ package hub
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/fleet"
 )
 
+// ConnectorConfig is the Hub-side representation of a saved connector template.
+// Mirrors pkg/asaf/connector.ConnectorConfig on the desktop client.
+type ConnectorConfig struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Protocol    string    `json:"protocol"`
+	Host        string    `json:"host,omitempty"`
+	CIDRRange   string    `json:"cidr,omitempty"`
+	Port        int       `json:"port,omitempty"`
+	AuthMethod  string    `json:"auth_method"`
+	Username    string    `json:"username,omitempty"`
+	CredRef     string    `json:"cred_ref,omitempty"`
+	APIEndpoint string    `json:"api_endpoint,omitempty"`
+	Region      string    `json:"region,omitempty"`
+	EnclaveID   string    `json:"enclave_id"`
+	Schedule    string    `json:"schedule,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	LastUsed    time.Time `json:"last_used,omitempty"`
+}
+
 // FleetHandlers wraps the FleetRegistry and implements http.Handler routes.
 type FleetHandlers struct {
-	registry *fleet.FleetRegistry
+	registry   *fleet.FleetRegistry
+	connMu     sync.RWMutex
+	connectors map[string]ConnectorConfig // keyed by ConnectorConfig.ID
 }
 
 // NewFleetHandlers creates handler wrappers around the given registry.
 func NewFleetHandlers(registry *fleet.FleetRegistry) *FleetHandlers {
-	return &FleetHandlers{registry: registry}
+	return &FleetHandlers{
+		registry:   registry,
+		connectors: make(map[string]ConnectorConfig),
+	}
 }
 
 // Register mounts all fleet routes onto mux.
+// Exact-match patterns are registered before the /assets/ catch-all so that
+// /assets/import, /assets/discover, and /assets/test are never swallowed by
+// the prefix handler.
 func (h *FleetHandlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/fleet/enclaves", h.handleEnclaves)
 	mux.HandleFunc("/api/v1/fleet/assets", h.handleAssets)
 	mux.HandleFunc("/api/v1/fleet/assets/import", h.handleImport)
 	mux.HandleFunc("/api/v1/fleet/assets/discover", h.handleDiscover)
+	mux.HandleFunc("/api/v1/fleet/assets/test", h.handleTestPreEnroll)   // pre-enrollment test (no asset ID)
 	mux.HandleFunc("/api/v1/fleet/scan", h.handleScan)
 	mux.HandleFunc("/api/v1/fleet/boundary/attest", h.handleAttest)
 	mux.HandleFunc("/api/v1/fleet/boundary/declaration", h.handleDeclaration)
 	mux.HandleFunc("/api/v1/fleet/sprs", h.handleSPRS)
 	mux.HandleFunc("/api/v1/fleet/sprs/simulate", h.handleSimulate)
-	mux.HandleFunc("/api/v1/fleet/assets/", h.handleAssetByID) // /api/v1/fleet/assets/{id}/*
+	mux.HandleFunc("/api/v1/fleet/discover", h.handleDiscoverSSE)        // GET SSE: ?cidr=
+	mux.HandleFunc("/api/v1/fleet/connectors", h.handleConnectors)       // GET list / POST save
+	mux.HandleFunc("/api/v1/fleet/assets/", h.handleAssetByID)           // /api/v1/fleet/assets/{id}/*
 }
 
 // ── Enclaves ──────────────────────────────────────────────────────────────────
@@ -71,7 +104,7 @@ func (h *FleetHandlers) handleEnclaves(w http.ResponseWriter, r *http.Request) {
 // ── Assets ────────────────────────────────────────────────────────────────────
 
 // handleAssets: GET → list assets (query: enclave_id, category)
-//               POST → enroll single asset
+//               POST → enroll single asset (accepts fleet.Asset JSON OR AddAssetRequest JSON)
 func (h *FleetHandlers) handleAssets(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -84,12 +117,42 @@ func (h *FleetHandlers) handleAssets(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case http.MethodPost:
-		var a fleet.Asset
-		if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
+		// Accept both native fleet.Asset JSON and the desktop client's AddAssetRequest format.
+		// We use a raw map to support both field naming conventions (ip vs ip_address, etc.).
+		var raw map[string]json.RawMessage
+		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 			return
 		}
-		if err := h.registry.AddAsset(&a); err != nil {
+		a := &fleet.Asset{
+			CMMCCategory: fleet.Unclassified,
+			ConnStatus:   "untested",
+			CreatedAt:    time.Now().UTC(),
+		}
+		jsonStr := func(key string) string {
+			if v, ok := raw[key]; ok {
+				var s string
+				_ = json.Unmarshal(v, &s)
+				return s
+			}
+			return ""
+		}
+		// Accept both naming conventions.
+		a.ID = jsonStr("id")
+		a.EnclaveID = firstNonEmpty(jsonStr("enclave_id"), "default")
+		a.Name = firstNonEmpty(jsonStr("name"), jsonStr("hostname"))
+		a.Hostname = jsonStr("hostname")
+		a.IP = firstNonEmpty(jsonStr("ip"), jsonStr("ip_address"))
+		a.OS = jsonStr("os")
+		a.STIGProfile = jsonStr("stig_profile")
+		if a.IP == "" && a.Hostname == "" {
+			writeError(w, http.StatusBadRequest, "ip or hostname required")
+			return
+		}
+		if a.ID == "" {
+			a.ID = assetIDFromFields(a.Hostname, a.IP)
+		}
+		if err := h.registry.AddAsset(a); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -180,18 +243,78 @@ func (h *FleetHandlers) handleAssetByID(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleImport: POST /api/v1/fleet/assets/import
-// Accepts multipart/form-data with file field "csv" OR raw CSV body.
+//
+// Accepts three body formats:
+//   1. JSON  {"rows":[{hostname,ip_address,os,stig_profile,enclave},...], "enclave_id":"..."}
+//      — used by the desktop HubClient (pre-parsed rows)
+//   2. multipart/form-data with file field "csv"
+//   3. raw CSV body
 func (h *FleetHandlers) handleImport(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w)
 		return
 	}
 
-	enclaveID := r.URL.Query().Get("enclave_id")
+	ct := r.Header.Get("Content-Type")
 
-	// Accept both multipart and raw CSV body
+	// ── Path 1: JSON pre-parsed rows (desktop HubClient) ──────────────────────
+	if strings.Contains(ct, "application/json") {
+		var body struct {
+			Rows []struct {
+				Hostname    string `json:"hostname"`
+				IPAddress   string `json:"ip_address"`
+				OS          string `json:"os"`
+				STIGProfile string `json:"stig_profile"`
+				Enclave     string `json:"enclave"`
+			} `json:"rows"`
+			EnclaveID string `json:"enclave_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+			return
+		}
+		enclaveID := firstNonEmpty(body.EnclaveID, r.URL.Query().Get("enclave_id"), "default")
+		total := len(body.Rows)
+		enrolled, skipped := 0, 0
+		var errs []string
+		for _, row := range body.Rows {
+			if row.Hostname == "" && row.IPAddress == "" {
+				skipped++
+				errs = append(errs, "row missing hostname and ip — skipped")
+				continue
+			}
+			a := &fleet.Asset{
+				ID:           assetIDFromFields(row.Hostname, row.IPAddress),
+				EnclaveID:    enclaveID,
+				Name:         firstNonEmpty(row.Hostname, row.IPAddress),
+				Hostname:     row.Hostname,
+				IP:           row.IPAddress,
+				OS:           row.OS,
+				STIGProfile:  row.STIGProfile,
+				CMMCCategory: fleet.Unclassified,
+				ConnStatus:   "untested",
+				CreatedAt:    time.Now().UTC(),
+			}
+			if err := h.registry.AddAsset(a); err != nil {
+				skipped++
+				errs = append(errs, fmt.Sprintf("%s: %v", firstNonEmpty(row.Hostname, row.IPAddress), err))
+			} else {
+				enrolled++
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"total":    total,
+			"enrolled": enrolled,
+			"skipped":  skipped,
+			"errors":   errs,
+		})
+		return
+	}
+
+	// ── Path 2 & 3: CSV (multipart or raw body) ───────────────────────────────
+	enclaveID := r.URL.Query().Get("enclave_id")
 	var reader = r.Body
-	if strings.Contains(r.Header.Get("Content-Type"), "multipart") {
+	if strings.Contains(ct, "multipart") {
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			writeError(w, http.StatusBadRequest, "multipart parse failed: "+err.Error())
 			return
@@ -211,22 +334,20 @@ func (h *FleetHandlers) handleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Auto-enroll imported assets
 	enrolled := 0
+	var importErrs []string
 	for _, a := range result.Assets {
 		if addErr := h.registry.AddAsset(a); addErr == nil {
 			enrolled++
 		} else {
-			result.Errors = append(result.Errors, fleet.ImportError{
-				Message: fmt.Sprintf("enroll failed for %s: %v", a.IP, addErr),
-			})
+			importErrs = append(importErrs, fmt.Sprintf("enroll failed for %s: %v", a.IP, addErr))
 		}
 	}
-
 	writeJSON(w, http.StatusOK, map[string]any{
-		"imported": enrolled,
+		"total":    enrolled + result.Skipped + len(importErrs),
+		"enrolled": enrolled,
 		"skipped":  result.Skipped,
-		"errors":   result.Errors,
+		"errors":   importErrs,
 	})
 }
 
@@ -412,6 +533,197 @@ func (h *FleetHandlers) handleScan(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ── New connector/discovery/test handlers ──────────────────────────────────────
+
+// handleTestPreEnroll: POST /api/v1/fleet/assets/test
+// Tests connectivity to a host before it is enrolled as an asset.
+// Body: { "host": "10.0.0.5", "port": 22, "protocol": "ssh" }
+func (h *FleetHandlers) handleTestPreEnroll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var body struct {
+		Host     string `json:"host"`
+		Port     int    `json:"port"`
+		Protocol string `json:"protocol"`
+		// Also accept nested config/credential from desktop client
+		Config struct {
+			Host string `json:"host"`
+			Port int    `json:"port"`
+		} `json:"config"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	host := firstNonEmpty(body.Host, body.Config.Host)
+	port := body.Port
+	if port == 0 {
+		port = body.Config.Port
+	}
+	if host == "" {
+		writeError(w, http.StatusBadRequest, "host is required")
+		return
+	}
+	if port == 0 {
+		port = 22 // SSH default
+	}
+
+	start := time.Now()
+	addr := fmt.Sprintf("%s:%d", host, port)
+	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	latencyMs := time.Since(start).Milliseconds()
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success":    false,
+			"message":    fmt.Sprintf("unreachable: %v", err),
+			"latency_ms": latencyMs,
+		})
+		return
+	}
+	// Grab SSH banner if port 22.
+	remoteOS, stigProfile := "", ""
+	if port == 22 {
+		banner := readFirstLine(conn, 2*time.Second)
+		if banner != "" {
+			remoteOS = parseBannerOSHub(banner)
+			stigProfile = autoSTIG(remoteOS)
+		}
+	} else if port == 5985 || port == 5986 {
+		remoteOS = "Windows"
+		stigProfile = "windows-server-2022"
+	}
+	conn.Close()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success":      true,
+		"latency_ms":   latencyMs,
+		"remote_os":    remoteOS,
+		"stig_profile": stigProfile,
+		"message":      fmt.Sprintf("reachable in %dms", latencyMs),
+	})
+}
+
+// handleDiscoverSSE: GET /api/v1/fleet/discover?cidr=10.0.0.0/24&enclave_id=...
+// Streams discovered hosts as SSE events containing DiscoveredHost-compatible JSON.
+// Matches the HubClient.DiscoverSubnet() GET request format.
+func (h *FleetHandlers) handleDiscoverSSE(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	cidr := r.URL.Query().Get("cidr")
+	enclaveID := r.URL.Query().Get("enclave_id")
+	if cidr == "" {
+		writeError(w, http.StatusBadRequest, "cidr query parameter required")
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeError(w, http.StatusInternalServerError, "streaming not supported")
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	progressCh := make(chan string, 256)
+	var discovered []*fleet.Asset
+
+	go func() {
+		assets, err := h.registry.DiscoverSubnet(cidr, enclaveID, progressCh)
+		if err != nil {
+			progressCh <- "error:" + err.Error()
+		} else {
+			discovered = assets
+		}
+		close(progressCh)
+	}()
+
+	for msg := range progressCh {
+		if strings.HasPrefix(msg, "found:") {
+			// "found:IP:port" → emit a DiscoveredHost SSE event for that IP.
+			parts := strings.SplitN(strings.TrimPrefix(msg, "found:"), ":", 2)
+			ip := parts[0]
+			port := 0
+			if len(parts) == 2 {
+				fmt.Sscanf(parts[1], "%d", &port)
+			}
+			hostEvent := map[string]any{
+				"ip":        ip,
+				"reachable": true,
+				"open_ports": []int{port},
+			}
+			b, _ := json.Marshal(hostEvent)
+			fmt.Fprintf(w, "data: %s\n\n", b)
+			flusher.Flush()
+		} else if strings.HasPrefix(msg, "error:") {
+			fmt.Fprintf(w, "data: {\"error\":%q}\n\n", strings.TrimPrefix(msg, "error:"))
+			flusher.Flush()
+		}
+	}
+
+	// Emit complete asset records as final events.
+	for _, a := range discovered {
+		hostEvent := map[string]any{
+			"ip":           a.IP,
+			"hostname":     a.Hostname,
+			"os":           a.OS,
+			"stig_profile": a.STIGProfile,
+			"reachable":    true,
+			"open_ports":   []int{a.ConnProfile.Port},
+			"services":     []string{string(a.ConnProfile.Protocol)},
+		}
+		b, _ := json.Marshal(hostEvent)
+		fmt.Fprintf(w, "data: %s\n\n", b)
+		flusher.Flush()
+	}
+}
+
+// handleConnectors: GET /api/v1/fleet/connectors → list saved connector configs
+//                   POST /api/v1/fleet/connectors → save a connector config
+func (h *FleetHandlers) handleConnectors(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.connMu.RLock()
+		out := make([]ConnectorConfig, 0, len(h.connectors))
+		for _, c := range h.connectors {
+			out = append(out, c)
+		}
+		h.connMu.RUnlock()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"connectors": out,
+			"count":      len(out),
+		})
+
+	case http.MethodPost:
+		var body struct {
+			Config     ConnectorConfig  `json:"config"`
+			Credential *json.RawMessage `json:"credential,omitempty"` // accepted but not persisted server-side
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+			return
+		}
+		cfg := body.Config
+		if cfg.ID == "" {
+			cfg.ID = fmt.Sprintf("conn-%x", time.Now().UnixNano())
+		}
+		if cfg.CreatedAt.IsZero() {
+			cfg.CreatedAt = time.Now().UTC()
+		}
+		h.connMu.Lock()
+		h.connectors[cfg.ID] = cfg
+		h.connMu.Unlock()
+		writeJSON(w, http.StatusCreated, cfg)
+
+	default:
+		methodNotAllowed(w)
+	}
+}
+
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -429,9 +741,6 @@ func methodNotAllowed(w http.ResponseWriter) {
 }
 
 func testConnectivity(a *fleet.Asset) string {
-	import_net := "net"
-	_ = import_net
-	// Use stdlib net to avoid import cycles — same probe used in DiscoverSubnet
 	addr := fmt.Sprintf("%s:%d", a.IP, a.ConnProfile.Port)
 	conn, err := dialTimeout(addr)
 	if err != nil {
@@ -439,6 +748,80 @@ func testConnectivity(a *fleet.Asset) string {
 	}
 	conn.Close()
 	return "ok"
+}
+
+// firstNonEmpty returns the first non-empty string from the arguments.
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// assetIDFromFields builds a stable asset ID from hostname + IP (mirrors fleet.assetID).
+func assetIDFromFields(hostname, ip string) string {
+	h := firstNonEmpty(hostname, ip)
+	return fmt.Sprintf("asset-%x", hashStr(h+ip))
+}
+
+// hashStr returns a cheap non-cryptographic hash for ID generation.
+func hashStr(s string) uint32 {
+	var h uint32 = 2166136261
+	for i := 0; i < len(s); i++ {
+		h ^= uint32(s[i])
+		h *= 16777619
+	}
+	return h
+}
+
+// readFirstLine reads one line from conn with the given deadline (for SSH banner grab).
+func readFirstLine(conn net.Conn, timeout time.Duration) string {
+	_ = conn.SetReadDeadline(time.Now().Add(timeout))
+	buf := make([]byte, 256)
+	n, _ := conn.Read(buf)
+	return strings.TrimSpace(string(buf[:n]))
+}
+
+// parseBannerOSHub extracts an OS name from an SSH server banner string.
+func parseBannerOSHub(banner string) string {
+	lower := strings.ToLower(banner)
+	switch {
+	case strings.Contains(lower, "ubuntu"):
+		return "Ubuntu Linux"
+	case strings.Contains(lower, "debian"):
+		return "Debian Linux"
+	case strings.Contains(lower, "rhel") || strings.Contains(lower, "red hat"):
+		return "Red Hat Enterprise Linux"
+	case strings.Contains(lower, "centos"):
+		return "CentOS Linux"
+	case strings.Contains(lower, "windows"):
+		return "Windows"
+	case strings.Contains(lower, "openssh"):
+		return "Linux"
+	}
+	return ""
+}
+
+// autoSTIG maps an OS string to a STIG profile key.
+func autoSTIG(os string) string {
+	lower := strings.ToLower(os)
+	switch {
+	case strings.Contains(lower, "rhel") || strings.Contains(lower, "red hat") || strings.Contains(lower, "centos"):
+		return "rhel9"
+	case strings.Contains(lower, "ubuntu"):
+		return "ubuntu"
+	case strings.Contains(lower, "windows server 2022"):
+		return "windows-server-2022"
+	case strings.Contains(lower, "windows server 2019"):
+		return "windows-server-2019"
+	case strings.Contains(lower, "windows"):
+		return "windows-server-2022"
+	case strings.Contains(lower, "linux"):
+		return "rhel9"
+	}
+	return "generic"
 }
 
 func computeSPRSFromRegistry(assets []*fleet.Asset) int {
