@@ -262,7 +262,7 @@ EXPOSE 8443/tcp
 # Health check for Kubernetes liveness/readiness probes
 # Uses sonar --help as health check (always succeeds if binary is intact)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["/usr/local/bin/sonar", "--help"] || exit 1
+    CMD ["/usr/local/bin/sonar", "--help"]
 
 # Set environment variables
 ENV KHEPRA_VERSION=${VERSION} \
