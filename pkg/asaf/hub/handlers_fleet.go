@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -61,15 +62,15 @@ func (h *FleetHandlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/fleet/assets", h.handleAssets)
 	mux.HandleFunc("/api/v1/fleet/assets/import", h.handleImport)
 	mux.HandleFunc("/api/v1/fleet/assets/discover", h.handleDiscover)
-	mux.HandleFunc("/api/v1/fleet/assets/test", h.handleTestPreEnroll)   // pre-enrollment test (no asset ID)
+	mux.HandleFunc("/api/v1/fleet/assets/test", h.handleTestPreEnroll) // pre-enrollment test (no asset ID)
 	mux.HandleFunc("/api/v1/fleet/scan", h.handleScan)
 	mux.HandleFunc("/api/v1/fleet/boundary/attest", h.handleAttest)
 	mux.HandleFunc("/api/v1/fleet/boundary/declaration", h.handleDeclaration)
 	mux.HandleFunc("/api/v1/fleet/sprs", h.handleSPRS)
 	mux.HandleFunc("/api/v1/fleet/sprs/simulate", h.handleSimulate)
-	mux.HandleFunc("/api/v1/fleet/discover", h.handleDiscoverSSE)        // GET SSE: ?cidr=
-	mux.HandleFunc("/api/v1/fleet/connectors", h.handleConnectors)       // GET list / POST save
-	mux.HandleFunc("/api/v1/fleet/assets/", h.handleAssetByID)           // /api/v1/fleet/assets/{id}/*
+	mux.HandleFunc("/api/v1/fleet/discover", h.handleDiscoverSSE)  // GET SSE: ?cidr=
+	mux.HandleFunc("/api/v1/fleet/connectors", h.handleConnectors) // GET list / POST save
+	mux.HandleFunc("/api/v1/fleet/assets/", h.handleAssetByID)     // /api/v1/fleet/assets/{id}/*
 }
 
 // ── Enclaves ──────────────────────────────────────────────────────────────────
@@ -104,7 +105,8 @@ func (h *FleetHandlers) handleEnclaves(w http.ResponseWriter, r *http.Request) {
 // ── Assets ────────────────────────────────────────────────────────────────────
 
 // handleAssets: GET → list assets (query: enclave_id, category)
-//               POST → enroll single asset (accepts fleet.Asset JSON OR AddAssetRequest JSON)
+//
+//	POST → enroll single asset (accepts fleet.Asset JSON OR AddAssetRequest JSON)
 func (h *FleetHandlers) handleAssets(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -164,8 +166,9 @@ func (h *FleetHandlers) handleAssets(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleAssetByID: PUT /api/v1/fleet/assets/{id}/category
-//                  POST /api/v1/fleet/assets/{id}/test
-//                  DELETE /api/v1/fleet/assets/{id}
+//
+//	POST /api/v1/fleet/assets/{id}/test
+//	DELETE /api/v1/fleet/assets/{id}
 func (h *FleetHandlers) handleAssetByID(w http.ResponseWriter, r *http.Request) {
 	// Parse path: /api/v1/fleet/assets/{id}/{action}
 	trimmed := strings.TrimPrefix(r.URL.Path, "/api/v1/fleet/assets/")
@@ -245,10 +248,10 @@ func (h *FleetHandlers) handleAssetByID(w http.ResponseWriter, r *http.Request) 
 // handleImport: POST /api/v1/fleet/assets/import
 //
 // Accepts three body formats:
-//   1. JSON  {"rows":[{hostname,ip_address,os,stig_profile,enclave},...], "enclave_id":"..."}
-//      — used by the desktop HubClient (pre-parsed rows)
-//   2. multipart/form-data with file field "csv"
-//   3. raw CSV body
+//  1. JSON  {"rows":[{hostname,ip_address,os,stig_profile,enclave},...], "enclave_id":"..."}
+//     — used by the desktop HubClient (pre-parsed rows)
+//  2. multipart/form-data with file field "csv"
+//  3. raw CSV body
 func (h *FleetHandlers) handleImport(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w)
@@ -485,9 +488,9 @@ func (h *FleetHandlers) handleAttest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		OrgName     string `json:"org_name"`
-		CAGECode    string `json:"cage_code"`
-		DeclaredBy  string `json:"declared_by"`
+		OrgName    string `json:"org_name"`
+		CAGECode   string `json:"cage_code"`
+		DeclaredBy string `json:"declared_by"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
@@ -571,7 +574,7 @@ func (h *FleetHandlers) handleTestPreEnroll(w http.ResponseWriter, r *http.Reque
 	}
 
 	start := time.Now()
-	addr := fmt.Sprintf("%s:%d", host, port)
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	latencyMs := time.Since(start).Milliseconds()
 	if err != nil {
@@ -652,8 +655,8 @@ func (h *FleetHandlers) handleDiscoverSSE(w http.ResponseWriter, r *http.Request
 				fmt.Sscanf(parts[1], "%d", &port)
 			}
 			hostEvent := map[string]any{
-				"ip":        ip,
-				"reachable": true,
+				"ip":         ip,
+				"reachable":  true,
 				"open_ports": []int{port},
 			}
 			b, _ := json.Marshal(hostEvent)
@@ -683,7 +686,8 @@ func (h *FleetHandlers) handleDiscoverSSE(w http.ResponseWriter, r *http.Request
 }
 
 // handleConnectors: GET /api/v1/fleet/connectors → list saved connector configs
-//                   POST /api/v1/fleet/connectors → save a connector config
+//
+//	POST /api/v1/fleet/connectors → save a connector config
 func (h *FleetHandlers) handleConnectors(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -741,7 +745,7 @@ func methodNotAllowed(w http.ResponseWriter) {
 }
 
 func testConnectivity(a *fleet.Asset) string {
-	addr := fmt.Sprintf("%s:%d", a.IP, a.ConnProfile.Port)
+	addr := net.JoinHostPort(a.IP, strconv.Itoa(a.ConnProfile.Port))
 	conn, err := dialTimeout(addr)
 	if err != nil {
 		return "unreachable"
