@@ -1,0 +1,24 @@
+# sovereignty_allowlist.txt — deliberately-acknowledged vendor-hosted surfaces.
+#
+# Every line here is a CTO-reviewed exception to the default rule "no ASAF service
+# on a vendor host." Each entry MUST state a data classification. Only CONTROL-PLANE
+# and DEMO/SYNTHETIC surfaces belong here. A customer CUI data plane may NEVER be
+# allowlisted onto a vendor host — that is a hard rule, not an exception you can grant.
+#
+# Format:  <host>  <plane>  <data-classification>  <owner>  <note>
+# Planes:  control-plane | demo-discovery
+# Data classifications: NONE | LICENSE-METADATA | SYNTHETIC | DEMO
+
+telemetry.souhimbou.ai   control-plane   LICENSE-METADATA   platform   License validation + heartbeat only. No customer CUI. Offline verification path must remain available (air-gap capability).
+agent.souhimbou.ai       control-plane   LICENSE-METADATA   platform   cloudflared tunnel to telemetry/licensing. Control plane only.
+agent.souhimbou.org      demo-discovery  DEMO               platform   NEXT_PUBLIC_ASAF_API_URL in root .env. NOTE: .org/.ai TLD inconsistency vs agent.souhimbou.ai — consolidate to one TLD. Demo dashboard API only, no customer CUI.
+get.nouchix.com          control-plane   NONE               platform   Installer + checksums + docs mirror (static). No customer data.
+webhook.nouchix.com      control-plane   NONE               platform   Stripe webhook receiver (stateless, idempotent). No CUI.
+
+# DEMO / DISCOVERY — public, marketed endpoints. MUST carry only synthetic/prospect-supplied
+# public data, MUST be visibly marked "DEMO — do not submit CUI", and MUST keep their DAG/
+# storage isolated from any customer artifact. These are product-discovery surfaces, not a
+# customer's compliance Hub.
+mcp.souhimbou.ai         demo-discovery  DEMO               platform   Public MCP tool endpoint (KHEPRA_DAG_SEED_DEMO=true). Discovery/demo only. TRL10 REQUIREMENT: input guard + "no CUI" banner + isolated demo DAG. See TRL10_SOVEREIGNTY_BOUNDARY_2026-07-02.md.
+gateway.souhimbou.ai     demo-discovery  DEMO               platform   Public eval scan (ASAF_ALLOW_EVAL_WITHOUT_LICENSE=true). TRL10 REQUIREMENT: block real-target/credential submission, tier-gate authenticated scans, "no CUI" banner. See decision doc.
+staging.souhimbou.ai     demo-discovery  SYNTHETIC          platform   CI DAST target (ZAP). Non-production, synthetic only.
