@@ -1,9 +1,9 @@
-// Package hub — KASA engine status handlers.
+// package stargate — KASA engine status handlers.
 // Mounted at /api/v1/kasa/* by cmd/asaf-hub/main.go.
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
 // Patent Pending: USPTO #73565085
-package hub
+package stargate
 
 import (
 	"encoding/json"
