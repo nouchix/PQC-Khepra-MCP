@@ -3,7 +3,6 @@ module github.com/nouchix/PQC-Khepra-MCP
 go 1.26.4
 
 require (
-	github.com/EtherVerseCodeMate/giza-cyber-shield v0.0.0-00010101000000-000000000000
 	github.com/anchore/clio v0.1.1
 	github.com/anchore/grype v0.115.0
 	github.com/anchore/syft v1.46.0
