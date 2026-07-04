@@ -1,3 +1,4 @@
+"use client";
 import { useEffect } from 'react';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useResourceTracker } from '@/hooks/useResourceTracker';

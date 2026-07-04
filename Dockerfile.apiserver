@@ -1,0 +1,64 @@
+# syntax=docker/dockerfile:1
+# Dockerfile.apiserver — SEKHEM Gateway (cmd/apiserver, saas build tag)
+#
+# Build:  docker build -f Dockerfile.apiserver -t ghcr.io/nouchix/sekhem-gateway:latest .
+# Run (local):
+#   docker run --rm -p 8080:8080 \
+#     -e TLS_ENABLED=false \
+#     -e PORT=8080 \
+#     -e KHEPRA_SERVICE_SECRET=changeme \
+#     ghcr.io/nouchix/sekhem-gateway:latest
+
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /src
+
+# Build tools
+RUN apk add --no-cache git
+
+# Cache deps before copying source
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY pkg/ ./pkg/
+COPY cmd/ ./cmd/
+
+ARG VERSION=dev
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+
+# Build apiserver with saas tag — single static binary, no CGO
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -tags saas \
+    -trimpath \
+    -ldflags="-s -w \
+      -X main.Version=${VERSION} \
+      -X main.BuildDate=${BUILD_DATE} \
+      -X main.Commit=${VCS_REF}" \
+    -o /out/sekhem-gateway \
+    ./cmd/apiserver
+
+# ── Stage 2: Runtime ────────────────────────────────────────────────────────
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata curl
+
+# Non-root execution (UID 1001, GID 0 for OpenShift compatibility)
+RUN addgroup -S khepra && adduser -S -u 1001 -G khepra khepra
+
+WORKDIR /app
+COPY --from=builder /out/sekhem-gateway /app/sekhem-gateway
+
+# Persistent storage for DAG + keys
+RUN mkdir -p /var/lib/khepra && chown 1001:0 /var/lib/khepra && chmod 775 /var/lib/khepra
+
+USER 1001
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["/app/sekhem-gateway"]

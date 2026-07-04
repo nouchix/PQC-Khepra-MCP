@@ -1,3 +1,4 @@
+"use client";
 import { useLocation, useNavigate } from '@/lib/router-compat';
 import { useEffect } from 'react';
 import { Shield, Home, ArrowLeft } from 'lucide-react';

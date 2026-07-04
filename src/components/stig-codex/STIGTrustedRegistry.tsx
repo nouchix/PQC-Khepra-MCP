@@ -1,3 +1,4 @@
+"use client";
 /**
  * STIG Trusted Registry Component
  * Manages DISA-approved STIG configurations and AI verification

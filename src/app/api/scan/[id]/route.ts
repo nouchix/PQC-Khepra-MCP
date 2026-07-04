@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 // NOTE: 172.19.0.1 is the NPM network gateway (mesh_nouchix-dmz), NOT Docker's default
 // bridge (172.17.0.1). Using the wrong IP causes silent 502s if ASAF_INTERNAL_API_URL is unset.
-const INTERNAL_API = process.env.ASAF_INTERNAL_API_URL || 'https://souhimbou-ai.fly.dev';
+const INTERNAL_API = process.env.ASAF_INTERNAL_API_URL || 'https://mcp.souhimbou.ai';
 
 export async function GET(
   _req: NextRequest,

@@ -1,18 +1,21 @@
-import { useNavigate } from '@/lib/router-compat';
-import { Button } from '@/components/ui/button';
-import { Shield, Menu, LogIn, X } from 'lucide-react';
-import { HeroSection } from '@/components/funnel/HeroSection';
-import { CoreBenefits } from '@/components/funnel/CoreBenefits';
-import { SystemOverview } from '@/components/funnel/SystemOverview';
-import { PilotProgram } from '@/components/funnel/PilotProgram';
-import { TrustAnchors } from '@/components/funnel/TrustAnchors';
-import { FounderNarrative } from '@/components/funnel/FounderNarrative';
-import { FinalCTABar } from '@/components/funnel/FinalCTABar';
-import { FooterConversion } from '@/components/funnel/FooterConversion';
-import { useState } from 'react';
+﻿"use client";
+import { useNavigate } from "@/lib/router-compat";
+import { Button } from "@/components/ui/button";
+import { Shield, Menu, LogIn, X, LayoutDashboard } from "lucide-react";
+import { HeroSection } from "@/components/funnel/HeroSection";
+import { CoreBenefits } from "@/components/funnel/CoreBenefits";
+import { SystemOverview } from "@/components/funnel/SystemOverview";
+import { PilotProgram } from "@/components/funnel/PilotProgram";
+import { TrustAnchors } from "@/components/funnel/TrustAnchors";
+import { FounderNarrative } from "@/components/funnel/FounderNarrative";
+import { FinalCTABar } from "@/components/funnel/FinalCTABar";
+import { FooterConversion } from "@/components/funnel/FooterConversion";
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const NewHomepage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -34,9 +37,9 @@ const NewHomepage = () => {
                 className="h-10 w-auto"
               />
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-white">ASAF</span>
+                <span className="text-xl font-bold text-white">SouHimBou</span>
                 <span className="text-xs bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-500/30 font-mono">
-                  by NouchiX
+                  AI
                 </span>
               </div>
             </div>
@@ -49,15 +52,25 @@ const NewHomepage = () => {
               <a href="#founder" className="text-gray-300 hover:text-[#00ffff] transition-colors">
                 About
               </a>
-              <button onClick={() => navigate('/blog')} className="text-gray-300 hover:text-[#00ffff] transition-colors">
+              <button onClick={() => navigate("/blog")} className="text-gray-300 hover:text-[#00ffff] transition-colors">
                 Blog
               </button>
-              <button onClick={() => navigate('/auth')} className="text-gray-300 hover:text-[#00ffff] transition-colors flex items-center gap-1.5">
-                <LogIn className="h-4 w-4" />
-                Sign In
-              </button>
+              {user ? (
+                <button
+                  onClick={() => navigate("/soc")}
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-medium"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  SOC Dashboard
+                </button>
+              ) : (
+                <button onClick={() => navigate("/auth")} className="text-gray-300 hover:text-[#00ffff] transition-colors flex items-center gap-1.5">
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </button>
+              )}
               <Button
-                onClick={() => navigate('/billing')}
+                onClick={() => navigate("/billing")}
                 variant="outline"
                 size="sm"
                 className="border-[#00ffff]/50 text-[#00ffff] hover:bg-[#00ffff]/10"
@@ -65,11 +78,11 @@ const NewHomepage = () => {
                 Pricing
               </Button>
               <Button
-                onClick={() => navigate('/onboarding')}
+                onClick={() => navigate(user ? "/soc" : "/auth")}
                 size="sm"
                 className="bg-gradient-to-r from-[#d4af37] to-[#b8860b] hover:from-[#c49b2d] hover:to-[#9d7509] text-black font-semibold"
               >
-                Scan Free
+                {user ? "Open SOC" : "Scan Free"}
               </Button>
             </nav>
 
@@ -77,7 +90,7 @@ const NewHomepage = () => {
             <button
               className="md:hidden text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -93,15 +106,22 @@ const NewHomepage = () => {
               <a href="#founder" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-[#00ffff] transition-colors">
                 Founder
               </a>
-              <button onClick={() => { navigate('/blog'); setMobileMenuOpen(false); }} className="text-gray-300 hover:text-[#00ffff] transition-colors text-left">
+              <button onClick={() => { navigate("/blog"); setMobileMenuOpen(false); }} className="text-gray-300 hover:text-[#00ffff] transition-colors text-left">
                 Blog
               </button>
-              <button onClick={() => { navigate('/auth'); setMobileMenuOpen(false); }} className="text-gray-300 hover:text-[#00ffff] transition-colors text-left flex items-center gap-1.5">
-                <LogIn className="h-4 w-4" />
-                Sign In
-              </button>
+              {user ? (
+                <button onClick={() => { navigate("/soc"); setMobileMenuOpen(false); }} className="text-cyan-400 hover:text-cyan-300 transition-colors text-left flex items-center gap-1.5 font-medium">
+                  <LayoutDashboard className="h-4 w-4" />
+                  SOC Dashboard
+                </button>
+              ) : (
+                <button onClick={() => { navigate("/auth"); setMobileMenuOpen(false); }} className="text-gray-300 hover:text-[#00ffff] transition-colors text-left flex items-center gap-1.5">
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </button>
+              )}
               <Button
-                onClick={() => { navigate('/dod'); setMobileMenuOpen(false); }}
+                onClick={() => { navigate("/dod"); setMobileMenuOpen(false); }}
                 variant="outline"
                 size="sm"
                 className="border-[#00ffff]/50 text-[#00ffff] hover:bg-[#00ffff]/10 w-full"
@@ -110,11 +130,11 @@ const NewHomepage = () => {
                 DoD Center
               </Button>
               <Button
-                onClick={() => { navigate('/onboarding'); setMobileMenuOpen(false); }}
+                onClick={() => { navigate(user ? "/soc" : "/auth"); setMobileMenuOpen(false); }}
                 size="sm"
                 className="bg-gradient-to-r from-[#d4af37] to-[#b8860b] hover:from-[#c49b2d] hover:to-[#9d7509] text-black font-semibold w-full"
               >
-                Apply for Pilot
+                {user ? "Open SOC" : "Scan Free"}
               </Button>
             </nav>
           )}

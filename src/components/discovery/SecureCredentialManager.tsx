@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -304,7 +305,7 @@ export const SecureCredentialManager: React.FC<SecureCredentialManagerProps> = (
                 ...newCredential,
                 credentials: { ...newCredential.credentials, service_account_json: e.target.value }
               })}
-              placeholder='{"type": "service_account", ...}'
+              placeholder='Paste cloud provider JSON credentials here'
               rows={8}
             />
           </div>

@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { useSecurityMonitor } from '@/hooks/useSecurityMonitor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

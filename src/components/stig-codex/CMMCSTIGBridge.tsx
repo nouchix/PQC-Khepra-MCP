@@ -1,3 +1,4 @@
+"use client";
 /**
  * CMMC-to-STIG Bridge Component
  * Transforms CMMC mandates into actionable STIG implementations

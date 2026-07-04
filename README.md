@@ -5,8 +5,9 @@
 [![License](https://img.shields.io/badge/License-Community%20%2F%20Commercial-green?style=for-the-badge)](https://nouchix.com)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
+[![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
 
-**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings.**
+**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. 72 tools. v2.0.0.**
 
 Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
 The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
@@ -15,15 +16,19 @@ The only MCP compliance server that runs on your metal — with the **World's Fi
 > 17 controls covering CNSA 2.0, FIPS 203/204/205, and the NSA's May 2026 MCP security advisory.  
 > The world's first DoD-style Post-Quantum Cryptography STIG, including the first PQC controls for agentic AI and MCP deployments.
 
+> **Live hosted endpoint:** `https://mcp.souhimbou.ai/sse` — zero install, connect in 30 seconds.  
+> Self-host for sovereign/air-gap: [Docker](#option-a-docker-recommended) or [binary](#option-b-compiled-binary).
+
 ---
+
 
 ## Tiers
 
 | Tier | License Key | Tools | Telemetry | Egress |
 |------|-------------|-------|-----------|--------|
 | **Community** | ❌ Not required | `pqc_stig` + 12 core tools | Opt-in Dark Crypto Intel | Zero (sovereign mode) |
-| **Sovereign** | ✅ Required | All 34 tools | Zero | Zero |
-| **Pharaoh** | ✅ Required | All 34 tools + priority support | Zero | Zero |
+| **Sovereign** | ✅ Required | All 72 tools | Zero | Zero |
+| **Pharaoh** | ✅ Required | All 72 tools + priority support + SLA | Zero | Zero |
 
 > **Community tier is free.** Run `pqc_stig` to assess your project's quantum readiness against  
 > **PQC-01-STIG-V1R1** — the World's First DoD-style Post-Quantum Cryptography STIG — no license key needed.
@@ -45,15 +50,42 @@ KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. 
 
 ---
 
-## Installation
+## Quickstart — Hosted Endpoint (Zero Install)
 
-There are two delivery methods: **Docker** (recommended, no build required) and **compiled binary** (fastest startup, required for air-gap). Both support the same environment variables and all MCP clients.
+The fastest path to a live compliance tool in your AI client. No Docker, no binary, no build:
+
+```json
+{
+  "mcpServers": {
+    "khepra": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.souhimbou.ai/sse"]
+    }
+  }
+}
+```
+
+Or if your client supports native SSE transport:
+```
+https://mcp.souhimbou.ai/sse
+```
+
+Health check: `https://mcp.souhimbou.ai/mcp/v1/health`
+
+> **Data note:** The hosted endpoint runs in `edge` mode — DAG is in-memory and ephemeral. For persistent, signed audit trails and air-gap deployment, use the self-hosted options below.
+
+---
+
+## Self-Hosted Installation
+
+For sovereign/air-gap deployment: **Docker** (recommended, no build required) or **compiled binary** (fastest startup, SCIF-ready). Both support the same environment variables and all MCP clients.
 
 Choose your path:
 
 | Method | Best For | Startup |
 |--------|----------|---------|
-| [Docker](#option-a-docker-recommended) | Most users, easiest setup | ~2s |
+| [Hosted endpoint](#quickstart--hosted-endpoint-zero-install) | Fastest start, cloud tools | Instant |
+| [Docker](#option-a-docker-recommended) | Most users, easiest self-host | ~2s |
 | [Compiled Binary](#option-b-compiled-binary) | Air-gap, SCIF, performance | ~300ms |
 
 ---
@@ -362,68 +394,60 @@ Config file: `~/.continue/config.json` — add to the `experimental.modelContext
 
 ### Cloud / SaaS AI Tools (Claude.ai, ChatGPT, Gemini, etc.)
 
-Cloud-based AI tools cannot directly spawn local subprocesses — they need an **HTTP/SSE bridge** to reach your local KHEPRA server. There are two approaches:
+Use the **live hosted endpoint** at `mcp.souhimbou.ai` — no setup required:
 
-#### Approach 1 — `mcp-remote` proxy (easiest, no server required)
+#### Option 1 — Live hosted endpoint (recommended, zero setup)
 
-[`mcp-remote`](https://github.com/geelen/mcp-remote) tunnels a local stdio MCP server over HTTPS, making it accessible to any cloud tool. This is what the Kaggle MCP entry in the config above uses.
+```json
+{
+  "mcpServers": {
+    "khepra": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.souhimbou.ai/sse"]
+    }
+  }
+}
+```
+
+Or direct SSE URL for tools that accept it:
+```
+https://mcp.souhimbou.ai/sse
+```
+
+| Cloud Tool | Where to add MCP URL |
+|------------|---------------------|
+| Claude.ai (Pro/Team) | Settings → Integrations → MCP Servers |
+| Cursor | `.cursor/mcp.json` → `url` field |
+| OpenAI Assistants | API `tools` field with `type: "mcp"` |
+| Glama.ai | Workspace → MCP Servers |
+| Smithery.ai | Catalog → Self-hosted server |
+
+#### Option 2 — `mcp-remote` proxy (local binary behind the bridge)
+
+If you need sovereign mode (zero egress) proxied to a cloud tool:
 
 ```bash
 # Install once
 npm install -g mcp-remote
 
-# Start the bridge (exposes your local KHEPRA server at https://localhost:3000)
+# Bridge your local sovereign instance
 KHEPRA_MODE=sovereign mcp-remote \
   --server "docker run --rm -i -e KHEPRA_MODE=sovereign ghcr.io/nouchix/pqc-khepra-mcp:latest" \
   --port 3000
+
+# Point cloud tool to:
+# http://localhost:3000/sse
 ```
 
-Then in Claude.ai (or any cloud tool that accepts MCP SSE URLs):
+> **Security note:** In `sovereign`/`ironbank` mode, KHEPRA makes zero egress calls — only the bridge connection to the cloud tool carries data.
 
-```
-MCP Server URL: http://localhost:3000/sse
-```
-
-> **Security note:** `mcp-remote` binds to localhost by default. Do not expose it to the public internet without TLS and authentication. In sovereign/ironbank mode, KHEPRA itself makes zero egress calls — only the bridge connection to the cloud tool carries data.
-
-#### Approach 2 — Self-hosted HTTP/SSE endpoint
-
-For teams running KHEPRA on a shared server (e.g., Hostinger VPS at `IP_ADDRESS`), start the server in HTTP mode:
-
-```bash
-# On your server — start KHEPRA in HTTP/SSE mode
-docker run -d \
-  -e KHEPRA_MODE=hybrid \
-  -e KHEPRA_HTTP_PORT=8443 \
-  -e KHEPRA_LICENSE_KEY="${KHEPRA_LICENSE_KEY}" \
-  -p 8443:8443 \
-  ghcr.io/nouchix/pqc-khepra-mcp:latest
-
-# Point your cloud tool to:
-# https://your-server.com:8443/sse
-```
-
-Then configure any cloud AI tool that supports MCP SSE:
-
-| Cloud Tool | Where to add MCP URL |
-|------------|---------------------|
-| Claude.ai (Pro/Team) | Settings → Integrations → MCP Servers |
-| OpenAI Assistants | API `tools` field with `type: "mcp"` |
-| Gemini for Workspace | Extensions → Custom MCP (preview) |
-| Glama.ai | Workspace → MCP Servers |
-| Smithery.ai | Catalog → Self-hosted server |
-
-> **Note:** HTTP/SSE mode (`hybrid`/`edge`) enables external connections. Always terminate TLS at a reverse proxy (nginx/Caddy) and restrict access by IP or API key. The `sovereign` mode refuses HTTP connections by design — air-gap integrity is preserved.
-
-#### Approach 3 — Smithery / MCP Registry (Community tier only)
+#### Option 3 — Smithery / MCP Registry (Community tier)
 
 KHEPRA is listed on [Smithery.ai](https://smithery.ai) and the [MCP Registry](https://registry.modelcontextprotocol.io). Cloud tools that support registry-based discovery can install it directly:
 
 ```
 Registry ID: io.github.nouchix/pqc-khepra-mcp
 ```
-
-This runs the Community tier via Smithery's managed infrastructure. For sovereign deployment (air-gap, your data stays on your metal), use Options A or B above.
 
 ---
 

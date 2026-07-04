@@ -1,6 +1,4 @@
 "use client";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import SimpleBilling from "@/pages/SimpleBilling";
-export default function Page() {
-  return <ProtectedRoute><SimpleBilling /></ProtectedRoute>;
-}
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

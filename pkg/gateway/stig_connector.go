@@ -27,6 +27,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
 
 // ─── Configuration ──────────────────────────────────────────────────────────────
@@ -722,7 +724,7 @@ func (c *STIGConnector) logAudit(eventType, identity string, details map[string]
 	}
 	c.auditMu.Unlock()
 
-	log.Printf("[STIGConnector] %q | identity=%q | %v", eventType, identity, details)
+	log.Printf("[STIGConnector] %q | identity=%q | %v", khlog.SanitizeForLog(eventType), khlog.SanitizeForLog(identity), details)
 }
 
 // ─── HTTP Handler (Zone 2 → Zone 1 interface on port 8443) ──────────────────────

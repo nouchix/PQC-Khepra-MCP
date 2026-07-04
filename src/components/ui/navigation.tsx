@@ -1,3 +1,4 @@
+"use client";
 import { Fragment } from 'react';
 import { useNavigate, useLocation } from '@/lib/router-compat';
 import { Button } from '@/components/ui/button';

@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode, useMemo } from 'react';
+import { useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContext } from './AuthContext';
@@ -7,105 +7,110 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * AuthProvider — manages the Supabase auth session lifecycle.
+ *
+ * Dual-mode compatible:
+ * - SaaS mode (NEXT_PUBLIC_SUPABASE_URL set): real Supabase auth events fire.
+ * - Sovereign mode (stub): onAuthStateChange never fires; user stays null.
+ *
+ * Callbacks (signIn, signUp, signOut, resetPassword) are stable across
+ * renders via useCallback so they are safe to pass as deps to child effects.
+ *
+ * IP assignment: SOUHIMBOU DOH KONE LLC. Licensed to SecRed Knowledge Inc.
+ */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
+    // Subscribe to auth state changes FIRST so we don't miss events that
+    // fire synchronously during getSession() on some Supabase versions.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
         setLoading(false);
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Hydrate from existing session (e.g. returning user with localStorage token)
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    console.log('[SOUHIMBOU-AUTH] Checking Sunsum Vitality for:', email);
+  // ── Stable auth actions ──────────────────────────────────────────────────────
 
-    // Check if Sunsum is diminished (account locked) before attempting entry ritual
+  const signIn = useCallback(async (email: string, password: string) => {
+    console.log('[SouHimBou-Auth] signIn:', email);
+
+    // Lockout check via ASAF RPC (non-fatal — continues if RPC unavailable)
     try {
       const { data: isDiminished, error: lockError } = await supabase.rpc('is_sunsum_diminished', {
-        user_email: email
+        user_email: email,
       });
-
-      if (lockError) {
-        console.warn('[SOUHIMBOU-AUTH] Sunsum check failed (non-critical):', lockError.message);
-        // Continue with ritual even if check fails
-      } else if (isDiminished) {
-        console.error('[SOUHIMBOU-AUTH] Sunsum is diminished. Entry denied.');
-        return { error: { message: 'Sunsum is temporarily diminished due to ritual lapses. Please seek harmony and try again later.' } };
+      if (!lockError && isDiminished) {
+        return { error: { message: 'Account temporarily locked due to too many failed attempts. Please try again later.' } };
       }
-    } catch (lockCheckError) {
-      console.warn('[SOUHIMBOU-AUTH] Could not verify Sunsum status:', lockCheckError);
-      // Continue with ritual even if check fails
+    } catch {
+      // Non-critical — proceed
     }
 
-    console.log('[SOUHIMBOU-AUTH] Performing Entry Ritual (signInWithPassword)...');
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      console.error('[SOUHIMBOU-AUTH] Entry ritual failed:', error.message, error);
-
-      // Record ritual lapse
+      // Record failure (non-fatal)
       try {
         await supabase.rpc('record_ritual_lapse', {
           user_email: email,
           client_ip: null,
-          client_user_agent: navigator.userAgent
+          client_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
         });
-      } catch (recordError) {
-        console.warn('[SOUHIMBOU-AUTH] Could not record ritual lapse:', recordError);
+      } catch {
+        // Non-critical
       }
-    } else {
-      console.log('[SOUHIMBOU-AUTH] Entry successful. Sunsum harmonized for:', data.user?.email);
     }
 
-    return { error };
-  };
+    return { data, error };
+  }, []);
 
-  const signUp = async (email: string, password: string, metadata?: any) => {
-    const redirectUrl = `${globalThis.location.origin}/auth/callback`;
+  const signUp = useCallback(async (email: string, password: string, metadata?: Record<string, unknown>) => {
+    const redirectUrl = typeof globalThis !== 'undefined' && globalThis.location
+      ? `${globalThis.location.origin}/auth/callback`
+      : 'https://souhimbou.ai/auth/callback';
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: metadata
-      }
+        data: metadata,
+      },
     });
-    return { error };
-  };
+    return { data, error };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     return { error };
-  };
+  }, []);
 
-  const resetPassword = async (email: string) => {
-    const redirectUrl = `${globalThis.location.origin}/auth/callback`;
+  const resetPassword = useCallback(async (email: string) => {
+    const redirectUrl = typeof globalThis !== 'undefined' && globalThis.location
+      ? `${globalThis.location.origin}/auth/reset-password`
+      : 'https://souhimbou.ai/auth/reset-password';
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl
+      redirectTo: redirectUrl,
     });
     return { error };
-  };
+  }, []);
 
   const contextValue = useMemo(() => ({
     user,
@@ -114,8 +119,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signIn,
     signUp,
     signOut,
-    resetPassword
-  }), [user, session, loading]);
+    resetPassword,
+  }), [user, session, loading, signIn, signUp, signOut, resetPassword]);
 
   return (
     <AuthContext.Provider value={contextValue}>

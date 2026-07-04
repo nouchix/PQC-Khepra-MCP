@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { TELEMETRY_ENABLED } from '@/lib/telemetry';

@@ -37,6 +37,7 @@ pkg/llm/mock/
 !docs/CCI_to_NIST53.csv
 !docs/NIST53_to_171.csv
 !docs/NIST53_to_172.csv
+!docs/dag-viewer.html
 
 # Include ML service, models, data, and entrypoint for Fly.io
 !services/ml_anomaly/
