@@ -1,3 +1,4 @@
 "use client";
-import LaunchingVDP from "@/pages/blog/LaunchingVDP";
-export default LaunchingVDP;
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useSearchParams } from '@/lib/router-compat';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';

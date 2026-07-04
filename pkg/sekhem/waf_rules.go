@@ -189,9 +189,11 @@ func (r *invalidUTF8Rule) Inspect(req *http.Request) *WAFRuleResult {
 //
 // Populated from compile-time constants; operator can extend via WithAllowedHosts.
 var defaultAllowedHosts = map[string]bool{
-	"agent.souhimbou.ai":    true,
+	"mcp.souhimbou.ai":       true, // production MCP server (Caddy → khepra-mcp)
+	"souhimbou.ai":           true, // main marketing/app domain (Next.js → MCP proxy)
+	"www.souhimbou.ai":       true,
+	"agent.souhimbou.ai":     true,
 	"souhimbou.org":          true,
-	"www.souhimbou.ai":      true,
 	"adinkhepra.com":         true,
 	"www.adinkhepra.com":     true,
 	"souhimbou-ai.fly.dev":   true,  // Fly.io deployment (Next.js proxy target)

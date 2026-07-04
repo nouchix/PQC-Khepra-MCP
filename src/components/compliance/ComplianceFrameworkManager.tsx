@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { useComplianceFrameworks } from '@/hooks/useComplianceFrameworks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

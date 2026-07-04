@@ -1,13 +1,56 @@
-# Caddyfile — reverse proxy for khepra-mcp
-# Caddy auto-provisions Let's Encrypt TLS for mcp.souhimbou.ai
+# Caddyfile — Khepra Protocol reverse proxy
+# Auto-provisions Let's Encrypt TLS for all domains
 
+# ── mcp.souhimbou.ai — khepra-mcp MCP/HTTP server ──────────────────────────
 mcp.souhimbou.ai {
-    reverse_proxy khepra-mcp:8080
+    reverse_proxy deploy-khepra-mcp-1:8080 {
+        # Required for SSE (Server-Sent Events): disable Caddy response buffering.
+        # Without this, Caddy holds the stream causing ECONNRESET on mcp-remote.
+        flush_interval -1
+    }
+
+    @cors_preflight method OPTIONS
+    handle @cors_preflight {
+        header Access-Control-Allow-Origin *
+        header Access-Control-Allow-Methods *
+        header Access-Control-Allow-Headers *
+        header Access-Control-Max-Age 86400
+        respond 204
+    }
 
     header {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
-        Access-Control-Allow-Origin https://smithery.ai
+        Access-Control-Allow-Origin *
+    }
+}
+
+# ── gateway.souhimbou.ai — SEKHEM REST/SSE/WS apiserver ─────────────────────
+# Routes all /api/v1/* traffic including the new agent scan surface:
+#   POST /api/v1/scan/agent
+#   GET  /api/v1/scan/agent/stream  (SSE — buffering disabled)
+#   GET  /api/v1/scan/agent/:id
+gateway.souhimbou.ai {
+    reverse_proxy deploy-sekhem-gateway-1:9090 {
+        # Disable response buffering for SSE streams
+        flush_interval -1
+    }
+
+    @cors_preflight method OPTIONS
+    handle @cors_preflight {
+        header Access-Control-Allow-Origin *
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        header Access-Control-Allow-Headers "Authorization, Content-Type, X-OpenRouter-Key, X-Org-Id"
+        header Access-Control-Max-Age 86400
+        respond 204
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Headers "Authorization, Content-Type, X-OpenRouter-Key, X-Org-Id"
     }
 }

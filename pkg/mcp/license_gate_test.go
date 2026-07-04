@@ -156,16 +156,32 @@ func toolCall(name string) MCPToolCall {
 	}
 }
 
+// toolCallConfirmed wraps toolCall with the _confirm:true argument required by
+// the Step 4.5 RiskDestructive confirmation gate for acp_issue/acp_revoke/nhi_revoke.
+func toolCallConfirmed(name string) MCPToolCall {
+	c := toolCall(name)
+	c.Args["_confirm"] = true
+	return c
+}
+
 // ─── Community Tier ───────────────────────────────────────────────────────────
 
-func TestLicense_Community_ErtScan_Allowed(t *testing.T) {
+// TestLicense_Community_ErtScan_Blocked verifies that ert_scan requires TierEnterprise
+// (Pharaoh) and is correctly blocked at Community tier.
+// Note: ert_scan is gated at TierEnterprise per mcp_gate.go mcpToolTier table.
+// The free Community equivalent is ert_crypto (crypto-only lane).
+func TestLicense_Community_ErtScan_Blocked(t *testing.T) {
 	r := routerWithLicense(t, communityLicense())
 	resp, err := r.HandleToolCall(context.Background(), toolCall("ert_scan"), nil, "local")
 	if err != nil {
 		t.Fatalf("ert_scan community: unexpected hard error: %v", err)
 	}
-	if resp.IsError {
-		t.Fatalf("ert_scan community: expected success, got: %s", resp.ErrorMessage)
+	if !resp.IsError {
+		t.Fatal("ert_scan community: expected Pharaoh tier gate, got success")
+	}
+	// Display name for TierEnterprise is "Pharaoh"
+	if !strings.Contains(resp.ErrorMessage, "Pharaoh") {
+		t.Errorf("expected 'Pharaoh' in error message, got: %s", resp.ErrorMessage)
 	}
 }
 
@@ -189,8 +205,9 @@ func TestLicense_Community_GodfatherReport_Blocked(t *testing.T) {
 	if !resp.IsError {
 		t.Fatal("godfather_report community: expected tier gate error, got success")
 	}
-	if !strings.Contains(resp.ErrorMessage, "pilot") {
-		t.Errorf("expected 'pilot' in error message, got: %s", resp.ErrorMessage)
+	// Display name for TierPilot is "Sovereign" (see mcp_gate.go TierDisplayNames)
+	if !strings.Contains(resp.ErrorMessage, "Sovereign") {
+		t.Errorf("expected 'Sovereign' in error message, got: %s", resp.ErrorMessage)
 	}
 	if !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
 		t.Errorf("expected upgrade URL in error message, got: %s", resp.ErrorMessage)
@@ -225,8 +242,9 @@ func TestLicense_Community_ACP_AllBlocked(t *testing.T) {
 			if !resp.IsError {
 				t.Fatalf("%s community: expected tier gate, got success", tool)
 			}
-			if !strings.Contains(resp.ErrorMessage, "enterprise") {
-				t.Errorf("%s: expected 'enterprise' in error, got: %s", tool, resp.ErrorMessage)
+			// ACP tools require Sovereign (TierPilot) — display name is "Sovereign"
+			if !strings.Contains(resp.ErrorMessage, "Sovereign") {
+				t.Errorf("%s: expected 'Sovereign' in error, got: %s", tool, resp.ErrorMessage)
 			}
 		})
 	}
@@ -252,12 +270,12 @@ func TestLicense_Community_NHI_AllBlocked(t *testing.T) {
 
 func TestLicense_Nil_TreatedAsCommunity(t *testing.T) {
 	r := routerWithLicense(t, nil) // no license key set
-	// Community tools pass
-	resp, _ := r.HandleToolCall(context.Background(), toolCall("ert_scan"), nil, "local")
+	// Community tools pass — nist_map is ungated
+	resp, _ := r.HandleToolCall(context.Background(), toolCall("nist_map"), nil, "local")
 	if resp.IsError {
-		t.Fatalf("ert_scan nil license: expected success, got: %s", resp.ErrorMessage)
+		t.Fatalf("nist_map nil license: expected success, got: %s", resp.ErrorMessage)
 	}
-	// Enterprise tools fail
+	// Sovereign tools fail — acp_status requires TierPilot
 	resp, _ = r.HandleToolCall(context.Background(), toolCall("acp_status"), nil, "local")
 	if !resp.IsError {
 		t.Fatal("acp_status nil license: expected tier gate")
@@ -291,11 +309,14 @@ func TestLicense_Pilot_KhepraWatch_Allowed(t *testing.T) {
 func TestLicense_Pilot_ACP_StillBlocked(t *testing.T) {
 	r := routerWithLicense(t, pilotLicense())
 	resp, _ := r.HandleToolCall(context.Background(), toolCall("acp_status"), nil, "local")
+	// acp_status is TierPilot (Sovereign) — Pilot license SHOULD unlock it.
+	// This test verifies that nhi_revoke (Pharaoh/Enterprise) is still blocked.
+	resp, _ = r.HandleToolCall(context.Background(), toolCall("nhi_revoke"), nil, "local")
 	if !resp.IsError {
-		t.Fatal("acp_status pilot: expected enterprise gate, pilot should not unlock ACP")
+		t.Fatal("nhi_revoke pilot: expected Pharaoh gate, pilot should not unlock NHI revoke")
 	}
-	if !strings.Contains(resp.ErrorMessage, "enterprise") {
-		t.Errorf("expected 'enterprise' in error, got: %s", resp.ErrorMessage)
+	if !strings.Contains(resp.ErrorMessage, "Pharaoh") {
+		t.Errorf("expected 'Pharaoh' in error, got: %s", resp.ErrorMessage)
 	}
 }
 
@@ -305,14 +326,14 @@ func TestLicense_Pilot_ACP_StillBlocked(t *testing.T) {
 func TestLicense_Enterprise_All13Tools_Allowed(t *testing.T) {
 	r := routerWithLicense(t, enterpriseLicense())
 
-	tools := []string{
+	// Read-only tools: use standard toolCall
+	readOnlyTools := []string{
 		"ert_scan", "nist_map",
 		"godfather_report", "godfather_approve", "khepra_watch",
-		"acp_status", "acp_issue", "acp_revoke",
-		"nhi_inventory", "nhi_orphans", "nhi_excessive", "nhi_expired", "nhi_revoke",
+		"acp_status",
+		"nhi_inventory", "nhi_orphans", "nhi_excessive", "nhi_expired",
 	}
-
-	for _, tool := range tools {
+	for _, tool := range readOnlyTools {
 		t.Run(tool, func(t *testing.T) {
 			resp, err := r.HandleToolCall(context.Background(), toolCall(tool), nil, "local")
 			if err != nil {
@@ -323,28 +344,45 @@ func TestLicense_Enterprise_All13Tools_Allowed(t *testing.T) {
 			}
 		})
 	}
+
+	// Destructive tools: require _confirm:true for the Step 4.5 gate
+	destructiveTools := []string{"acp_issue", "acp_revoke", "nhi_revoke"}
+	for _, tool := range destructiveTools {
+		t.Run(tool, func(t *testing.T) {
+			resp, err := r.HandleToolCall(context.Background(), toolCallConfirmed(tool), nil, "local")
+			if err != nil {
+				t.Fatalf("%s enterprise: unexpected hard error: %v", tool, err)
+			}
+			if resp.IsError {
+				t.Fatalf("%s enterprise: expected success with _confirm:true, got: %s", tool, resp.ErrorMessage)
+			}
+		})
+	}
 }
 
 // ─── License Helper Functions ─────────────────────────────────────────────────
 
 func TestNistMapLimit_Community(t *testing.T) {
 	limit := licpkg.NistMapLimit(communityLicense())
-	if limit != 5 {
-		t.Errorf("community nist_map limit: got %d, want 5", limit)
+	// Community limit is 25 (see mcp_gate.go NistMapLimit)
+	if limit != 25 {
+		t.Errorf("community nist_map limit: got %d, want 25", limit)
 	}
 }
 
 func TestNistMapLimit_Enterprise(t *testing.T) {
 	limit := licpkg.NistMapLimit(enterpriseLicense())
-	if limit != 50 {
-		t.Errorf("enterprise nist_map limit: got %d, want 50", limit)
+	// Sovereign+ limit is 616 (full NIST 800-53 / 800-171 index)
+	if limit != 616 {
+		t.Errorf("enterprise nist_map limit: got %d, want 616", limit)
 	}
 }
 
 func TestNistMapLimit_Nil(t *testing.T) {
 	limit := licpkg.NistMapLimit(nil)
-	if limit != 5 {
-		t.Errorf("nil nist_map limit: got %d, want 5 (community fallback)", limit)
+	// nil = Community tier = 25
+	if limit != 25 {
+		t.Errorf("nil nist_map limit: got %d, want 25 (community fallback)", limit)
 	}
 }
 

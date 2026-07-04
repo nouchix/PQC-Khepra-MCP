@@ -211,7 +211,10 @@ func NewWAFShield(cfg WAFShieldConfig) (*WAFShield, error) {
 		bypassPaths: []*bypassPath{
 			{prefix: "/health"},
 			{prefix: "/healthz"},
+			{prefix: "/mcp/v1/health"},       // MCP health probe (Caddy / monitoring)
 			{prefix: "/api/v1/onboarding/"},  // Public scan funnel — intentionally unauthenticated
+			{prefix: "/api/v1/dag/"},         // DAG REST API — read-only, no injection surface
+			{prefix: "/dag-viewer"},           // Static HTML — no user-reflected data
 		},
 	}
 	shield.rules = defaultRules(shield)

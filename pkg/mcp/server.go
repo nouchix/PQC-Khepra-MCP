@@ -302,6 +302,20 @@ func (s *HardenedServer) handleToolsList(req JSONRPCRequest) JSONRPCResponse {
 
 // ─── tools/call ────────────────────────────────────────────────────────────────
 
+// mcpContentItem is a single content block in the MCP tools/call result.
+// MCP spec: content is an array of {type: "text", text: "..."} objects.
+type mcpContentItem struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+// mcpCallToolResult is the MCP-spec-compliant result for tools/call.
+// MCP clients (Claude Desktop, Antigravity, Cursor) expect exactly this shape.
+type mcpCallToolResult struct {
+	Content []mcpContentItem `json:"content"`
+	IsError bool             `json:"isError,omitempty"`
+}
+
 func (s *HardenedServer) handleToolsCall(ctx context.Context, req JSONRPCRequest) JSONRPCResponse {
 	// Parse tool call parameters.
 	var params struct {
@@ -332,21 +346,45 @@ func (s *HardenedServer) handleToolsCall(ctx context.Context, req JSONRPCRequest
 	// Route through the full security chain.
 	resp, err := s.router.HandleToolCall(ctx, call, s.cred, s.addr)
 	if err != nil {
+		// MCP spec: tool errors go in the result with isError=true,
+		// NOT in the JSON-RPC error field (which is for protocol errors only).
+		errResult := mcpCallToolResult{
+			Content: []mcpContentItem{{Type: "text", Text: err.Error()}},
+			IsError: true,
+		}
 		return JSONRPCResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
-			Error: &JSONRPCError{
-				Code:    ErrCodeInternal,
-				Message: err.Error(),
-			},
+			Result:  mustMarshal(errResult),
 		}
 	}
 
-	// Return the tool response.
+	// Convert MCPToolResponse → MCP-spec content array.
+	// The full envelope (PQC signature, attestation, warnings) is serialized
+	// as JSON text inside the content block. MCP clients render content[0].text.
+	var textContent string
+	if resp.IsError {
+		textContent = resp.ErrorMessage
+	} else {
+		// Serialize the full response (envelope + warnings + _khepra_sig)
+		// so clients get the PQC attestation chain in a parseable format.
+		respJSON, marshalErr := json.MarshalIndent(resp, "", "  ")
+		if marshalErr != nil {
+			textContent = fmt.Sprintf("{\"error\": \"marshal failed: %s\"}", marshalErr.Error())
+		} else {
+			textContent = string(respJSON)
+		}
+	}
+
+	result := mcpCallToolResult{
+		Content: []mcpContentItem{{Type: "text", Text: textContent}},
+		IsError: resp.IsError,
+	}
+
 	return JSONRPCResponse{
 		JSONRPC: "2.0",
 		ID:      req.ID,
-		Result:  mustMarshal(resp),
+		Result:  mustMarshal(result),
 	}
 }
 

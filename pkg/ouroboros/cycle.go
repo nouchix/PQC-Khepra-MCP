@@ -1,10 +1,10 @@
 package ouroboros
 
 import (
-	"strings"
 	"log"
 	"time"
 
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
 )
 
@@ -91,7 +91,7 @@ func (c *Cycle) manifest(heka []maat.Heka) {
 			if blade.CanStrike(h) {
 				err := blade.Strike(h)
 				if err != nil {
-					log.Printf("[Ouroboros] %q failed to strike: %v", blade.Name(), err)
+					log.Printf("[Ouroboros] %q failed to strike: %v", blade.Name(), khlog.SanitizeForLog(err.Error()))
 				}
 			}
 		}
@@ -124,15 +124,4 @@ func (c *Cycle) verify() {
 func (c *Cycle) Stop() {
 	c.Spinning = false
 	close(c.stopChan)
-}
-
-// sanitizeLog removes newline characters from user-controlled strings before
-// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
-func sanitizeLog(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == '\n' || r == '\r' || r == '\t' {
-			return ' '
-		}
-		return r
-	}, s)
 }

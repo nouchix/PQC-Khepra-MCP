@@ -1,3 +1,4 @@
+"use client";
 /**
  * Enhanced STIG-Codex TRL10 Hook
  * Production-ready STIG compliance automation with real-time monitoring

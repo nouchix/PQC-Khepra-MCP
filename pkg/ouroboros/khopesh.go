@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/maat"
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/stig"
 )
 
@@ -45,20 +46,20 @@ func (rb *RemediationBlade) Strike(heka maat.Heka) error {
 		return nil
 	}
 
-	log.Printf("[%q] Striking: %q (Action: %q)", rb.name, heka.Isfet.ID, heka.Action)
+	log.Printf("[%q] Striking: %q (Action: %q)", rb.name, khlog.SanitizeForLog(heka.Isfet.ID), heka.Action)
 
 	// REAL IMPLEMENTATION: Link to stig.Remediator
 	remediator := stig.NewRemediator(nil)
 	result, err := remediator.Remediate(heka.Isfet.ID)
 
 	if err != nil {
-		log.Printf("[%q] Remediation FAILED for %q: %v", rb.name, heka.Isfet.ID, err)
+		log.Printf("[%q] Remediation FAILED for %q: %v", rb.name, khlog.SanitizeForLog(heka.Isfet.ID), err)
 		return err
 	}
 
-	log.Printf("[%q] Remediation Status: %q for %q", rb.name, result.Status, heka.Isfet.ID)
-	log.Printf("[%q] Execution Output: %q", rb.name, result.Output)
-	log.Printf("[%q] KASA wisdom applied: %q", rb.name, heka.Wisdom)
+	log.Printf("[%q] Remediation Status: %q for %q", rb.name, result.Status, khlog.SanitizeForLog(heka.Isfet.ID))
+	log.Printf("[%q] Execution Output: %q", rb.name, khlog.SanitizeForLog(result.Output))
+	log.Printf("[%q] KASA wisdom applied: %q", rb.name, khlog.SanitizeForLog(heka.Wisdom))
 
 	return nil
 }
@@ -127,7 +128,7 @@ func (fb *FirewallBlade) Strike(heka maat.Heka) error {
 		}
 		ip := omen.Value
 		log.Printf("[%q] Submitting Crowdsec decision: ban ip=%q malevolence=%.2f isfet=%q",
-			fb.name, ip, omen.Malevolence, heka.Isfet.ID)
+			fb.name, khlog.SanitizeForLog(ip), omen.Malevolence, khlog.SanitizeForLog(heka.Isfet.ID))
 		if err := fb.submitCrowdsecDecision(ip, "24h", "ban"); err != nil {
 			log.Printf("[%q] Crowdsec submission failed for %q: %v", fb.name, ip, err)
 			lastErr = err

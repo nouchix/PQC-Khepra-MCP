@@ -120,14 +120,14 @@ func testIdentity() Identity {
 
 func testToolSpec() ToolSpec {
 	return ToolSpec{
-		Name:           "ert_scan",
-		Description:    "Run ERT vulnerability scan",
+		Name:           "nist_map", // Community-tier tool — no license required
+		Description:    "Map NIST controls",
 		RiskClass:      RiskReadOnly,
-		Scope:          "ert:scan",
+		Scope:          "compliance:read",
 		SchemaVersion:  "1.0.0",
 		SchemaHash:     "abc123",
 		AllowedBackend: "in-process",
-		TimeoutMs:      30000,
+		TimeoutMs:      5000,
 	}
 }
 
@@ -169,11 +169,19 @@ func testCall(toolName string) MCPToolCall {
 	return MCPToolCall{
 		RequestID:   "req-test-001",
 		ToolName:    toolName,
-		// "local" is in knownOSTargets; "CMMC-L2" is in knownFrameworks.
+		// "local" ∈ knownOSTargets; "CMMC-L2" ∈ knownFrameworks.
 		// Using taxonomy-valid values so Step 1.6a (scope validator) passes.
 		Args:        map[string]any{"target": "local", "scope": "CMMC-L2"},
 		SubmittedAt: time.Now().UTC(),
 	}
+}
+
+// testCallDestructive creates a call with the _confirm:true token required by the
+// Step 4.5 RiskDestructive confirmation gate.
+func testCallDestructive(toolName string) MCPToolCall {
+	c := testCall(toolName)
+	c.Args["_confirm"] = true
+	return c
 }
 
 // ─── Router Construction Tests ─────────────────────────────────────────────────
@@ -219,7 +227,7 @@ func TestNewRouter_Success(t *testing.T) {
 
 func TestHandleToolCall_HappyPath(t *testing.T) {
 	r := testRouter(t)
-	call := testCall("ert_scan")
+	call := testCall("nist_map") // Community-tier tool: no license gate
 
 	resp, err := r.HandleToolCall(context.Background(), call, nil, "local")
 	if err != nil {
@@ -248,7 +256,7 @@ func TestHandleToolCall_AuthFailure(t *testing.T) {
 	r := testRouter(t, func(cfg *RouterConfig) {
 		cfg.Demarc = &mockDemarc{authErr: fmt.Errorf("invalid token")}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected auth error")
 	}
@@ -261,7 +269,7 @@ func TestHandleToolCall_CIDRDenied(t *testing.T) {
 			cidrErr:  fmt.Errorf("CIDR denied"),
 		}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "10.0.0.1")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "10.0.0.1")
 	if err == nil {
 		t.Fatal("expected CIDR error")
 	}
@@ -274,7 +282,7 @@ func TestHandleToolCall_RateLimited(t *testing.T) {
 		cfg.RateMax = 2
 		cfg.RateWindow = 60000
 	})
-	call := testCall("ert_scan")
+	call := testCall("nist_map") // Community-tier: reaches rate limiter
 
 	// First two should pass
 	for i := 0; i < 2; i++ {
@@ -345,7 +353,7 @@ func TestHandleToolCall_PermissionDenied(t *testing.T) {
 	r := testRouter(t, func(cfg *RouterConfig) {
 		cfg.Gateway = &mockGateway{permErr: fmt.Errorf("no scope")}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected permission error")
 	}
@@ -355,7 +363,7 @@ func TestHandleToolCall_InjectionDetected(t *testing.T) {
 	r := testRouter(t, func(cfg *RouterConfig) {
 		cfg.Gateway = &mockGateway{injectionErr: fmt.Errorf("injection")}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected injection error")
 	}
@@ -383,7 +391,7 @@ func TestHandleToolCall_ExecutionWarnings(t *testing.T) {
 			warnings: []string{"incomplete scan"},
 		}
 	})
-	resp, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	resp, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -398,7 +406,7 @@ func TestHandleToolCall_AttestationFailure(t *testing.T) {
 	r := testRouter(t, func(cfg *RouterConfig) {
 		cfg.Attestor = &mockAttestor{appendErr: fmt.Errorf("DAG full")}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected attestation error")
 	}
@@ -411,7 +419,7 @@ func TestHandleToolCall_SigningFailure(t *testing.T) {
 			signErr: fmt.Errorf("key expired"),
 		}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected signing error")
 	}
@@ -423,7 +431,7 @@ func TestHandleToolCall_PolyWrapFailed(t *testing.T) {
 	r := testRouter(t, func(cfg *RouterConfig) {
 		cfg.Poly = &mockPoly{wrapReqErr: fmt.Errorf("wrap error")}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected poly wrap error")
 	}
@@ -433,7 +441,7 @@ func TestHandleToolCall_PolyVerifyFailed(t *testing.T) {
 	r := testRouter(t, func(cfg *RouterConfig) {
 		cfg.Poly = &mockPoly{verifyReqErr: fmt.Errorf("verify error")}
 	})
-	_, err := r.HandleToolCall(context.Background(), testCall("ert_scan"), nil, "local")
+	_, err := r.HandleToolCall(context.Background(), testCall("nist_map"), nil, "local")
 	if err == nil {
 		t.Fatal("expected poly verify error")
 	}
@@ -449,15 +457,15 @@ func TestListTools(t *testing.T) {
 	}
 	found := false
 	for _, tool := range tools {
-		if tool["name"] == "ert_scan" {
+		if tool["name"] == "nist_map" { // testToolSpec() now returns nist_map
 			found = true
 			if tool["description"] == nil || tool["description"] == "" {
-				t.Error("expected description for ert_scan")
+				t.Error("expected description for nist_map")
 			}
 		}
 	}
 	if !found {
-		t.Error("ert_scan not found in listed tools")
+		t.Error("nist_map not found in listed tools")
 	}
 }
 
@@ -472,7 +480,7 @@ func TestHandleToolCall_LoopDetection(t *testing.T) {
 		cfg.RateMax = 100
 	})
 
-	call := testCall("ert_scan")
+	call := testCall("nist_map")
 	// Same tool + same args should trigger loop detection after threshold
 	for i := 0; i < 3; i++ {
 		resp, err := r.HandleToolCall(context.Background(), call, nil, "local")

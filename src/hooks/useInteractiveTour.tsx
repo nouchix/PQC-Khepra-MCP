@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from '@/lib/router-compat';
 import { useToast } from '@/hooks/use-toast';

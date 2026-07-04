@@ -42,6 +42,7 @@ import GlobalIntelligenceDashboard from "./pages/GlobalIntelligenceDashboard";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import NLChatPanel from "@/components/NLChatPanel";
 import Advisory from "./pages/Advisory";
+import SOCDashboard from "./pages/SOCDashboard";
 
 /**
  * Invisible component that sets document.title per route.
@@ -118,6 +119,7 @@ const App = () => {
                     <Route path="/command-center" element={<ProtectedRoute><CommandCenter /></ProtectedRoute>} />
                     <Route path="/threat-hunting" element={<ProtectedRoute><ThreatHuntingDashboard /></ProtectedRoute>} />
                     <Route path="/intelligence" element={<ProtectedRoute><GlobalIntelligenceDashboard /></ProtectedRoute>} />
+                    <Route path="/soc" element={<ProtectedRoute><SOCDashboard /></ProtectedRoute>} />
 
                     {/* DoD Solutions (public marketing page) */}
                     <Route path="/dod" element={<DoD />} />

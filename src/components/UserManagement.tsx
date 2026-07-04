@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useUserProfile } from '@/hooks/useUserProfile';
