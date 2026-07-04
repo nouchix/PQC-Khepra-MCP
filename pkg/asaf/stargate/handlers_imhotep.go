@@ -1,4 +1,4 @@
-// Package hub — Imhotep autonomous remediation dispatch handlers.
+// package stargate — Imhotep autonomous remediation dispatch handlers.
 // Mounted at /api/v1/imhotep/* by cmd/asaf-hub/main.go.
 //
 // Imhotep is the ASAF System Daemon execution layer — it receives ML-DSA-65 signed
@@ -6,7 +6,7 @@
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
 // Patent Pending: USPTO #73565085
-package hub
+package stargate
 
 import (
 	"crypto/sha256"

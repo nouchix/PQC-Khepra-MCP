@@ -1,8 +1,8 @@
-// Package hub — shared utilities for fleet/kasa/imhotep/scan HTTP handlers.
+// package stargate — shared utilities for fleet/kasa/imhotep/scan HTTP handlers.
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
 // Patent Pending: USPTO #73565085
-package hub
+package stargate
 
 import (
 	"net"

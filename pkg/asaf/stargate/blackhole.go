@@ -1,4 +1,4 @@
-// Package hub — Blackhole VPN: ML-KEM-768 encrypted tunnel between khepra-reporter
+// package stargate — Blackhole VPN: ML-KEM-768 encrypted tunnel between khepra-reporter
 // (endpoint agent) and asaf-hub (management console).
 //
 // The Blackhole VPN is a zero-egress reporting channel. Endpoint agents (khepra-reporter)
@@ -14,7 +14,7 @@
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
 // Patent Pending: USPTO #73565085
-package hub
+package stargate
 
 import (
 	"crypto/sha256"

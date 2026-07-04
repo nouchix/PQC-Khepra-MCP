@@ -8,7 +8,7 @@
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
 // Patent Pending: USPTO #73565085
-package hub
+package stargate
 
 import (
 	"encoding/json"
