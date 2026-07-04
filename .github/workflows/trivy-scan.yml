@@ -30,7 +30,7 @@ jobs:
       security-events: write   # upload SARIF to GitHub Security tab
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build image for scanning
         run: |
@@ -64,7 +64,7 @@ jobs:
       security-events: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build IronBank image
         run: |
@@ -98,7 +98,7 @@ jobs:
       security-events: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Trivy — Go + npm dependency scan
         uses: aquasecurity/trivy-action@master
@@ -127,7 +127,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build image for SBOM
         run: docker build -t khepra-sbom:${{ github.sha }} -f Dockerfile .
