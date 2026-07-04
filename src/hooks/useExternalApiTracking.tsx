@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/hooks/useOrganization';

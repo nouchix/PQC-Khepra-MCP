@@ -1,6 +1,4 @@
 "use client";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import AssetScanning from "@/pages/AssetScanning";
-export default function Page() {
-  return <ProtectedRoute><AssetScanning /></ProtectedRoute>;
-}
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

@@ -28,7 +28,7 @@ func CollectNetworkIntelligence() (audit.NetworkIntelligence, error) {
 	// Collect network ports with process attribution
 	ports, err := collectListeningPorts()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect ports: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect ports: %v\n", err)
 	} else {
 		ni.Ports = ports
 	}
@@ -36,7 +36,7 @@ func CollectNetworkIntelligence() (audit.NetworkIntelligence, error) {
 	// Collect network interfaces
 	interfaces, err := collectNetworkInterfaces()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect interfaces: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect interfaces: %v\n", err)
 	} else {
 		ni.Interfaces = interfaces
 	}
@@ -44,7 +44,7 @@ func CollectNetworkIntelligence() (audit.NetworkIntelligence, error) {
 	// Collect routing table
 	routes, err := collectRoutes()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect routes: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect routes: %v\n", err)
 	} else {
 		ni.Routes = routes
 	}
@@ -52,7 +52,7 @@ func CollectNetworkIntelligence() (audit.NetworkIntelligence, error) {
 	// Collect DNS servers
 	dns, err := collectDNSServers()
 	if err != nil {
-		fmt.Printf("[WARN] Failed to collect DNS servers: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed to collect DNS servers: %v\n", err)
 	} else {
 		ni.DNSServers = dns
 	}
@@ -60,7 +60,7 @@ func CollectNetworkIntelligence() (audit.NetworkIntelligence, error) {
 	// Perform OS fingerprinting via local TCP/IP stack analysis
 	osFP, err := performOSFingerprinting()
 	if err != nil {
-		fmt.Printf("[WARN] Failed OS fingerprinting: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[WARN] Failed OS fingerprinting: %v\n", err)
 	} else {
 		ni.OSFingerprint = osFP
 	}

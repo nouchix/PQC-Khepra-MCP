@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"strings"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -10,11 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/sha3"
 
 	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
 
 // ─── Security Boundary Interfaces ──────────────────────────────────────────────
@@ -237,12 +239,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	id, err := r.demarc.Authenticate(ctx, cred)
 	if err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, "", "AUTH_FAILED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", call.ToolName, err)
+		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", khlog.SanitizeForLog(call.ToolName), err)
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 	if err := r.demarc.CheckCIDR(ctx, id, remoteAddr); err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, id.AgentID, "CIDR_DENIED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%q addr=%q: %v", id.AgentID, remoteAddr, err)
+		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%q addr=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(remoteAddr), err)
 		return nil, fmt.Errorf("CIDR check failed: %w", err)
 	}
 
@@ -355,13 +357,64 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 4: MCPGateway Policy (RBAC + Injection Scan) ──────────────────
 	if err := r.gateway.CheckPermission(id, spec.Scope); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "PERMISSION_DENIED", err.Error())
-		r.logger.Printf("[MCP:POLICY] permission denied: agent=%q scope=%q: %v", id.AgentID, spec.Scope, err)
+		r.logger.Printf("[MCP:POLICY] permission denied: agent=%q scope=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(spec.Scope), err)
 		return nil, fmt.Errorf("permission denied: %w", err)
 	}
 	if err := r.gateway.ScanForInjection(string(rawPayload)); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "INJECTION", err.Error())
-		r.logger.Printf("[MCP:POLICY] injection detected: agent=%q tool=%q: %v", id.AgentID, call.ToolName, err)
+		r.logger.Printf("[MCP:POLICY] injection detected: agent=%q tool=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(call.ToolName), err)
 		return nil, fmt.Errorf("injection detected: %w", err)
+	}
+
+	// ── Step 4.5: Destructive Tool Confirmation Gate ────────────────────────
+	// OWASP Agentic Top 10 / ASI-07 mitigation: any tool classified as
+	// RiskDestructive (acp_revoke, nhi_revoke, drbc_restore, etc.) MUST carry
+	// '_confirm': true in its arguments. Without it the call is rejected with an
+	// actionable error that the LLM client surfaces to the human operator.
+	//
+	// This implements the "human-in-the-loop" approval gate recommended by:
+	//   NSA CSI MCP Security Design Considerations (p.11 §4.3)
+	//   OWASP Agentic Top 10 2026 (ASI-07 Human-Agent Trust Exploitation)
+	//   Defenter-Proxy confirmation gate methodology
+	//
+	// Bypass: set KHEPRA_SKIP_CONFIRM=1 ONLY in automated test environments.
+	// All skipped confirmations are emitted as EventPolicy warnings with the
+	// agent identity so auditors can flag them in the DAG.
+	if spec.RiskClass == RiskDestructive {
+		skipConfirm := false
+		if os.Getenv("KHEPRA_SKIP_CONFIRM") == "1" {
+			skipConfirm = true
+			r.events.Emit(MCPEvent{
+				Type:    EventPolicy,
+				Success: false,
+				Metadata: map[string]any{
+					"step":    "destructive_gate",
+					"tool":    call.ToolName,
+					"agent":   id.AgentID,
+					"warning": "KHEPRA_SKIP_CONFIRM=1 bypassed confirmation gate — audit this call",
+				},
+			})
+			r.logger.Printf("[MCP:CONFIRM] WARNING: destructive gate bypassed via KHEPRA_SKIP_CONFIRM for tool=%q agent=%q",
+				call.ToolName, id.AgentID)
+		}
+		if !skipConfirm {
+			confirmed, _ := call.Args["_confirm"].(bool)
+			if !confirmed {
+				r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "DESTRUCTIVE_UNCONFIRMED",
+					"destructive tool called without confirmation token")
+				r.logger.Printf("[MCP:CONFIRM] BLOCKED destructive tool=%q agent=%q — missing _confirm:true",
+					call.ToolName, id.AgentID)
+				return &MCPToolResponse{
+					IsError: true,
+					ErrorMessage: fmt.Sprintf(
+						"tool %q is classified RiskDestructive and requires explicit confirmation. "+
+							"Re-invoke with '_confirm': true after presenting the action to the human operator "+
+							"for review. This gate implements OWASP ASI-07 (Human-Agent Trust Exploitation) "+
+							"and NSA CSI MCP §4.3 (Human-in-the-Loop).",
+						call.ToolName),
+				}, nil
+			}
+		}
 	}
 
 	// ── Step 5: Risk-Classified Execution (with Concurrency Gate) ──────────
@@ -377,7 +430,6 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	defer r.concurrency.Release(id.AgentID)
 
 	r.events.EmitToolStart(call.ToolName, id.AgentID, call.RequestID, string(spec.RiskClass))
-
 	result, warnings, execErr := r.exec.Execute(ctx, spec, call)
 	durationMs := time.Since(start).Milliseconds()
 
@@ -404,20 +456,17 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// Reset mistake counter on success
 	r.mistakes.RecordSuccess(id.AgentID)
 
-	// ── Step 5.5: Output Pipeline Filtering (NSA CSI MCP mandate) ───────────
+	// ── Step 5.5: Output Pipeline Filtering (NSA CSI MCP mandate) ─────────────────
 	// NSA MCP Security Design Considerations p.12-13:
 	// "Outputs from tools and models should never be treated as implicitly trusted,
 	// even if they originate from previously vetted components. Each output must be
 	// treated as untrusted input to the next phase of the pipeline."
 	//
-	// We serialize the result and run it through the same injection scanner used
-	// for inbound args. Non-fatal (warning-only): compliant security reports
-	// legitimately contain CVE IDs, exploit code snippets, and other patterns
-	// that superficially resemble injection — we warn but do not block.
+	// Phase A: injection scan (warn-only — security reports contain CVE patterns)
+	// Phase B: secret leakage scan (OWASP-MCP-04/05) via GitLeaks-derived patterns
 	if outputBytes, marshalOK := json.Marshal(result); marshalOK == nil {
+		// Phase A: prompt injection patterns in output (non-fatal)
 		if outErr := r.gateway.ScanForInjection(string(outputBytes)); outErr != nil {
-			// Non-fatal: log and warn — security report outputs may contain
-			// CVE IDs or exploit patterns that match injection heuristics.
 			r.logger.Printf("[MCP:OUTPUT-FILTER] tool=%q potential injection pattern in output: %v (non-fatal)",
 				call.ToolName, outErr)
 			warnings = append(warnings, "output-filter: potential injection pattern in tool output — review before piping to next agent")
@@ -432,9 +481,29 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 				},
 			})
 		}
+		// Phase B: secret leakage scan (GitLeaks-derived, OWASP-MCP-04/05).
+		// Non-fatal: appends to warnings and emits OWASP-tagged events.
+		// Uses the package-local bridge (runOutputSecretScan) to avoid
+		// a scanner ↔ mcp import cycle.
+		for _, sf := range runOutputSecretScan(outputBytes, call.ToolName) {
+			r.logger.Printf("[MCP:SECRET-SCAN] tool=%q pattern=%q severity=%s owasp=%s (non-fatal)",
+				call.ToolName, sf.title, sf.severity, sf.owaspTag)
+			warnings = append(warnings, fmt.Sprintf("secret-scan [%s]: %s", sf.owaspTag, sf.title))
+			r.events.Emit(MCPEvent{
+				Type:    EventPolicy,
+				Success: false,
+				Metadata: map[string]any{
+					"step":      "secret_scan",
+					"tool":      call.ToolName,
+					"agent":     id.AgentID,
+					"owasp_tag": sf.owaspTag,
+					"asi_tag":   sf.asiTag,
+					"severity":  sf.severity,
+					"pattern":   sf.title,
+				},
+			})
+		}
 	}
-
-
 
 	// ── Step 6: Attestation + PQC Seal ─────────────────────────────────────
 	// Wrap result in SecureEnvelope.
@@ -454,6 +523,19 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		return nil, fmt.Errorf("attestation failed: %w", err)
 	}
 	env.AttestationID = attestationID
+
+	// Emit a dedicated attestation event carrying the real DAG node ID, so
+	// external consumers (e.g. a live viewer hook) can show the actual signed
+	// node rather than just a generic tool-end event.
+	r.events.Emit(MCPEvent{
+		Type:      EventAttest,
+		ToolName:  call.ToolName,
+		AgentID:   id.AgentID,
+		RequestID: call.RequestID,
+		Success:   true,
+		DAGHash:   attestationID,
+		Metadata:  map[string]any{"phase": "signed"},
+	})
 
 	// PQC-sign the envelope.
 	signedEnv, err := r.attest.SignEnvelope(ctx, env)
@@ -517,9 +599,21 @@ func (r *Router) ListTools() []map[string]any {
 		"properties": map[string]any{},
 	}
 
+	// Classified tools are hidden from public discovery (server-card.json,
+	// tools/list). They remain callable via authenticated Enterprise/Master
+	// tier sessions. Ref: AGENTS.md Non-Negotiable #3.
+	classifiedTools := map[string]bool{
+		"phantom_stealth":   true,
+		"identity_shroud":   true,
+		"identity_epiphany": true,
+	}
+
 	specs := r.registry.ListTools()
-	tools := make([]map[string]any, 0, len(specs))
+	result := make([]map[string]any, 0, len(specs))
 	for _, s := range specs {
+		if classifiedTools[s.Name] {
+			continue
+		}
 		schema := s.ArgsSchema
 		if schema == nil {
 			schema = noArgSchema
@@ -529,9 +623,9 @@ func (r *Router) ListTools() []map[string]any {
 			"description": s.Description,
 			"inputSchema": schema,
 		}
-		tools = append(tools, tool)
+		result = append(result, tool)
 	}
-	return tools
+	return result
 }
 
 // Events returns the event emitter for external access (e.g. telemetry hooks).

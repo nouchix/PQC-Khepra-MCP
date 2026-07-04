@@ -1,3 +1,4 @@
+"use client";
 import { Shield, ArrowLeft, FileText, Lock, Scale, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from '@/lib/router-compat';
 import { Button } from '@/components/ui/button';

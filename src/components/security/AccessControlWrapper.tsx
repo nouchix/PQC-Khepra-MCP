@@ -1,3 +1,4 @@
+"use client";
 import { ReactNode } from 'react';
 import { useSecurityClearance, SecurityClearanceLevel } from '@/hooks/useSecurityClearance';
 import { useUserProfile } from '@/hooks/useUserProfile';

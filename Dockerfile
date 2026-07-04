@@ -5,7 +5,7 @@
 # Run:    docker run --rm -i -e KHEPRA_LICENSE_KEY ghcr.io/nouchix/pqc-khepra-mcp:1.0.0
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /src
 
@@ -45,6 +45,7 @@ WORKDIR /app
 
 COPY --from=builder /out/khepra-mcp /usr/local/bin/khepra-mcp
 COPY manifest.json /app/manifest.json
+COPY docs/ /app/docs/
 
 # Data directories (empty at build time; populated via volume or init container)
 RUN mkdir -p /var/lib/khepra /var/log/khepra \

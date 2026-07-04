@@ -1,5 +1,5 @@
 # PQC-Khepra-MCP — MEMORY.md
-> Last Updated: 2026-06-15 — Sprint 3 Complete
+> Last Updated: 2026-06-29 — Connective Tissue Build Spec added (July 15 Presight target)
 > Maintainer: Souhimbou Doh Kone (SecRed Knowledge Inc. / NouchiX)
 
 ---
@@ -120,3 +120,50 @@ docker run -i --rm \
 - `pkg/mcp/tools/` — Individual tool implementations
 - `cmd/mcp/main.go` — Server entrypoint
 - `.env.example` — All required environment variables
+- `docs/CONNECTIVE_TISSUE_BUILD_SPEC.md` — **Full July 15 build spec (source of truth)**
+
+---
+
+## 🔧 Connective Tissue Build Spec — July 15 Presight Target
+
+> Full spec: `docs/CONNECTIVE_TISSUE_BUILD_SPEC.md`
+
+### Canonical package ownership decision (2026-06-29)
+
+**This repo owns** `pkg/ea`, `pkg/sekhem`, `pkg/ouroboros`, `pkg/agi`, `pkg/ising`. These packages exist as diverged forks in BOTH `PQC-Khepra-MCP` AND `khepra protocol` (giza-cyber-shield) — **every file differs** between the two copies. Decision: PQC-Khepra-MCP is the canonical source. Product A should vendor/import from here, not maintain an independent fork.
+
+### What's live in this server right now (verified 2026-06-29)
+
+| Status | Component |
+|--------|-----------|
+| ✅ MCP-registered | DEMARC gateway, polymorphic envelope, DAG attestation (ML-DSA-65), SSE live viewer |
+| ✅ MCP-registered | `kasa_start`, `kasa_status`, `ea_evolve`, `ea_threat_score`, `ea_risk_summary`, `quantum_optimize` |
+| ✅ MCP-registered | `ouroboros_waf_eye`, `ouroboros_stig_eye`, `ouroboros_vuln_eye`, `ouroboros_fim_eye` |
+| ❌ NOT registered | `HandleKASATask`, `HandleKASAScan`, `HandleKASAForensics`, `HandleKASACryptoAgent` (dead code in `pkg/mcp/tools/kasa_tools.go`) |
+| ⚠️ Disconnected | KASA autonomous loop writes to its own `dag.NewMemory()` store — NOT the same store the SSE viewer observes |
+
+### Phase 1 tasks (do first, low risk)
+
+1. Register `kasa_task`, `kasa_scan`, `kasa_forensics`, `kasa_crypto_agent` in `cmd/khepra-mcp/main.go` → rebuild manifest hash
+2. Unify KASA's `kasaStore` with the router's observable DAG so autonomous KASA events surface in the SSE feed at `/events`
+3. Smoke-test `kasa_start` → `kasa_task` → `kasa_status` → `kasa_crypto_agent` via stdio JSON-RPC with `KHEPRA_VIEWER_PORT` set
+
+### Phase 2 tasks (reconcile drift)
+
+1. Diff `pkg/ea`, `pkg/sekhem`, `pkg/ouroboros`, `pkg/agi`, `pkg/ising` file-by-file against `khepra protocol` copy
+2. Port anything Product C lacks into this repo (canonical)
+3. Add canonicity note to both repos' AGENTS.md
+
+### Phase 3 tasks (demo readiness)
+
+1. Verify SSE viewer renders KASA/EA/Ising events with readable labels
+2. Rehearse: `kasa_start` → autonomous sweep in SSE → `ea_evolve`/`quantum_optimize` → `agent_record` attestation
+3. Full stdio+SSE smoke test end-to-end before July 15
+
+### Out of scope for July 15
+
+- Real ML model for `KASACryptoAgent` (rule-based thresholds — do not claim ML in the room)
+- `mitochondrial-proxy` Supabase Edge Function port
+- SEKHEM WAF live filtering (no HTTP ingress in stdio path)
+- Compliance Graph UI merge with Product C's live feed
+

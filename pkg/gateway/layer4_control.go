@@ -6,7 +6,6 @@
 package gateway
 
 import (
-	"strings"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 )
 
@@ -268,7 +268,7 @@ func (c *ControlLayer) applyBackoff(limiter *RateLimiter) {
 
 	limiter.BackoffUntil = time.Now().Add(backoffDuration)
 	log.Printf("[CONTROL] Applied backoff to %q: %v (count: %d)",
-		limiter.IdentityID, backoffDuration, limiter.BackoffCount)
+		khlog.SanitizeForLog(limiter.IdentityID), backoffDuration, limiter.BackoffCount)
 }
 
 // UpdateTrustScore updates the trust score multiplier for an identity
@@ -632,13 +632,3 @@ func FormatDuration(d time.Duration) string {
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
-// sanitizeLog removes newline characters from user-controlled strings before
-// logging to prevent log injection attacks (CWE-117 / CodeQL go/log-injection).
-func sanitizeLog(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == '\n' || r == '\r' || r == '\t' {
-			return ' '
-		}
-		return r
-	}, s)
-}

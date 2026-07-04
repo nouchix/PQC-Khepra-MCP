@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
-  "revision": "build-1781859126",
-  "generated_at": "2026-06-19T08:52:06Z",
+  "revision": "build-1782713495",
+  "generated_at": "2026-06-29T06:11:35Z",
   "hash_algorithm": "SHA-256",
   "public_key_id": "fd4b9fa39a4a4cda",
   "tools": [
@@ -415,7 +415,7 @@
     },
     {
       "name": "godfather_report",
-      "description": "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
+      "description": "Generate an executive compliance report covering CMMC/STIG/NIST frameworks. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
       "risk_class": "read_only",
       "scope": "compliance:report",
       "schema_version": "1.0.0",
@@ -449,7 +449,7 @@
     },
     {
       "name": "godfather_approve",
-      "description": "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
+      "description": "Deliver a staged executive compliance report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
       "risk_class": "read_only",
       "scope": "compliance:report",
       "schema_version": "1.0.0",
@@ -733,7 +733,7 @@
     },
     {
       "name": "dark_crypto_contribute",
-      "description": "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. Returns global quantum exposure rank.",
+      "description": "Privacy-preserving contribution of anonymized cryptographic inventory to the Global Quantum Exposure Network. Returns aggregate quantum risk ranking.",
       "risk_class": "read_only",
       "scope": "community:contribute",
       "schema_version": "1.0.0",
@@ -821,6 +821,92 @@
       "network_allowed": false,
       "destructive": false,
       "tier": "community"
+    },
+    {
+      "name": "kasa_task",
+      "description": "Inject a security directive into the KASA task queue, bound to an Adinkra symbol (Eban=defense, Sankofa=forensics, OwoForoAdobe=vigilance, Dwennimmen=remediation). Executed within KASA's next cognitive cycle (≤5s).",
+      "risk_class": "read_only",
+      "scope": "kasa:control",
+      "schema_version": "1.0.0",
+      "schema_hash": "aa280de8503b325988d220b0b73ac61f36ff0b7f72cfaa851afa1c64156854a9",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "description": {
+            "description": "Task directive for KASA to execute",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Adinkra symbol binding (default: Eban)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "kasa_scan",
+      "description": "Run KASA's port/service scanner against a target, with AI threat analysis. Maps to MITRE ATT\u0026CK T1046. Every finding is DAG-attested with ML-DSA-65.",
+      "risk_class": "read_only",
+      "scope": "kasa:scan",
+      "schema_version": "1.0.0",
+      "schema_hash": "39bb99749b25fabdb7d5b2888389a5f148f5c8eea198c86ae556e16a52e96732",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Scan target (default: 127.0.0.1)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "kasa_forensics",
+      "description": "Trigger an immediate KASA forensic snapshot — processes, network connections, open ports, file hashes — compared against the last snapshot for anomaly detection. DAG-attested under symbol Sankofa.",
+      "risk_class": "read_only",
+      "scope": "kasa:forensics",
+      "schema_version": "1.0.0",
+      "schema_hash": "cb3c2f802720527b2263d50a98bcd6ed99e15dd4c7c3e30cbb59198797962ebc",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "kasa_crypto_agent",
+      "description": "Run the KASA Crypto Agent: detects tampering via entropy/structural feature analysis, computes a threat level, and auto-quarantines components above the Critical threshold with PQC-sealed forensic snapshots.",
+      "risk_class": "read_only",
+      "scope": "kasa:crypto",
+      "schema_version": "1.0.0",
+      "schema_hash": "085f1a549315793a06eb3f6298cefa021d1005ecb588d03e65957fb85ccf7a09",
+      "allowed_backend": "in-process",
+      "timeout_ms": 15000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "component_id": {
+            "description": "Component identifier to check for tampering (default: PQC-Khepra-MCP)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
     },
     {
       "name": "ea_evolve",
@@ -1509,7 +1595,7 @@
     },
     {
       "name": "phantom_stealth",
-      "description": "Engage Phantom Network stealth mode. GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern. Symbol: Eban (fortress).",
+      "description": "Engage network security posture hardening mode. Reduces attack surface exposure through traffic obfuscation and endpoint protection.",
       "risk_class": "destructive",
       "scope": "opsec:stealth",
       "schema_version": "1.0.0",
@@ -1522,15 +1608,15 @@
       "args_schema": {
         "properties": {
           "device_id": {
-            "description": "Device identifier to shroud",
+            "description": "Device identifier",
             "type": "string"
           },
           "symbol": {
-            "description": "Adinkra symbol (default: Eban)",
+            "description": "Security profile (default: Eban)",
             "type": "string"
           },
           "target_city": {
-            "description": "City for GPS spoof anchor",
+            "description": "Deployment region",
             "type": "string"
           }
         },
@@ -1539,7 +1625,7 @@
     },
     {
       "name": "identity_shroud",
-      "description": "Encode a strand (identity token, API key, agent fingerprint) using Nkyinkyim mystery encoding for OPSEC identity protection.",
+      "description": "Encode a credential or token using post-quantum obfuscation for secure transport.",
       "risk_class": "read_only",
       "scope": "opsec:shroud",
       "schema_version": "1.0.0",
@@ -1552,7 +1638,7 @@
       "args_schema": {
         "properties": {
           "strand": {
-            "description": "Identity strand to shroud",
+            "description": "Credential to encode",
             "type": "string"
           }
         },
@@ -1564,7 +1650,7 @@
     },
     {
       "name": "identity_epiphany",
-      "description": "Decode a Nkyinkyim-shrouded strand back to plaintext. Reveals the original identity.",
+      "description": "Decode a PQC-obfuscated credential back to its original form.",
       "risk_class": "read_only",
       "scope": "opsec:reveal",
       "schema_version": "1.0.0",
@@ -1577,7 +1663,7 @@
       "args_schema": {
         "properties": {
           "verse": {
-            "description": "Shrouded verse to decode",
+            "description": "Encoded credential to decode",
             "type": "string"
           }
         },

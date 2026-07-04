@@ -1,6 +1,4 @@
 "use client";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { ThreatHuntingDashboard } from "@/pages/ThreatHuntingDashboard";
-export default function Page() {
-  return <ProtectedRoute><ThreatHuntingDashboard /></ProtectedRoute>;
-}
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

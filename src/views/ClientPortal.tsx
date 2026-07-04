@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { useParams } from '@/lib/router-compat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

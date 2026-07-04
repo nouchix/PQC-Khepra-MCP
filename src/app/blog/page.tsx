@@ -1,3 +1,4 @@
 "use client";
-import BlogList from "@/pages/Blog";
-export default BlogList;
+import dynamic from 'next/dynamic';
+const App = dynamic(() => import('@/App'), { ssr: false });
+export default App;

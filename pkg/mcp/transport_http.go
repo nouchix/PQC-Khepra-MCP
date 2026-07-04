@@ -25,16 +25,21 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
@@ -86,6 +91,12 @@ type HTTPTransportConfig struct {
 	// When nil, the WAF layer is skipped (not recommended for production).
 	WAF *sekhem.WAFShield
 
+	// DagStore is the persistent DAG store (pkg/dag).
+	// When non-nil, the /api/v1/dag/history and /api/v1/dag/stats endpoints are
+	// activated, serving the full attested node chain for the dag-viewer and
+	// C3PAO evidence export. When nil, those routes return 503.
+	DagStore dag.Store
+
 	// Gateway is the 4-layer Khepra Secure Gateway (Firewall → Auth → Anomaly → RateLimit).
 	// When non-nil, it is applied OUTSIDE the SEKHEM WAF layer:
 	//   secureHeaders → cors → Gateway → SEKHEM WAF → mux
@@ -106,6 +117,8 @@ type httpTransport struct {
 	httpServer  *http.Server
 	sseConns    atomic.Int32 // active SSE connections
 	sseEventSeq atomic.Int64 // monotonic SSE event-id counter
+	dagStore    dag.Store    // Master DAG — serves /api/v1/dag/history
+	sessions    sync.Map     // sessionID(string) → chan []byte (MCP SSE protocol)
 }
 
 // newHTTPTransport creates an HTTP transport wired to the given router.
@@ -129,10 +142,11 @@ func newHTTPTransport(router *Router, cred any, logger *log.Logger, cfg HTTPTran
 		cfg.SSE.PingInterval = 30 * time.Second
 	}
 	return &httpTransport{
-		router: router,
-		cred:   cred,
-		logger: logger,
-		config: cfg,
+		router:   router,
+		cred:     cred,
+		logger:   logger,
+		config:   cfg,
+		dagStore: cfg.DagStore,
 	}
 }
 
@@ -142,7 +156,8 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 
 	// Smithery-compatible routes (primary)
 	mux.HandleFunc("/mcp", t.handleRPC)        // POST /mcp — Smithery JSON-RPC
-	mux.HandleFunc("/sse", t.handleSSE)        // GET  /sse — Smithery SSE handshake
+	mux.HandleFunc("/sse", t.handleSSE)        // GET  /sse — MCP SSE handshake
+	mux.HandleFunc("/message", t.handleMessage) // POST /message?sessionId=xxx — MCP SSE protocol
 
 	// MCP server-card.json — static server metadata for Smithery discovery (SEP-1649).
 	// Serves the tool manifest so Smithery can skip live scanning.
@@ -154,6 +169,33 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	// Internal / legacy routes
 	mux.HandleFunc("/mcp/v1/rpc", t.handleRPC)
 	mux.HandleFunc("/mcp/v1/health", t.handleHealth)
+
+	// Onboarding scan — REST convenience wrapper for souhimbou.ai funnel
+	// POST /api/v1/onboarding/scan — no auth required, rate-limited 10/min/IP
+	mux.HandleFunc("/api/v1/onboarding/scan", t.handleOnboardingScan)
+
+	// Khepra AI chat — NLChatPanel convenience endpoint
+	// POST /api/v1/mcp/ask — proxied from souhimbou.ai frontend
+	mux.HandleFunc("/api/v1/mcp/ask", t.handleMCPAsk)
+
+	// Root path — friendly API info (prevents 404 on direct browser visit)
+	mux.HandleFunc("/", t.handleRoot)
+
+	// GET /events — SSE relay: broadcasts router event stream for dag-viewer.html
+	// Connect dag-viewer.html with: ?feed=https://mcp.souhimbou.ai/events
+	// Protected by CORS (same as other routes). No auth required for read-only event stream.
+	mux.HandleFunc("/events", t.handleDAGEvents)
+
+	// GET /dag-viewer — serves docs/dag-viewer.html with live SSE pre-configured
+	mux.HandleFunc("/dag-viewer", t.handleDAGViewer)
+
+	// GET /api/v1/dag/history — full attested DAG node chain (dag-viewer + C3PAO export)
+	// Returns the complete persisted DAG from disk, sorted by timestamp ascending.
+	// Protected by SEKHEM WAF + CORS. No auth required — nodes contain no secrets.
+	mux.HandleFunc("/api/v1/dag/history", t.handleDAGHistory)
+
+	// GET /api/v1/dag/stats — lightweight DAG metrics (node count, timestamps)
+	mux.HandleFunc("/api/v1/dag/stats", t.handleDAGStats)
 
 	// ── Bilateral security middleware chain (outer → inner = first-called → last-called) ──
 	//
@@ -208,7 +250,7 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	}()
 
 	t.logger.Printf("[MCP:HTTP] listening on %s", t.config.ListenAddr)
-	t.logger.Printf("[MCP:HTTP] routes: POST /mcp, GET /sse, POST /mcp/v1/rpc, GET /mcp/v1/health")
+	t.logger.Printf("[MCP:HTTP] routes: POST /mcp, GET /sse, POST /mcp/v1/rpc, GET /mcp/v1/health, POST /api/v1/onboarding/scan")
 
 	var err error
 	if t.config.TLSCertFile != "" && t.config.TLSKeyFile != "" {
@@ -278,14 +320,38 @@ func (t *httpTransport) handleSSE(w http.ResponseWriter, r *http.Request) {
 		return true
 	}
 
-	// 1. Connected event
+	// 1. Connected event (informational — not part of MCP protocol, just metadata)
 	if !writeEvent("connected", fmt.Sprintf(`{"server":"khepra-mcp","version":"%s","sse_max_age_s":%d}`,
 		HardenedServerVersion, int(t.config.SSE.IdleTimeout.Seconds()))) {
 		return
 	}
 
-	t.logger.Printf("[MCP:SSE] stream opened — active=%d/%d remote=%s",
-		int(current), t.config.SSE.MaxConns, sanitizeForLog(extractRemoteAddr(r)))
+	// 2. Endpoint event — REQUIRED by MCP SSE protocol (2024-11-05 spec).
+	// Tells mcp-remote the URL to POST JSON-RPC messages to.
+	// Without this event, the client has no channel to send initialize/tools/call,
+	// causing every request to time out after 60s.
+	sessID := newSessionID()
+	sessCh := make(chan []byte, 64)
+	t.sessions.Store(sessID, sessCh)
+	defer t.sessions.Delete(sessID)
+
+	// Determine the public base URL from the request so the endpoint URL is absolute.
+	// mcp-remote requires an absolute URL or a path it can resolve relative to /sse.
+	scheme := "https"
+	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
+		scheme = "http"
+	}
+	host := r.Host
+	if fwdHost := r.Header.Get("X-Forwarded-Host"); fwdHost != "" {
+		host = fwdHost
+	}
+	endpointURL := scheme + "://" + host + "/message?sessionId=" + sessID
+	if !writeEvent("endpoint", endpointURL) {
+		return
+	}
+
+	t.logger.Printf("[MCP:SSE] stream opened — session=%s active=%d/%d remote=%s",
+		sessID[:8], int(current), t.config.SSE.MaxConns, sanitizeForLog(extractRemoteAddr(r)))
 
 	pingTick := time.NewTicker(t.config.SSE.PingInterval)
 	defer pingTick.Stop()
@@ -303,14 +369,24 @@ func (t *httpTransport) handleSSE(w http.ResponseWriter, r *http.Request) {
 		case <-streamCtx.Done():
 			// Stream lifetime expired — close gracefully
 			writeEvent("stream-closed", `{"reason":"idle_timeout","reconnect":true}`) //nolint:errcheck
-			t.logger.Printf("[MCP:SSE] stream closed (timeout) — remote=%s",
-				sanitizeForLog(extractRemoteAddr(r)))
+			t.logger.Printf("[MCP:SSE] stream closed (timeout) — session=%s remote=%s",
+				sessID[:8], sanitizeForLog(extractRemoteAddr(r)))
 			return
+
+		case msg := <-sessCh:
+			// Relay JSON-RPC response back to client through the SSE stream
+			seq := t.sseEventSeq.Add(1)
+			_, werr := fmt.Fprintf(w, "id: %d\nevent: message\ndata: %s\n\n", seq, msg)
+			if werr != nil {
+				t.logger.Printf("[MCP:SSE] session=%s write error: %v", sessID[:8], werr)
+				return
+			}
+			flusher.Flush()
 
 		case <-pingTick.C:
 			if !writeEvent("ping", `{}`) {
-				t.logger.Printf("[MCP:SSE] stream closed (client disconnect) — remote=%s",
-					sanitizeForLog(extractRemoteAddr(r)))
+				t.logger.Printf("[MCP:SSE] stream closed (client disconnect) — session=%s remote=%s",
+					sessID[:8], sanitizeForLog(extractRemoteAddr(r)))
 				return
 			}
 
@@ -319,6 +395,97 @@ func (t *httpTransport) handleSSE(w http.ResponseWriter, r *http.Request) {
 			writeEvent("token-expiring", `{"action":"reconnect_and_refresh_token"}`) //nolint:errcheck
 		}
 	}
+}
+
+// handleMessage processes POST /message?sessionId=xxx — the MCP SSE protocol message endpoint.
+//
+// mcp-remote POSTs JSON-RPC requests here after receiving the endpoint URL from the SSE stream.
+// Responses are sent back through the SSE channel (not in the HTTP response body).
+// Returns 202 Accepted immediately after queuing the response.
+func (t *httpTransport) handleMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "only POST is supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessID := r.URL.Query().Get("sessionId")
+	if sessID == "" {
+		http.Error(w, `{"error":"missing sessionId"}`, http.StatusBadRequest)
+		return
+	}
+
+	val, ok := t.sessions.Load(sessID)
+	if !ok {
+		http.Error(w, `{"error":"session not found or expired"}`, http.StatusNotFound)
+		return
+	}
+	sessCh := val.(chan []byte)
+
+	body := http.MaxBytesReader(w, r.Body, t.config.MaxRequestSize)
+	defer body.Close()
+	data, err := io.ReadAll(body)
+	if err != nil {
+		http.Error(w, `{"error":"request body error"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req JSONRPCRequest
+	if err := json.Unmarshal(data, &req); err != nil {
+		http.Error(w, `{"error":"parse error"}`, http.StatusBadRequest)
+		return
+	}
+
+	cred := t.extractCredential(r)
+	remoteAddr := extractRemoteAddr(r)
+
+	// notifications/* are fire-and-forget — no response needed per MCP spec
+	if strings.HasPrefix(req.Method, "notifications/") {
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	var resp JSONRPCResponse
+	switch req.Method {
+	case "initialize":
+		resp = t.handleInitialize(req)
+	case "ping":
+		resp = JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(map[string]string{"status": "pong"})}
+	case "tools/list":
+		tools := t.router.ListTools()
+		resp = JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(map[string]any{"tools": tools})}
+	case "tools/call":
+		resp = t.handleToolsCall(r.Context(), req, cred, remoteAddr)
+	default:
+		resp = JSONRPCResponse{
+			JSONRPC: "2.0", ID: req.ID,
+			Error: &JSONRPCError{Code: ErrCodeMethodNotFound, Message: fmt.Sprintf("method not found: %s", req.Method)},
+		}
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, `{"error":"marshal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	select {
+	case sessCh <- respBytes:
+	default:
+		t.logger.Printf("[MCP:SSE] session=%s response channel full — dropping", sessID[:8])
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
+// newSessionID generates a cryptographically random 16-byte hex session identifier.
+func newSessionID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 // handleRPC processes a JSON-RPC request over HTTP.
@@ -418,13 +585,33 @@ func (t *httpTransport) handleToolsCall(ctx context.Context, req JSONRPCRequest,
 
 	resp, err := t.router.HandleToolCall(ctx, call, cred, remoteAddr)
 	if err != nil {
-		return JSONRPCResponse{
-			JSONRPC: "2.0", ID: req.ID,
-			Error: &JSONRPCError{Code: ErrCodeInternal, Message: err.Error()},
+		// MCP spec: tool errors go in result with isError=true
+		errResult := mcpCallToolResult{
+			Content: []mcpContentItem{{Type: "text", Text: err.Error()}},
+			IsError: true,
+		}
+		return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(errResult)}
+	}
+
+	// Convert MCPToolResponse → MCP-spec content array
+	var textContent string
+	if resp.IsError {
+		textContent = resp.ErrorMessage
+	} else {
+		respJSON, marshalErr := json.MarshalIndent(resp, "", "  ")
+		if marshalErr != nil {
+			textContent = fmt.Sprintf("{\"error\": \"marshal failed: %s\"}", marshalErr.Error())
+		} else {
+			textContent = string(respJSON)
 		}
 	}
 
-	return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(resp)}
+	result := mcpCallToolResult{
+		Content: []mcpContentItem{{Type: "text", Text: textContent}},
+		IsError: resp.IsError,
+	}
+
+	return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(result)}
 }
 
 // handleHealth returns a basic health check response.
@@ -578,3 +765,274 @@ func (t *httpTransport) writeJSONError(w http.ResponseWriter, id any, code int, 
 	})
 }
 
+// handleRoot serves GET / with a friendly JSON service description.
+// Prevents Caddy/Go from returning a bare "404 page not found" when
+// developers or monitoring tools probe the root path.
+func (t *httpTransport) handleRoot(w http.ResponseWriter, r *http.Request) {
+	// Only handle the exact root path — let other paths fall through to 404.
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		"service": HardenedServerName,
+		"version": HardenedServerVersion,
+		"status":  "ok",
+		"docs":    "https://souhimbou.ai",
+		"health":  "/mcp/v1/health",
+		"endpoints": []string{
+			"/api/v1/onboarding/scan",
+			"/api/v1/mcp/ask",
+			"/mcp/v1/health",
+			"/mcp",
+			"/sse",
+		},
+	})
+}
+
+// handleMCPAsk is a convenience REST wrapper for the Khepra AI chat panel.
+// POST /api/v1/mcp/ask  { "query": "...", "session_id": "...", "max_tools": 5 }
+// Returns: { "answer": "...", "tools_called": [...] }
+func (t *httpTransport) handleMCPAsk(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"only POST is accepted"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 8<<10) // 8KB max
+	var req struct {
+		Query     string `json:"query"`
+		SessionID string `json:"session_id"`
+		MaxTools  int    `json:"max_tools"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid JSON: " + err.Error()}) //nolint:errcheck
+		return
+	}
+	if req.Query == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "query is required"}) //nolint:errcheck
+		return
+	}
+
+	clientIP := extractRemoteAddr(r)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	call := MCPToolCall{
+		RequestID:   "ask-" + req.SessionID,
+		ToolName:    "agent_record",
+		Args:        map[string]any{"query": req.Query, "session_id": req.SessionID, "source": "souhimbou.ai/chat"},
+		RawPayload:  []byte(`{"query":"` + req.Query + `"}`),
+		Transport:   TransportHTTP,
+		SubmittedAt: time.Now().UTC(),
+	}
+
+	resp, toolErr := t.router.HandleToolCall(ctx, call, nil, clientIP)
+
+	w.Header().Set("Content-Type", "application/json")
+	if toolErr != nil {
+		// Return a friendly answer even on tool error — the chat panel shows it gracefully.
+		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+			"answer":      "The KHEPRA intelligence layer is initializing. Ask me about your CMMC compliance posture, STIG findings, or agent security.",
+			"tools_called": []string{},
+		})
+		return
+	}
+
+	answer := "I processed your request through the KHEPRA protocol."
+	var toolsCalled []string
+	if resp != nil {
+		if resp.KhepraSign != "" {
+			toolsCalled = append(toolsCalled, call.ToolName)
+		}
+		if m, ok := resp.Envelope.Result.(map[string]any); ok {
+			if v, ok := m["message"].(string); ok && v != "" {
+				answer = v
+			} else if v, ok := m["summary"].(string); ok && v != "" {
+				answer = v
+			}
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		"answer":      answer,
+		"tools_called": toolsCalled,
+	})
+}
+
+// handleDAGEvents — GET /events
+// SSE relay for the 3D DAG viewer. On connect:
+//  1. Sends a snapshot of up to 100 historical events from the in-memory buffer
+//  2. Then streams real-time exec/attest events as they arrive
+//
+// Usage: open dag-viewer.html?feed=https://mcp.souhimbou.ai/events
+func (t *httpTransport) handleDAGEvents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fl, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // disable nginx/Caddy buffering
+
+	emitter := t.router.Events()
+
+	// ── Phase 1: Replay historical snapshot ─────────────────────────────────
+	// Send buffered events from this session's history so the viewer is never
+	// blank. Capped at 100 most recent exec/attest events.
+	snapshot := emitter.Snapshot()
+	if len(snapshot) > 100 {
+		snapshot = snapshot[len(snapshot)-100:]
+	}
+	for _, ev := range snapshot {
+		if ev.Type != EventExec && ev.Type != EventAttest {
+			continue
+		}
+		data, err := json.Marshal(ev)
+		if err != nil {
+			continue
+		}
+		seq := t.sseEventSeq.Add(1)
+		fmt.Fprintf(w, "event: snapshot\nid: %d\ndata: %s\n\n", seq, data) //nolint:errcheck
+	}
+	fl.Flush()
+
+	// ── Phase 2: Subscribe to real-time event bus ───────────────────────────
+	ch := make(chan MCPEvent, 64)
+	emitter.AddHook(func(ev MCPEvent) {
+		select {
+		case ch <- ev:
+		default:
+			// drop if consumer is too slow — never block the router
+		}
+	})
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			fmt.Fprintf(w, ": ping\n\n") //nolint:errcheck
+			fl.Flush()
+		case ev := <-ch:
+			if ev.Type != EventExec && ev.Type != EventAttest {
+				continue // only relay exec/attest events
+			}
+			data, err := json.Marshal(ev)
+			if err != nil {
+				continue
+			}
+			seq := t.sseEventSeq.Add(1)
+			fmt.Fprintf(w, "event: live\nid: %d\ndata: %s\n\n", seq, data) //nolint:errcheck
+			fl.Flush()
+		}
+	}
+}
+
+// handleDAGViewer — GET /dag-viewer
+// Serves docs/dag-viewer.html (the 3D compliance graph) with the SSE feed
+// pre-pointed at /events on the same origin. No CORS needed.
+func (t *httpTransport) handleDAGViewer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.ServeFile(w, r, "docs/dag-viewer.html")
+}
+
+// handleDAGHistory — GET /api/v1/dag/history
+//
+// Returns the full persisted Master DAG as a JSON array sorted by time ascending.
+// This is fetched by dag-viewer.html on page load to populate the 3D graph
+// immediately from disk history (before any SSE events arrive).
+//
+// Also used for C3PAO evidence export and OSCAL generation.
+// Protected by SEKHEM WAF + CORS. Nodes contain no secret material.
+func (t *httpTransport) handleDAGHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+	if t.dagStore == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, `{"error":"dag store not initialized","nodes":[],"count":0}`)
+		return
+	}
+
+	nodes := t.dagStore.All()
+
+	// Sort by time ascending (genesis → most recent)
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Time < nodes[j].Time
+	})
+
+	type historyResponse struct {
+		Nodes []*dag.Node `json:"nodes"`
+		Count int         `json:"count"`
+	}
+	resp := historyResponse{
+		Nodes: nodes,
+		Count: len(nodes),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store") // audit chain must not be cached
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		t.logger.Printf("[DAG-HISTORY] encode error: %v", err)
+	}
+}
+
+// handleDAGStats — GET /api/v1/dag/stats
+//
+// Lightweight endpoint returning node count, first/last timestamps.
+// Used by monitoring, health checks, and dag-viewer status bar.
+func (t *httpTransport) handleDAGStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+	if t.dagStore == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, `{"error":"dag store not initialized","node_count":0}`)
+		return
+	}
+
+	nodes := t.dagStore.All()
+	count := len(nodes)
+
+	var firstTime, lastTime string
+	for _, n := range nodes {
+		if firstTime == "" || n.Time < firstTime {
+			firstTime = n.Time
+		}
+		if lastTime == "" || n.Time > lastTime {
+			lastTime = n.Time
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"node_count":%d,"first_node_time":%q,"last_node_time":%q,"dag_store":"active"}`,
+		count, firstTime, lastTime)
+}

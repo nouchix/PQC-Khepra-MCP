@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from '@/lib/router-compat';
 import { Button } from '@/components/ui/button';
@@ -7,8 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Search, CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_ASAF_API_URL || 'http://localhost:45444';
-const API_KEY = process.env.NEXT_PUBLIC_ASAF_API_KEY || '';
+// All requests go through the Next.js server-side proxy → mcp.souhimbou.ai
+// Never call the backend directly from the browser.
 
 type Step = 'input' | 'scanning' | 'results' | 'upgrade';
 
@@ -31,21 +32,30 @@ const SCAN_PHASES = [
   'Generating risk score...',
 ];
 
-async function triggerScan(target: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/v1/scans/trigger`, {
+interface TriggerResponse {
+  scan_id?: string;
+  // Direct result fields (MCP synchronous response)
+  risk_score?: number;
+  exposed?: boolean;
+  auth_weakness?: boolean;
+  open_integrations?: number;
+  findings?: { severity: 'critical' | 'high' | 'medium' | 'low'; text: string }[];
+  certified?: boolean;
+  status?: string;
+}
+
+async function triggerScan(target: string): Promise<TriggerResponse> {
+  const res = await fetch('/api/scan', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
-    body: JSON.stringify({ target_url: target, scan_type: 'full' }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_url: target }),
   });
   if (!res.ok) throw new Error(`Scan failed: ${res.status}`);
-  const data = await res.json();
-  return data.scan_id;
+  return res.json();
 }
 
 async function pollScan(scanId: string): Promise<ScanResult> {
-  const res = await fetch(`${API_BASE}/api/v1/scans/${scanId}`, {
-    headers: { 'Authorization': API_KEY },
-  });
+  const res = await fetch(`/api/scan/${scanId}`);
   if (!res.ok) throw new Error(`Poll failed: ${res.status}`);
   return res.json();
 }
@@ -117,24 +127,63 @@ const OnboardingOrchestrator: React.FC = () => {
     setPhase(0);
     setProgress(5);
     try {
-      const id = await triggerScan(target.trim());
-      setScanId(id);
+      const response = await triggerScan(target.trim());
+
+      // MCP is synchronous: if findings are in the POST response, go straight to results.
+      if (response.findings && response.findings.length > 0) {
+        const direct: ScanResult = {
+          scan_id: response.scan_id ?? 'local',
+          risk_score: response.risk_score ?? 50,
+          exposed: response.exposed ?? false,
+          auth_weakness: response.auth_weakness ?? false,
+          open_integrations: response.open_integrations ?? 0,
+          findings: response.findings,
+          certified: response.certified ?? false,
+        };
+        setProgress(100);
+        setTimeout(() => {
+          setResult(direct);
+          setStep('results');
+        }, 600);
+        return;
+      }
+
+      // Async mode: backend returned a scan_id only — start polling
+      if (response.scan_id) {
+        setScanId(response.scan_id);
+      } else {
+        // No findings and no scan_id — show a generic safe result
+        throw new Error('No scan result returned');
+      }
     } catch (e: any) {
-      setError(
-        `Scan failed: ${e.message}. ` +
-        `Ensure NEXT_PUBLIC_ASAF_API_URL points to your running ASAF backend (currently: ${API_BASE}).`
-      );
+      setError(`Scan failed: ${e.message}. Please try again or contact support.`);
       setStep('input');
     }
   };
 
-  const handleCheckout = async () => {
+  const captureLead = async (emailVal: string) => {
+    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) return;
+    // Fire-and-forget — don't block UX
+    fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: emailVal,
+        target_url: target,
+        risk_score: result?.risk_score ?? null,
+        findings_count: result?.findings?.length ?? null,
+        source: 'onboarding',
+      }),
+    }).catch(() => {/* silent */});
+  };
+
+  const handleCheckout = async (plan = 'certify') => {
     setCheckingOut(true);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, plan }),
       });
       const data = await res.json();
       if (data.url) {
@@ -248,7 +297,6 @@ const OnboardingOrchestrator: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg space-y-6">
-          {/* Risk score */}
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-white">Scan complete — <span className="font-mono text-[#00ffff]">{target}</span></h2>
             <div className="flex items-center justify-center gap-3">
@@ -258,7 +306,6 @@ const OnboardingOrchestrator: React.FC = () => {
             </div>
           </div>
 
-          {/* Findings */}
           <div className="bg-[#111] border border-gray-800 rounded-xl p-5 space-y-3">
             <div className="text-sm font-semibold text-gray-300">{result.findings.length} findings</div>
             {result.findings.map((f, i) => (
@@ -274,7 +321,6 @@ const OnboardingOrchestrator: React.FC = () => {
             ))}
           </div>
 
-          {/* Free result footer */}
           <div className="bg-[#111] border border-gray-800 rounded-xl p-5 space-y-4">
             <div className="flex items-start gap-3">
               <Lock className="h-5 w-5 text-[#d4af37] shrink-0 mt-0.5" />
@@ -282,39 +328,29 @@ const OnboardingOrchestrator: React.FC = () => {
                 <div className="font-semibold text-white">Get your ADINKHEPRA certification</div>
                 <p className="text-sm text-gray-400 mt-1">
                   Earn a cryptographically-signed badge that proves this deployment is enterprise-safe.
-                  Share it with your CISO, auditors, and customers. Renews automatically.
+                  Share it with your CISO, auditors, and customers.
                 </p>
               </div>
             </div>
-            {email && (
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="bg-[#0a0a0a] border-gray-700 text-white"
-              />
-            )}
-            {!email && (
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Enter email to get certified"
-                className="bg-[#0a0a0a] border-gray-700 text-white placeholder:text-gray-600"
-              />
-            )}
+            <Input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder={email ? email : "Enter email to get certified"}
+              className="bg-[#0a0a0a] border-gray-700 text-white placeholder:text-gray-600"
+              onBlur={e => captureLead(e.target.value)}
+            />
             <Button
               onClick={handleCheckout}
               disabled={checkingOut}
               className="w-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold py-5"
             >
               {checkingOut ? 'Redirecting to Stripe...' : (
-                <>Get ADINKHEPRA Certified — $99/mo <ArrowRight className="h-4 w-4 ml-2" /></>
+                <>Get ADINKHEPRA Certified — $99 one-time <ArrowRight className="h-4 w-4 ml-2" /></>
               )}
             </Button>
             <p className="text-xs text-center text-gray-600">
-              Billed monthly via Stripe. Cancel anytime. Certification issued within minutes of payment.
+              One-time payment via Stripe. No recurring charges. Certification issued within minutes.
             </p>
           </div>
 

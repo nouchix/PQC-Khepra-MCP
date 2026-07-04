@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { Laptop, Router, Globe, Database, Server, Monitor } from 'lucide-react';

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -233,14 +234,19 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 	}
 
 	// ── Step 2: Device Binding ───────────────────────────────────────────────
-	fp, err := fingerprint.CollectDeviceFingerprint()
-	if err != nil {
-		return fmt.Errorf("sovereign: device fingerprint: %w", err)
-	}
-	currentDeviceID := GenerateDeviceID(fp)
-	if !constantTimeEqual(lic.DeviceID, currentDeviceID) {
-		return fmt.Errorf("sovereign: device mismatch — license issued for %s, this is %s",
-			lic.DeviceID[:16]+"…", currentDeviceID[:16]+"…")
+	// KHEPRA_SKIP_DEVICE_BIND=1 bypasses hardware binding for server/container
+	// deployments (VPS, Docker, CI) where DMI/hardware fingerprinting is
+	// unavailable. ML-DSA-65 signature (Step 1) still guarantees authenticity.
+	if os.Getenv("KHEPRA_SKIP_DEVICE_BIND") != "1" {
+		fp, err := fingerprint.CollectDeviceFingerprint()
+		if err != nil {
+			return fmt.Errorf("sovereign: device fingerprint: %w", err)
+		}
+		currentDeviceID := GenerateDeviceID(fp)
+		if !constantTimeEqual(lic.DeviceID, currentDeviceID) {
+			return fmt.Errorf("sovereign: device mismatch — license issued for %s, this is %s",
+				lic.DeviceID[:16]+"…", currentDeviceID[:16]+"…")
+		}
 	}
 
 	// ── Step 3: Expiry ────────────────────────────────────────────────────────
@@ -291,6 +297,14 @@ type RevocationDatabase struct {
 
 func newRevocationDatabase() *RevocationDatabase {
 	return &RevocationDatabase{entries: make(map[string]RevocationEntry)}
+}
+
+// NewRevocationDatabase creates an empty RevocationDatabase. Exported so callers
+// that build a SovereignLicenseAuthority around an externally-reconstructed root
+// key (e.g. cmd/issue-license, which recovers the key from Shamir shards rather
+// than calling NewSovereignLicenseAuthority) can populate the field directly.
+func NewRevocationDatabase() *RevocationDatabase {
+	return newRevocationDatabase()
 }
 
 func (rdb *RevocationDatabase) Add(entry RevocationEntry) {

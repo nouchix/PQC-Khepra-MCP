@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from '@/lib/router-compat';
 import { X, ChevronRight, ChevronLeft, Shield, Activity, Globe, Lock, Brain } from 'lucide-react';

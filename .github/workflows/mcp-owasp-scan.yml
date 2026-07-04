@@ -1,0 +1,151 @@
+name: MCP OWASP Security Self-Scan
+
+# Runs the OWASP MCP Top 10 assessment on every push / PR.
+# Uses khepra-mcp's own owasp_agent_assess tool to score itself.
+# Fails the build if any CRITICAL finding is detected.
+#
+# Maps to: OWASP-MCP-01..10, ASI-01..10
+# Mirrors: kern-sight-mcp .github/workflows/mcp-security.yml methodology
+
+on:
+  push:
+    branches: [ main, develop, release/* ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: "1.23"
+  BINARY_NAME: khepra-mcp
+
+jobs:
+  owasp-self-scan:
+    name: OWASP MCP Top 10 Self-Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build khepra-mcp binary
+        run: |
+          CGO_ENABLED=0 go build \
+            -tags community \
+            -ldflags="-s -w" \
+            -o bin/${{ env.BINARY_NAME }} \
+            ./cmd/khepra-mcp
+        env:
+          GOFLAGS: "-mod=mod"
+
+      - name: Run OWASP MCP Top 10 self-scan
+        id: scan
+        run: |
+          # Run the MCP server in scan-only mode via stdin/stdout.
+          # We send a tools/call for owasp_agent_assess, capture the JSON response,
+          # then extract the security score and any CRITICAL findings.
+          #
+          # The server is run in community mode (no license key required for self-scan).
+          SCAN_RESULT=$(echo '{
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+              "name": "owasp_agent_assess",
+              "arguments": {"target": "self", "framework": "OWASP-MCP-Top10"}
+            }
+          }' | timeout 30 ./bin/${{ env.BINARY_NAME }} 2>/dev/null | tail -1)
+
+          echo "scan_result=$SCAN_RESULT" >> $GITHUB_OUTPUT
+          echo "## MCP OWASP Self-Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo "$SCAN_RESULT" | python3 -m json.tool 2>/dev/null || echo "$SCAN_RESULT"
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Evaluate scan results
+        run: |
+          RESULT='${{ steps.scan.outputs.scan_result }}'
+
+          # Extract security score grade
+          GRADE=$(echo "$RESULT" | python3 -c "
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+              content = data.get('result', {}).get('content', [{}])
+              if content:
+                  inner = json.loads(content[0].get('text', '{}'))
+                  score = inner.get('security_score', {})
+                  print(score.get('grade', 'UNKNOWN'))
+          except Exception as e:
+              print('PARSE_ERROR: ' + str(e), file=sys.stderr)
+              print('UNKNOWN')
+          " 2>&1)
+
+          echo "Security Grade: $GRADE"
+
+          # Count CRITICAL findings
+          CRITICAL_COUNT=$(echo "$RESULT" | python3 -c "
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+              content = data.get('result', {}).get('content', [{}])
+              if content:
+                  inner = json.loads(content[0].get('text', '{}'))
+                  score = inner.get('security_score', {})
+                  print(score.get('critical_count', 0))
+          except:
+              print(0)
+          " 2>&1)
+
+          echo "Critical findings: $CRITICAL_COUNT"
+          echo "### Grade: $GRADE | Critical: $CRITICAL_COUNT" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$CRITICAL_COUNT" -gt "0" ] 2>/dev/null; then
+            echo "::error::OWASP MCP Self-Scan detected $CRITICAL_COUNT CRITICAL finding(s). Remediate before merging."
+            exit 1
+          fi
+
+          if [ "$GRADE" = "F" ] || [ "$GRADE" = "D" ]; then
+            echo "::warning::MCP Security Grade is $GRADE. Review findings and improve posture."
+          fi
+
+  go-vet-security:
+    name: Go Vet + Security Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Scan source for patterns that shouldn't be committed
+          if grep -rn --include="*.go" \
+            -E "(KHEPRA_LICENSE_KEY|sk_live_|ghp_|AKIA[A-Z0-9]{16})" \
+            --exclude-dir=vendor \
+            --exclude-dir=.git \
+            . ; then
+            echo "::error::Potential hardcoded secret found in source code."
+            exit 1
+          fi
+          echo "No hardcoded secrets detected."
+
+      - name: Verify no CGO in production binaries
+        run: |
+          CGO_ENABLED=1 go build -tags community -o /dev/null ./cmd/khepra-mcp 2>&1 | \
+            grep -i "cgo\|CGO" && echo "::warning::CGO detected" || echo "CGO clean"

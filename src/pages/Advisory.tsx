@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Phone, Shield } from 'lucide-react';
 
 const ADVISORY_CALENDLY_URL = 'https://calendly.com/cybersouhimbou';
-const ADVISORY_MAILTO = 'mailto:hello@souhimbou.com?subject=ASAF%20Advisory%20Call%20Request';
+const ADVISORY_MAILTO = 'mailto:hello@souhimbou.ai?subject=SouHimBou%20AI%20Advisory%20Call%20Request';
 
 export default function Advisory() {
   const navigate = useNavigate();
@@ -21,8 +21,8 @@ export default function Advisory() {
               Book an <span className="text-[#00ffff]">Advisory Call</span>
             </h1>
             <p className="text-gray-300 text-lg leading-relaxed">
-              Talk with an ASAF specialist about readiness scans, assessor-oriented evidence mapping, and optional ADINKHEPRA attestation.
-              We’ll discuss scope, artifacts, and next steps for C3PAO / ISSM intake.
+              Talk with a SouHimBou AI specialist about agentic security monitoring, attestation, and ADINKHEPRA certification.
+              We'll discuss scope, artifacts, and next steps for your SOC or compliance intake.
             </p>
           </div>
 
