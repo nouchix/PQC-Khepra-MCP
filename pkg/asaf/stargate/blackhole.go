@@ -102,11 +102,15 @@ var blackholeStore = struct {
 // BlackholeHandlers implements the Blackhole VPN HTTP endpoints.
 type BlackholeHandlers struct {
 	hubAddr string // hub's external address for heartbeat/dispatch URLs
+	ebg     *policy.EgressBoundaryGuard
 }
 
 // NewBlackholeHandlers creates Blackhole VPN handlers.
-func NewBlackholeHandlers(hubAddr string) *BlackholeHandlers {
-	return &BlackholeHandlers{hubAddr: hubAddr}
+func NewBlackholeHandlers(hubAddr string, ebg *policy.EgressBoundaryGuard) *BlackholeHandlers {
+	return &BlackholeHandlers{
+		hubAddr: hubAddr,
+		ebg:     ebg,
+	}
 }
 
 // Register mounts Blackhole routes onto mux.
