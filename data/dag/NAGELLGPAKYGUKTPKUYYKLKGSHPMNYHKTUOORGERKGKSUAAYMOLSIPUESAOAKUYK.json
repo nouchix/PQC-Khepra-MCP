@@ -1,0 +1,11 @@
+{
+  "id": "NAGELLGPAKYGUKTPKUYYKLKGSHPMNYHKTUOORGERKGKSUAAYMOLSIPUESAOAKUYK",
+  "parents": null,
+  "action": "seshat-inscription",
+  "symbol": "maat-decision",
+  "time": "2026-07-06T19:33:07-04:00",
+  "pqc_metadata": {
+    "data": "map[action:observe autonomous:true isfet_id:SV-257777r925318_rule kasa_wisdom:KASA unavailable realm:duat severity:MINOR]"
+  },
+  "hash": "NAGELLGPAKYGUKTPKUYYKLKGSHPMNYHKTUOORGERKGKSUAAYMOLSIPUESAOAKUYK"
+}
