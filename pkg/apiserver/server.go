@@ -256,6 +256,12 @@ func (s *Server) setupRoutes() {
 			cc.POST("/prove/export", s.handleCCExportEvidence)
 		}
 
+		// Fleet endpoints (legacy / UI compatibility)
+		fleet := v1.Group("/fleet")
+		{
+			fleet.POST("/enclaves/local/discover", s.handleFleetDiscover)
+		}
+
 		// Autopilot — Continuous Compliance Engine (Autopilot tier)
 		ap := v1.Group("/autopilot")
 		{
