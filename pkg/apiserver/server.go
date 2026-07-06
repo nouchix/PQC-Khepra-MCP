@@ -191,6 +191,12 @@ func (s *Server) setupRoutes() {
 	// No Bearer auth (webhook has no credentials); protected by localhost-only guard in handler.
 	pubV1.POST("/license/revoke", s.handleRevokeLicense)
 
+	// Fleet endpoints (public for local discovery / UI compatibility)
+	pubFleet := pubV1.Group("/fleet")
+	{
+		pubFleet.POST("/enclaves/local/discover", s.handleFleetDiscover)
+	}
+
 	// API v1 routes — PQC auth when gateway is wired, legacy API key otherwise
 	v1 := s.router.Group("/api/v1")
 	if s.pqcGateway != nil {
@@ -254,12 +260,6 @@ func (s *Server) setupRoutes() {
 			cc.POST("/prove/attest", s.handleCCCreateAttestation)
 			cc.GET("/prove/verify", s.handleCCVerifyAttestation)
 			cc.POST("/prove/export", s.handleCCExportEvidence)
-		}
-
-		// Fleet endpoints (legacy / UI compatibility)
-		fleet := v1.Group("/fleet")
-		{
-			fleet.POST("/enclaves/local/discover", s.handleFleetDiscover)
 		}
 
 		// Autopilot — Continuous Compliance Engine (Autopilot tier)
