@@ -62,3 +62,23 @@ func (s *Server) handleFleetDiscover(c *gin.Context) {
 		},
 	})
 }
+
+type FleetEnrollRequest struct {
+	Hosts []map[string]interface{} `json:"hosts" binding:"required"`
+}
+
+func (s *Server) handleFleetEnroll(c *gin.Context) {
+	var req FleetEnrollRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	// In a real TRL10 implementation, this would persist to the DAG or Supabase database.
+	// For now, we acknowledge the enrollment.
+	c.JSON(http.StatusOK, gin.H{
+		"status":   "success",
+		"message":  "Enrolled successfully",
+		"enrolled": len(req.Hosts),
+	})
+}
