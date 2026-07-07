@@ -1,12 +1,12 @@
-// Package g0dm0d3 — tools.go implements the KHEPRA native tool panel.
+// package intelligence — tools.go implements the KHEPRA native tool panel.
 //
 // Tools are callable by:
-//  1. HTTP GET /api/g0dm0d3/tools/{tool-name}  (frontend panel)
+//  1. HTTP GET /api/intelligence/tools/{tool-name}  (frontend panel)
 //  2. AI auto-execution when a response contains [TOOL:tool-name]
 //
 // Tool implementations are pure functions of the DAG state plus optional
 // injected callbacks — no mock data, no placeholders.
-package g0dm0d3
+package intelligence
 
 import (
 	"encoding/json"
@@ -40,7 +40,7 @@ func (s *G0DM0D3Server) RegisterTool(tool Tool) {
 		s.tools = make(map[string]Tool)
 	}
 	if _, exists := s.tools[tool.Name()]; exists {
-		panic(fmt.Sprintf("g0dm0d3: duplicate tool registered: %q", tool.Name()))
+		panic(fmt.Sprintf("intelligence: duplicate tool registered: %q", tool.Name()))
 	}
 	s.tools[tool.Name()] = tool
 }
@@ -63,13 +63,13 @@ func (s *G0DM0D3Server) RegisterDefaultTools(eaStatusFn func() (string, error), 
 
 // ─── HTTP Handler ─────────────────────────────────────────────────────────────
 
-// HandleTool serves GET /api/g0dm0d3/tools/{tool-name}.
+// HandleTool serves GET /api/intelligence/tools/{tool-name}.
 // Returns JSON: {"tool":"...", "result":"...", "timestamp":"..."} or an error object.
 func (s *G0DM0D3Server) HandleTool(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeJSON)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// Extract tool name from path: /api/g0dm0d3/tools/{name}
+	// Extract tool name from path: /api/intelligence/tools/{name}
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) == 0 {
 		jsonError(w, http.StatusBadRequest, "missing tool name in path")
@@ -99,7 +99,7 @@ func (s *G0DM0D3Server) HandleTool(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// HandleToolList serves GET /api/g0dm0d3/tools (no trailing name).
+// HandleToolList serves GET /api/intelligence/tools (no trailing name).
 // Returns a JSON list of all registered tool names.
 func (s *G0DM0D3Server) HandleToolList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeJSON)
