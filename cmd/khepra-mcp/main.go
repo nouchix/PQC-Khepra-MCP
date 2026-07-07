@@ -578,6 +578,11 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("fim_baseline", tools.HandleFIMBaseline)
 	executor.RegisterFunc("audit_dag_integrity", tools.HandleAuditExport)
 
+	// ── Sprint 3 Additions: Agentic Layer & Governance ──────────────────────
+	executor.RegisterFunc("playbook_execute", tools.HandlePlaybookExecute)
+	executor.RegisterFunc("asaf_lint", tools.HandleASAFLint)
+	executor.RegisterFunc("compliance_model_check", tools.HandleComplianceModelCheck)
+
 	// ── Sprint 4: Sword (Recon + Scanning + Attack Graph) ───────────────────
 	executor.RegisterFunc("enumerate_host", tools.HandleEnumerateHost)
 	executor.RegisterFunc("fingerprint_device", tools.HandleFingerprintDevice)
@@ -653,6 +658,52 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 	}
 
 	return []khepramcp.ToolSpec{
+		// ── Sprint 3 Additions ───────────────────────────────────────────────
+		{
+			Name: "playbook_execute", Description: "Trigger a SOAR playbook from the agent channel",
+			RiskClass: khepramcp.RiskDestructive, Scope: "soar:execute",
+			SchemaVersion: "1.0.0", SchemaHash: hash("playbook_execute"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+			MaxPrivilege: "none",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"playbook_name": map[string]any{"type": "string", "description": "Name of the playbook to execute"},
+					"environment":   map[string]any{"type": "string", "description": "Execution environment: 'staging' or 'production'"},
+				},
+				"required": []string{"playbook_name"},
+			},
+		},
+		{
+			Name: "asaf_lint", Description: "Lint an ASAF Policy Declaration Language snippet",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:lint",
+			SchemaVersion: "1.0.0", SchemaHash: hash("asaf_lint"),
+			AllowedBackend: "in-process", TimeoutMs: 5000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"policy_snippet": map[string]any{"type": "string", "description": "The ASAF policy string to lint"},
+				},
+				"required": []string{"policy_snippet"},
+			},
+		},
+		{
+			Name: "compliance_model_check", Description: "Verify if an LLM meets compliance requirements for the current deployment tier",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:model",
+			SchemaVersion: "1.0.0", SchemaHash: hash("compliance_model_check"),
+			AllowedBackend: "in-process", TimeoutMs: 5000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"model_name": map[string]any{"type": "string", "description": "LLM identifier (e.g. 'claude-3-7-sonnet', 'llama3.1:8b')"},
+					"tier":       map[string]any{"type": "string", "description": "Deployment tier: 'sovereign', 'hybrid', or 'edge'"},
+				},
+				"required": []string{"model_name"},
+			},
+		},
+
 		// ── ACP (Agent Control Plane) ────────────────────────────────────────
 		{
 			Name: "acp_status", Description: "List active ACP credentials and their expiry status",
