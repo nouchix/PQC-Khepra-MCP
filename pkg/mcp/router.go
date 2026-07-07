@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/flight"
 	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
@@ -108,6 +109,11 @@ type Router struct {
 	// callLog is the in-memory ring buffer capturing every tool call.
 	// Enables T02/T08 scanner checks and SOW pilot metrics.
 	callLog *CallLog
+	// recorder is the SouHimBou AI Flight Recorder.
+	// When non-nil, EVERY tool call (success or failure) is automatically written
+	// as a chain-linked, ML-DSA-65 signed FlightFrame to khepra-flight.ndjson.
+	// This is the value proposition: zero SDK required — automatic for every call.
+	recorder *flight.Recorder
 }
 
 // RouterConfig holds all dependencies for constructing a Router.
@@ -145,6 +151,13 @@ type RouterConfig struct {
 	// Default: 512. Increase for high-throughput deployments.
 	// Set to -1 to disable call logging (not recommended for DFARS environments).
 	CallLogCapacity int
+
+	// FlightRecorder is the SouHimBou AI Flight Recorder instance.
+	// When set, every tool call through HandleToolCall is automatically recorded
+	// as a chain-linked, ML-DSA-65 signed FlightFrame — zero user action required.
+	// This is the core value proposition of the flight recorder capability.
+	// If nil, flight recording is silently skipped (no other behavior changes).
+	FlightRecorder *flight.Recorder
 }
 
 // NewRouter creates a Router with all security chain components.
@@ -205,6 +218,13 @@ func NewRouter(cfg RouterConfig) (*Router, error) {
 		"rate_limit": fmt.Sprintf("%d/%dms", rateMax, rateWindow),
 	}})
 
+	if cfg.FlightRecorder != nil {
+		logger.Printf("[MCP:FLIGHT] recorder active — every tool call will be chain-linked and ML-DSA-65 signed to %s",
+			cfg.FlightRecorder.Path())
+	} else {
+		logger.Printf("[MCP:FLIGHT] WARN: FlightRecorder is nil — continuous flight recording DISABLED")
+	}
+
 	return &Router{
 		demarc:            cfg.Demarc,
 		poly:              cfg.Poly,
@@ -220,6 +240,7 @@ func NewRouter(cfg RouterConfig) (*Router, error) {
 		invocationRootKey: cfg.InvocationRootKey,
 		license:           cfg.License,
 		callLog:           NewCallLog(cfg.CallLogCapacity),
+		recorder:          cfg.FlightRecorder,
 	}, nil
 }
 
@@ -446,12 +467,39 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 
 		r.events.EmitToolEnd(call.ToolName, id.AgentID, call.RequestID, durationMs, false, "EXEC_ERROR", execErr.Error())
 		r.logger.Printf("[MCP:EXEC] tool=%q failed: %v (duration=%v)", call.ToolName, execErr, time.Since(start))
+
+		// Flight-record the failure — auditors must see errors, not just successes.
+		if r.recorder != nil {
+			argKeys := make([]string, 0, len(call.Args))
+			for k := range call.Args {
+				argKeys = append(argKeys, k)
+			}
+			if _, recErr := r.recorder.Record(flight.RecordInput{
+				AgentID:       id.AgentID,
+				Subject:       id.Subject,
+				SessionID:     id.SessionID,
+				ToolName:      spec.Name,
+				ToolScope:     spec.Scope,
+				RiskClass:     flight.RiskClass(spec.RiskClass),
+				IntentSummary: flight.BuildIntentSummary(spec.Name, spec.Scope, argKeys),
+				RawParams:     rawPayload,
+				Outcome:       flight.OutcomeError,
+				ErrorSummary:  execErr.Error(),
+				Warnings:      warnings,
+				StartedAt:     start,
+				DurationMs:    durationMs,
+			}); recErr != nil {
+				r.logger.Printf("[MCP:FLIGHT] WARN: error-frame write failed for tool=%q: %v (non-fatal)", spec.Name, recErr)
+			}
+		}
+
 		return &MCPToolResponse{
 			IsError:      true,
 			ErrorMessage: execErr.Error(),
 			Warnings:     warnings,
 		}, nil
 	}
+
 
 	// Reset mistake counter on success
 	r.mistakes.RecordSuccess(id.AgentID)
@@ -563,6 +611,37 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		ParamsLen:  len(rawPayload),
 		DAGNodeID:  attestationID,
 	})
+
+	// ── Step 7: Autonomous Flight Recording (SouHimBou AI) ──────────────────
+	// Every tool call is automatically recorded as a chain-linked, ML-DSA-65
+	// signed FlightFrame. Zero user action required — this IS the value prop.
+	// Non-fatal: flight recording failure never blocks the tool response.
+	if r.recorder != nil {
+		argKeys := make([]string, 0, len(call.Args))
+		for k := range call.Args {
+			argKeys = append(argKeys, k)
+		}
+		_, recErr := r.recorder.Record(flight.RecordInput{
+			AgentID:       id.AgentID,
+			Subject:       id.Subject,
+			SessionID:     id.SessionID,
+			ToolName:      spec.Name,
+			ToolScope:     spec.Scope,
+			RiskClass:     flight.RiskClass(spec.RiskClass),
+			IntentSummary: flight.BuildIntentSummary(spec.Name, spec.Scope, argKeys),
+			RawParams:     rawPayload,
+			Outcome:       flight.OutcomeSuccess,
+			Warnings:      warnings,
+			DAGNodeID:     attestationID,
+			IsSigned:      signedEnv.Signature != "",
+			StartedAt:     start,
+			DurationMs:    durationMs,
+		})
+		if recErr != nil {
+			r.logger.Printf("[MCP:FLIGHT] WARN: frame write failed for tool=%q agent=%q: %v (non-fatal)",
+				spec.Name, id.AgentID, recErr)
+		}
+	}
 
 	resp := &MCPToolResponse{
 		Envelope: signedEnv,
