@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
-  "revision": "build-1782713495",
-  "generated_at": "2026-06-29T06:11:35Z",
+  "revision": "build-1783396025",
+  "generated_at": "2026-07-07T03:47:05Z",
   "hash_algorithm": "SHA-256",
   "public_key_id": "fd4b9fa39a4a4cda",
   "tools": [
@@ -1724,6 +1724,89 @@
         "required": [
           "password",
           "target_dir"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "playbook_execute",
+      "description": "Execute a SouHimBou SOAR playbook from the agent channel. Defaults to staging environment unless 'production' is explicitly specified.",
+      "risk_class": "destructive",
+      "scope": "soar:execute",
+      "schema_version": "1.0.0",
+      "schema_hash": "6f1f5ad34ee0b1fe8f71285e164eba7a29955517346cbcad84a9e2fae8be13c7",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "environment": {
+            "description": "Execution environment: 'staging' (default) or 'production'. Production requires explicit opt-in.",
+            "type": "string"
+          },
+          "playbook_name": {
+            "description": "Name of the built-in or disk-loaded SOAR playbook (e.g. 'quarantine-agent', 'rate-limit-agent', 'evidence-capture')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asaf_lint",
+      "description": "Lint an ASAF Policy Declaration Language (APDL) snippet. Validates @symbol, @framework, control block, and maps: clause presence.",
+      "risk_class": "read_only",
+      "scope": "compliance:lint",
+      "schema_version": "1.0.0",
+      "schema_hash": "321537b1bbf30bff223f0021f4c67bfebb4feb3a5f5fc4db9d1d1cc26fbdedb4",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "pilot",
+      "args_schema": {
+        "properties": {
+          "policy_snippet": {
+            "description": "The ASAF APDL policy string to lint (must include @symbol, @framework, control block, and maps: clause)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_snippet"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "compliance_model_check",
+      "description": "Verify if an LLM model is approved for the current KHEPRA deployment tier. Enforces sovereign (no commercial LLMs), hybrid, and edge tier policies from AGENTS.md.",
+      "risk_class": "read_only",
+      "scope": "compliance:model",
+      "schema_version": "1.0.0",
+      "schema_hash": "92b4bf2c2728d9e9590ee798d892fbd28571329798bd01d95ee6c832c5defcfe",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "model_name": {
+            "description": "LLM identifier (e.g. 'llama3.1:8b', 'claude-sonnet-4-5', 'gpt-4o')",
+            "type": "string"
+          },
+          "tier": {
+            "description": "Deployment tier to check against: 'sovereign', 'hybrid', or 'edge' (default: 'hybrid')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_name"
         ],
         "type": "object"
       }
