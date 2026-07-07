@@ -35,6 +35,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -44,11 +45,13 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/flight"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
+
 
 func main() {
 	// All diagnostic output goes to stderr (MCP: stdout = JSON-RPC only).
@@ -249,6 +252,38 @@ func main() {
 		logger.Printf("[DAG-SEED] %d demo nodes seeded into Master DAG", seededCount)
 	}
 
+	// ── SouHimBou AI Flight Recorder (Autonomous — Step 7 of every tool call) ──
+	// The recorder is instantiated HERE and injected into the Router.
+	// After this point, every tool call — success or failure — is automatically
+	// written as a chain-linked, ML-DSA-65 signed FlightFrame with no user action.
+	// Non-negotiable: this is the core SouHimBou AI value proposition.
+	defaultFlightLog := "/var/log/khepra/khepra-flight.ndjson"
+	if home := os.Getenv("USERPROFILE"); home != "" {
+		defaultFlightLog = home + `\.khepra\khepra-flight.ndjson`
+	} else if home := os.Getenv("HOME"); home != "" {
+		defaultFlightLog = home + "/.khepra/khepra-flight.ndjson"
+	}
+	flightLogPath := getEnvOr("KHEPRA_FLIGHT_LOG_PATH", defaultFlightLog)
+	// Ensure parent directory exists
+	if mkdirErr := os.MkdirAll(filepath.Dir(flightLogPath), 0700); mkdirErr != nil {
+		logger.Printf("WARN: could not create flight log directory %s: %v", filepath.Dir(flightLogPath), mkdirErr)
+	}
+	flightRecorder, flightErr := flight.New(flight.RecorderConfig{
+		Path:    flightLogPath,
+		PrivKey: privKey,
+		PubKey:  pubKey,
+	})
+	if flightErr != nil {
+		// Non-fatal: log loudly but continue. The DAG attestation still captures all calls.
+		logger.Printf("WARN: SouHimBou Flight Recorder unavailable (%s): %v — router will operate without flight log",
+			flightLogPath, flightErr)
+		flightRecorder = nil
+	} else {
+		logger.Printf("[FLIGHT] SouHimBou AI Flight Recorder ACTIVE — %s (ML-DSA-65 signed, chain-linked)", flightLogPath)
+		defer flightRecorder.Close()
+	}
+
+
 	// Derive HMAC root key for per-invocation tokens from the ML-DSA-65 session key
 	invocationRootKey := khepramcp.DeriveRootKey(privKey)
 
@@ -274,6 +309,9 @@ func main() {
 		MaxConcurrent:     maxConcurrent,
 		// License enforcement
 		License: licenseClaim,
+		// Autonomous Flight Recording — SouHimBou AI core value proposition.
+		// Every tool call is automatically flight-recorded with zero user action.
+		FlightRecorder: flightRecorder,
 	})
 	if err != nil {
 		logger.Fatalf("FATAL: router construction failed: %v", err)
