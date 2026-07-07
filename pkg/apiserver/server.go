@@ -195,6 +195,7 @@ func (s *Server) setupRoutes() {
 	pubFleet := pubV1.Group("/fleet")
 	{
 		pubFleet.POST("/enclaves/local/discover", s.handleFleetDiscover)
+		pubFleet.POST("/enclaves/local/enroll", s.handleFleetEnroll)
 	}
 
 	// API v1 routes — PQC auth when gateway is wired, legacy API key otherwise
