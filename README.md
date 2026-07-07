@@ -1,13 +1,15 @@
 # KHEPRA MCP Server
 
 [![smithery badge](https://smithery.ai/badge/skone/pqc-khepra-mcp)](https://smithery.ai/servers/skone/pqc-khepra-mcp)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
+[![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
+[![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
 [![License](https://img.shields.io/badge/License-Community%20%2F%20Commercial-green?style=for-the-badge)](https://nouchix.com)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
 
-**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. 72 tools. v2.0.0.**
+**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. 76 tools. v2.0.0.**
 
 Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
 The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
@@ -441,9 +443,17 @@ KHEPRA_MODE=sovereign mcp-remote \
 
 > **Security note:** In `sovereign`/`ironbank` mode, KHEPRA makes zero egress calls — only the bridge connection to the cloud tool carries data.
 
-#### Option 3 — Smithery / MCP Registry (Community tier)
+#### Option 3 — Smithery / MCP Registries (Community tier)
 
-KHEPRA is listed on [Smithery.ai](https://smithery.ai) and the [MCP Registry](https://registry.modelcontextprotocol.io). Cloud tools that support registry-based discovery can install it directly:
+KHEPRA is listed across all major MCP discovery platforms. Cloud tools that support registry-based discovery can install it directly:
+
+| Registry | URL |
+|---|---|
+| **Smithery.ai** | [smithery.ai/servers/skone/pqc-khepra-mcp](https://smithery.ai/servers/skone/pqc-khepra-mcp) |
+| **MCP Registry (official)** | [registry.modelcontextprotocol.io/?q=khepra](https://registry.modelcontextprotocol.io/?q=khepra) |
+| **mcpservers.org** | [mcpservers.org/servers/nouchix/pqc-khepra-mcp](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp) |
+| **Cline Marketplace** | [github.com/cline/mcp-marketplace/issues/1824](https://github.com/cline/mcp-marketplace/issues/1824) |
+| **Live Hosted Endpoint** | [mcp.souhimbou.ai](https://mcp.souhimbou.ai/) |
 
 ```
 Registry ID: io.github.nouchix/pqc-khepra-mcp
@@ -697,6 +707,20 @@ Running continuously on constrained edge hardware since **May 12, 2026** to prov
 
 > USPTO Provisional Patent **#73565085** — pending.  
 > 🔒 Iron Bank containers in DISA vetting process.
+
+---
+
+## Find Us — MCP Registry Listings
+
+PQC-Khepra-MCP is listed on every major MCP discovery platform:
+
+| Platform | Link | Notes |
+|---|---|---|
+| **Smithery.ai** | [smithery.ai/servers/skone/pqc-khepra-mcp](https://smithery.ai/servers/skone/pqc-khepra-mcp) | One-click install for Claude, Cursor, Windsurf |
+| **MCP Registry (official)** | [registry.modelcontextprotocol.io/?q=khepra](https://registry.modelcontextprotocol.io/?q=khepra) | Anthropic-curated registry — Registry ID: `io.github.nouchix/pqc-khepra-mcp` |
+| **mcpservers.org** | [mcpservers.org/servers/nouchix/pqc-khepra-mcp](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp) | Community discovery index |
+| **Cline Marketplace** | [github.com/cline/mcp-marketplace/issues/1824](https://github.com/cline/mcp-marketplace/issues/1824) | VS Code / Cline extension marketplace |
+| **Live Hosted Endpoint** | [mcp.souhimbou.ai](https://mcp.souhimbou.ai/) | Zero-install SSE endpoint — connect in 30 seconds |
 
 ---
 
