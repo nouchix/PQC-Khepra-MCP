@@ -263,11 +263,17 @@ type CryptoIntel struct {
 
 // GodfatherReport contains Package D output
 type GodfatherReport struct {
-	Timestamp        time.Time          `json:"timestamp"`
-	RiskLevel        string             `json:"risk_level"`
-	CausalChain      []CausalLink       `json:"causal_chain"`
-	Recommendations  []Recommendation   `json:"recommendations"`
-	BusinessImpact   BusinessImpact     `json:"business_impact"`
+	Timestamp       time.Time        `json:"timestamp"`
+	RiskLevel       string           `json:"risk_level"`
+	CausalChain     []CausalLink     `json:"causal_chain"`
+	Recommendations []Recommendation `json:"recommendations"`
+	BusinessImpact  BusinessImpact   `json:"business_impact"`
+
+	// SPRS — DoD Supplier Performance Risk System score (NIST SP 800-171 DoD Assessment)
+	// Populated by ExportEvidencePackage(); zero until then.
+	SPRSScore       int    `json:"sprs_score,omitempty"`       // -203 to 110; threshold 110
+	SPRSDeduction   int    `json:"sprs_deduction,omitempty"`   // points subtracted from 110
+	EvidenceZipPath string `json:"evidence_zip_path,omitempty"` // path to C3PAO evidence ZIP
 }
 
 // Supporting types
