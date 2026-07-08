@@ -1,4 +1,4 @@
-// Khepra MCP Server — Hardened Entry Point (AD-006 / AD-008)
+﻿// Khepra MCP Server — Hardened Entry Point (AD-006 / AD-008)
 //
 // This binary implements the world's first PQC-secured MCP server.
 // It runs as a subprocess launched by AI tools (Claude, Cursor, Windsurf)
@@ -539,6 +539,8 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("cmmc_assess", tools.HandleCMMCAssess)
 	// agent_record — Layer 4→3 bridge: SouHimBou AI Flight Recorder
 	executor.RegisterFunc("agent_record", tools.HandleAgentRecord)
+	// attest_export — C3PAO 13-artifact evidence ZIP (SPRS + ML-DSA-65 manifest)
+	executor.RegisterFunc("attest_export", tools.HandleAttestExport)
 
 	// ── Sovereign Tools (no Supabase, no network — 100% offline) ───────────
 	// P0: C3PAO artifact — existential differentiator
