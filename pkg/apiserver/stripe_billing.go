@@ -30,13 +30,24 @@ type StripeConfig struct {
 	PublishableKey string // pk_live_... or pk_test_...
 }
 
-// PriceMapping maps our tier names to Stripe price IDs.
-// Set these via env vars or config. Empty string = not configured.
+// PriceMapping maps tier/SKU names to Stripe price IDs.
+// Last updated: 2026-07-09 — deconflicted SouHimBou AI vs PQC-Khepra-MCP products.
+//
+// Product ownership:
+//   prod_UhvNflskmq9PoV  → SouHimBou.AI Flight Recorder  (STRIPE_PRODUCT_SOC)
+//   prod_UqvQtvapGfRbcP  → PQC-Khepra-MCP Server          (STRIPE_PRODUCT_MCP)
 var PriceMapping = map[string]string{
-	"certify":    os.Getenv("STRIPE_PRICE_CERTIFY"),    // $99 one-time
-	"autopilot":  os.Getenv("STRIPE_PRICE_AUTOPILOT"),  // $499/mo recurring
-	"diagnostic": os.Getenv("STRIPE_PRICE_DIAGNOSTIC"), // $5,000 one-time
-	"sprint":     os.Getenv("STRIPE_PRICE_SPRINT"),     // $15,000 one-time
+	// SouHimBou AI hosted tiers (souhimbou.ai)
+	"certify":      os.Getenv("STRIPE_PRICE_CERTIFY"),          // $99      one-time
+	"starter":      os.Getenv("STRIPE_PRICE_STARTER"),          // $299/mo  recurring → TierPilot
+	"enterprise":   os.Getenv("STRIPE_PRICE_ENTERPRISE_SOC"),   // $499/mo  recurring → TierEnterprise
+	"professional": os.Getenv("STRIPE_PRICE_PROFESSIONAL"),     // $999/mo  recurring → TierEnterprise
+	// PQC-Khepra-MCP Server standalone (air-gapped self-hosted)
+	"sovereign":    os.Getenv("STRIPE_PRICE_MCP_SOVEREIGN"),    // $2,999/mo recurring → TierMaster
+	// Professional Services (consulting, one-time)
+	"diagnostic":   os.Getenv("STRIPE_PRICE_DIAGNOSTIC"),       // $1,500   one-time
+	"advisory":     os.Getenv("STRIPE_PRICE_ADVISORY"),         // $5,000   one-time
+	"sprint":       os.Getenv("STRIPE_PRICE_SPRINT"),           // $15,000  one-time
 }
 
 // CheckoutSession represents a pending or completed checkout

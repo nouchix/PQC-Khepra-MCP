@@ -32,8 +32,6 @@ Patent Pending: **USPTO #73565085**
 | Community | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
 | Pilot | `price_1TiVvyDqGyad2D3V4mszc5v5` | $499 | + `cmmc_assess`, `agent_record` |
 | Enterprise | `price_1TiVXoDqGyad2D3Vr78bgbTI` | $2,999 | + `attest_export`, `godfather_report`, SOAR, GovCloud |
-| Master | Contact | Custom | All + sovereign deploy |
-
 ### MCP Tools Registered
 | Tool | Tier Required | Handler |
 |------|-------------|---------|
@@ -45,17 +43,48 @@ Patent Pending: **USPTO #73565085**
 | `attest_export` | Pilot | `pkg/mcp/tools/attest_export_tool.go` |
 | `agent_record` | Community | `pkg/mcp/tools/agent_record_tool.go` |
 
-### Stripe Integration (as of June 15, 2026)
-All live prices in Stripe product `prod_UhvNflskmq9PoV`:
+### License Tiers — PQC-Khepra-MCP Server (from `pkg/license/mcp_gate.go`)
+| Tier | Product | Stripe Price ID | Price | Features |
+|------|---------|----------------|-------|----------|
+| Community | — (free) | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
+| Sovereign | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | `price_1TrDa4DqGyad2D3V7QqGxnjK` | $2,999/mo | All 76 tools, QKD capsule, air-gapped |
+
+### SouHimBou AI Tiers (souhimbou.ai — `prod_UhvNflskmq9PoV`)
+| Tier | Stripe Price ID | Price | MCP Tool Access |
+|------|----------------|-------|-----------------|
+| Free | — | $0/mo | Community tools via hosted endpoint |
+| Certify | `price_1TiVvxDqGyad2D3VlUm3ba6s` | $99 one-time | Full compliance audit badge |
+| Starter | `price_1TiVXPDqGyad2D3VSpr7L05X` | $299/mo | Pilot tools via hosted endpoint |
+| Enterprise | `price_1TiVvyDqGyad2D3V4mszc5v5` | $499/mo | Enterprise tools via hosted endpoint |
+| Professional | `price_1TiVXoDqGyad2D3V5AZQ0EiW` | $999/mo | Full SOC suite via hosted endpoint |
+
+### Professional Services (consulting, not software)
+| SKU | Stripe Price ID | Price | Description |
+|-----|----------------|-------|-------------|
+| Diagnostic | `price_1TiVXpDqGyad2D3VXMnYnrZP` | $1,500 one-time | Risk & Readiness Assessment |
+| Advisory | `price_1TiVXqDqGyad2D3VQizyv9o7` | $5,000 one-time | Advisory Package |
+| Sprint | `price_1TiVw1DqGyad2D3VTs0ewSp0` | $15,000 one-time | Deadline Sprint |
+
+### Stripe Integration — Canonical Env Vars (as of 2026-07-09)
 ```
-STRIPE_PRICE_AUTOPILOT=price_1TiVvyDqGyad2D3V4mszc5v5   # $499/mo  → Pilot
-STRIPE_PRICE_STARTER=price_1TiVXPDqGyad2D3VSpr7L05X     # $299/mo  → Pilot
-STRIPE_PRICE_PRO=price_1TiVXoDqGyad2D3V5AZQ0EiW          # $999/mo  → Pilot
-STRIPE_PRICE_ENTERPRISE=price_1TiVXoDqGyad2D3Vr78bgbTI  # $2999/mo → Enterprise
-STRIPE_PRICE_CERTIFY=price_1TiVvxDqGyad2D3VlUm3ba6s     # $99 one-time → Certify
-STRIPE_PRICE_DIAGNOSTIC=price_1TiVXpDqGyad2D3VXMnYnrZP  # $1500 one-time
-STRIPE_PRICE_ADVISORY=price_1TiVXqDqGyad2D3VQizyv9o7    # $5000 one-time
-STRIPE_PRICE_SPRINT=price_1TiVw1DqGyad2D3VTs0ewSp0      # $15000 one-time
+# SouHimBou AI — prod_UhvNflskmq9PoV
+STRIPE_PRODUCT_SOC=prod_UhvNflskmq9PoV
+STRIPE_PRICE_CERTIFY=price_1TiVvxDqGyad2D3VlUm3ba6s          # $99 one-time
+STRIPE_PRICE_STARTER=price_1TiVXPDqGyad2D3VSpr7L05X          # $299/mo → TierPilot
+STRIPE_PRICE_ENTERPRISE_SOC=price_1TiVvyDqGyad2D3V4mszc5v5   # $499/mo → TierEnterprise
+STRIPE_PRICE_PROFESSIONAL=price_1TiVXoDqGyad2D3V5AZQ0EiW     # $999/mo → TierEnterprise
+
+# PQC-Khepra-MCP Server — prod_UqvQtvapGfRbcP
+STRIPE_PRODUCT_MCP=prod_UqvQtvapGfRbcP
+STRIPE_PRICE_MCP_SOVEREIGN=price_1TrDa4DqGyad2D3V7QqGxnjK    # $2,999/mo → TierMaster
+
+# Professional Services
+STRIPE_PRICE_DIAGNOSTIC=price_1TiVXpDqGyad2D3VXMnYnrZP       # $1,500 one-time
+STRIPE_PRICE_ADVISORY=price_1TiVXqDqGyad2D3VQizyv9o7         # $5,000 one-time
+STRIPE_PRICE_SPRINT=price_1TiVw1DqGyad2D3VTs0ewSp0           # $15,000 one-time
+
+# ARCHIVED (do not use):
+# price_1TiVXoDqGyad2D3Vr78bgbTI  → old Sovereign on SouHimBou product (archive in Stripe)
 ```
 
 ### Key Sprint Completed Work
