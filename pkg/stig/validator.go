@@ -1,4 +1,4 @@
-package stig
+﻿package stig
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ import (
 
 const (
 	FrameworkRHEL09STIG = "RHEL-09-STIG-V1R3"
+	FrameworkRHEL10STIG = "RHEL-10-STIG-V1R1"
 	FrameworkCISL1      = "CIS-RHEL-9-L1"
 	FrameworkCISL2      = "CIS-RHEL-9-L2"
 	FrameworkNIST53     = "NIST-800-53-Rev5"
@@ -36,6 +37,7 @@ func NewValidator(targetPath string) *Validator {
 		targetPath: targetPath,
 		enabledFrameworks: []string{
 			FrameworkRHEL09STIG,
+			FrameworkRHEL10STIG,
 			FrameworkCISL1,
 			FrameworkCISL2,
 			FrameworkNIST53,
@@ -178,6 +180,8 @@ func (v *Validator) validateFramework(framework string) error {
 	switch framework {
 	case FrameworkRHEL09STIG:
 		err = v.validateRHEL09STIG(result)
+	case FrameworkRHEL10STIG:
+		err = v.validateRHEL10STIG(result)
 	case FrameworkCISL1:
 		err = v.validateCISBenchmarkL1(result)
 	case FrameworkCISL2:
