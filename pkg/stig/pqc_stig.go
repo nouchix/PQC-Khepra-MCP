@@ -121,6 +121,7 @@ func (v *Validator) checkPQC_010010(result *ValidationResult, checker *SystemChe
 
 // PQC-010020 — ML-DSA Key Strength
 func (v *Validator) checkPQC_010020(result *ValidationResult, checker *SystemChecker) {
+	_ = checker
 	finding := Finding{
 		ID:          "PQC-010020",
 		Title:       "ML-DSA (Dilithium) signing keys SHALL meet Level 3 minimum (2,592-byte public key)",
@@ -285,6 +286,7 @@ func (v *Validator) checkPQC_020010(result *ValidationResult, checker *SystemChe
 
 // PQC-020020 — PQC Key Storage Protection
 func (v *Validator) checkPQC_020020(result *ValidationResult, checker *SystemChecker) {
+	_ = checker
 	finding := Finding{
 		ID:          "PQC-020020",
 		Title:       "PQC private keys MUST be protected at rest with equivalent classical protections",
@@ -371,6 +373,7 @@ func (v *Validator) checkPQC_020030(result *ValidationResult, checker *SystemChe
 
 // PQC-020040 — Certificate Chain PQC Signatures
 func (v *Validator) checkPQC_020040(result *ValidationResult, checker *SystemChecker) {
+	_ = checker
 	finding := Finding{
 		ID:          "PQC-020040",
 		Title:       "Certificate chains SHALL include PQC signatures alongside or in place of classical signatures",
