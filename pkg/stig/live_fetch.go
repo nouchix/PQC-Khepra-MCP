@@ -1,48 +1,114 @@
 // Package stig — live_fetch.go
-// STIGViewer API client: live STIG data with 24h disk cache + air-gap fallback.
+// STIGViewer API client (v2) — all 7 Customer Board improvements live 2026-07-11.
 //
 // IP: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
 // USPTO #73565085 (KHEPRA Protocol)
 //
-// Usage:
-//   fetcher := stig.NewLiveFetcher(os.Getenv("STIGVIEWER_API_KEY"), "")
-//   findings, err := fetcher.FetchSTIG(ctx, "red_hat_enterprise_linux_9")
+// Changelog (2026-07-11):
+//   + ruleIdents[]  — full multi-CCI array per rule (complete CMMC audit trail)
+//   + /controls     — paginated endpoint (avoids 1.2MB download for targeted queries)
+//   + BatchCrosswalk() — 250 CCIs → NIST 800-53 in one call (replaces static CSV)
+//   + Changelog()   — incremental STIG version tracking (no polling 432 STIGs)
+//   + DownloadCKLB() — DISA-schema-valid CKLB v1.0 for C3PAO assessors
+//   + Versions: RHEL9 V2R9 (445), RHEL10 V1R2 (434), WinServer2022 V2R9 (279)
 //
-// Air-gap: if STIGVIEWER_API_KEY is empty or API unreachable, returns embedded data.
-// Cache:   ~/.khepra/stig-cache/<slug>.json  (24h TTL)
+// Usage:
+//   f := stig.NewLiveFetcher(os.Getenv("STIGVIEWER_API_KEY"), "")
+//   findings, _ := f.FetchSTIG(ctx, "red_hat_enterprise_linux_9")              // full, cached
+//   cat1, _     := f.FetchControls(ctx, slug, ControlsFilter{Severity: "high"}) // paginated
+//   nist, _     := f.BatchCrosswalk(ctx, []string{"CCI-000366", "CCI-000048"})
+//   changes, _  := f.Changelog(ctx, "2026-01-01")
+//   cklb, _     := f.DownloadCKLB(ctx, "red_hat_enterprise_linux_9")
 
 package stig
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-// ─── STIGViewer wire types ────────────────────────────────────────────────────
+// ─── Wire types: /download endpoint ──────────────────────────────────────────
+// Field names use "rule" prefix (ruleCheckContent, ruleFixText, etc.).
 
-// svGroup is one STIG rule as returned by STIGViewer /download.
-// The API returns a flat groups array — each group IS the rule.
-// NOTE: ruleIdent is a single CCI string (not an array — known schema gap,
-//       reported to STIGViewer Customer Board 2026-07-10).
+// svGroup is one STIG rule from GET /stigs/{slug}/download.
+// ruleIdents[] is the FULL CCI array (new 2026-07-11).
+// ruleIdent is the first CCI only — preserved for backward compatibility.
 type svGroup struct {
-	GroupID            string  `json:"groupId"`          // "V-257778"
-	RuleID             string  `json:"ruleId"`           // "SV-257778r1134892_rule"
-	RuleVersion        string  `json:"ruleVersion"`      // "RHEL-09-211015" ← ASAF check ID
-	RuleTitle          string  `json:"ruleTitle"`
-	RuleSeverity       string  `json:"ruleSeverity"`     // "high"|"medium"|"low"
-	RuleIdent          string  `json:"ruleIdent"`        // "CCI-000366"
-	RuleWeight         float64 `json:"ruleWeight"`
-	RuleCheckContent   string  `json:"ruleCheckContent"` // How to verify
-	RuleFixText        string  `json:"ruleFixText"`      // Official DISA remediation
-	RuleVulnDiscussion string  `json:"ruleVulnDiscussion"`
-	RuleDocumentable   bool    `json:"ruleDocumentable"`
+	GroupID            string   `json:"groupId"`          // "V-257778"
+	RuleID             string   `json:"ruleId"`           // "SV-257778r1134892_rule"
+	RuleVersion        string   `json:"ruleVersion"`      // "RHEL-09-211015" ← ASAF check ID
+	RuleTitle          string   `json:"ruleTitle"`
+	RuleSeverity       string   `json:"ruleSeverity"`     // "high"|"medium"|"low"
+	RuleIdent          string   `json:"ruleIdent"`        // First CCI (backward compat)
+	RuleIdents         []string `json:"ruleIdents"`       // ALL CCIs — use for CMMC audit trail
+	RuleWeight         float64  `json:"ruleWeight"`
+	RuleCheckContent   string   `json:"ruleCheckContent"` // How to verify (DISA)
+	RuleFixText        string   `json:"ruleFixText"`      // Official DISA Fix Text
+	RuleVulnDiscussion string   `json:"ruleVulnDiscussion"`
+	RuleDocumentable   bool     `json:"ruleDocumentable"`
+}
+
+// ─── Wire types: /controls endpoint ──────────────────────────────────────────
+// Field names do NOT have the "rule" prefix (confirmed from live API 2026-07-11).
+
+// svControl is one rule from GET /stigs/{slug}/controls (paginated).
+type svControl struct {
+	GroupID        string   `json:"groupId"`    // "V-257778"
+	RuleID         string   `json:"ruleId"`
+	RuleVersion    string   `json:"ruleVersion"` // "RHEL-09-211015"
+	RuleTitle      string   `json:"ruleTitle"`
+	Severity       string   `json:"severity"`
+	RuleIdent      string   `json:"ruleIdent"`   // First CCI (backward compat)
+	RuleIdents     []string `json:"ruleIdents"` // ALL CCIs
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	VulnDiscussion string   `json:"vulnDiscussion"`
+	CheckContent   string   `json:"checkContent"` // How to verify
+	FixText        string   `json:"fixText"`      // Official DISA Fix Text
+}
+
+// svControlsResponse is from GET /stigs/{slug}/controls.
+// Note: the findings array is named "findings" (not "controls") in the API.
+type svControlsResponse struct {
+	STIG struct {
+		Slug         string `json:"slug"`
+		Version      string `json:"version"`
+		FindingCount int    `json:"findingCount"`
+	} `json:"stig"`
+	Findings   []svControl `json:"findings"`
+	Pagination struct {
+		Page       int `json:"page"`
+		Limit      int `json:"limit"`
+		Total      int `json:"total"`
+		TotalPages int `json:"totalPages"`
+	} `json:"pagination"`
+}
+
+// STIGChange is one entry from GET /stigs/changelog.
+type STIGChange struct {
+	Slug            string `json:"slug"`
+	Title           string `json:"title"`
+	NewVersion      string `json:"newVersion"`
+	PreviousVersion string `json:"previousVersion"` // empty if first-ever tracked
+	ReleaseDate     string `json:"releaseDate"`
+}
+
+// ControlsFilter narrows a paginated /controls request.
+// Severity: "high"|"medium"|"low" or comma-separated. Limit max is 100.
+type ControlsFilter struct {
+	Severity string // "high" | "medium" | "low" | "high,medium"
+	Page     int    // 1-indexed; 0 = fetch all pages
+	Limit    int    // 1–100; 0 = 100
+	Search   string // optional keyword
 }
 
 // svDownload is the top-level /stigs/{slug}/download response.
@@ -66,6 +132,8 @@ type svSTIG struct {
 }
 
 // svListResponse is the paginated /stigs response.
+// ─── Wire types: catalog ─────────────────────────────────────────────────────
+
 type svListResponse struct {
 	STIGs      []svSTIG `json:"stigs"`
 	Pagination struct {
@@ -197,82 +265,157 @@ func (f *LiveFetcher) ListSTIGs(ctx context.Context) ([]svSTIG, error) {
 	return all, nil
 }
 
-// FetchSTIG downloads a full STIG by slug and converts to ASAF-native []Finding.
-// Results are cached for cacheTTL (24h). On API failure, falls back to embedded DB.
+// FetchSTIG downloads the full STIG benchmark and returns ASAF-native []Finding.
+// Uses /download for the full benchmark; results cached 24h.
+// For filtered/paginated access use FetchControls instead.
 //
-// Confirmed working slugs (tested 2026-07-10):
-//   red_hat_enterprise_linux_9    V2R8  446 findings  ← primary ASAF target
-//   red_hat_enterprise_linux_10   V1R1  434 findings  ← RHEL10 (zero embedded coverage)
-//   microsoft_windows_server_2022 V2R8  282 findings
+// Confirmed slugs + current versions (tested 2026-07-11):
+//   red_hat_enterprise_linux_9    V2R9  445 findings  ← primary ASAF target
+//   red_hat_enterprise_linux_10   V1R2  434 findings  ← RHEL10 (first ASAF coverage)
+//   microsoft_windows_server_2022 V2R9  279 findings
 //   cloud_linux_almalinux_os_9    V1R6  439 findings
 //   amazon_linux_2023             V1R3  187 findings
 //
-// NOTE: The STIGViewer docs quickstart uses the invalid slug "windows-server-2022"
-//       (hyphens, short form) — that slug returns 404. Always use underscore format.
+// IMPORTANT: Always use underscore slugs. "windows-server-2022" returns 404.
 func (f *LiveFetcher) FetchSTIG(ctx context.Context, slug string) ([]Finding, error) {
-	// Cache hit?
 	if cached, ok := f.loadCache(slug); ok {
 		return f.convertGroups(cached.Download.Groups), nil
 	}
-
-	// Air-gap: no key → embedded fallback
 	if f.apiKey == "" {
 		return f.embeddedFallback(slug)
 	}
-
-	// Live fetch
 	body, err := f.get(ctx, fmt.Sprintf("/stigs/%s/download", slug))
 	if err != nil {
-		// API unreachable — fall back silently (sovereign mode)
 		return f.embeddedFallback(slug)
 	}
-
 	var dl svDownload
 	if err := json.Unmarshal(body, &dl); err != nil {
 		return nil, fmt.Errorf("parse STIG %s: %w", slug, err)
 	}
-
 	f.saveCache(slug, dl)
-	findings := f.convertGroups(dl.Groups)
-	return findings, nil
+	return f.convertGroups(dl.Groups), nil
+}
+
+// FetchControls retrieves a filtered, paginated subset of a STIG's rules via /controls.
+// Use instead of FetchSTIG when you only need e.g. CAT I findings (avoids 1.2MB download).
+// Set filter.Page=0 to auto-fetch all pages.
+func (f *LiveFetcher) FetchControls(ctx context.Context, slug string, filter ControlsFilter) ([]Finding, error) {
+	if f.apiKey == "" {
+		return nil, fmt.Errorf("STIGVIEWER_API_KEY not set — air-gap mode")
+	}
+	limit := filter.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	page := filter.Page
+	if page <= 0 {
+		page = 1
+	}
+	var all []Finding
+	for {
+		path := fmt.Sprintf("/stigs/%s/controls?page=%d&limit=%d", slug, page, limit)
+		if filter.Severity != "" {
+			path += "&severity=" + url.QueryEscape(filter.Severity)
+		}
+		if filter.Search != "" {
+			path += "&search=" + url.QueryEscape(filter.Search)
+		}
+		body, err := f.get(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+		var resp svControlsResponse
+		if err := json.Unmarshal(body, &resp); err != nil {
+			return nil, fmt.Errorf("parse controls page %d: %w", page, err)
+		}
+		all = append(all, f.convertControls(resp.Findings)...)
+		if filter.Page > 0 || page >= resp.Pagination.TotalPages {
+			break
+		}
+		page++
+	}
+	return all, nil
+}
+
+// BatchCrosswalk maps CCIs to NIST 800-53 controls via POST /crosswalk/resolve/batch.
+// Up to 250 CCIs per call (auto-batched if more). Replaces static CCI_to_NIST53.csv.
+// Returns map[CCI]→[]NIST-Control, e.g. {"CCI-000366":["CM-6"], "CCI-000048":["AC-8"]}.
+func (f *LiveFetcher) BatchCrosswalk(ctx context.Context, ccis []string) (map[string][]string, error) {
+	if f.apiKey == "" {
+		return nil, fmt.Errorf("STIGVIEWER_API_KEY not set — air-gap mode")
+	}
+	results := make(map[string][]string)
+	for i := 0; i < len(ccis); i += 250 {
+		end := i + 250
+		if end > len(ccis) {
+			end = len(ccis)
+		}
+		body, err := json.Marshal(map[string][]string{"ccis": ccis[i:end]})
+		if err != nil {
+			return nil, fmt.Errorf("marshal crosswalk batch: %w", err)
+		}
+		resp, err := f.post(ctx, "/crosswalk/resolve/batch", body)
+		if err != nil {
+			return nil, err
+		}
+		var chunk map[string][]string
+		if err := json.Unmarshal(resp, &chunk); err != nil {
+			return nil, fmt.Errorf("parse crosswalk response: %w", err)
+		}
+		for k, v := range chunk {
+			results[k] = v
+		}
+	}
+	return results, nil
+}
+
+// Changelog returns STIGs that changed since the given date (YYYY-MM-DD).
+// Use for cache invalidation — call once at startup instead of polling all 432 STIGs.
+func (f *LiveFetcher) Changelog(ctx context.Context, since string) ([]STIGChange, error) {
+	if f.apiKey == "" {
+		return nil, fmt.Errorf("STIGVIEWER_API_KEY not set — air-gap mode")
+	}
+	body, err := f.get(ctx, "/stigs/changelog?since="+url.QueryEscape(since))
+	if err != nil {
+		return nil, err
+	}
+	var resp struct {
+		Changes []STIGChange `json:"changes"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parse changelog: %w", err)
+	}
+	return resp.Changes, nil
+}
+
+// DownloadCKLB fetches a DISA-schema-valid CKLB v1.0 checklist (JSON format).
+// All rule statuses are "not_reviewed" — baseline for C3PAO evidence packages.
+// For scan-populated CKLB, post scan results as {ruleId→status} map (feature pending).
+func (f *LiveFetcher) DownloadCKLB(ctx context.Context, slug string) ([]byte, error) {
+	if f.apiKey == "" {
+		return nil, fmt.Errorf("STIGVIEWER_API_KEY not set — air-gap mode")
+	}
+	return f.get(ctx, fmt.Sprintf("/stigs/%s/download?format=cklb", slug))
 }
 
 // ─── STIGViewer → ASAF Finding conversion ────────────────────────────────────
 
-// convertGroups maps the STIGViewer groups array to ASAF-native []Finding.
-//
-// CCI chain: ruleIdent (CCI-XXXXXX) → References[]
-// The CCI is stored in References[0]; the validator/ERT engine expands it
-// to NIST 800-53 → NIST 800-171 → CMMC via the existing cross-reference tables.
-//
-// Severity: STIGViewer "high" → SeverityCAT1, "medium" → SeverityCAT2, "low" → SeverityCAT3.
-// These are the STIG-native CAT I/II/III constants — not the NIST severity names.
-//
-// Remediation uses the official DISA Fix Text verbatim — critical for C3PAO
-// evidence packages where assessors recognise and trust DISA-authored text.
+// convertGroups maps /download groups to ASAF-native []Finding.
+// Uses ruleIdents[] (full CCI array, new 2026-07-11) for References.
+// ruleFixText is verbatim DISA Fix Text — preserved for C3PAO evidence.
 func (f *LiveFetcher) convertGroups(groups []svGroup) []Finding {
 	findings := make([]Finding, 0, len(groups))
 	for _, g := range groups {
-		refs := []string{}
-		if g.RuleIdent != "" {
-			refs = append(refs, g.RuleIdent) // CCI-XXXXXX
-		}
-		if g.GroupID != "" {
-			refs = append(refs, g.GroupID) // V-XXXXXX (Vuln ID)
-		}
-		if g.RuleID != "" {
-			refs = append(refs, g.RuleID) // SV-XXXXXXrYYYYYYY_rule
-		}
-
+		refs := buildRefs(g.RuleIdents, g.RuleIdent, g.GroupID, g.RuleID)
 		findings = append(findings, Finding{
-			ID:          g.RuleVersion,      // "RHEL-09-211015" — matches existing ASAF ID format
+			ID:          g.RuleVersion,
 			Title:       g.RuleTitle,
 			Description: g.RuleVulnDiscussion,
 			Severity:    svSeverity(g.RuleSeverity),
-			Status:      "Not Reviewed",    // ERT engine fills this after live system check
-			Expected:    g.RuleCheckContent, // "How to check" from DISA
-			Actual:      "",                // Populated by rhel09_stig_checks.go
-			Remediation: g.RuleFixText,     // Official DISA Fix Text — cite verbatim in C3PAO
+			Status:      "Not Reviewed",
+			Expected:    g.RuleCheckContent,
+			Actual:      "",
+			Remediation: g.RuleFixText, // Official DISA Fix Text — cite verbatim in C3PAO
 			References:  refs,
 			CheckedAt:   time.Now(),
 		})
@@ -280,17 +423,55 @@ func (f *LiveFetcher) convertGroups(groups []svGroup) []Finding {
 	return findings
 }
 
-// svSeverity maps STIGViewer severity strings to ASAF STIG Severity constants.
-// STIGViewer "high" → CAT I (most critical). "medium" → CAT II. "low" → CAT III.
-// Uses STIG-native constants (not NIST/CIS), consistent with rhel09_stig.go.
+// convertControls maps /controls findings to ASAF-native []Finding.
+// Field names differ from /download: no "rule" prefix (checkContent vs ruleCheckContent).
+func (f *LiveFetcher) convertControls(controls []svControl) []Finding {
+	findings := make([]Finding, 0, len(controls))
+	for _, c := range controls {
+		refs := buildRefs(c.RuleIdents, c.RuleIdent, c.GroupID, c.RuleID)
+		findings = append(findings, Finding{
+			ID:          c.RuleVersion,
+			Title:       c.RuleTitle,
+			Description: c.VulnDiscussion,
+			Severity:    svSeverity(c.Severity),
+			Status:      "Not Reviewed",
+			Expected:    c.CheckContent,
+			Actual:      "",
+			Remediation: c.FixText,
+			References:  refs,
+			CheckedAt:   time.Now(),
+		})
+	}
+	return findings
+}
+
+// buildRefs builds the References slice, preferring ruleIdents[] (full multi-CCI).
+func buildRefs(ruleIdents []string, ruleIdent, groupID, ruleID string) []string {
+	refs := []string{}
+	if len(ruleIdents) > 0 {
+		refs = append(refs, ruleIdents...) // All CCIs — complete CMMC audit trail
+	} else if ruleIdent != "" {
+		refs = append(refs, ruleIdent)
+	}
+	if groupID != "" {
+		refs = append(refs, groupID)
+	}
+	if ruleID != "" {
+		refs = append(refs, ruleID)
+	}
+	return refs
+}
+
+// svSeverity maps STIGViewer severity to ASAF STIG CAT constants.
+// "high" → CAT I (must fix, non-POA&M eligible). "medium" → CAT II. "low" → CAT III.
 func svSeverity(s string) Severity {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "high":
-		return SeverityCAT1 // CAT I — must fix, non-POA&M eligible
+		return SeverityCAT1
 	case "medium":
-		return SeverityCAT2 // CAT II — POA&M eligible
+		return SeverityCAT2
 	default:
-		return SeverityCAT3 // CAT III — low risk
+		return SeverityCAT3
 	}
 }
 
@@ -348,31 +529,46 @@ func (f *LiveFetcher) embeddedFallback(slug string) ([]Finding, error) {
 // ─── HTTP ─────────────────────────────────────────────────────────────────────
 
 func (f *LiveFetcher) get(ctx context.Context, path string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, stigViewerBase+path, nil)
+	return f.do(ctx, http.MethodGet, path, nil)
+}
+
+func (f *LiveFetcher) post(ctx context.Context, path string, body []byte) ([]byte, error) {
+	return f.do(ctx, http.MethodPost, path, body)
+}
+
+func (f *LiveFetcher) do(ctx context.Context, method, path string, body []byte) ([]byte, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyReader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, stigViewerBase+path, bodyReader)
 	if err != nil {
-		return nil, fmt.Errorf("build request %s: %w", path, err)
+		return nil, fmt.Errorf("build request %s %s: %w", method, path, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+f.apiKey)
 	req.Header.Set("Accept", "application/json")
-	// User-Agent identifies NouchiX for STIGViewer analytics + Customer Board relation
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	// User-Agent identifies NouchiX in STIGViewer analytics; Customer Board member.
 	req.Header.Set("User-Agent", "KHEPRA-ASAF/2.0 (SecRed-Knowledge-Inc; USPTO#73565085; board-member)")
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("GET %s: %w", path, err)
+		return nil, fmt.Errorf("%s %s: %w", method, path, err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		preview := body
+		preview := respBody
 		if len(preview) > 200 {
 			preview = preview[:200]
 		}
-		return nil, fmt.Errorf("GET %s: HTTP %d — %s", path, resp.StatusCode, string(preview))
+		return nil, fmt.Errorf("%s %s: HTTP %d — %s", method, path, resp.StatusCode, string(preview))
 	}
-	return body, nil
+	return respBody, nil
 }
