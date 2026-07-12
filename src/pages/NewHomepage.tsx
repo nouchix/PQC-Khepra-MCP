@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useNavigate } from "@/lib/router-compat";
 import { Button } from "@/components/ui/button";
 import { Shield, Menu, LogIn, X, LayoutDashboard } from "lucide-react";
@@ -10,6 +10,8 @@ import { TrustAnchors } from "@/components/funnel/TrustAnchors";
 import { FounderNarrative } from "@/components/funnel/FounderNarrative";
 import { FinalCTABar } from "@/components/funnel/FinalCTABar";
 import { FooterConversion } from "@/components/funnel/FooterConversion";
+import { ArchitectureDiagram } from "@/components/funnel/ArchitectureDiagram";
+import { OperatorConsoleDemo } from "@/components/funnel/OperatorConsoleDemo";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -144,6 +146,8 @@ const NewHomepage = () => {
       {/* Main Content */}
       <main className="pt-20" id="main-content" role="main">
         <HeroSection />
+        <ArchitectureDiagram />
+        <OperatorConsoleDemo />
         <CoreBenefits />
         <SystemOverview />
         <PilotProgram />

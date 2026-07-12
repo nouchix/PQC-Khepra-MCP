@@ -285,7 +285,7 @@ export const HeroSection = () => {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 bg-amber-950/40 border border-amber-500/30 rounded-full px-4 py-1.5 text-sm text-amber-400 font-medium mb-2">
                 <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                72 live MCP tools · ML-DSA-65 PQC attestation · 36,195 STIG/CMMC mappings
+                72 live MCP tools · SSRF-Clean · PQC-Native OmniScanner
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 <span className="text-white">Your AI agents</span>
@@ -296,9 +296,8 @@ export const HeroSection = () => {
               </h1>
 
               <p className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-xl">
-                SouHimBou AI wraps your AI agents, attests every tool call to an immutable DAG with{' '}
-                <span className="text-[#00ffff] font-semibold">ML-DSA-65 post-quantum signatures</span>, and flags
-                anomalies before they become incidents. Scan free. Earn your{' '}
+                The world's first PQC-native MCP compliance scanner. We wrap your AI agents, attest every tool call to an immutable DAG with{' '}
+                <span className="text-[#00ffff] font-semibold">ML-DSA-65 signatures</span>, and run our <span className="text-[#00ffff] font-semibold">OmniScanner</span> to ensure your gateway is SSRF-clean. Scan free. Earn your{' '}
                 <span className="text-[#d4af37] font-semibold">ADINKHEPRA seal</span> when you certify.
               </p>
             </div>
@@ -336,13 +335,19 @@ export const HeroSection = () => {
                 ADINKHEPRA Attestation
               </span>
               <span className="text-xs px-3 py-1.5 bg-green-500/10 text-green-300 rounded border border-green-500/20">
-                Immutable DAG Audit Trail
+                SSRF-Clean Verified
               </span>
               <span className="text-xs px-3 py-1.5 bg-cyan-500/10 text-cyan-300 rounded border border-cyan-500/20">
                 NIST 800-53 · STIG · CMMC
               </span>
               <span className="text-xs px-3 py-1.5 bg-purple-500/10 text-purple-300 rounded border border-purple-500/20">
                 SDVOSB · SecRed Knowledge Inc.
+              </span>
+              <span className="text-xs px-3 py-1.5 bg-blue-500/10 text-blue-300 rounded border border-blue-500/20">
+                USPTO #73565085
+              </span>
+              <span className="text-xs px-3 py-1.5 bg-yellow-500/10 text-yellow-300 rounded border border-yellow-500/20">
+                $7.3M Post-Money Validation
               </span>
             </motion.div>
           </motion.div>
