@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Zap, CheckCircle, AlertTriangle, XCircle, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { Shield, Zap, CheckCircle, AlertTriangle, XCircle, Lock, Loader2, ArrowRight, Terminal, Mail } from 'lucide-react';
 
 export const HeroSection = () => {
   const navigate = useNavigate();
@@ -119,5 +119,76 @@ export const HeroSection = () => {
         </div>
       </div>
     </section>
+  );
+};
+
+const OperatorConsoleWidget = () => {
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !email.includes("@")) return;
+    setIsUnlocked(true);
+  };
+
+  return (
+    <div className="bg-[#050c16] border border-cyan-500/30 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,255,255,0.1)] relative w-full h-[500px] flex flex-col">
+      <div className="bg-[#080f1c] border-b border-cyan-500/20 px-4 py-2 flex items-center gap-2 shrink-0">
+        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+        <span className="ml-2 text-xs text-gray-500 font-mono">khepra-terminal</span>
+      </div>
+
+      {!isUnlocked ? (
+        <div className="flex flex-col items-center justify-center flex-1 p-6 relative">
+          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+            <Terminal className="w-64 h-64 text-cyan-500" />
+          </div>
+          
+          <div className="relative z-20 bg-slate-900/90 backdrop-blur-xl border border-slate-700 p-6 rounded-2xl w-full shadow-2xl">
+            <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-6 h-6 text-cyan-400" />
+            </div>
+            
+            <h3 className="text-lg font-bold text-white text-center mb-2">Access the Live Demo</h3>
+            <p className="text-xs text-gray-400 text-center mb-6">
+              Enter your work email to unlock the interactive KHEPRA Operator Console.
+            </p>
+
+            <form onSubmit={handleUnlock} className="space-y-4">
+              <div className="space-y-1">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Input 
+                    type="email"
+                    placeholder="ciso@defense-contractor.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 bg-[#0a0a0a] border-gray-700 text-white focus:border-cyan-500"
+                    required
+                  />
+                </div>
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:shadow-[0_0_20px_rgba(0,255,255,0.4)] transition-all"
+              >
+                Unlock Live Console <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full flex-1">
+          <iframe 
+            src="/console.html" 
+            title="KHEPRA Operator Console"
+            className="w-full h-full border-none"
+          />
+        </div>
+      )}
+    </div>
   );
 };
