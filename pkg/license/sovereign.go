@@ -1,13 +1,16 @@
 // Package license — sovereign.go implements the 3-layer sovereign license stack.
 //
 // Layer 1: DEVICE-LOCAL — License token sealed with DeviceID + ML-DSA-65.
-//          Verifies without any network call for 72 hours (offline-first).
+//
+//	Verifies without any network call for 72 hours (offline-first).
 //
 // Layer 2: SOVEREIGN TELEMETRY SERVER — VPS at controlled jurisdiction.
-//          No CloudFlare, no AWS, no third-party intermediary.
+//
+//	No CloudFlare, no AWS, no third-party intermediary.
 //
 // Layer 3: IPFS/ARWEAVE FALLBACK — Encrypted revocation list on permissionless network.
-//          Client polls IPFS CID; no central server required for revocation checking.
+//
+//	Client polls IPFS CID; no central server required for revocation checking.
 //
 // The master ML-DSA-65 private key NEVER leaves the air-gapped signing machine.
 // Clients embed only the public key (compiled-in constant) for offline verification.
@@ -31,27 +34,37 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/audit"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/fingerprint"
-	"github.com/google/uuid"
 )
 
 // ─── License Tiers ────────────────────────────────────────────────────────────
 
+// LicenseTier is the single canonical tier type for this repo. Plain string
+// alias (not a distinct type) so every package that names a tier — MCP tool
+// gating, node-quota licensing, Stripe billing — shares one identical set of
+// values. There is no other tier taxonomy in this codebase.
+type LicenseTier = string
+
 const (
-	TierCommunity  = "community"
-	TierPilot      = "pilot"
-	TierEnterprise = "enterprise"
-	TierMaster     = "master" // Cyber-only; issues/revokes all others
+	TierCommunity  = "community"  // Free
+	TierPro        = "pro"        // $19/mo
+	TierEnterprise = "enterprise" // $499/mo
+	TierSovereign  = "sovereign"  // Custom — Contact Sales. Air-gap/offline licensing lives here.
+	TierMaster     = "master"     // Cyber-only; issues/revokes all others. Not customer-facing.
 )
 
 // AllTierCapabilities maps each tier to its capability set.
+// "autopilot" (continuous CMMC compliance scanning) is part of every paid
+// tier — it's core value prop, not an upsell.
 var AllTierCapabilities = map[string][]string{
 	TierCommunity:  {"stig", "pqc"},
-	TierPilot:      {"stig", "pqc", "forensics", "fim"},
-	TierEnterprise: {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom"},
-	TierMaster:     {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "license_issue", "license_revoke"},
+	TierPro:        {"stig", "pqc", "forensics", "fim", "autopilot"},
+	TierEnterprise: {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "autopilot"},
+	TierSovereign:  {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "autopilot", "air_gap", "offline_license", "hsm"},
+	TierMaster:     {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "autopilot", "air_gap", "offline_license", "hsm", "license_issue", "license_revoke"},
 }
 
 // ─── KhepraLicense ────────────────────────────────────────────────────────────
@@ -76,7 +89,7 @@ type KhepraLicense struct {
 	RevCRLHash      string `json:"rev_crl_hash"`     // IPFS CID of current CRL
 
 	// ML-DSA-65 signature over canonical JSON of fields above (excluding Signature itself)
-	Signature      []byte `json:"signature"`
+	Signature       []byte `json:"signature"`
 	SignerPublicKey []byte `json:"signer_public_key"`
 }
 
@@ -101,11 +114,11 @@ func (lic *KhepraLicense) Bytes() ([]byte, error) {
 // In production: private key stored on air-gapped HSM; this struct never
 // instantiated on internet-connected machines.
 type SovereignLicenseAuthority struct {
-	PrivateKey    []byte              // ML-DSA-65 private key — AIR-GAPPED ONLY
-	PublicKey     []byte              // ML-DSA-65 public key — embedded in all binaries
-	RevocationDB  *RevocationDatabase
-	TelemetryURL  string              // Sovereign VPS endpoint (no CF/AWS)
-	IPFSGateway   string              // IPFS gateway for CRL publishing
+	PrivateKey   []byte // ML-DSA-65 private key — AIR-GAPPED ONLY
+	PublicKey    []byte // ML-DSA-65 public key — embedded in all binaries
+	RevocationDB *RevocationDatabase
+	TelemetryURL string // Sovereign VPS endpoint (no CF/AWS)
+	IPFSGateway  string // IPFS gateway for CRL publishing
 }
 
 // NewSovereignLicenseAuthority creates an authority with freshly generated ML-DSA-65 keys.
@@ -281,10 +294,10 @@ func GenerateDeviceID(fp audit.DeviceFingerprint) string {
 
 // RevocationEntry records a single license revocation event.
 type RevocationEntry struct {
-	LicenseID      string    `json:"license_id"`
-	Reason         string    `json:"reason"`
-	RevokedAt      time.Time `json:"revoked_at"`
-	Signature      []byte    `json:"signature,omitempty"`
+	LicenseID       string    `json:"license_id"`
+	Reason          string    `json:"reason"`
+	RevokedAt       time.Time `json:"revoked_at"`
+	Signature       []byte    `json:"signature,omitempty"`
 	SignerPublicKey []byte    `json:"signer_public_key,omitempty"`
 }
 
@@ -344,9 +357,9 @@ func (rdb *RevocationDatabase) Export() ([]byte, error) {
 	rdb.mu.RUnlock()
 
 	plaintext, err := json.Marshal(map[string]interface{}{
-		"schema":     "https://adinkhepra.dev/crl/v1",
+		"schema":      "https://adinkhepra.dev/crl/v1",
 		"exported_at": time.Now().UTC().Format(time.RFC3339),
-		"entries":    entries,
+		"entries":     entries,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("export CRL marshal: %w", err)
