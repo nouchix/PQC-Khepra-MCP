@@ -317,11 +317,12 @@ const _localDirect = new URLSearchParams(location.search).has("local");
 const CFG={
   asafAPI:   _isLocal ? window.location.origin : (_localDirect ? "http://localhost:45444" : "https://agent.souhimbou.ai"),
   mcpServer: "https://mcp.souhimbou.ai",
-  mcpToken:  "kYIcYS2wD4fMXBonFBRqpI8wNNiJNGVqr4KVlYkMe1e7f848",
+  // No bearer token or API key is ever shipped in this public static file.
+  // Community-tier MCP tools require no license key (see README); anything
+  // requiring a paid tier or an LLM key must be proxied server-side.
   dagStream: _isLocal ? window.location.origin+"/api/dag/stream" : (_localDirect ? "http://localhost:45444/api/dag/stream" : "https://agent.souhimbou.ai/api/dag/stream"),
   dagNodes:  _isLocal ? window.location.origin+"/api/v1/dag/nodes" : (_localDirect ? "http://localhost:45444/api/v1/dag/nodes" : "https://agent.souhimbou.ai/api/v1/dag/nodes"),
   chatAPI:   _isLocal ? window.location.origin+"/api/v1/mcp/ask" : (_localDirect ? "http://localhost:45444/api/v1/mcp/ask" : "https://agent.souhimbou.ai/api/v1/mcp/ask"),
-  claudeKey: new URLSearchParams(location.search).get("key") || window.__DEMO_CLAUDE_KEY || "",
 };
 let _dagESS=null; // EventSource handle
 let FX=[],TOTEXP=0,REMCOST=18600; // populated by live ERT scan only
@@ -683,77 +684,6 @@ async function launchOmniScanLive(repoPath){
     es.onerror=()=>{clearTimeout(timer);es.close();reject(new Error('SSE connection failed'));}
   });
 }
-// launchScanScripted removed — all scan paths require live ERT engine
-async function _removed_launchScanScripted(tgt){
-  addNode("ert_scan INITIATED","flight",[{c:"c",t:"FLIGHT"},{c:"p",t:"ML-DSA-65"},{c:"s",t:"ERT"}]);
-  const LAYERS=[
-    {id:"A",n:"Package A - STIG / CMMC Compliance",dur:2000,msgs:["Loading 36,195 STIG/CCI/NIST/CMMC cross-mappings...","Running CMMC Level 2 assessment (110 controls)...","Building traceability matrix (Control ID -> CCI -> DAG node)..."]},
-    {id:"B",n:"Package B - PQC Cryptography",dur:1700,msgs:["Scanning for deprecated crypto (MD5, RSA-1024, DH)...","Checking FIPS 140-2 algorithm compliance...","ML-KEM-768 / ML-DSA-65 validation (CNSA 2.0)..."]},
-    {id:"C",n:"Package C - Sonar / Network Intelligence",dur:4600,msgs:[
-      "Lane 1 \u2502 Sonar Unified \u2192 TCP SYN full-connect scan on target host...",
-      "Lane 1 \u2502 Open ports \u2192 80/HTTP, 3306/MariaDB, 8080/HTTP-ALT discovered...",
-      "Lane 1 \u2502 Banner grabbing \u2192 Apache 2.4.49 / PHP 7.4 / MariaDB 10.5 (version disclosure flagged)...",
-      "Lane 1 \u2502 Horus-Vuln \u2192 CVE correlation against NVD for discovered service stack...",
-      "Lane 1 \u2502 Horus-Secrets \u2192 entropy scan \u2192 hardcoded credential candidates in HTTP response...",
-      "Lane 1 \u2502 Horus-Compliance \u2192 CIS Benchmark L1 checks (17 controls evaluated)...",
-      "Lane 1 \u2502 Horus-Container \u2192 Docker socket exposure + image layer inspection...",
-      "Lane 3 \u2502 pkg/scanners \u2192 built-in vuln/secret/compliance/container parallel scan...",
-      "Lane 3 \u2502 Web crawl \u2192 form enumeration + input vector discovery + JS source scan...",
-      "Lane 4 \u2502 ERT SonarLane \u2192 fusing Sonar + Horus findings into ERT traceability model...",
-      "Lane 7 \u2502 pkg/fingerprint \u2192 device fingerprint + spoofing indicators + TPM probe...",
-      "Lane 7 \u2502 pkg/enumerate \u2192 network topology mapping + authorization boundary lock...",
-      "Lane 7 \u2502 ESP/SRM \u2192 identifying External Service Providers for SRM auto-generation...",
-      "HTTP security headers \u2192 HSTS MISSING, CSP MISSING, X-Frame-Options MISSING, CORS open...",
-      "Cookie flags (Secure, HttpOnly, SameSite) + version disclosure \u2192 AC-17, SI-3 flagged..."
-    ]},
-    {id:"D",n:"Package D - EA KernelRouter",dur:1500,msgs:["Evolutionary algo threat scoring (50 individuals)...","POA&M eligibility classification (CAT I = NON-POA&M)...","MITRE ATT&CK technique mapping..."]},
-    {id:"G",n:"Godfather Synthesis",dur:1300,msgs:["Computing FAIR model business impact...","Dollar-denominating each finding...","Classifying C3PAO rejection patterns per finding..."]}
-  ];
-  try{
-    for(const L of LAYERS)await runLayer(L);
-    await dl(400);ts();tp(E.re+E.bo+"  WARNING: CMMC COMPLIANCE VIOLATIONS DETECTED"+E._);ts();
-    let totExp=0;
-    for(const f of FX){
-      await dl(260);
-      tp("  "+(f.sev==="CAT I"?E.re:E.go)+"["+f.sev+"]"+E._+" "+E.wh+f.id+" - "+f.t+E._);
-      td("Control:",f.ctrl);td("MITRE:",f.mitre||"N/A");
-      td("C3PAO Risk:",f.sev==="CAT I"?E.re+"NON-POA&M | "+f.reject+E._:E.go+"POA&M-eligible | "+f.reject+E._);
-      td("Exposure:",E.re+"$"+f.exp.toLocaleString()+E._);td("Fix:",f.r);tp("");
-      totExp+=f.exp;fdc++;document.getElementById("s-f").textContent=fdc;
-      addNode(f.id+": "+f.t,"finding",[{c:"r",t:f.sev},{c:"s",t:f.ctrl.split(".")[0]},{c:f.sev==="CAT I"?"r":"g",t:f.sev==="CAT I"?"NON-POA&M":"POA&M-OK"},{c:"p",t:"SIGNED"}]);
-      addFindCard(f);
-    }
-    await dl(500);ts();tp(E.go+E.bo+"  GODFATHER REPORT - EXECUTIVE BRIEF"+E._);ts();
-    const roi=Math.round(totExp/REMCOST);
-    const cat1=FX.filter(f=>f.sev==="CAT I").length;
-    td("Target:",tgt);td("Findings:",E.re+FX.length+" ("+cat1+" CAT I NON-POA&M)"+E._);
-    td("Total Exposure:",E.re+"$"+totExp.toLocaleString()+E._);
-    td("Remediation Cost:",E.gr+"$"+REMCOST.toLocaleString()+E._);
-    td("ROI of Fixing Now:",E.gr+roi+"x"+E._);
-    td("CMMC Readiness:",E.re+"FAIL - "+FX.length+" violations block certification"+E._);
-    td("Evidence Status:",E.gr+"C3PAO-ready - Examine+Test layer produced"+E._);
-    tp("");tok("Godfather Report - ML-DSA-65 signed");tok("Click EXPORT C3PAO EVIDENCE PACKAGE -> Downloads folder");ts();
-    document.getElementById("s-c").textContent="38%";
-    addNode("GODFATHER REPORT - signed","cert",[{c:"g",t:"GODFATHER"},{c:"p",t:"ML-DSA-65"},{c:"k",t:"SIGNED"}]);
-    await dl(250);showGF(totExp,REMCOST,roi);
-    document.getElementById("stxt").textContent="SCAN COMPLETE - "+FX.length+" findings - $"+totExp.toLocaleString()+" - C3PAO evidence ready";
-    if(dnodes.length>1)renderDAG();
-  }catch(err){
-    tp(E.re+"[ERR] "+E._+String(err));
-    document.getElementById("stxt").textContent="SCAN ERROR - see terminal";
-  }finally{
-    scanning=false;btn.classList.remove("running");
-    document.getElementById("lbtxt").textContent="LAUNCH ERT SCAN";btn.disabled=false;
-  }
-}
-async function runLayer(L){
-  const ls=document.getElementById("ls-"+L.id),lb=document.getElementById("lb-"+L.id);
-  ls.className="lstat run";ls.textContent="SCANNING";ti(L.n);
-  const step=100/L.msgs.length;
-  for(let i=0;i<L.msgs.length;i++){await dl(L.dur/L.msgs.length);tp("  "+E.gy+"->"+E._+" "+L.msgs[i]);lb.style.width=((i+1)*step)+"%"}
-  ls.className="lstat done";ls.textContent="DONE";lb.classList.add("ok");tok(L.n+" - complete");tp("");
-  addNode(L.n,"flight",[{c:"c",t:"ERT"},{c:"p",t:"SIGNED"}]);
-}
 function showGF(tot,rem,roi){
   document.getElementById("gf").classList.add("show");
   const el=document.getElementById("gf-amt");let cur=0;const step=tot/40;
@@ -854,8 +784,7 @@ async function runMCPTool(cmd){
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          "Accept":"application/json, text/event-stream",
-          "Authorization":"Bearer "+CFG.mcpToken
+          "Accept":"application/json, text/event-stream"
         },
         body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"tools/call",params:{name:toolName,arguments:args}})
       }),
@@ -876,14 +805,12 @@ async function runMCPTool(cmd){
       }
     } else { throw new Error("HTTP "+res.status); }
   }catch(err){
-    // Silent scripted fallback — demo never breaks, no announcement banner
-    if(cmd.startsWith("stig")||cmd==="khepra_query_stig"){const ctrl=cmd.split(" ")[1]||"AC-2";tok("STIG: "+ctrl);td("Maps to:","CMMC.AC.L2-3.1.1 → NIST 800-53 AC-2");td("Status:",E.re+"FAIL"+E._);}
-    else if(cmd==="pqc_stig"){tok("PQC-01-STIG-V1R1");td("Controls:","17 (CNSA 2.0)");td("ML-DSA-65:",E.gr+"PRESENT"+E._);td("ML-KEM-768:",E.re+"NOT FOUND"+E._);}
-    else if(cmd.startsWith("nist_map")){tok("NIST: AC-2 → CMMC.AC.L2-3.1.1 → CCI-001893");td("800-171:","3.1.1");}
-    else if(cmd==="cmmc_assess"){tok("CMMC L2 - 110 controls");td("Passed:","42");td("Failed:",E.re+"12 violations"+E._);td("Score:","38% - FAIL");}
-    else{tok(cmd+" (scripted)");}
+    // Honest failure — no fabricated findings, no false "SIGNED" attestation.
+    tp(E.re+"[MCP UNAVAILABLE] "+cmd+" — "+String(err.message||err)+E._);
+    tp("  → "+CFG.mcpServer+" did not return a result for this tool call.");
+    return;
   }
-  addNode(cmd,"flight",[{c:"c",t:"MCP"},{c:"p",t:"SIGNED"}]);
+  addNode(cmd+" (MCP LIVE)","flight",[{c:"c",t:"MCP"},{c:"p",t:"SIGNED"}]);
 }
 async function exportAttestation(){
   if(typeof JSZip==="undefined"){tp(E.re+"[ERR] JSZip not loaded - check internet connection"+E._);return;}
@@ -1404,68 +1331,32 @@ async function sendChat(){
       +"You specialize in CMMC Level 2, NIST 800-171, STIG, and post-quantum cryptography (ML-DSA-65, ML-KEM-768). "
       +"Be concise, authoritative, and reference specific control IDs and dollar impacts when relevant. "
       +ctx;
-    // ── Path 1: Anthropic API ─────────────────────────────────────────────────
-    // When running via demo-start.py (localhost), route through the Python proxy
-    // which injects the API key server-side (bypasses http:// CORS block on
-    // api.anthropic.com). When running from VPS/production, call Anthropic direct.
+    // ── Path 1: server-side proxy only — no client-side key ever ─────────────
+    // demo-start.py (local) injects ANTHROPIC_API_KEY server-side via /claude-proxy.
+    // In production, CFG.chatAPI must be backed by a server that holds its own
+    // key. This console never accepts, stores, or forwards a client-supplied
+    // API key (no ?key= URL param, no direct browser->api.anthropic.com calls).
     let replied=false;
-    if(CFG.claudeKey || _isLocal){
-      try{
-        let antRes;
-        if(_isLocal){
-          // Server-side proxy: Python injects ANTHROPIC_API_KEY from env
-          antRes=await Promise.race([
-            fetch(window.location.origin+"/claude-proxy",{
-              method:"POST",
-              headers:{"Content-Type":"application/json"},
-              body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:512,system:systemPrompt,messages:_chatHistory})
-            }),
-            new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),15000))
-          ]);
-        }else{
-          // Direct Anthropic API (HTTPS origin, e.g. from VPS console)
-          antRes=await Promise.race([
-            fetch("https://api.anthropic.com/v1/messages",{
-              method:"POST",
-              headers:{"Content-Type":"application/json","x-api-key":CFG.claudeKey,
-                       "anthropic-version":"2023-06-01",
-                       "anthropic-dangerous-direct-browser-access":"true"},
-              body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:512,system:systemPrompt,messages:_chatHistory})
-            }),
-            new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),15000))
-          ]);
-        }
-        if(antRes.ok){
-          const d=await antRes.json();
-          const reply=d.content?.[0]?.text||"";
-          thinkEl.innerHTML=formatChatReply(reply);
-          _chatHistory.push({role:"assistant",content:reply});
-          modelEl.textContent="claude-sonnet-4-5"+(_isLocal?" (via demo-start.py proxy)":" (Anthropic direct)");
-          replied=true;
-        }
-      }catch(_){}
-      // ── Path 2: apiserver proxy (if local apiserver is running) ────────────
-      if(!replied){
-        try{
-          const mcpRes=await Promise.race([
-            fetch(CFG.chatAPI,{
-              method:"POST",
-              headers:{"Content-Type":"application/json","X-Anthropic-Key":CFG.claudeKey},
-              body:JSON.stringify({messages:_chatHistory,system:systemPrompt,max_tokens:512})
-            }),
-            new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),8000))
-          ]);
-          if(mcpRes.ok){
-            const d=await mcpRes.json();
-            const reply=d.content?.[0]?.text||d.reply||d.response||d.message||JSON.stringify(d).slice(0,400);
-            thinkEl.innerHTML=formatChatReply(reply);
-            _chatHistory.push({role:"assistant",content:reply});
-            modelEl.textContent="claude-sonnet (BYOK via /api/v1/mcp/ask)";
-            replied=true;
-          }
-        }catch(_){}
+    try{
+      const antRes=await Promise.race([
+        fetch(_isLocal ? (window.location.origin+"/claude-proxy") : CFG.chatAPI,{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify(_isLocal
+            ? {model:"claude-sonnet-4-5",max_tokens:512,system:systemPrompt,messages:_chatHistory}
+            : {messages:_chatHistory,system:systemPrompt,max_tokens:512})
+        }),
+        new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),15000))
+      ]);
+      if(antRes.ok){
+        const d=await antRes.json();
+        const reply=d.content?.[0]?.text||d.reply||d.response||d.message||"";
+        thinkEl.innerHTML=formatChatReply(reply);
+        _chatHistory.push({role:"assistant",content:reply});
+        modelEl.textContent="claude-sonnet-4-5"+(_isLocal?" (via demo-start.py proxy)":" (via server-side proxy)");
+        replied=true;
       }
-    }
+    }catch(_){}
     if(!replied){
       // Fallback: Ollama local
       try{
