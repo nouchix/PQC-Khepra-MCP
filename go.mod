@@ -22,7 +22,7 @@ require (
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/crypto v0.53.0
 	golang.org/x/sys v0.46.0
-	google.golang.org/grpc v1.82.0
+	google.golang.org/grpc v1.82.1
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.53.0
 	tailscale.com v1.100.0
