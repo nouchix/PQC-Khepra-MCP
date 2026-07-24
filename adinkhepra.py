@@ -232,7 +232,7 @@ def wait_for_port(port: int, host: str = "127.0.0.1", timeout: int = PORT_WAIT_T
         print_error(f"Invalid port number: {port}")
         return False
     
-    if host not in ("127.0.0.1", "localhost", "0.0.0.0"):
+    if host not in ("127.0.0.1", "localhost", "0.0.0.0"):  # nosec B104 — allowlist comparison, not a socket bind
         # Only allow loopback or any address for testing
         if not re.match(r'^[0-9a-fA-F:.]+$', host):  # Basic IP validation
             print_error(f"Invalid host: {host}")

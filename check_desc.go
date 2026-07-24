@@ -1,3 +1,11 @@
+//go:build ignore
+// +build ignore
+
+// check_desc.go — dev script that audits tool schemas for missing parameter
+// descriptions. Excluded from the build like gen_manifest.go: it references
+// tools.GetAvailableTools, which is not part of the current tools API.
+// Run: go run check_desc.go
+
 package main
 
 import (
