@@ -23,7 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
+          # no cache: pip — the repo has no requirements.txt/pyproject.toml,
+          # and setup-python fails the job when the cache glob matches nothing
 
       - name: Install test dependencies
         run: pip install pytest pytest-cov
