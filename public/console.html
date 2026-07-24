@@ -317,7 +317,9 @@ const _localDirect = new URLSearchParams(location.search).has("local");
 const CFG={
   asafAPI:   _isLocal ? window.location.origin : (_localDirect ? "http://localhost:45444" : "https://agent.souhimbou.ai"),
   mcpServer: "https://mcp.souhimbou.ai",
-  mcpToken:  "kYIcYS2wD4fMXBonFBRqpI8wNNiJNGVqr4KVlYkMe1e7f848",
+  // MCP bearer token is runtime-supplied (?mcpToken=... or window.__DEMO_MCP_TOKEN)
+  // — never committed. The previous hardcoded demo token is revoked.
+  mcpToken:  new URLSearchParams(location.search).get("mcpToken") || window.__DEMO_MCP_TOKEN || "",
   dagStream: _isLocal ? window.location.origin+"/api/dag/stream" : (_localDirect ? "http://localhost:45444/api/dag/stream" : "https://agent.souhimbou.ai/api/dag/stream"),
   dagNodes:  _isLocal ? window.location.origin+"/api/v1/dag/nodes" : (_localDirect ? "http://localhost:45444/api/v1/dag/nodes" : "https://agent.souhimbou.ai/api/v1/dag/nodes"),
   chatAPI:   _isLocal ? window.location.origin+"/api/v1/mcp/ask" : (_localDirect ? "http://localhost:45444/api/v1/mcp/ask" : "https://agent.souhimbou.ai/api/v1/mcp/ask"),
