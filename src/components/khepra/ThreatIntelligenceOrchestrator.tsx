@@ -72,7 +72,7 @@ export const ThreatIntelligenceOrchestrator = () => {
   });
   const [syncInProgress, setSyncInProgress] = useState(false);
   const { toast } = useToast();
-  const { threats, loading, refetch } = useThreatIntelligence();
+  const { threats, refetch } = useThreatIntelligence();
 
   // Real MITRE ATT&CK technique coverage and CVSS assessments require a live
   // MITRE/CVSS feed integration that is not wired up yet. Report honest
