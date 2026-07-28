@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Shield, Database, Globe, Zap, Eye, Target, AlertTriangle, CheckCircle, TrendingUp, Clock, Brain, Sparkles } from 'lucide-react';
 import { AdinkraSymbolDisplay } from './AdinkraSymbolDisplay';
+import { useToast } from '@/hooks/use-toast';
 
 import { useThreatIntelligence } from '@/hooks/useThreatIntelligence';
 
@@ -70,55 +71,55 @@ export const ThreatIntelligenceOrchestrator = () => {
     coverage: { mitre: 0, cvss: 0, openSource: 0 }
   });
   const [syncInProgress, setSyncInProgress] = useState(false);
-  const { threats, loading } = useThreatIntelligence();
+  const { toast } = useToast();
+  const { threats, loading, refetch } = useThreatIntelligence();
 
-  // Simulated MITRE ATT&CK data
+  // Real MITRE ATT&CK technique coverage and CVSS assessments require a live
+  // MITRE/CVSS feed integration that is not wired up yet. Report honest
+  // empty/zero defaults instead of fabricated coverage numbers.
   useEffect(() => {
     setMitreMatrix([
       {
         id: 'enterprise',
         name: 'ATT&CK for Enterprise',
-        techniques: generateMockMITRETechniques(),
-        coverage: 78,
+        techniques: [],
+        coverage: 0,
         lastUpdate: new Date()
       }
     ]);
 
-    setCvssAssessments(generateMockCVSSAssessments());
-    
+    setCvssAssessments([]);
+
     setThreatIntel({
-      sources: ['MITRE ATT&CK', 'NVD CVSS', 'CISA KEV', 'AlienVault OTX', 'AbuseIPDB'],
-      indicators: 15420,
+      sources: ['Threat Intelligence Database'],
+      indicators: 0,
       lastSync: new Date(),
-      coverage: { mitre: 78, cvss: 92, openSource: 85 }
+      coverage: { mitre: 0, cvss: 0, openSource: 0 }
     });
   }, []);
 
+  // Reflect the real threat_intelligence record count as it loads.
+  useEffect(() => {
+    setThreatIntel(prev => ({ ...prev, indicators: threats.length }));
+  }, [threats]);
+
   const handleSyncIntelligence = async () => {
+    // No live MITRE ATT&CK / CVSS feed integration is wired up yet. This used
+    // to fake a multi-step timed sequence with console-logged progress
+    // messages and then claim a successful sync. The one real data source
+    // available is the threat_intelligence table, so refresh that honestly
+    // and report that MITRE/CVSS sync isn't implemented.
     setSyncInProgress(true);
-    
-    // Simulate sync process with KHEPRA protocol verification
-    const syncSteps = [
-      'Establishing secure channel with Eban protocol...',
-      'Fetching MITRE ATT&CK matrix updates...',
-      'Retrieving CVSS vulnerability data...',
-      'Processing indicators through Adinkra transformations...',
-      'Updating cultural threat mappings...',
-      'Validating data integrity with Fawohodie...'
-    ];
-
-    for (let i = 0; i < syncSteps.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log(syncSteps[i]);
+    try {
+      await refetch();
+      setThreatIntel(prev => ({ ...prev, lastSync: new Date() }));
+      toast({
+        title: "Partial Sync Complete",
+        description: "Threat intelligence records refreshed. Live MITRE ATT&CK and CVSS feed synchronization is not yet implemented.",
+      });
+    } finally {
+      setSyncInProgress(false);
     }
-
-    setThreatIntel(prev => ({
-      ...prev,
-      lastSync: new Date(),
-      indicators: prev.indicators // Real indicator count requires sync response metadata
-    }));
-
-    setSyncInProgress(false);
   };
 
   const getCvssColor = (score: number) => {
@@ -563,25 +564,28 @@ export const ThreatIntelligenceOrchestrator = () => {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Overall Cultural Risk</span>
-                      <span className="text-2xl font-bold text-amber-500">73%</span>
+                      <span className="text-2xl font-bold text-muted-foreground">N/A</span>
                     </div>
-                    <Progress value={73} className="h-2" />
+                    <Progress value={0} className="h-2" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Cultural risk scoring requires a Khepra analysis engine that is not yet implemented.
+                    </p>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Protection (Eban) Threats</span>
-                      <span className="text-sm font-bold">42</span>
+                      <span className="text-sm font-bold">0</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Trust (Nyame) Threats</span>
-                      <span className="text-sm font-bold">28</span>
+                      <span className="text-sm font-bold">0</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Transformation (Nkyinkyim) Threats</span>
-                      <span className="text-sm font-bold">15</span>
+                      <span className="text-sm font-bold">0</span>
                     </div>
                   </div>
                   
@@ -604,38 +608,3 @@ export const ThreatIntelligenceOrchestrator = () => {
     </div>
   );
 };
-
-// Mock data generators
-function generateMockMITRETechniques(): MITRETechnique[] {
-  const tactics = ['Reconnaissance', 'Initial Access', 'Execution', 'Persistence', 'Privilege Escalation', 'Defense Evasion', 'Credential Access', 'Discovery', 'Lateral Movement', 'Collection', 'Command and Control', 'Exfiltration', 'Impact'];
-  const platforms = ['Windows', 'Linux', 'macOS', 'AWS', 'Azure', 'GCP', 'Office 365'];
-  
-  return Array.from({ length: 25 }, (_, i) => ({
-    id: `T${(1000 + i).toString()}`,
-    name: `Technique ${i + 1}`,
-    tactic: tactics[i % tactics.length],
-    description: `Sample technique description for T${1000 + i}`,
-    platforms: platforms.slice(0, (i % 4) + 1), // Deterministic slice based on index
-    detectionCoverage: 0, // Real coverage requires threat detection engine data
-    mitigationStatus: 'none' as any, // Real status requires threat intelligence database
-    references: [`https://attack.mitre.org/techniques/T${1000 + i}`]
-  }));
-}
-
-function generateMockCVSSAssessments(): CVSSAssessment[] {
-  const severities: Array<'None' | 'Low' | 'Medium' | 'High' | 'Critical'> = ['Low', 'Medium', 'High', 'Critical'];
-  const symbols = ['Eban', 'Nyame', 'Nkyinkyim', 'Fawohodie', 'Adwo'];
-  
-  return Array.from({ length: 15 }, (_, i) => ({
-    cveId: `CVE-2024-${(1000 + i).toString()}`,
-    baseScore: 0, // Real CVSS score requires NVD or vulnerability feed
-    vector: `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`,
-    severity: severities[i % severities.length], // Deterministic cycle through severities
-    lastAssessed: new Date(),
-    khepraAnalysis: {
-      culturalRisk: 0, // Real cultural risk requires Khepra analysis engine
-      adinkraMapping: symbols[i % symbols.length], // Deterministic cycle
-      protocolRecommendation: `Apply ${symbols[i % symbols.length]} transformation with enhanced monitoring`
-    }
-  }));
-}

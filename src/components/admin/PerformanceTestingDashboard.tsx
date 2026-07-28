@@ -21,72 +21,19 @@ interface PerformanceTest {
 export const PerformanceTestingDashboard = () => {
   const [performanceTests, setPerformanceTests] = useState<PerformanceTest[]>([]);
   const [loading, setLoading] = useState(false);
-  const [overallScore, setOverallScore] = useState(85);
+  const [overallScore, setOverallScore] = useState(0);
 
   const runPerformanceTests = async () => {
     setLoading(true);
-    
+
     try {
-      // Simulate performance tests for key system components
-      const testResults: PerformanceTest[] = [
-        {
-          test_name: 'Asset Discovery Speed Test',
-          test_type: 'real_time_discovery',
-          duration_ms: 2300,
-          success_rate: 98.5,
-          throughput: 150,
-          error_count: 2,
-          status: 'PASSED',
-          tested_at: new Date().toISOString()
-        },
-        {
-          test_name: 'Database Query Performance',
-          test_type: 'database_performance',
-          duration_ms: 45,
-          success_rate: 99.8,
-          throughput: 1200,
-          error_count: 0,
-          status: 'PASSED',
-          tested_at: new Date().toISOString()
-        },
-        {
-          test_name: 'Real-time Monitoring Load Test',
-          test_type: 'monitoring_performance',
-          duration_ms: 12,
-          success_rate: 99.9,
-          throughput: 2500,
-          error_count: 0,
-          status: 'PASSED',
-          tested_at: new Date().toISOString()
-        },
-        {
-          test_name: 'KHEPRA Protocol Response Time',
-          test_type: 'ai_processing',
-          duration_ms: 180,
-          success_rate: 96.2,
-          throughput: 80,
-          error_count: 1,
-          status: 'PASSED',
-          tested_at: new Date().toISOString()
-        },
-        {
-          test_name: 'Integration Data Flow Test',
-          test_type: 'integration_performance',
-          duration_ms: 320,
-          success_rate: 94.1,
-          throughput: 200,
-          error_count: 5,
-          status: 'WARNING',
-          tested_at: new Date().toISOString()
-        }
-      ];
-
-      setPerformanceTests(testResults);
-      
-      // Calculate overall score based on test results
-      const avgSuccessRate = testResults.reduce((sum, test) => sum + test.success_rate, 0) / testResults.length;
-      setOverallScore(Math.round(avgSuccessRate));
-
+      // No real performance test runner is wired up yet — there is no
+      // backend service or edge function that executes these test suites.
+      // Rather than fabricate PASSED/WARNING results, report an honest
+      // empty state until a real test harness is implemented and persists
+      // its results (e.g. to the performance_metrics table).
+      setPerformanceTests([]);
+      setOverallScore(0);
     } catch (error) {
       console.error('Error running performance tests:', error);
     } finally {
@@ -159,12 +106,24 @@ export const PerformanceTestingDashboard = () => {
               </span>
               <div className="text-right text-sm text-muted-foreground">
                 <div>Tests Passed: {performanceTests.filter(t => t.status === 'PASSED').length}/{performanceTests.length}</div>
-                <div>Avg Success Rate: {(performanceTests.reduce((sum, test) => sum + test.success_rate, 0) / performanceTests.length).toFixed(1)}%</div>
+                <div>
+                  Avg Success Rate: {performanceTests.length > 0
+                    ? `${(performanceTests.reduce((sum, test) => sum + test.success_rate, 0) / performanceTests.length).toFixed(1)}%`
+                    : 'No data'}
+                </div>
               </div>
             </div>
             <Progress value={overallScore} className="h-3" />
-            
-            {overallScore < 85 && (
+
+            {performanceTests.length === 0 ? (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  No performance test runner is connected yet. This dashboard reports an honest
+                  empty state until a real test harness is implemented and persists its results.
+                </AlertDescription>
+              </Alert>
+            ) : overallScore < 85 && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
