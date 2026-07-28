@@ -28,39 +28,11 @@ export const ApprovalWorkflow = () => {
   const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
 
-  // Mock data - in real implementation, this would come from Supabase
-  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([
-    {
-      id: '1',
-      type: 'remediation',
-      title: 'Disable SSH Root Login on Production Servers',
-      description: 'Automated remediation detected root SSH access enabled on 15 production servers. This violates NIST SP 800-171 control 3.1.5.',
-      requestedBy: 'AI Agent - Security Scanner',
-      requestedAt: '2024-01-19T10:30:00Z',
-      priority: 'high',
-      status: 'pending',
-      approvers: ['security-team', 'infrastructure-team'],
-      requiredApprovals: 2,
-      currentApprovals: 1,
-      estimatedImpact: 'Medium - May require admin access reconfiguration',
-      riskLevel: 'High'
-    },
-    {
-      id: '2',
-      type: 'configuration',
-      title: 'Enable Advanced Logging on Database Servers',
-      description: 'CMMC assessment gap identified: insufficient audit logging on database systems. Requires enabling detailed query logging.',
-      requestedBy: 'Compliance Framework Manager',
-      requestedAt: '2024-01-19T09:15:00Z',
-      priority: 'medium',
-      status: 'pending',
-      approvers: ['dba-team', 'security-team'],
-      requiredApprovals: 2,
-      currentApprovals: 0,
-      estimatedImpact: 'Low - Minimal performance impact expected',
-      riskLevel: 'Medium'
-    }
-  ]);
+  // No approval_requests (or equivalent) table exists in this project's
+  // schema yet, so there is nothing real to fetch from Supabase. Rather
+  // than fabricate pending approval requests, report an honest empty state
+  // until a real backend for this workflow is implemented.
+  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
 
   const handleApproval = (requestId: string, action: 'approve' | 'reject') => {
     setApprovalRequests(prev => prev.map(req => {
@@ -119,6 +91,13 @@ export const ApprovalWorkflow = () => {
         {/* Approval Requests List */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Pending Requests</h3>
+          {approvalRequests.length === 0 && (
+            <Card>
+              <CardContent className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                No approval requests. This workflow is not yet connected to a real backend.
+              </CardContent>
+            </Card>
+          )}
           {approvalRequests.map((request) => (
             <Card 
               key={request.id} 

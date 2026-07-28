@@ -120,75 +120,13 @@ export const DeploymentProgress: React.FC<DeploymentProgressProps> = ({
   };
 
   const startDeployment = async () => {
-    setIsDeploying(true);
-    setIsPaused(false);
-    
-    addLog('Starting KHEPRA Protocol deployment...');
-    addLog('Ceremonial deployment sequence initiated');
-
-    for (let stepIndex = 0; stepIndex < deploymentSteps.length; stepIndex++) {
-      if (isPaused) break;
-      
-      setCurrentStepIndex(stepIndex);
-      
-      // Update step status to running
-      setDeploymentSteps(prev => prev.map((step, index) => 
-        index === stepIndex 
-          ? { ...step, status: 'running' }
-          : step
-      ));
-
-      const currentStep = deploymentSteps[stepIndex];
-      addLog(`Starting: ${currentStep.name}`);
-      
-      // Simulate step execution with cultural elements
-      const stepDetails = getStepDetails(currentStep.id);
-      for (let i = 0; i < stepDetails.length; i++) {
-        if (isPaused) break;
-        
-        addLog(`  ${stepDetails[i]}`);
-        
-        // Update step progress
-        const stepProgress = ((i + 1) / stepDetails.length) * 100;
-        setDeploymentSteps(prev => prev.map((step, index) => 
-          index === stepIndex 
-            ? { ...step, progress: stepProgress }
-            : step
-        ));
-        
-        // Update overall progress
-        const overallProg = ((stepIndex + (i + 1) / stepDetails.length) / deploymentSteps.length) * 100;
-        setOverallProgress(overallProg);
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-
-      // Mark step as completed
-      setDeploymentSteps(prev => prev.map((step, index) => 
-        index === stepIndex 
-          ? { ...step, status: 'completed', progress: 100 }
-          : step
-      ));
-      
-      addLog(`✓ Completed: ${currentStep.name}`);
-      addLog(`  Cultural symbol ${currentStep.cultural_symbol} activated`);
-    }
-
-    if (!isPaused) {
-      addLog('🎉 KHEPRA Protocol deployment completed successfully!');
-      addLog('All cultural validations passed');
-      addLog('Your infrastructure is now protected by ancient wisdom and quantum cryptography');
-      
-      setIsDeploying(false);
-      setOverallProgress(100);
-      
-      onDataChange?.({
-        deployment_completed: true,
-        deployment_time: Date.now(),
-        steps_completed: deploymentSteps.length,
-        cultural_alignment: 'verified'
-      });
-    }
+    // No real deployment execution backend is wired up yet. This used to run
+    // a multi-step animated simulation (timed delays + scripted log lines)
+    // that fabricated a completed KHEPRA Protocol deployment and reported
+    // deployment_completed: true / cultural_alignment: 'verified' upstream.
+    // Report the honest state instead: nothing was actually deployed.
+    addLog('Deployment execution is not yet implemented.');
+    addLog('No infrastructure changes were made.');
   };
 
   const getStepDetails = (stepId: string): string[] => {

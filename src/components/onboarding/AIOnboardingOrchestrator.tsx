@@ -128,22 +128,12 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
     try {
       addAIMessage("Perfect! I'm now scanning your infrastructure. This will take a few moments...");
 
-      // Simulate progressive discovery
-      const steps = [
-        { message: "Scanning network infrastructure...", progress: 20 },
-        { message: "Discovering services and APIs...", progress: 40 },
-        { message: "Analyzing STIG compliance requirements...", progress: 60 },
-        { message: "Mapping control frameworks...", progress: 80 },
-        { message: "Generating compliance baselines...", progress: 100 }
-      ];
-
-      for (const step of steps) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setProgress(step.progress);
-        if (step.progress < 100) {
-          addAIMessage(step.message);
-        }
-      }
+      // Real discovery progress requires telemetry from the discovery
+      // backend, which this endpoint does not yet stream back. This used to
+      // fake progressive step messages on a fixed timer before the real call
+      // below even started. Show an honest indeterminate state instead of
+      // fabricated per-step progress.
+      setProgress(50);
 
       // Call real discovery service
       const { data: _discoveryData, error: discoveryError } = await supabase.functions.invoke('automated-infrastructure-discovery', {
@@ -156,6 +146,8 @@ const AIOnboardingOrchestrator: React.FC<AIOnboardingOrchestratorProps> = ({ onC
       });
 
       if (discoveryError) throw discoveryError;
+
+      setProgress(100);
 
       // Awaiting telemetry for real discovered assets
       const pendingAssets: DiscoveredAsset[] = [];
