@@ -61,7 +61,7 @@
     "cmdk": "^1.0.4",
     "vaul": "^1.1.2",
     "embla-carousel-react": "^8.5.2",
-    "react-day-picker": "^9.4.4",
+    "react-day-picker": "^10.0.1",
     "react-resizable-panels": "^2.1.7"
   },
   "devDependencies": {
