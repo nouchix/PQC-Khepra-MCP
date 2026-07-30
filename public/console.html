@@ -320,6 +320,9 @@ const CFG={
   // No bearer token or API key is ever shipped in this public static file.
   // Community-tier MCP tools require no license key (see README); anything
   // requiring a paid tier or an LLM key must be proxied server-side.
+  // MCP bearer token is runtime-supplied (?mcpToken=... or window.__DEMO_MCP_TOKEN)
+  // — never committed. The previous hardcoded demo token is revoked.
+  mcpToken:  new URLSearchParams(location.search).get("mcpToken") || window.__DEMO_MCP_TOKEN || "",
   dagStream: _isLocal ? window.location.origin+"/api/dag/stream" : (_localDirect ? "http://localhost:45444/api/dag/stream" : "https://agent.souhimbou.ai/api/dag/stream"),
   dagNodes:  _isLocal ? window.location.origin+"/api/v1/dag/nodes" : (_localDirect ? "http://localhost:45444/api/v1/dag/nodes" : "https://agent.souhimbou.ai/api/v1/dag/nodes"),
   chatAPI:   _isLocal ? window.location.origin+"/api/v1/mcp/ask" : (_localDirect ? "http://localhost:45444/api/v1/mcp/ask" : "https://agent.souhimbou.ai/api/v1/mcp/ask"),
