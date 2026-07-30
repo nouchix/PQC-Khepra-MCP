@@ -17,10 +17,10 @@
 //   - Reports are streamed per control family (AC, AU, CM, IA, SC, SI) to avoid
 //     buffering 50-page documents in memory
 //
-// G0DM0D3 integration:
-//   - The AI layer (pkg/g0dm0d3) calls [TOOL:dag-summary] and [TOOL:ea-status]
+// Intelligence integration:
+//   - The AI layer (pkg/intelligence) calls [TOOL:dag-summary] and [TOOL:ea-status]
 //     during report generation to inject live compliance context
-//   - This file is Layer 2/4 (core engine) — G0DM0D3 is Layer 3 (AI overlay)
+//   - This file is Layer 2/4 (core engine) — Intelligence is Layer 3 (AI overlay)
 
 package tools
 

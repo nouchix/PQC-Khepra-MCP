@@ -1,4 +1,4 @@
-package g0dm0d3
+package intelligence
 
 import (
 	"strings"

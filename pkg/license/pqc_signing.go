@@ -11,13 +11,18 @@
 // Even if the lattice is reverse-engineered, Dilithium signature verification still required.
 //
 // Reference: STIGVIEWER_STRATEGY_MITOCHONDRIA.md §4.4 (Air-Gap Dilithium Signing)
-//           pkg/adinkra/adinkra_core.go (Adinkhepra Lattice implementation)
+//
+//	pkg/adinkra/adinkra_core.go (Adinkhepra Lattice implementation)
 package license
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
@@ -32,14 +37,13 @@ import (
 // the air gap into isolated (Duat/underworld) deployments.
 type ShuBreathSignature struct {
 	// License payload
-	LicenseID     string       `json:"license_id"`
-	Tier          EgyptianTier `json:"tier"`
-	NodeQuota     int          `json:"node_quota"`
-	ValidUntil    time.Time    `json:"valid_until"`
-	IssuedAt      time.Time    `json:"issued_at"`
-	Features      []string     `json:"features"`
-	DeityAccess   []Deity      `json:"deity_access"`
-	SephirotLevel []int        `json:"sephirot_level"`
+	LicenseID      string      `json:"license_id"`
+	Tier           LicenseTier `json:"tier"`
+	NodeQuota      int         `json:"node_quota"`
+	ValidUntil     time.Time   `json:"valid_until"`
+	IssuedAt       time.Time   `json:"issued_at"`
+	Features       []string    `json:"features"`
+	MaxAccessLevel int         `json:"max_access_level"`
 
 	// Layer 1: Adinkhepra Lattice Hash (proprietary encoding)
 	LatticeHash string `json:"lattice_hash"` // Khepra-encoded SHA-256
@@ -53,8 +57,8 @@ type ShuBreathSignature struct {
 
 	// Signature metadata
 	SignerPublicKey []byte `json:"signer_public_key"` // ML-DSA-65 public key (1952 bytes)
-	SignatureScheme string `json:"signature_scheme"`   // "ADINKHEPRA_MLDSA65_KYBER1024"
-	Version         string `json:"version"`            // Signature format version
+	SignatureScheme string `json:"signature_scheme"`  // "ADINKHEPRA_MLDSA65_KYBER1024"
+	Version         string `json:"version"`           // Signature format version
 }
 
 // ─── Signing Authority Key Pair ────────────────────────────────────────────────
@@ -101,14 +105,13 @@ func GenerateSigningAuthority(symbol string) (*SigningAuthority, error) {
 func SignLicense(license *License, authority *SigningAuthority, encryptForPublicKey []byte) (*ShuBreathSignature, error) {
 	// ─── Layer 0: Canonical License Payload ─────────────────────────────────
 	payload := map[string]interface{}{
-		"license_id":     license.ID,
-		"tier":           license.Tier,
-		"node_quota":     license.NodeQuota,
-		"valid_until":    license.ExpiresAt,
-		"issued_at":      license.CreatedAt,
-		"features":       license.Features,
-		"deity_access":   license.DeityAuthorities,
-		"sephirot_level": license.SephirotAccess,
+		"license_id":       license.ID,
+		"tier":             license.Tier,
+		"node_quota":       license.NodeQuota,
+		"valid_until":      license.ExpiresAt,
+		"issued_at":        license.CreatedAt,
+		"features":         license.Features,
+		"max_access_level": license.MaxAccessLevel,
 	}
 
 	// Canonical JSON (sorted keys for deterministic hash)
@@ -142,8 +145,7 @@ func SignLicense(license *License, authority *SigningAuthority, encryptForPublic
 		ValidUntil:         license.ExpiresAt,
 		IssuedAt:           license.CreatedAt,
 		Features:           license.Features,
-		DeityAccess:        license.DeityAuthorities,
-		SephirotLevel:      license.SephirotAccess,
+		MaxAccessLevel:     license.MaxAccessLevel,
 		LatticeHash:        latticeHashWithSymbol,
 		DilithiumSignature: dilithiumSig,
 		MerkabaVersion:     "1.0",
@@ -210,14 +212,13 @@ func VerifyLicense(shuBreath *ShuBreathSignature, trustedPublicKey []byte) (bool
 	// ─── Layer 1: Verify Adinkhepra Lattice Hash ─────────────────────────────
 	// Re-compute the lattice hash from license payload
 	payload := map[string]interface{}{
-		"license_id":     shuBreath.LicenseID,
-		"tier":           shuBreath.Tier,
-		"node_quota":     shuBreath.NodeQuota,
-		"valid_until":    shuBreath.ValidUntil,
-		"issued_at":      shuBreath.IssuedAt,
-		"features":       shuBreath.Features,
-		"deity_access":   shuBreath.DeityAccess,
-		"sephirot_level": shuBreath.SephirotLevel,
+		"license_id":       shuBreath.LicenseID,
+		"tier":             shuBreath.Tier,
+		"node_quota":       shuBreath.NodeQuota,
+		"valid_until":      shuBreath.ValidUntil,
+		"issued_at":        shuBreath.IssuedAt,
+		"features":         shuBreath.Features,
+		"max_access_level": shuBreath.MaxAccessLevel,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -312,6 +313,51 @@ func bytesEqual(a, b []byte) bool {
 	return diff == 0
 }
 
+// loadMasterSigningAuthority loads the root signing authority (private +
+// public ML-DSA-65 keys) used to sign Sovereign-tier offline licenses. Only
+// resolvable in the vendor's signing environment — never on a customer
+// deployment, which holds only the public key (see loadMasterPublicKey).
+func loadMasterSigningAuthority() (*SigningAuthority, error) {
+	priv, err := loadMasterPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	pub, err := loadMasterPublicKey()
+	if err != nil {
+		return nil, err
+	}
+	return &SigningAuthority{PrivateKey: priv, PublicKey: pub, Symbol: "Eban"}, nil
+}
+
+// loadMasterPrivateKey returns the ML-DSA-65 master private key bytes.
+// Sources (in priority order) — deliberately with NO repo-relative fallback
+// (unlike loadMasterPublicKey in manager.go): a private key must never be
+// read from a path that could resolve inside a checked-out repo.
+//  1. KHEPRA_MASTER_PRIVATE_KEY env var (hex)
+//  2. KHEPRA_MASTER_PRIVATE_KEY_PATH env var
+//  3. ~/.khepra/master.key
+func loadMasterPrivateKey() ([]byte, error) {
+	if raw := os.Getenv("KHEPRA_MASTER_PRIVATE_KEY"); raw != "" {
+		return hex.DecodeString(strings.TrimSpace(raw))
+	}
+
+	var paths []string
+	if p := os.Getenv("KHEPRA_MASTER_PRIVATE_KEY_PATH"); p != "" {
+		paths = append(paths, p)
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		paths = append(paths, filepath.Join(home, ".khepra", "master.key"))
+	}
+
+	for _, p := range paths {
+		if data, err := os.ReadFile(p); err == nil {
+			return hex.DecodeString(strings.TrimSpace(string(data)))
+		}
+	}
+
+	return nil, fmt.Errorf("master private key not found — set KHEPRA_MASTER_PRIVATE_KEY or KHEPRA_MASTER_PRIVATE_KEY_PATH (this key is never committed to the repo)")
+}
+
 // GenerateRootCA generates a root Certificate Authority for signing licenses.
 //
 // In production, this is done ONCE and the private key is stored in HSM.
@@ -342,8 +388,8 @@ func (lm *LicenseManager) GenerateSignedOfflineLicense(licenseID string, authori
 		return "", ErrLicenseNotFound
 	}
 
-	if license.Tier != TierOsiris {
-		return "", fmt.Errorf("offline licensing only available for Pharaoh tier (current: %s)", license.Tier)
+	if license.Tier != TierSovereign {
+		return "", fmt.Errorf("offline licensing only available for Sovereign tier (current: %s)", license.Tier)
 	}
 
 	// Create multi-layer PQC signature
@@ -410,18 +456,32 @@ func (lm *LicenseManager) ValidateSignedOfflineLicense(artifact string, trustedR
 // GetSignatureStats returns statistics about a Shu Breath signature.
 func GetSignatureStats(shuBreath *ShuBreathSignature) map[string]interface{} {
 	return map[string]interface{}{
-		"signature_scheme":       shuBreath.SignatureScheme,
-		"version":                shuBreath.Version,
-		"tier":                   shuBreath.Tier,
-		"is_encrypted":           shuBreath.IsEncrypted,
-		"merkaba_version":        shuBreath.MerkabaVersion,
-		"dilithium_sig_size":     len(shuBreath.DilithiumSignature),
-		"public_key_size":        len(shuBreath.SignerPublicKey),
-		"lattice_hash_length":    len(shuBreath.LatticeHash),
-		"expires_at":             shuBreath.ValidUntil,
-		"days_until_expiration":  int(time.Until(shuBreath.ValidUntil).Hours() / 24),
-		"sephirot_levels":        len(shuBreath.SephirotLevel),
-		"deity_access_count":     len(shuBreath.DeityAccess),
-		"features_count":         len(shuBreath.Features),
+		"signature_scheme":      shuBreath.SignatureScheme,
+		"version":               shuBreath.Version,
+		"tier":                  shuBreath.Tier,
+		"is_encrypted":          shuBreath.IsEncrypted,
+		"merkaba_version":       shuBreath.MerkabaVersion,
+		"dilithium_sig_size":    len(shuBreath.DilithiumSignature),
+		"public_key_size":       len(shuBreath.SignerPublicKey),
+		"lattice_hash_length":   len(shuBreath.LatticeHash),
+		"expires_at":            shuBreath.ValidUntil,
+		"days_until_expiration": int(time.Until(shuBreath.ValidUntil).Hours() / 24),
+		"max_access_level":      shuBreath.MaxAccessLevel,
+		"features_count":        len(shuBreath.Features),
 	}
+}
+
+// decodeShuBreath decodes an unencrypted, base64-encoded ShuBreathSignature
+// artifact — the format produced by GenerateSignedOfflineLicense when no
+// recipient Kyber key is supplied. Used by the package-level ValidateOfflineLicense.
+func decodeShuBreath(artifact string) (*ShuBreathSignature, error) {
+	artifactBytes, err := base64.StdEncoding.DecodeString(artifact)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode artifact: %w", err)
+	}
+	var shuBreath ShuBreathSignature
+	if err := json.Unmarshal(artifactBytes, &shuBreath); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal offline license signature: %w", err)
+	}
+	return &shuBreath, nil
 }

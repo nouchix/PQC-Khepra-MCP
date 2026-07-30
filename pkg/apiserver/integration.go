@@ -138,8 +138,8 @@ func (a *LicenseManagerAdapter) GetManager() *license.Manager {
 	return a.mgr
 }
 
-// CreateLicense creates a new Egyptian tier license
-func (a *LicenseManagerAdapter) CreateLicense(id string, tier license.EgyptianTier, days int) (*license.License, error) {
+// CreateLicense creates a new license
+func (a *LicenseManagerAdapter) CreateLicense(id string, tier license.LicenseTier, days int) (*license.License, error) {
 	return a.mgr.CreateLicense(id, tier, days)
 }
 
@@ -154,8 +154,13 @@ func (a *LicenseManagerAdapter) GetAllLicenses() []*license.License {
 }
 
 // UpgradeLicense upgrades a license to a higher tier
-func (a *LicenseManagerAdapter) UpgradeLicense(id string, newTier license.EgyptianTier) error {
+func (a *LicenseManagerAdapter) UpgradeLicense(id string, newTier license.LicenseTier) error {
 	return a.mgr.UpgradeLicense(id, newTier)
+}
+
+// SetTier changes a license's tier in either direction (see license.LicenseManager.SetTier).
+func (a *LicenseManagerAdapter) SetTier(id string, newTier license.LicenseTier) error {
+	return a.mgr.SetTier(id, newTier)
 }
 
 // Register registers the machine with a token

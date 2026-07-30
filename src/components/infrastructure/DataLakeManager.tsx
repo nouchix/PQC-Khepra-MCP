@@ -91,15 +91,17 @@ export const DataLakeManager = () => {
   const optimizeDataLake = async () => {
     setOptimizing(true);
 
-    // Simulate optimization process
-    setTimeout(() => {
-      setOptimizing(false);
-      toast({
-        title: "Data Lake Optimized",
-        description: "Storage compression and query performance have been improved",
-        variant: "default"
-      });
-    }, 5000);
+    // No real data lake optimization backend is wired up yet (no connected
+    // storage components, no optimization job/queue). Rather than fabricate
+    // a success message, report the honest state.
+    setOptimizing(false);
+    toast({
+      title: "Optimization Not Available",
+      description: dataSources.length === 0
+        ? "No data lake components are connected yet. Connect a data source before running optimization."
+        : "Data lake optimization is not yet implemented for connected sources.",
+      variant: "destructive"
+    });
   };
 
   const syncDataSource = async (sourceId: string, sourceName: string) => {

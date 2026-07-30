@@ -1,5 +1,5 @@
 # PQC-Khepra-MCP — MEMORY.md
-> Last Updated: 2026-06-29 — Connective Tissue Build Spec added (July 15 Presight target)
+> Last Updated: 2026-07-13 — Tier system unified to Community/Pro/Enterprise/Sovereign; Egyptian tier system deleted
 > Maintainer: Souhimbou Doh Kone (SecRed Knowledge Inc. / NouchiX)
 
 ---
@@ -11,7 +11,7 @@
 1. **CMMC/STIG compliance scanning** (36,195 cross-framework mappings)
 2. **PQC attestation** (ML-DSA-65 / NIST FIPS 204 signing)
 3. **SouHimBou AI Flight Recorder** (tamper-evident agent action logging)
-4. **License-gated feature dispatch** (community → pilot → enterprise → master)
+4. **License-gated feature dispatch** (community → pro → enterprise → sovereign → master[internal])
 
 Patent Pending: **USPTO #73565085**
 
@@ -26,13 +26,30 @@ Patent Pending: **USPTO #73565085**
 - **FIPS builds**: `Dockerfile.fips` with `GOEXPERIMENT=boringcrypto`
 - **IronBank**: `Dockerfile.ironbank` for DoD IL4/IL5 environments
 
-### License Tiers (from `pkg/license/mcp_gate.go`)
-| Tier | Stripe Price | Monthly | Features |
-|------|-------------|---------|---------|
-| Community | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
-| Pilot | `price_1TiVvyDqGyad2D3V4mszc5v5` | $499 | + `cmmc_assess`, `agent_record` |
-| Enterprise | `price_1TiVXoDqGyad2D3Vr78bgbTI` | $2,999 | + `attest_export`, `godfather_report`, SOAR, GovCloud |
-| Master | Contact | Custom | All + sovereign deploy |
+### License Tiers — PQC-Khepra-MCP Server (2026-07-13 — canonical, supersedes prior conflicting tables)
+
+Renamed/repriced from the old Community/Pilot("Sovereign")/Enterprise("Pharaoh") model —
+the "Egyptian tier" node-quota system (`egyptian_tiers.go`, Khepri/Ra/Atum/Osiris) has been
+deleted; `pkg/license/license_tiers.go` and `pkg/license/mcp_gate.go` now share one canonical
+tier taxonomy (`community`/`pro`/`enterprise`/`sovereign`, plus internal-only `master`).
+**Continuous compliance scanning (autopilot) is included in every paid tier.**
+
+| Tier | Product | Stripe Price ID | Price | Features |
+|------|---------|----------------|-------|----------|
+| Community | — (free) | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
+| Pro | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | ⚠️ **NOT YET CREATED** — see below | $19/mo | Compliance reporting, ACP, NHI inventory, autopilot |
+| Enterprise | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | ⚠️ **NOT YET CREATED** — see below | $499/mo | All 76 tools, autopilot |
+| Sovereign | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | No self-serve checkout — Contact Sales | Custom | All 76 tools + air-gap/offline licensing + HSM, autopilot |
+
+**Open action item**: the old `STRIPE_PRICE_MCP_SOVEREIGN` ($2,999/mo, `price_1TrDa4DqGyad2D3V7QqGxnjK`)
+was a flat self-serve price for what's now the Sovereign tier — Sovereign is now custom/contact-sales,
+so this price should be archived (not deleted — existing subscribers may still reference it) rather
+than reused. Two **new** Stripe Price objects need to be created for Pro ($19/mo) and Enterprise
+($499/mo) under `prod_UqvQtvapGfRbcP`, then wired into `pkg/apiserver/stripe_billing.go`'s
+`PriceMapping` under namespaced keys (e.g. `mcp_pro`, `mcp_enterprise`) — **not** the bare
+`pro`/`enterprise` keys, since `enterprise` is already taken by the SouHimBou AI product's own
+$499/mo tier (`price_1TiVvyDqGyad2D3V4mszc5v5`, different Stripe product) and reusing it would
+route MCP checkouts to the wrong product/price.
 
 ### MCP Tools Registered
 | Tool | Tier Required | Handler |
@@ -40,22 +57,47 @@ Patent Pending: **USPTO #73565085**
 | `ert_scan` | Community | `pkg/mcp/tools/ert_scan_tool.go` |
 | `stig_check` | Community | `pkg/mcp/tools/pqc_stig_tool.go` |
 | `nist_map` | Community | `pkg/mcp/tools/nist_map_tool.go` |
-| `cmmc_assess` | Pilot | `pkg/mcp/tools/cmmc_assess_tool.go` |
-| `godfather_report` | Pilot | `pkg/mcp/tools/godfather_tool.go` |
-| `attest_export` | Pilot | `pkg/mcp/tools/attest_export_tool.go` |
+| `cmmc_assess` | Enterprise | `pkg/mcp/tools/cmmc_assess_tool.go` |
+| `godfather_report` | Pro | `pkg/mcp/tools/godfather_tool.go` |
+| `attest_export` | Pro | `pkg/mcp/tools/attest_export_tool.go` |
 | `agent_record` | Community | `pkg/mcp/tools/agent_record_tool.go` |
 
-### Stripe Integration (as of June 15, 2026)
-All live prices in Stripe product `prod_UhvNflskmq9PoV`:
+### SouHimBou AI Tiers (souhimbou.ai — `prod_UhvNflskmq9PoV`)
+| Tier | Stripe Price ID | Price | MCP Tool Access |
+|------|----------------|-------|-----------------|
+| Free | — | $0/mo | Community tools via hosted endpoint |
+| Certify | `price_1TiVvxDqGyad2D3VlUm3ba6s` | $99 one-time | Full compliance audit badge |
+| Starter | `price_1TiVXPDqGyad2D3VSpr7L05X` | $299/mo | Pilot tools via hosted endpoint |
+| Enterprise | `price_1TiVvyDqGyad2D3V4mszc5v5` | $499/mo | Enterprise tools via hosted endpoint |
+| Professional | `price_1TiVXoDqGyad2D3V5AZQ0EiW` | $999/mo | Full SOC suite via hosted endpoint |
+
+### Professional Services (consulting, not software)
+| SKU | Stripe Price ID | Price | Description |
+|-----|----------------|-------|-------------|
+| Diagnostic | `price_1TiVXpDqGyad2D3VXMnYnrZP` | $1,500 one-time | Risk & Readiness Assessment |
+| Advisory | `price_1TiVXqDqGyad2D3VQizyv9o7` | $5,000 one-time | Advisory Package |
+| Sprint | `price_1TiVw1DqGyad2D3VTs0ewSp0` | $15,000 one-time | Deadline Sprint |
+
+### Stripe Integration — Canonical Env Vars (as of 2026-07-09)
 ```
-STRIPE_PRICE_AUTOPILOT=price_1TiVvyDqGyad2D3V4mszc5v5   # $499/mo  → Pilot
-STRIPE_PRICE_STARTER=price_1TiVXPDqGyad2D3VSpr7L05X     # $299/mo  → Pilot
-STRIPE_PRICE_PRO=price_1TiVXoDqGyad2D3V5AZQ0EiW          # $999/mo  → Pilot
-STRIPE_PRICE_ENTERPRISE=price_1TiVXoDqGyad2D3Vr78bgbTI  # $2999/mo → Enterprise
-STRIPE_PRICE_CERTIFY=price_1TiVvxDqGyad2D3VlUm3ba6s     # $99 one-time → Certify
-STRIPE_PRICE_DIAGNOSTIC=price_1TiVXpDqGyad2D3VXMnYnrZP  # $1500 one-time
-STRIPE_PRICE_ADVISORY=price_1TiVXqDqGyad2D3VQizyv9o7    # $5000 one-time
-STRIPE_PRICE_SPRINT=price_1TiVw1DqGyad2D3VTs0ewSp0      # $15000 one-time
+# SouHimBou AI — prod_UhvNflskmq9PoV
+STRIPE_PRODUCT_SOC=prod_UhvNflskmq9PoV
+STRIPE_PRICE_CERTIFY=price_1TiVvxDqGyad2D3VlUm3ba6s          # $99 one-time
+STRIPE_PRICE_STARTER=price_1TiVXPDqGyad2D3VSpr7L05X          # $299/mo → TierPilot
+STRIPE_PRICE_ENTERPRISE_SOC=price_1TiVvyDqGyad2D3V4mszc5v5   # $499/mo → TierEnterprise
+STRIPE_PRICE_PROFESSIONAL=price_1TiVXoDqGyad2D3V5AZQ0EiW     # $999/mo → TierEnterprise
+
+# PQC-Khepra-MCP Server — prod_UqvQtvapGfRbcP
+STRIPE_PRODUCT_MCP=prod_UqvQtvapGfRbcP
+STRIPE_PRICE_MCP_SOVEREIGN=price_1TrDa4DqGyad2D3V7QqGxnjK    # $2,999/mo → TierMaster
+
+# Professional Services
+STRIPE_PRICE_DIAGNOSTIC=price_1TiVXpDqGyad2D3VXMnYnrZP       # $1,500 one-time
+STRIPE_PRICE_ADVISORY=price_1TiVXqDqGyad2D3VQizyv9o7         # $5,000 one-time
+STRIPE_PRICE_SPRINT=price_1TiVw1DqGyad2D3VTs0ewSp0           # $15,000 one-time
+
+# ARCHIVED (do not use):
+# price_1TiVXoDqGyad2D3Vr78bgbTI  → old Sovereign on SouHimBou product (archive in Stripe)
 ```
 
 ### Key Sprint Completed Work
