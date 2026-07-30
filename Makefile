@@ -228,5 +228,5 @@ ci: fetch-cve-quick ci-test secure-build
 .PHONY: ironbank
 ironbank: fips-boring-build
 	@echo "[ADINKHEPRA] Generating Iron Bank Hardening Manifest..."
-	@go run tools/gen_manifest.go "v1.0.0" "bin/$(APP)-fips"
+	@go run tools/gen_manifest.go "v2.0.0" "bin/$(APP)-fips"
 	@echo "[ADINKHEPRA] Manifest generated: hardening_manifest.yaml"
