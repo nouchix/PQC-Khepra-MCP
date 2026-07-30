@@ -1,5 +1,5 @@
 # PQC-Khepra-MCP — MEMORY.md
-> Last Updated: 2026-06-29 — Connective Tissue Build Spec added (July 15 Presight target)
+> Last Updated: 2026-07-13 — Tier system unified to Community/Pro/Enterprise/Sovereign; Egyptian tier system deleted
 > Maintainer: Souhimbou Doh Kone (SecRed Knowledge Inc. / NouchiX)
 
 ---
@@ -11,7 +11,7 @@
 1. **CMMC/STIG compliance scanning** (36,195 cross-framework mappings)
 2. **PQC attestation** (ML-DSA-65 / NIST FIPS 204 signing)
 3. **SouHimBou AI Flight Recorder** (tamper-evident agent action logging)
-4. **License-gated feature dispatch** (community → pilot → enterprise → master)
+4. **License-gated feature dispatch** (community → pro → enterprise → sovereign → master[internal])
 
 Patent Pending: **USPTO #73565085**
 
@@ -26,28 +26,41 @@ Patent Pending: **USPTO #73565085**
 - **FIPS builds**: `Dockerfile.fips` with `GOEXPERIMENT=boringcrypto`
 - **IronBank**: `Dockerfile.ironbank` for DoD IL4/IL5 environments
 
-### License Tiers (from `pkg/license/mcp_gate.go`)
-| Tier | Stripe Price | Monthly | Features |
-|------|-------------|---------|---------|
-| Community | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
-| Pilot | `price_1TiVvyDqGyad2D3V4mszc5v5` | $499 | + `cmmc_assess`, `agent_record` |
-| Enterprise | `price_1TiVXoDqGyad2D3Vr78bgbTI` | $2,999 | + `attest_export`, `godfather_report`, SOAR, GovCloud |
+### License Tiers — PQC-Khepra-MCP Server (2026-07-13 — canonical, supersedes prior conflicting tables)
+
+Renamed/repriced from the old Community/Pilot("Sovereign")/Enterprise("Pharaoh") model —
+the "Egyptian tier" node-quota system (`egyptian_tiers.go`, Khepri/Ra/Atum/Osiris) has been
+deleted; `pkg/license/license_tiers.go` and `pkg/license/mcp_gate.go` now share one canonical
+tier taxonomy (`community`/`pro`/`enterprise`/`sovereign`, plus internal-only `master`).
+**Continuous compliance scanning (autopilot) is included in every paid tier.**
+
+| Tier | Product | Stripe Price ID | Price | Features |
+|------|---------|----------------|-------|----------|
+| Community | — (free) | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
+| Pro | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | ⚠️ **NOT YET CREATED** — see below | $19/mo | Compliance reporting, ACP, NHI inventory, autopilot |
+| Enterprise | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | ⚠️ **NOT YET CREATED** — see below | $499/mo | All 76 tools, autopilot |
+| Sovereign | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | No self-serve checkout — Contact Sales | Custom | All 76 tools + air-gap/offline licensing + HSM, autopilot |
+
+**Open action item**: the old `STRIPE_PRICE_MCP_SOVEREIGN` ($2,999/mo, `price_1TrDa4DqGyad2D3V7QqGxnjK`)
+was a flat self-serve price for what's now the Sovereign tier — Sovereign is now custom/contact-sales,
+so this price should be archived (not deleted — existing subscribers may still reference it) rather
+than reused. Two **new** Stripe Price objects need to be created for Pro ($19/mo) and Enterprise
+($499/mo) under `prod_UqvQtvapGfRbcP`, then wired into `pkg/apiserver/stripe_billing.go`'s
+`PriceMapping` under namespaced keys (e.g. `mcp_pro`, `mcp_enterprise`) — **not** the bare
+`pro`/`enterprise` keys, since `enterprise` is already taken by the SouHimBou AI product's own
+$499/mo tier (`price_1TiVvyDqGyad2D3V4mszc5v5`, different Stripe product) and reusing it would
+route MCP checkouts to the wrong product/price.
+
 ### MCP Tools Registered
 | Tool | Tier Required | Handler |
 |------|-------------|---------|
 | `ert_scan` | Community | `pkg/mcp/tools/ert_scan_tool.go` |
 | `stig_check` | Community | `pkg/mcp/tools/pqc_stig_tool.go` |
 | `nist_map` | Community | `pkg/mcp/tools/nist_map_tool.go` |
-| `cmmc_assess` | Pilot | `pkg/mcp/tools/cmmc_assess_tool.go` |
-| `godfather_report` | Pilot | `pkg/mcp/tools/godfather_tool.go` |
-| `attest_export` | Pilot | `pkg/mcp/tools/attest_export_tool.go` |
+| `cmmc_assess` | Enterprise | `pkg/mcp/tools/cmmc_assess_tool.go` |
+| `godfather_report` | Pro | `pkg/mcp/tools/godfather_tool.go` |
+| `attest_export` | Pro | `pkg/mcp/tools/attest_export_tool.go` |
 | `agent_record` | Community | `pkg/mcp/tools/agent_record_tool.go` |
-
-### License Tiers — PQC-Khepra-MCP Server (from `pkg/license/mcp_gate.go`)
-| Tier | Product | Stripe Price ID | Price | Features |
-|------|---------|----------------|-------|----------|
-| Community | — (free) | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
-| Sovereign | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | `price_1TrDa4DqGyad2D3V7QqGxnjK` | $2,999/mo | All 76 tools, QKD capsule, air-gapped |
 
 ### SouHimBou AI Tiers (souhimbou.ai — `prod_UhvNflskmq9PoV`)
 | Tier | Stripe Price ID | Price | MCP Tool Access |
