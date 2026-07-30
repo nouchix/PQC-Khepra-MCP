@@ -1,5 +1,4 @@
 "use client";
-import { useState } from 'react';
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { DashboardToggle } from '@/components/DashboardToggle';
 import { TrustScoreDashboard } from '@/components/deployment/TrustScoreDashboard';
@@ -8,11 +7,12 @@ import { CustomerConfidenceJourney } from '@/components/deployment/CustomerConfi
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useOrganizationContext } from '@/components/OrganizationProvider';
 import { useDeploymentProfiles } from '@/hooks/useDeploymentProfiles';
-import { 
-  Shield, 
-  Settings, 
-  TrendingUp, 
+import {
+  Shield,
+  Settings,
+  TrendingUp,
   Users,
   AlertTriangle,
   Loader2
@@ -21,8 +21,9 @@ import { IndustryType } from '@/types/deployment';
 
 const DeploymentManagementHome = () => {
   const { profile: _profile } = useUserProfile();
-  const [selectedOrganization] = useState('org-1'); // Mock organization ID
-  
+  const { currentOrganization } = useOrganizationContext();
+  const selectedOrganization = currentOrganization?.id || '';
+
   const {
     deploymentSettings,
     trustMetrics,
@@ -31,48 +32,8 @@ const DeploymentManagementHome = () => {
     switchDeploymentProfile
   } = useDeploymentProfiles(selectedOrganization);
 
-  // Mock remediation actions data
-  const mockRemediationActions = [
-    {
-      id: '1',
-      stigRule: 'RHEL-08-010010',
-      title: 'Configure password complexity requirements',
-      description: 'Set minimum password length and complexity requirements',
-      riskLevel: 'medium' as const,
-      estimatedImpact: 'Low - affects new password creation only',
-      systemsAffected: ['web_servers', 'application_servers'],
-      automationDecision: 'auto_execute' as const,
-      trustScoreRequired: 75,
-      reasoning: 'Low risk configuration change with high success rate',
-      timeline: '2-5 minutes'
-    },
-    {
-      id: '2',
-      stigRule: 'RHEL-08-020030',
-      title: 'Disable unused network services',
-      description: 'Disable telnet, rsh, and other legacy network services',
-      riskLevel: 'high' as const,
-      estimatedImpact: 'Medium - may affect legacy applications',
-      systemsAffected: ['core_banking', 'payment_processing'],
-      automationDecision: 'requires_approval' as const,
-      trustScoreRequired: 90,
-      reasoning: 'High risk change affecting critical banking systems',
-      timeline: '10-15 minutes'
-    },
-    {
-      id: '3',
-      stigRule: 'RHEL-08-030010',
-      title: 'Configure audit log retention',
-      description: 'Set audit log retention period to minimum 180 days',
-      riskLevel: 'low' as const,
-      estimatedImpact: 'Minimal - increases disk usage slightly',
-      systemsAffected: ['logging_systems'],
-      automationDecision: 'auto_execute' as const,
-      trustScoreRequired: 60,
-      reasoning: 'Low risk configuration with no service impact',
-      timeline: '1-2 minutes'
-    }
-  ];
+  // Awaiting real integration with remediation engine
+  const pendingActions: any[] = [];
 
   const tabs = [
     { id: 'deployment', title: 'Deployment Management', path: '/deployment', isActive: true },
@@ -205,7 +166,7 @@ const DeploymentManagementHome = () => {
               organizationId={selectedOrganization}
               deploymentProfile={deploymentSettings.activeProfile}
               currentTrustScore={trustMetrics.currentScore}
-              pendingActions={mockRemediationActions}
+              pendingActions={pendingActions}
               onApproveAction={handleApproveAction}
               onDenyAction={handleDenyAction}
               onExecuteAction={handleExecuteAction}
@@ -218,7 +179,7 @@ const DeploymentManagementHome = () => {
               industry={deploymentSettings.activeProfile.industry}
               currentTrustScore={trustMetrics.currentScore}
               successfulActions={trustMetrics.successfulActions}
-              daysInCurrentStage={30} // Mock data
+              daysInCurrentStage={0} // Awaiting real journey tracking
               onAdvanceStage={handleAdvanceStage}
               onCustomizeJourney={handleCustomizeJourney}
             />

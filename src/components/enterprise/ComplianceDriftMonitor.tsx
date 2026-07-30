@@ -37,7 +37,10 @@ interface MonitoringMetrics {
   critical_drifts: number;
   auto_remediations: number;
   average_confidence: number;
-  detection_accuracy: number;
+  // Real detection accuracy requires labeled ground-truth data (confirmed
+  // true/false positives) that this system does not yet collect. null
+  // means "not measurable yet" rather than a fabricated number.
+  detection_accuracy: number | null;
 }
 
 export const ComplianceDriftMonitor: React.FC = () => {
@@ -119,10 +122,13 @@ export const ComplianceDriftMonitor: React.FC = () => {
       drift_events_24h: recent.length,
       critical_drifts: recent.filter(e => e.severity === 'CRITICAL').length,
       auto_remediations: recent.filter(e => e.auto_remediated).length,
-      average_confidence: recent.length > 0 
-        ? recent.reduce((sum, e) => sum + e.confidence_score, 0) / recent.length 
+      average_confidence: recent.length > 0
+        ? recent.reduce((sum, e) => sum + e.confidence_score, 0) / recent.length
         : 0,
-      detection_accuracy: 0.94 // Simulated accuracy metric
+      // No ground-truth labeling pipeline exists yet to compute a real
+      // detection accuracy, so we report it as unmeasured rather than a
+      // fabricated constant.
+      detection_accuracy: null
     };
   };
 
@@ -341,8 +347,10 @@ export const ComplianceDriftMonitor: React.FC = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{(metrics.detection_accuracy * 100).toFixed(1)}%</div>
-              <Progress value={metrics.detection_accuracy * 100} className="mt-2" />
+              <div className="text-2xl font-bold">
+                {metrics.detection_accuracy != null ? `${(metrics.detection_accuracy * 100).toFixed(1)}%` : 'N/A'}
+              </div>
+              <Progress value={metrics.detection_accuracy != null ? metrics.detection_accuracy * 100 : 0} className="mt-2" />
             </CardContent>
           </Card>
         </div>

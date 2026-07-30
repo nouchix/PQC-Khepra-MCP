@@ -92,33 +92,38 @@ export const CMMCIntegrationDashboard: React.FC = () => {
   };
 
   const generateCMMCLevels = (): CMMCLevel[] => {
+    // Real per-level implementation counts and certification status require a
+    // completed CMMC assessment record. cmmc_stig_mappings does not carry an
+    // assessed percentage in a usable shape, so honest zero/not_started
+    // defaults are reported here instead of an invented score (controls_required
+    // reflects the published official CMMC control counts per level, not a
+    // fabricated metric).
     return [
       {
         level: 1,
         name: "Foundational",
         description: "Basic cyber hygiene practices to protect Federal Contract Information (FCI)",
         controls_required: 17,
-        controls_implemented: 15,
-        compliance_percentage: 88.2,
-        certification_status: 'certified',
-        expiration_date: '2025-12-31'
+        controls_implemented: 0,
+        compliance_percentage: 0,
+        certification_status: 'not_started'
       },
       {
         level: 2,
         name: "Advanced",
         description: "Intermediate cyber hygiene practices for Controlled Unclassified Information (CUI)",
         controls_required: 110,
-        controls_implemented: 89,
-        compliance_percentage: 80.9,
-        certification_status: 'in_progress'
+        controls_implemented: 0,
+        compliance_percentage: 0,
+        certification_status: 'not_started'
       },
       {
         level: 3,
         name: "Expert",
         description: "Advanced and progressive cybersecurity practices",
         controls_required: 130,
-        controls_implemented: 45,
-        compliance_percentage: 34.6,
+        controls_implemented: 0,
+        compliance_percentage: 0,
         certification_status: 'not_started'
       }
     ];
@@ -149,13 +154,16 @@ export const CMMCIntegrationDashboard: React.FC = () => {
   };
 
   const generateDODRequirements = (): DODRequirement[] => {
+    // Real compliance_status requires a recorded assessment; these are legitimate
+    // requirements to track, but their status defaults to 'pending' for all of
+    // them since none can be verified from code.
     return [
       {
         id: 'dod-1',
         requirement_type: 'contract',
         title: 'DFARS 252.204-7012 Compliance',
         description: 'Safeguarding of Covered Defense Information and Cyber Incident Reporting',
-        compliance_status: 'compliant',
+        compliance_status: 'pending',
         due_date: '2025-03-15',
         priority: 'high'
       },
@@ -173,7 +181,7 @@ export const CMMCIntegrationDashboard: React.FC = () => {
         requirement_type: 'policy',
         title: 'NIST SP 800-171 Implementation',
         description: 'Implementation of NIST Special Publication 800-171 security requirements',
-        compliance_status: 'non_compliant',
+        compliance_status: 'pending',
         due_date: '2025-04-15',
         priority: 'high'
       }
@@ -181,25 +189,15 @@ export const CMMCIntegrationDashboard: React.FC = () => {
   };
 
   const runCMMCAssessment = async () => {
+    // There is no real CMMC assessment mechanism wired up yet — this used to
+    // be a setTimeout fake delay followed by a fake "success" toast, which
+    // fabricated a result. Report an honest failure instead of pretending an
+    // assessment ran, and do not refresh data since nothing actually changed.
     try {
       setAssessmentRunning(true);
-
-      // Simulate CMMC assessment
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
       toast({
-        title: "CMMC Assessment Complete",
-        description: "Assessment completed successfully. Updated compliance scores are now available."
-      });
-
-      // Refresh data
-      fetchCMMCData();
-
-    } catch (error) {
-      console.error('Error running CMMC assessment:', error);
-      toast({
-        title: "Assessment Failed",
-        description: "Failed to complete CMMC assessment",
+        title: "Assessment Not Available",
+        description: "CMMC assessment execution is not yet implemented — this button does not run a real assessment.",
         variant: "destructive"
       });
     } finally {
@@ -208,9 +206,12 @@ export const CMMCIntegrationDashboard: React.FC = () => {
   };
 
   const generateCMMCReport = () => {
+    // No real report-generation pipeline is wired up yet — this used to claim
+    // a report was generated and ready for download without producing one.
     toast({
-      title: "Report Generated",
-      description: "CMMC compliance report has been generated and is ready for download"
+      title: "Report Generation Not Available",
+      description: "CMMC report generation is not yet implemented — no report has been produced.",
+      variant: "destructive"
     });
   };
 
