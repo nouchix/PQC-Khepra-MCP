@@ -145,7 +145,9 @@ const ZeroTrustRiskAssessment = () => {
 
     setAssessing(true);
     try {
-      // Simulate comprehensive risk assessment across all categories
+      // Run a comprehensive risk assessment across all categories — each
+      // generateRiskAssessment() call below queries real security telemetry
+      // (discovered_assets, security_events) and persists the result.
       const assessmentTypes = ['user', 'device', 'network', 'application', 'data'] as const;
       
       for (const type of assessmentTypes) {

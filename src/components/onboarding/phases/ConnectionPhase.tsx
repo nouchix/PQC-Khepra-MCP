@@ -17,22 +17,13 @@ export function ConnectionPhase({ discoveryResults, onComplete }: ConnectionPhas
   const provider = discoveryResults.cloud.provider;
   const isKnownProvider = ['aws', 'azure', 'gcp'].includes(provider);
 
-  const handleOneClickConnect = async () => {
-    setConnecting(true);
-    
-    // Simulate connection process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setConnected(true);
-    setConnecting(false);
-    
-    setTimeout(() => {
-      onComplete({
-        provider,
-        region: discoveryResults.cloud.region,
-        connectedAt: new Date().toISOString(),
-      });
-    }, 1000);
+  const handleOneClickConnect = () => {
+    // No one-click cloud connection backend exists yet — real cloud
+    // connections require a role ARN / CloudFormation stack (see
+    // AWSConnector.tsx). This used to fake a 2-second delay and then report
+    // a successful connection. Route to manual configuration instead of
+    // fabricating a connected state.
+    onComplete({ provider, manual: true });
   };
 
   if (connected) {

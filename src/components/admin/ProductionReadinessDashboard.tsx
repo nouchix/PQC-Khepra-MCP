@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Network, Key } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SecurityFinding {
   id: string;
@@ -42,24 +42,12 @@ export const ProductionReadinessDashboard = () => {
 
   const fetchSecurityFindings = async () => {
     try {
-      // Mock security findings based on the scan results
-      const findings: SecurityFinding[] = [
-        {
-          id: '1',
-          level: 'warn',
-          name: 'Function Search Path Mutable',
-          description: 'Some database functions have mutable search paths which could be a security risk',
-          category: 'Database Security'
-        },
-        {
-          id: '2',
-          level: 'warn',
-          name: 'Leaked Password Protection Disabled',
-          description: 'Password leak protection is currently disabled in auth configuration',
-          category: 'Authentication Security'
-        }
-      ];
-      setSecurityFindings(findings);
+      // No real security findings/scan table is wired up yet (checked
+      // types.ts for security_findings/security_scan/vulnerability tables —
+      // none exist that map to this shape). Rather than fabricate findings,
+      // this dashboard reports an honest empty state until a real scanning
+      // mechanism is implemented and its results are persisted.
+      setSecurityFindings([]);
     } catch (error) {
       console.error('Error fetching security findings:', error);
     }
@@ -98,8 +86,16 @@ export const ProductionReadinessDashboard = () => {
   const calculateOverallScore = () => {
     const securityScore = securityFindings.filter(f => f.level !== 'error').length / Math.max(securityFindings.length, 1) * 100;
     const complianceScore = complianceResults.filter(r => r.status === 'PASSED').length / Math.max(complianceResults.length, 1) * 100;
-    const performanceScore = performanceMetrics.length > 0 ? 85 : 0; // Mock performance score
-    
+    // Derived from real recorded performance_metrics rows (average of the
+    // numeric `value` field). 0 when there is no recorded data — never a
+    // fabricated constant.
+    const numericValues = performanceMetrics
+      .map((m) => m.value)
+      .filter((v): v is number => typeof v === 'number');
+    const performanceScore = numericValues.length > 0
+      ? Math.min(100, Math.max(0, numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length))
+      : 0;
+
     const overall = (securityScore + complianceScore + performanceScore) / 3;
     setOverallScore(Math.round(overall));
   };
@@ -136,6 +132,36 @@ export const ProductionReadinessDashboard = () => {
     if (score >= 90) return 'Production Ready';
     if (score >= 70) return 'Needs Attention';
     return 'Critical Issues';
+  };
+
+  // Real aggregation of compliance_validation_results by framework_type —
+  // mirrors the logic in ComplianceValidationDashboard.tsx. Never fabricated.
+  const complianceByFramework = (() => {
+    const byFramework = new Map<string, ComplianceResult[]>();
+    for (const r of complianceResults) {
+      const key = r.framework_type || 'Unknown';
+      if (!byFramework.has(key)) byFramework.set(key, []);
+      byFramework.get(key)!.push(r);
+    }
+    return Array.from(byFramework.entries()).map(([name, results]) => {
+      const passed = results.filter((r) => r.status === 'PASSED').length;
+      const total = results.length;
+      const pct = total > 0 ? Math.round((passed / total) * 1000) / 10 : 0;
+      return { name, pct, total, passed };
+    });
+  })();
+
+  // Real derivation from recorded performance_metrics rows. Falls back to an
+  // honest "No data" placeholder rather than a fabricated number when no
+  // matching metric has been recorded.
+  const getMetricDisplay = (nameFragment: string, unit: string) => {
+    const match = performanceMetrics.find(
+      (m) => typeof m.metric_name === 'string' && m.metric_name.toLowerCase().includes(nameFragment)
+    );
+    if (match && typeof match.value === 'number') {
+      return `${match.value}${unit}`;
+    }
+    return 'No data';
   };
 
   return (
@@ -259,8 +285,12 @@ export const ProductionReadinessDashboard = () => {
                 
                 {securityFindings.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                    <p>No security issues detected. All systems secure!</p>
+                    <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+                    <p>No live security scan has been run yet.</p>
+                    <p className="text-xs mt-2">
+                      Security findings integration is not yet implemented for this dashboard —
+                      this is not a clean scan result.
+                    </p>
                   </div>
                 )}
               </div>
@@ -278,39 +308,39 @@ export const ProductionReadinessDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Asset Discovery</span>
-                    <Badge variant="default">Optimal</Badge>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold">~2.3s</span>
-                    <span className="text-sm text-muted-foreground ml-2">avg response</span>
-                  </div>
-                </div>
-                
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Database Queries</span>
-                    <Badge variant="default">Good</Badge>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold">~45ms</span>
-                    <span className="text-sm text-muted-foreground ml-2">avg query time</span>
-                  </div>
-                </div>
-                
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Real-time Updates</span>
-                    <Badge variant="default">Excellent</Badge>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold">~12ms</span>
-                    <span className="text-sm text-muted-foreground ml-2">websocket latency</span>
-                  </div>
-                </div>
+                {[
+                  { label: 'Asset Discovery', fragment: 'discovery', unit: 's', caption: 'avg response' },
+                  { label: 'Database Queries', fragment: 'quer', unit: 'ms', caption: 'avg query time' },
+                  { label: 'Real-time Updates', fragment: 'realtime', unit: 'ms', caption: 'websocket latency' }
+                ].map((item) => {
+                  const display = getMetricDisplay(item.fragment, item.unit);
+                  const hasData = display !== 'No data';
+                  return (
+                    <div key={item.label} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{item.label}</span>
+                        <Badge variant={hasData ? 'default' : 'outline'}>
+                          {hasData ? 'Measured' : 'No data'}
+                        </Badge>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-2xl font-bold">{display}</span>
+                        {hasData && (
+                          <span className="text-sm text-muted-foreground ml-2">{item.caption}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+              {performanceMetrics.length === 0 && (
+                <Alert className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    No performance metrics have been recorded yet in performance_metrics.
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -325,31 +355,30 @@ export const ProductionReadinessDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">CMMC Level 2</span>
-                      <Badge variant="default">98% Complete</Badge>
-                    </div>
-                    <Progress value={98} className="mt-2" />
+                {complianceByFramework.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {complianceByFramework.map((framework) => (
+                      <div key={framework.name} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{framework.name}</span>
+                          <Badge variant="default">{framework.pct}% Complete</Badge>
+                        </div>
+                        <Progress value={framework.pct} className="mt-2" />
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {framework.passed}/{framework.total} controls passed
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">NIST 800-53</span>
-                      <Badge variant="default">95% Complete</Badge>
-                    </div>
-                    <Progress value={95} className="mt-2" />
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">DoD SRG</span>
-                      <Badge variant="default">92% Complete</Badge>
-                    </div>
-                    <Progress value={92} className="mt-2" />
-                  </div>
-                </div>
+                ) : (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      No compliance validation results have been recorded yet in
+                      compliance_validation_results.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -364,31 +393,31 @@ export const ProductionReadinessDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <Alert className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  None of these integrations are wired up to a live connection check yet.
+                  Status shown below is honest — connecting the real integration is required
+                  before this can report anything other than "Not Configured".
+                </AlertDescription>
+              </Alert>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { name: 'CrowdStrike EDR', status: 'Connected', health: 'good' },
-                  { name: 'Wiz Cloud Security', status: 'Connected', health: 'good' },
-                  { name: 'Splunk SIEM', status: 'Connected', health: 'excellent' },
-                  { name: 'Zscaler Zero Trust', status: 'Connected', health: 'good' },
-                  { name: 'NVIDIA Morpheus', status: 'Connected', health: 'excellent' },
-                  { name: 'KHEPRA Protocol', status: 'Active', health: 'excellent' }
-                ].map((integration) => (
-                  <div key={integration.name} className="p-4 border rounded-lg">
+                  'CrowdStrike EDR',
+                  'Wiz Cloud Security',
+                  'Splunk SIEM',
+                  'Zscaler Zero Trust',
+                  'NVIDIA Morpheus',
+                  'KHEPRA Protocol'
+                ].map((name) => (
+                  <div key={name} className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{integration.name}</span>
-                      <Badge variant={integration.status === 'Connected' || integration.status === 'Active' ? 'default' : 'destructive'}>
-                        {integration.status}
-                      </Badge>
+                      <span className="text-sm font-medium">{name}</span>
+                      <Badge variant="outline">Not Configured</Badge>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        integration.health === 'excellent' ? 'bg-green-500' :
-                        integration.health === 'good' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`} />
-                      <span className="text-xs text-muted-foreground capitalize">
-                        {integration.health} health
-                      </span>
-                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Real connection status requires this integration to be wired up.
+                    </span>
                   </div>
                 ))}
               </div>

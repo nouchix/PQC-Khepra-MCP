@@ -21,10 +21,9 @@ import {
   Network,
   Globe
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-
 import { useOrganization } from '@/hooks/useOrganization';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface AIAgent {
   id: string;
@@ -49,6 +48,7 @@ interface DeploymentTarget {
 
 export const AIAgentDeployment = () => {
   const { currentOrganization } = useOrganization();
+  const { toast } = useToast();
   const [agents, setAgents] = useState<AIAgent[]>([]);
   const [deploymentTargets, setDeploymentTargets] = useState<DeploymentTarget[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
@@ -67,65 +67,31 @@ export const AIAgentDeployment = () => {
   }, [currentOrganization?.organization_id]);
 
   const initializeAgentSystem = async () => {
-    // Initialize with sample deployed agents
-    const initialAgents: AIAgent[] = [
-      {
-        id: 'cmmc-compliance-agent',
-        name: 'CMMC Compliance Automator',
-        type: 'compliance',
-        status: 'active',
-        environment: 'production',
-        deployedAt: new Date(Date.now() - 3600000),
-        tasksCompleted: 247,
-        tasksActive: 8,
-        coverage: 85,
-        capabilities: ['CMMC Level 2 Controls', 'Audit Documentation', 'Gap Analysis', 'Policy Implementation']
-      },
-      {
-        id: 'security-scanner-agent',
-        name: 'Autonomous Security Scanner',
-        type: 'security',
-        status: 'active',
-        environment: 'network',
-        deployedAt: new Date(Date.now() - 7200000),
-        tasksCompleted: 156,
-        tasksActive: 12,
-        coverage: 92,
-        capabilities: ['Vulnerability Detection', 'Threat Hunting', 'IOC Analysis', 'Risk Assessment']
-      },
-      {
-        id: 'remediation-agent',
-        name: 'Smart Remediation Bot',
-        type: 'remediation',
-        status: 'active',
-        environment: 'infrastructure',
-        deployedAt: new Date(Date.now() - 1800000),
-        tasksCompleted: 89,
-        tasksActive: 3,
-        coverage: 78,
-        capabilities: ['Auto Patching', 'Config Hardening', 'Access Control', 'Incident Response']
-      }
-    ];
-
-    setAgents(initialAgents);
+    // No real AI agent deployment backend exists yet, so there are no agents
+    // actually running. This used to seed the dashboard with three fabricated
+    // "active" agents (fake task counts, coverage percentages, and deploy
+    // timestamps) to look pre-populated. Report the honest empty state.
+    setAgents([]);
   };
 
   const discoverDeploymentTargets = async () => {
-    // Discover available deployment environments
+    // Catalog of environments a user could target, honestly reporting that
+    // no agents are currently deployed to any of them (no real deployment
+    // backend exists to have deployed agents in the first place).
     const targets: DeploymentTarget[] = [
       {
         id: 'local-environment',
         name: 'Local Environment',
         type: 'endpoint',
         status: 'available',
-        agents: 2
+        agents: 0
       },
       {
         id: 'corporate-network',
         name: 'Corporate Network',
         type: 'network',
-        status: 'deployed',
-        agents: 5
+        status: 'available',
+        agents: 0
       },
       {
         id: 'aws-infrastructure',
@@ -139,7 +105,7 @@ export const AIAgentDeployment = () => {
         name: 'On-Premise Servers',
         type: 'server',
         status: 'available',
-        agents: 1
+        agents: 0
       }
     ];
 
@@ -149,79 +115,21 @@ export const AIAgentDeployment = () => {
   const deployAIAgent = async (targetId: string, agentType: string) => {
     if (!currentOrganization?.organization_id) return;
 
-    setIsDeploying(true);
-    setDeploymentProgress(0);
+    // No real AI agent deployment backend is wired up yet. This used to run
+    // a fake multi-step console log animation and then add a fabricated
+    // "active" agent to local state as if real infrastructure had been
+    // provisioned. Report the honest state instead: nothing was deployed.
     setShowDeploymentLog(true);
-
-    const logMessages = [
-      '[Deploy] Initializing AI agent deployment...',
-      '[Auth] Validating deployment credentials...',
-      '[Scan] Analyzing target environment security...',
-      '[Config] Applying KHEPRA protocol configurations...',
-      '[Install] Installing autonomous agent modules...',
-      '[Test] Performing initial capability tests...',
-      '[Connect] Establishing secure communication channels...',
-      '[Activate] Agent deployment successful - beginning operations...'
-    ];
-
-    // Simulate deployment process
-    for (let i = 0; i < logMessages.length; i++) {
-      setDeploymentLog(prev => [...prev, logMessages[i]]);
-      setDeploymentProgress((i + 1) / logMessages.length * 100);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-
-    // Create new agent
-    const newAgent: AIAgent = {
-      id: `agent-${Date.now()}`,
-      name: `${agentType} Agent`,
-      type: agentType as AIAgent['type'],
-      status: 'active',
-      environment: targetId,
-      deployedAt: new Date(),
-      tasksCompleted: 0,
-      tasksActive: 1,
-      coverage: 0,
-      capabilities: getAgentCapabilities(agentType)
-    };
-
-    setAgents(prev => [...prev, newAgent]);
-
-    // Update target status
-    setDeploymentTargets(prev =>
-      prev.map(target =>
-        target.id === targetId
-          ? { ...target, status: 'deployed', agents: target.agents + 1 }
-          : target
-      )
-    );
-
     setDeploymentLog(prev => [
       ...prev,
-      '[Success] AI Agent deployed and operational',
-      '[Monitoring] Beginning autonomous operations...'
+      '[Error] AI agent deployment is not yet implemented.',
+      '[Error] No agent was installed and no infrastructure changes were made.'
     ]);
-
-    // Trigger Grok AI for intelligent deployment
-    try {
-      await supabase.functions.invoke('grok-ai-agent', {
-        body: {
-          message: `New AI agent deployed: ${agentType} to ${targetId}. Begin autonomous CMMC compliance operations.`,
-          organizationId: currentOrganization.organization_id,
-          context: {
-            source: 'agent_deployment',
-            action: 'new_deployment',
-            agentType,
-            targetEnvironment: targetId
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Grok AI integration error:', error);
-    }
-
-    setIsDeploying(false);
-    setTimeout(() => setShowDeploymentLog(false), 3000);
+    toast({
+      title: "Deployment Not Available",
+      description: "AI agent deployment is not yet implemented — no agent was installed.",
+      variant: "destructive"
+    });
   };
 
   const getAgentCapabilities = (agentType: string): string[] => {

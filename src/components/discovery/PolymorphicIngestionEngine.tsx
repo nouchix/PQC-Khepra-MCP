@@ -50,7 +50,8 @@ export const PolymorphicIngestionEngine: React.FC<PolymorphicIngestionEngineProp
     const [isProcessing, setIsProcessing] = useState(false);
     const [, setTransformedData] = useState<any>(null);
 
-    // Mock transformation preview
+    // Live preview computed deterministically from the actual JSON the user
+    // typed into the textarea below — not fabricated data.
     const transformationPreview = useMemo(() => {
         try {
             const data = JSON.parse(rawPayload);
