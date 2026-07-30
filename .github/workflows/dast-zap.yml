@@ -41,7 +41,7 @@ jobs:
           fi
 
       - name: OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ steps.target.outputs.url }}
           rules_file_name: ".github/zap-rules.tsv"

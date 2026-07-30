@@ -30,61 +30,20 @@ export const AWSDeploymentStatus = () => {
 
   useEffect(() => {
     const checkDeploymentStatus = () => {
-      // Simulate AWS service checks
-      const mockDeploymentInfo: DeploymentInfo = {
-        region: 'us-east-1',
-        environment: 'production',
-        version: '2.1.0',
-        lastDeployed: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        services: [
-          {
-            name: 'Application Load Balancer',
-            status: 'healthy',
-            endpoint: 'https://khepra-alb-123456789.us-east-1.elb.amazonaws.com',
-            lastCheck: new Date().toISOString(),
-            responseTime: 89
-          },
-          {
-            name: 'ECS Fargate Service',
-            status: 'healthy',
-            lastCheck: new Date().toISOString(),
-            responseTime: 145
-          },
-          {
-            name: 'CodePipeline',
-            status: 'healthy',
-            lastCheck: new Date().toISOString()
-          },
-          {
-            name: 'ECR Repository',
-            status: 'healthy',
-            lastCheck: new Date().toISOString()
-          },
-          {
-            name: 'CloudWatch Logs',
-            status: 'healthy',
-            lastCheck: new Date().toISOString()
-          },
-          {
-            name: 'GitHub App Lambda',
-            status: 'healthy',
-            lastCheck: new Date().toISOString(),
-            responseTime: 234
-          },
-          {
-            name: 'VPC & Networking',
-            status: 'healthy',
-            lastCheck: new Date().toISOString()
-          },
-          {
-            name: 'Security Groups',
-            status: 'healthy',
-            lastCheck: new Date().toISOString()
-          }
-        ]
+      // No real AWS health-check backend is wired up yet (no server-side
+      // integration queries ALB/ECS/CloudWatch/etc). Rather than fabricate
+      // "healthy" status and response times for services that were never
+      // actually queried, honestly report that live monitoring isn't
+      // connected instead of claiming "All Systems Operational".
+      const notConnectedDeploymentInfo: DeploymentInfo = {
+        region: 'Not connected',
+        environment: 'unknown',
+        version: 'N/A',
+        lastDeployed: new Date(0).toISOString(),
+        services: []
       };
 
-      setDeploymentInfo(mockDeploymentInfo);
+      setDeploymentInfo(notConnectedDeploymentInfo);
       setIsLoading(false);
       setLastRefresh(new Date());
     };
@@ -153,17 +112,21 @@ export const AWSDeploymentStatus = () => {
               <div>
                 <CardTitle>AWS Deployment Status</CardTitle>
                 <div className="flex items-center space-x-2 mt-1">
-                  {healthPercentage === 100 ? (
+                  {totalServices === 0 ? (
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  ) : healthPercentage === 100 ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
                     <AlertTriangle className="h-4 w-4 text-yellow-500" />
                   )}
-                  <span className={`text-sm font-medium ${healthPercentage === 100 ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {healthPercentage === 100 ? 'All Systems Operational' : 'Some Issues Detected'}
+                  <span className={`text-sm font-medium ${totalServices === 0 ? 'text-muted-foreground' : healthPercentage === 100 ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {totalServices === 0 ? 'Live Health Monitoring Not Connected' : healthPercentage === 100 ? 'All Systems Operational' : 'Some Issues Detected'}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    • Health: {healthPercentage}%
-                  </span>
+                  {totalServices > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      • Health: {healthPercentage}%
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -228,6 +191,12 @@ export const AWSDeploymentStatus = () => {
 
           <div className="p-6">
             <TabsContent value="services" className="space-y-4 mt-0">
+              {totalServices === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Live AWS service health checks are not connected yet. This panel will show real
+                  per-service status once a backend health-check integration is wired up.
+                </div>
+              )}
               <div className="grid gap-4">
                 {deploymentInfo?.services.map((service, index) => (
                   <div key={index} className="flex items-center justify-between p-4 border border-border rounded-lg">

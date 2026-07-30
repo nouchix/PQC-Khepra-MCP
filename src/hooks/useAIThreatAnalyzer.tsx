@@ -148,9 +148,9 @@ export const useAIThreatAnalyzer = () => {
         description: "AI threat analysis engine is processing data..."
       });
 
-      // Simulate processing time for realism
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
+      // Analysis runs immediately against real queried data below — no
+      // artificial delay is added to imply heavier processing than actually
+      // occurs.
       const analysis = await generateAnalysis(request);
       
       setCurrentAnalysis(analysis);
