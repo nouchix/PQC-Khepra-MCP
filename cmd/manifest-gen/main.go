@@ -68,7 +68,7 @@ func main() {
 				"properties": map[string]any{
 					"agent_id":    map[string]any{"type": "string", "description": "Agent identifier"},
 					"symbol":      map[string]any{"type": "string", "description": "Adinkra symbol (default: Nkyinkyim)"},
-					"scopes":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"scopes":      map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Permission scopes to grant"},
 					"ttl_minutes": map[string]any{"type": "number", "description": "Credential TTL in minutes"},
 				},
 				"required": []string{"agent_id"},

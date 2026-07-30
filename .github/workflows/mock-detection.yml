@@ -3,12 +3,12 @@ name: Mock Pattern Detection
 on:
   push:
     paths:
-      - 'souhimbou_ai/SouHimBou.AI/supabase/functions/**'
+      - '**/*.go'
       - 'src/**/*.ts'
       - 'src/**/*.tsx'
   pull_request:
     paths:
-      - 'souhimbou_ai/SouHimBou.AI/supabase/functions/**'
+      - '**/*.go'
       - 'src/**/*.ts'
       - 'src/**/*.tsx'
 
@@ -21,31 +21,96 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Check for Math.random() in Supabase functions
+      - name: Check for Math.random() in TypeScript
         run: |
-          echo "🔍 Scanning Supabase functions for Math.random()..."
+          echo "🔍 Scanning TypeScript for Math.random()..."
 
-          MATCHES=$(grep -rn "Math\.random" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null || true)
+          # Plain grep would also match comments that correctly document the
+          # ABSENCE of Math.random() (e.g. "// Real telemetry only, no
+          # Math.random()") — this filters those out and only flags actual
+          # invocations in code.
+          MATCHES=$(python3 -c "
+          import subprocess
+          result = subprocess.run(
+              ['grep', '-rn', 'Math.random', 'src/', '--include=*.ts', '--include=*.tsx'],
+              capture_output=True, text=True
+          )
+          for line in result.stdout.splitlines():
+              parts = line.split(':', 2)
+              if len(parts) < 3:
+                  continue
+              content = parts[2]
+              stripped = content.strip()
+              if stripped.startswith('//') or stripped.startswith('*') or stripped.startswith('/*'):
+                  continue
+              code_part = content.split('//')[0]
+              if 'Math.random' in code_part:
+                  print(line)
+          ")
 
           if [ -n "$MATCHES" ]; then
-            echo "❌ FAIL: Found Math.random() in Supabase functions:"
+            echo "❌ FAIL: Found Math.random() in TypeScript source:"
             echo "$MATCHES"
             echo ""
             echo "📋 Math.random() should be replaced with:"
             echo "  - crypto.getRandomValues() for security-sensitive random"
             echo "  - crypto.randomUUID() for unique IDs"
-            echo "  - Database queries for real data"
+            echo "  - Database/API queries for real data"
             echo "  - Deterministic values based on input"
             exit 1
           else
-            echo "✅ PASS: No Math.random() found in Supabase functions"
+            echo "✅ PASS: No Math.random() found in TypeScript source"
           fi
 
-      - name: Check for mock data patterns
+      - name: Check for math/rand in Go
         run: |
-          echo "🔍 Scanning for mock/simulation patterns..."
+          echo "🔍 Scanning Go source for math/rand..."
 
-          # Patterns that indicate mock data
+          # Confirmed-legitimate non-security uses of math/rand, individually
+          # audited — do not add to this list without reading the actual
+          # usage. Each entry needs a one-line reason.
+          #   pkg/webui/mock_provider.go — explicit, self-labeled dev/CI mock
+          #     DAG provider (MockDAGProvider), never used in production paths.
+          #   pkg/ising/ising.go — Metropolis-Hastings simulated-annealing
+          #     optimizer; randomness is the actual algorithm, not a fabricated
+          #     result.
+          ALLOWLIST='pkg/webui/mock_provider.go|pkg/ising/ising.go'
+
+          MATCHES=$(grep -rln '"math/rand"' --include="*.go" . 2>/dev/null \
+            | grep -v '/vendor/' \
+            | grep -vE "$ALLOWLIST" || true)
+
+          if [ -n "$MATCHES" ]; then
+            echo "❌ FAIL: Found math/rand import in Go source (non-cryptographic RNG):"
+            echo "$MATCHES"
+            echo ""
+            echo "📋 Use crypto/rand for security-sensitive randomness (DNS transaction"
+            echo "   IDs, license IDs, signing material, tokens). If this is a genuinely"
+            echo "   legitimate non-security use, add it to the ALLOWLIST above with a"
+            echo "   one-line reason — do not silently widen the pattern instead."
+            exit 1
+          else
+            echo "✅ PASS: No math/rand found in Go source outside the allowlist"
+          fi
+
+      - name: Check for mock/simulation patterns (Go + TypeScript)
+        run: |
+          echo "🔍 Scanning for mock/simulation/fabrication patterns..."
+
+          # Patterns that indicate fabricated results rather than real
+          # implementation or an honestly-labeled TRL10 fix. This list is
+          # drawn directly from real fabrications found and fixed in this
+          # codebase (fake edge functions, fake dashboards, fake CLI output,
+          # a fake SCADA safety verdict, fake post-quantum key generation).
+          #
+          # "In production, this would ..." was deliberately NOT added here —
+          # auditing every current match showed it is used almost exclusively
+          # as an honest comment documenting a real, disclosed scope gap
+          # (e.g. "this would probe USB or AWS APIs"), not to fabricate a
+          # result. Flagging it produced false positives on legitimate code;
+          # if a genuinely fabricated result is later found using that phrase,
+          # fix the specific fabrication and reword its comment rather than
+          # re-adding this pattern.
           PATTERNS=(
             "// Simulate"
             "// Mock"
@@ -53,42 +118,80 @@ jobs:
             "simulateData"
             "fakeData"
             "dummyData"
+            "deterministic outcome"
+            "deterministic success"
+            "Fixed delay for consistent behavior"
           )
+
+          # Confirmed-legitimate exclusions, individually audited — do not
+          # add to this list without reading the actual file:
+          #   *_test.go, *.test.ts(x), __tests__/  — mocking in tests is
+          #     normal engineering practice, not a TRL10 violation.
+          #   cmd/licensemock/main.go — explicitly documented local-dev-only
+          #     license server replacing a real external dependency.
+          #   pkg/webui/mock_provider.go — self-labeled dev/CI mock DAG
+          #     provider, never used in production paths.
+          #   pkg/asaf/fleet/sprs.go — SimulateBoundaryCost is a real
+          #     deterministic what-if cost model, not a fabricated result.
+          #   pkg/ea/adinkra_evolution.go — SimulateAgainst is a real
+          #     deterministic cryptanalytic resistance scorer.
+          #   src/components/IntegrationHubDemo.tsx,
+          #   src/components/aws/AWSCloudTrailIntegration.tsx,
+          #   src/components/integration/CustomAPIIntegrationGuide.tsx,
+          #   src/components/performance/OrganizationScaleManager.tsx —
+          #     confirmed dead/unrouted code (not imported anywhere).
+          #   src/components/InteractiveDemoVideo.tsx — legitimate scripted
+          #     demo animation with a deterministic canned script.
+          EXCLUDE_PATHS='cmd/licensemock/main.go|pkg/webui/mock_provider.go|pkg/asaf/fleet/sprs.go|pkg/ea/adinkra_evolution.go|src/components/IntegrationHubDemo.tsx|src/components/aws/AWSCloudTrailIntegration.tsx|src/components/integration/CustomAPIIntegrationGuide.tsx|src/components/performance/OrganizationScaleManager.tsx|src/components/InteractiveDemoVideo.tsx'
 
           FOUND_ISSUES=false
 
           for pattern in "${PATTERNS[@]}"; do
-            MATCHES=$(grep -rn "$pattern" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null || true)
+            MATCHES=$(grep -rln "$pattern" --include="*.go" --include="*.ts" --include="*.tsx" . 2>/dev/null \
+              | grep -v '/vendor/' \
+              | grep -vE '(_test\.go|\.test\.tsx?|__tests__/)' \
+              | grep -vE "$EXCLUDE_PATHS" || true)
             if [ -n "$MATCHES" ]; then
-              echo "⚠️  WARNING: Found pattern '$pattern':"
+              echo "❌ FAIL: Found pattern '$pattern' in:"
               echo "$MATCHES"
               echo ""
+              FOUND_ISSUES=true
             fi
           done
 
-          echo "✅ Mock pattern scan complete"
+          if [ "$FOUND_ISSUES" = true ]; then
+            echo "One or more fabrication patterns were found. If this is a false"
+            echo "positive (e.g. a comment describing a real, honest failure state,"
+            echo "or a confirmed-legitimate dev/test utility), either reword the"
+            echo "comment or add the specific file to the EXCLUDE_PATHS allowlist"
+            echo "above with a one-line justification — do not widen a pattern or"
+            echo "exclude a whole directory to make this pass."
+            exit 1
+          fi
+
+          echo "✅ PASS: No mock/simulation patterns found outside the allowlist"
 
       - name: Check for hardcoded secrets
         run: |
           echo "🔍 Scanning for potential hardcoded secrets..."
 
-          # Check for common secret patterns (excluding test files)
           SECRETS_FOUND=false
 
           # API keys (excluding placeholders and env vars)
-          if grep -rn "apiKey\s*[:=]\s*['\"][a-zA-Z0-9_-]{20,}['\"]" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null | grep -v "env.get" | grep -v "process.env"; then
-            echo "❌ Potential hardcoded API key found"
+          if grep -rn "apiKey\s*[:=]\s*['\"][a-zA-Z0-9_-]{20,}['\"]" --include="*.go" --include="*.ts" --include="*.tsx" . 2>/dev/null | grep -v '/vendor/' | grep -v "env.get" | grep -v "process.env" | grep -v "os.Getenv"; then
+            echo "❌ FAIL: Potential hardcoded API key found"
             SECRETS_FOUND=true
           fi
 
           # Bearer tokens
-          if grep -rn "Bearer [a-zA-Z0-9_.-]{20,}" souhimbou_ai/SouHimBou.AI/supabase/functions/ --include="*.ts" 2>/dev/null | grep -v "Authorization.*Bearer.*\$"; then
-            echo "❌ Potential hardcoded Bearer token found"
+          if grep -rn "Bearer [a-zA-Z0-9_.-]{20,}" --include="*.go" --include="*.ts" --include="*.tsx" . 2>/dev/null | grep -v '/vendor/' | grep -v "Authorization.*Bearer.*\$"; then
+            echo "❌ FAIL: Potential hardcoded Bearer token found"
             SECRETS_FOUND=true
           fi
 
           if [ "$SECRETS_FOUND" = true ]; then
-            echo "⚠️  Review the above for potential secrets"
+            echo "Review the above and remove any real secrets before merging."
+            exit 1
           else
             echo "✅ PASS: No obvious hardcoded secrets detected"
           fi
@@ -102,8 +205,11 @@ jobs:
           echo "═══════════════════════════════════════════════════"
           echo ""
           echo "This workflow ensures TRL 10 readiness by detecting:"
-          echo "  • Math.random() mock patterns"
-          echo "  • Simulation/mock comments"
+          echo "  • Math.random() / math/rand mock patterns"
+          echo "  • Simulation/mock comments and fabricated-success markers"
           echo "  • Hardcoded secrets"
           echo ""
-          echo "All Supabase Edge Functions should use real data sources."
+          echo "Scans the full Go source tree and TypeScript frontend — all"
+          echo "findings above fail the build; there are no warn-only checks."
+          echo "Exclusions are an explicit, justified allowlist in this file,"
+          echo "never a directory-wide skip."

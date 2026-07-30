@@ -208,60 +208,46 @@ export class TrustedAgentRegistry {
 
   /**
    * Generate post-quantum key pair with cultural enhancement
+   *
+   * SECURITY NOTE: This browser-side client previously generated `crypto.getRandomValues`
+   * noise and labeled it as a real 'kyber1024'/'dilithium5' key pair (`PostQuantumKeyPair`),
+   * even though no actual ML-KEM/ML-DSA key-generation algorithm was ever run. That output
+   * was indistinguishable from a genuine PQC key pair to any caller, which is a serious
+   * misrepresentation for a security feature advertised in the UI as "post-quantum security".
+   * Real post-quantum key generation exists server-side (see pkg/adinkra/khepra_pqc.go,
+   * pkg/license/pqc_signing.go) but is not yet exposed to this browser client. Until that
+   * integration exists, this throws instead of fabricating key material, so callers cannot
+   * mistake random bytes for real cryptography.
    */
   static async generatePostQuantumKeys(
     algorithm: PostQuantumKeyPair['algorithm'],
-    culturalContext: string
+    _culturalContext: string
   ): Promise<PostQuantumKeyPair> {
-    // Simulate post-quantum key generation (would use actual PQ crypto in production)
-    const keySize = algorithm === 'kyber1024' ? 1568 : 2420; // Kyber1024 vs Dilithium5
-    
-    const publicKey = new Uint8Array(keySize);
-    const privateKey = new Uint8Array(keySize * 2);
-    
-    // Fill with cryptographically secure random data
-    crypto.getRandomValues(publicKey);
-    crypto.getRandomValues(privateKey);
-
-    // Generate cultural salt using Adinkra transformation
-    const culturalSalt = AdinkraAlgebraicEngine.generateFingerprint(
-      `${culturalContext}:${Date.now()}:${algorithm}`,
-      ['Nkyinkyim', 'Fawohodie']
+    throw new Error(
+      `Post-quantum key generation (${algorithm}) is not implemented in this browser client. ` +
+      'Real ML-KEM/ML-DSA key generation must come from the Khepra backend crypto service; ' +
+      'this client no longer fabricates random bytes mislabeled as real PQC keys.'
     );
-
-    return {
-      publicKey,
-      privateKey,
-      algorithm,
-      culturalSalt
-    };
   }
 
   /**
    * Perform post-quantum key exchange with cultural verification
+   *
+   * SECURITY NOTE: This previously returned `crypto.getRandomValues` noise XORed with a
+   * cultural fingerprint and called it a Kyber-derived shared secret, without performing any
+   * real KEM encapsulation/decapsulation. See the note on `generatePostQuantumKeys` above —
+   * the same fix applies here: fail loudly instead of returning fake key material.
    */
   static async performKeyExchange(
-    initiatorKeys: PostQuantumKeyPair,
-    responderPublicKey: Uint8Array,
-    culturalContext: string
+    _initiatorKeys: PostQuantumKeyPair,
+    _responderPublicKey: Uint8Array,
+    _culturalContext: string
   ): Promise<Uint8Array> {
-    // Simulate Kyber encapsulation/decapsulation
-    const sharedSecret = new Uint8Array(32);
-    crypto.getRandomValues(sharedSecret);
-
-    // Enhance with cultural derivation
-    const culturalEnhancement = AdinkraAlgebraicEngine.generateFingerprint(
-      `${culturalContext}:${initiatorKeys.culturalSalt}`,
-      ['Eban', 'Adwo']
+    throw new Error(
+      'Post-quantum key exchange (Kyber encapsulation/decapsulation) is not implemented in ' +
+      'this browser client. This client no longer fabricates a random "shared secret" in place ' +
+      'of real KEM output.'
     );
-
-    // XOR the shared secret with cultural enhancement (simplified)
-    const enhancementBytes = new TextEncoder().encode(culturalEnhancement);
-    for (let i = 0; i < sharedSecret.length; i++) {
-      sharedSecret[i] ^= enhancementBytes[i % enhancementBytes.length];
-    }
-
-    return sharedSecret;
   }
 
   /**

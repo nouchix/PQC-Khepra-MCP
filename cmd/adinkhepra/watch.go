@@ -16,7 +16,7 @@ import (
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/g0dm0d3"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/intelligence"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 )
 
@@ -50,7 +50,7 @@ func watchCmd(args []string) {
 	wrapper := asaf.NewASAFWrapper(dagStore, logger)
 	recorder := asaf.NewRecorder(wrapper)
 
-	brain := g0dm0d3.NewServer(dagStore)
+	brain := intelligence.NewServer(dagStore)
 	fmt.Printf("  ðŸ§  G0DM0D3 AI: %s\n", brain.Provider.Name())
 
 	defaultAgent, err := wrapper.WrapMCPAgent("default-watch", "mcp-interceptor")
@@ -126,7 +126,7 @@ func printWatchEndpoints(port int) {
 	fmt.Printf("     http://localhost:%d/                  â€” NLP Dashboard (browser)\n", port)
 	fmt.Printf("     http://localhost:%d/api/asaf/stream   â€” Live SSE feed\n", port)
 	fmt.Printf("     http://localhost:%d/api/asaf/sessions â€” Active sessions\n", port)
-	fmt.Printf("     http://localhost:%d/api/g0dm0d3/chat  â€” AI chat\n", port)
+	fmt.Printf("     http://localhost:%d/api/intelligence/chat  â€” AI chat\n", port)
 	fmt.Printf("     http://localhost:%d/api/dag/nodes     â€” DAG nodes\n", port)
 	fmt.Printf("     http://localhost:%d/api/dag/stream    â€” DAG SSE (real-time)\n", port)
 	fmt.Printf("     http://localhost:%d/healthz           â€” Health check\n", port)
@@ -140,7 +140,7 @@ func printWatchEndpoints(port int) {
 func registerWatchRoutes(
 	mux *http.ServeMux,
 	recorder *asaf.Recorder,
-	brain *g0dm0d3.G0DM0D3Server,
+	brain *intelligence.G0DM0D3Server,
 	dagStore *dag.PersistentMemory,
 	wrapper *asaf.ASAFWrapper,
 	defaultAgent *asaf.WrappedAgent,
@@ -192,8 +192,8 @@ func registerWatchRoutes(
 	mux.HandleFunc("/api/asaf/record", buildRecordHandler(wrapper, recorder, defaultAgent))
 
 	// â”€â”€ G0DM0D3 AI endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-	mux.HandleFunc("/api/g0dm0d3/chat", brain.HandleChat)
-	mux.HandleFunc("/api/g0dm0d3/status", brain.HandleStatus)
+	mux.HandleFunc("/api/intelligence/chat", brain.HandleChat)
+	mux.HandleFunc("/api/intelligence/status", brain.HandleStatus)
 
 	// â”€â”€ DAG endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	mux.HandleFunc("/api/dag/nodes", buildDAGNodesHandler(dagStore))
