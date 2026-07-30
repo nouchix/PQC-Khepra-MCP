@@ -1,0 +1,11 @@
+{
+  "id": "THTENMATEGUEOALEPPRHATLURAYAMOLNIPKGSGTHIAUUKNAGLTTKEOEMPPYTAONT",
+  "parents": null,
+  "action": "seshat-inscription",
+  "symbol": "maat-decision",
+  "time": "2026-07-06T19:25:03-04:00",
+  "pqc_metadata": {
+    "data": "map[action:banish autonomous:true isfet_id:CVE-2021-23337 kasa_wisdom:KASA unavailable realm:duat severity:SEVERE]"
+  },
+  "hash": "THTENMATEGUEOALEPPRHATLURAYAMOLNIPKGSGTHIAUUKNAGLTTKEOEMPPYTAONT"
+}

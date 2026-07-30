@@ -48,7 +48,7 @@ import (
 const (
 	defaultHeartbeatInterval = 5 * time.Minute
 	defaultProfile           = "generic"
-	reporterVersion          = "1.0.0"
+	reporterVersion          = "2.0.0"
 	keyFileName              = "reporter.key"
 )
 

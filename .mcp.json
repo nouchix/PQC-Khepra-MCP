@@ -6,7 +6,7 @@
       "args": [
         "mcpower-proxy==0.0.87",
         "--wrapped-config",
-        "{\n      \"_comment\": \"Local source build — sovereign mode. No Supabase, no outbound network beyond LAN targets.\",\n      \"command\": \"go\",\n      \"args\": [\n        \"run\",\n        \"./cmd/khepra-mcp/main.go\"\n      ],\n      \"env\": {\n        \"KHEPRA_MODE\": \"sovereign\",\n        \"KHEPRA_NETWORK_POLICY\": \"lan\",\n        \"KHEPRA_SERVICE_SECRET\": \"${KHEPRA_SERVICE_SECRET}\",\n        \"MCP_PQC_ENABLED\": \"true\"\n      }\n    }",
+        "{\n      \"_comment\": \"Pre-built binary — sovereign mode. Bypasses shell profile stdout banner that poisons JSON-RPC stream.\",\n      \"command\": \"C:\\\\Users\\\\intel\\\\blackbox\\\\PQC-Khepra-MCP\\\\bin\\\\khepra-mcp.exe\",\n      \"args\": [],\n      \"env\": {\n        \"KHEPRA_MODE\": \"sovereign\",\n        \"KHEPRA_NETWORK_POLICY\": \"lan\",\n        \"KHEPRA_SERVICE_SECRET\": \"${KHEPRA_SERVICE_SECRET}\",\n        \"MCP_PQC_ENABLED\": \"true\"\n      }\n    }",
         "--name",
         "khepra-mcp"
       ],

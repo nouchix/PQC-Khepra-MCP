@@ -239,193 +239,22 @@ export const DeploymentOrchestrator: React.FC<DeploymentOrchestratorProps> = ({
     setExecutionLogs(prev => [...prev, `[${timestamp}] ${prefix} ${message}`]);
   };
 
-  const executeTask = async (task: DeploymentTask): Promise<boolean> => {
-    addLog(`Starting: ${task.name}`);
-    
-    // Update task status
-    setDeploymentPlan(prev => prev ? {
-      ...prev,
-      tasks: prev.tasks.map(t => 
-        t.id === task.id ? { ...t, status: 'running' } : t
-      )
-    } : prev);
-
-    try {
-      // Simulate task execution with real-like behavior
-      const steps = getTaskSteps(task.id);
-      
-      for (let i = 0; i < steps.length; i++) {
-        if (isPaused) return false;
-        
-        addLog(`  ${steps[i]}`);
-        
-        // Update task progress
-        const progress = ((i + 1) / steps.length) * 100;
-        setDeploymentPlan(prev => prev ? {
-          ...prev,
-          tasks: prev.tasks.map(t => 
-            t.id === task.id ? { ...t, progress } : t
-          )
-        } : prev);
-        
-        // Simulate work time
-        await new Promise(resolve => setTimeout(resolve, (task.duration * 1000) / steps.length));
-      }
-
-      // Mark as completed
-      setDeploymentPlan(prev => prev ? {
-        ...prev,
-        tasks: prev.tasks.map(t => 
-          t.id === task.id ? { 
-            ...t, 
-            status: 'completed', 
-            progress: 100,
-            artifacts: getTaskArtifacts(task.id)
-          } : t
-        )
-      } : prev);
-
-      addLog(`✓ Completed: ${task.name}`, 'success');
-      addLog(`  Cultural symbol ${task.cultural_symbol} activated`, 'info');
-      
-      return true;
-    } catch (error) {
-      // Mark as failed
-      setDeploymentPlan(prev => prev ? {
-        ...prev,
-        tasks: prev.tasks.map(t => 
-          t.id === task.id ? { 
-            ...t, 
-            status: 'failed',
-            error_message: error instanceof Error ? error.message : 'Unknown error'
-          } : t
-        )
-      } : prev);
-
-      addLog(`✗ Failed: ${task.name} - ${error}`, 'error');
-      return false;
-    }
-  };
-
-  const getTaskSteps = (taskId: string): string[] => {
-    switch (taskId) {
-      case 'pre_flight':
-        return [
-          'Checking system requirements...',
-          'Validating network connectivity...',
-          'Verifying permissions...',
-          'Scanning for conflicts...'
-        ];
-      case 'agent_registry_init':
-        return [
-          'Generating DID certificates...',
-          'Setting up trust scoring...',
-          'Initializing agent validation...',
-          'Configuring registry endpoints...'
-        ];
-      case 'crypto_layer':
-        return [
-          'Deploying lattice structures...',
-          'Generating Adinkra keys...',
-          'Setting up quantum-safe exchange...',
-          'Validating cryptographic integrity...'
-        ];
-      case 'dag_network':
-        return [
-          'Initializing DAG topology...',
-          'Setting up consensus nodes...',
-          'Configuring validation protocols...',
-          'Testing anti-action traceability...'
-        ];
-      case 'asset_deployment':
-        return [
-          'Analyzing asset configurations...',
-          'Deploying protection agents...',
-          'Configuring security policies...',
-          'Validating agent connectivity...'
-        ];
-      default:
-        return ['Processing...', 'Configuring...', 'Validating...', 'Finalizing...'];
-    }
-  };
-
-  const getTaskArtifacts = (taskId: string): string[] => {
-    switch (taskId) {
-      case 'crypto_layer':
-        return ['quantum-safe-keys.json', 'adinkra-matrices.bin', 'encryption-config.yaml'];
-      case 'agent_registry_init':
-        return ['did-certificates.json', 'trust-scores.db', 'registry-config.yaml'];
-      case 'dag_network':
-        return ['dag-topology.graph', 'consensus-config.json', 'validation-rules.yaml'];
-      default:
-        return [];
-    }
-  };
-
   const startExecution = async () => {
     if (!deploymentPlan) return;
 
-    setIsExecuting(true);
-    setIsPaused(false);
+    // No real deployment execution backend is wired up yet. This used to run
+    // a timed, task-by-task simulation (fake progress + fabricated artifact
+    // filenames) and then report "KHEPRA Protocol deployed successfully!"
+    // with a fabricated result object. Report the honest state instead:
+    // nothing was actually deployed.
     setStartTime(new Date());
-    
-    addLog('🚀 Starting KHEPRA Protocol deployment...', 'info');
-    addLog(`Deployment vector: ${deploymentPlan.vector_type}`, 'info');
-    addLog(`Assets to protect: ${selectedAssets.length}`, 'info');
-
-    const sortedTasks = topologicalSort(deploymentPlan.tasks);
-    
-    for (let i = 0; i < sortedTasks.length; i++) {
-      if (isPaused) break;
-      
-      const task = sortedTasks[i];
-      setCurrentTaskIndex(i);
-      
-      // Check dependencies
-      const dependenciesCompleted = task.dependencies.every(depId => 
-        deploymentPlan.tasks.find(t => t.id === depId)?.status === 'completed'
-      );
-      
-      if (!dependenciesCompleted) {
-        addLog(`⚠ Skipping ${task.name} - dependencies not met`, 'warning');
-        continue;
-      }
-      
-      const success = await executeTask(task);
-      
-      if (!success) {
-        addLog('💥 Deployment failed', 'error');
-        setIsExecuting(false);
-        onError?.({ 
-          task: task.id, 
-          message: task.error_message || 'Task execution failed' 
-        });
-        return;
-      }
-      
-      // Update overall progress
-      const completedTasks = deploymentPlan.tasks.filter(t => t.status === 'completed').length;
-      setOverallProgress((completedTasks / deploymentPlan.tasks.length) * 100);
-    }
-
-    if (!isPaused) {
-      addLog('🎉 KHEPRA Protocol deployment completed successfully!', 'success');
-      addLog('Your infrastructure is now protected by quantum-safe security and ancient wisdom', 'success');
-      setIsExecuting(false);
-      setOverallProgress(100);
-      
-      const result = {
-        deployment_id: deploymentPlan.id,
-        vector_type: deploymentPlan.vector_type,
-        completed_at: new Date(),
-        duration: startTime ? (Date.now() - startTime.getTime()) / 1000 : 0,
-        protected_assets: selectedAssets.length,
-        artifacts: deploymentPlan.tasks.flatMap(t => t.artifacts || [])
-      };
-      
-      onComplete?.(result);
-      toast.success('KHEPRA Protocol deployed successfully!');
-    }
+    addLog('Deployment execution is not yet implemented.', 'error');
+    addLog('No infrastructure changes were made.', 'error');
+    toast.error('Deployment execution is not available yet.');
+    onError?.({
+      task: null,
+      message: 'Deployment execution is not implemented.'
+    });
   };
 
   const topologicalSort = (tasks: DeploymentTask[]): DeploymentTask[] => {

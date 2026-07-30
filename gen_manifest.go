@@ -1,7 +1,7 @@
 
 // +build ignore
 
-// gen_manifest.go — regenerates manifest.json with all 72 registered tools.
+// gen_manifest.go — regenerates manifest.json with all 76 registered tools.
 // Run: go run gen_manifest.go
 package main
 
@@ -361,7 +361,24 @@ func main() {
 				"password":   {"type": "string", "description": "Decryption password"},
 				"target_dir": {"type": "string", "description": "Target directory for restore"},
 			}, Required: []string{"password", "target_dir"}}},
+
+		// ── Sprint 3: Agentic Layer & Governance ────────────────────────────
+		{Name: "playbook_execute", Description: "Execute a SouHimBou SOAR playbook from the agent channel. Defaults to staging environment unless 'production' is explicitly specified.", RiskClass: "destructive", Scope: "soar:execute", Tier: "enterprise", TimeoutMs: 30000, Destructive: true,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"playbook_name": {"type": "string", "description": "Name of the built-in or disk-loaded SOAR playbook (e.g. 'quarantine-agent', 'rate-limit-agent', 'evidence-capture')"},
+				"environment":   {"type": "string", "description": "Execution environment: 'staging' (default) or 'production'. Production requires explicit opt-in."},
+			}, Required: []string{"playbook_name"}}},
+		{Name: "asaf_lint", Description: "Lint an ASAF Policy Declaration Language (APDL) snippet. Validates @symbol, @framework, control block, and maps: clause presence.", RiskClass: "read_only", Scope: "compliance:lint", Tier: "pilot", TimeoutMs: 5000,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"policy_snippet": {"type": "string", "description": "The ASAF APDL policy string to lint (must include @symbol, @framework, control block, and maps: clause)"},
+			}, Required: []string{"policy_snippet"}}},
+		{Name: "compliance_model_check", Description: "Verify if an LLM model is approved for the current KHEPRA deployment tier. Enforces sovereign (no commercial LLMs), hybrid, and edge tier policies from AGENTS.md.", RiskClass: "read_only", Scope: "compliance:model", Tier: "community", TimeoutMs: 5000,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"model_name": {"type": "string", "description": "LLM identifier (e.g. 'llama3.1:8b', 'claude-sonnet-4-5', 'gpt-4o')"},
+				"tier":       {"type": "string", "description": "Deployment tier to check against: 'sovereign', 'hybrid', or 'edge' (default: 'hybrid')"},
+			}, Required: []string{"model_name"}}},
 	}
+
 
 	// Fill in computed fields
 	for i := range tools {

@@ -162,9 +162,8 @@ func primaryMACAddress() string {
 // cannot be linked across sessions via the signing key.  The signature
 // covers only the non-signature fields, matching the server's verification.
 //
-// Telemetry is suppressed in the same conditions as SendBeacon: community
-// mode requires KHEPRA_TELEMETRY=true; enterprise mode honours
-// KHEPRA_TELEMETRY=false.
+// Telemetry is suppressed in the same conditions as SendBeacon: nothing is
+// transmitted unless KHEPRA_TELEMETRY=true, in every mode.
 func SendSovereignBeacon(payload *SovereignBeaconPayload) error {
 	if err := checkTelemetryEnabled(); err != nil {
 		return err
@@ -239,19 +238,24 @@ func validateAnonymousID(id string) error {
 	return nil
 }
 
-// checkTelemetryEnabled returns an error if telemetry should be suppressed
-// based on KHEPRA_MODE and KHEPRA_TELEMETRY environment variables.
+// checkTelemetryEnabled returns an error unless telemetry has been explicitly
+// enabled with KHEPRA_TELEMETRY=true.
+//
+// This used to be opt-OUT for every mode except community: sovereign and
+// enterprise deployments beaconed to telemetry.souhimbou.ai by default and
+// only went quiet if someone set KHEPRA_TELEMETRY=false. That is exactly
+// backwards for the one deployment shape that advertises itself as air-gapped.
+// A sovereign install is the case where an unexpected outbound connection is
+// least acceptable and least likely to be noticed, and the compose profile
+// that runs this image asserts "zero external API calls" in its header.
+//
+// The rule is now uniform and fail-closed across all modes: no explicit
+// opt-in, no beacon. Sites that do want telemetry — including sovereign sites
+// pointing at their own self-hosted collector — set KHEPRA_TELEMETRY=true, and
+// that setting is then a recorded decision rather than an inherited default.
 func checkTelemetryEnabled() error {
-	mode := os.Getenv("KHEPRA_MODE")
-	if mode == "" {
-		mode = "community"
-	}
-	telemetryEnv := os.Getenv("KHEPRA_TELEMETRY")
-	if mode == "community" && telemetryEnv != "true" {
-		return fmt.Errorf("telemetry disabled (community mode requires KHEPRA_TELEMETRY=true)")
-	}
-	if mode != "community" && telemetryEnv == "false" {
-		return fmt.Errorf("telemetry disabled by user")
+	if os.Getenv("KHEPRA_TELEMETRY") != "true" {
+		return fmt.Errorf("telemetry disabled (set KHEPRA_TELEMETRY=true to enable)")
 	}
 	return nil
 }
@@ -436,7 +440,19 @@ func DetectContainerRuntime() string {
 // DetectGeographicHint attempts to identify the deployment region from cloud
 // metadata endpoints.  Returns "on-prem" when no cloud metadata is available.
 // Non-fatal: network failures are silently ignored.
+//
+// Gated on the same opt-in as the beacon it feeds. Without the gate this
+// function probes 169.254.169.254 and metadata.google.internal on every call —
+// outbound traffic to the instance metadata service from a process that is
+// supposed to be air-gapped, and traffic that looks identical to the
+// reconnaissance step of a cloud credential theft. It is currently only
+// reached from tests, which is precisely why the gate belongs here now rather
+// than after something wires it into a live path.
 func DetectGeographicHint() string {
+	if err := checkTelemetryEnabled(); err != nil {
+		return "on-prem"
+	}
+
 	client := &http.Client{Timeout: 2 * time.Second}
 
 	// AWS EC2 IMDSv1

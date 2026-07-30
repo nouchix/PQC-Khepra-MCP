@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -227,10 +228,10 @@ func (r *FleetRegistry) DiscoverSubnet(cidr, enclaveID string, progressCh chan<-
 	probePorts := []int{22, 5985, 443, 80, 3389}
 
 	var (
-		mu      sync.Mutex
-		live    []*Asset
-		wg      sync.WaitGroup
-		sem     = make(chan struct{}, 32) // 32 concurrent probes
+		mu   sync.Mutex
+		live []*Asset
+		wg   sync.WaitGroup
+		sem  = make(chan struct{}, 32) // 32 concurrent probes
 	)
 
 	for host := ip.Mask(ipnet.Mask); ipnet.Contains(host); inc(host) {
@@ -248,7 +249,7 @@ func (r *FleetRegistry) DiscoverSubnet(cidr, enclaveID string, progressCh chan<-
 			defer func() { <-sem }()
 
 			for _, port := range probePorts {
-				addr := fmt.Sprintf("%s:%d", target, port)
+				addr := net.JoinHostPort(target, strconv.Itoa(port))
 				conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond)
 				if err != nil {
 					continue
