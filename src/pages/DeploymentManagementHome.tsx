@@ -1,5 +1,4 @@
 "use client";
-import { useState } from 'react';
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { DashboardToggle } from '@/components/DashboardToggle';
 import { TrustScoreDashboard } from '@/components/deployment/TrustScoreDashboard';
@@ -8,6 +7,7 @@ import { CustomerConfidenceJourney } from '@/components/deployment/CustomerConfi
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useOrganizationContext } from '@/components/OrganizationProvider';
 import { useDeploymentProfiles } from '@/hooks/useDeploymentProfiles';
 import {
   Shield,
@@ -21,7 +21,8 @@ import { IndustryType } from '@/types/deployment';
 
 const DeploymentManagementHome = () => {
   const { profile: _profile } = useUserProfile();
-  const [selectedOrganization] = useState('org-1'); // Mock organization ID
+  const { currentOrganization } = useOrganizationContext();
+  const selectedOrganization = currentOrganization?.id || '';
 
   const {
     deploymentSettings,

@@ -87,9 +87,9 @@ func (api *LicensingAPI) RegisterEndpoints(mux *http.ServeMux) {
 
 func (api *LicensingAPI) HandleCreateLicense(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		LicenseID string               `json:"license_id"`
-		Tier      license.EgyptianTier `json:"tier"`
-		Duration  int                  `json:"duration_days"`
+		LicenseID string              `json:"license_id"`
+		Tier      license.LicenseTier `json:"tier"`
+		Duration  int                 `json:"duration_days"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, ErrInvalidRequest, http.StatusBadRequest)
@@ -119,7 +119,7 @@ func (api *LicensingAPI) HandleGetLicense(w http.ResponseWriter, r *http.Request
 func (api *LicensingAPI) HandleUpgradeLicense(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("license_id")
 	var req struct {
-		Tier license.EgyptianTier `json:"tier"`
+		Tier license.LicenseTier `json:"tier"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, ErrInvalidRequest, http.StatusBadRequest)
@@ -249,10 +249,10 @@ func (api *LicensingAPI) HandleDashboard(w http.ResponseWriter, r *http.Request)
 	stats := map[string]interface{}{
 		"total_licenses": api.registryManager.GetLicenseCount(),
 		"by_tier": map[string]int{
-			"khepri": api.registryManager.CountByTier(license.TierKhepri),
-			"ra":     api.registryManager.CountByTier(license.TierRa),
-			"atum":   api.registryManager.CountByTier(license.TierAtum),
-			"osiris": api.registryManager.CountByTier(license.TierOsiris),
+			"community":  api.registryManager.CountByTier(license.TierCommunity),
+			"pro":        api.registryManager.CountByTier(license.TierPro),
+			"enterprise": api.registryManager.CountByTier(license.TierEnterprise),
+			"sovereign":  api.registryManager.CountByTier(license.TierSovereign),
 		},
 		"total_nodes":   api.dagLicenseEnforcer.GetNodeCount(),
 		"active_alerts": len(api.dagLicenseEnforcer.GetAmmitAlertStatus()),
