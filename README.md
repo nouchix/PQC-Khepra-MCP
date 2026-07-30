@@ -1,51 +1,57 @@
 # KHEPRA MCP Server
 
+[![Release](https://img.shields.io/badge/Release-v2.0.0-blue?style=for-the-badge)](https://github.com/nouchix/PQC-Khepra-MCP/releases)
+[![Downloads](https://img.shields.io/badge/Downloads-424%2B_Verified-blue?style=for-the-badge&logo=docker)](https://github.com/nouchix/PQC-Khepra-MCP/pkgs/container/pqc-khepra-mcp)
 [![smithery badge](https://smithery.ai/badge/skone/pqc-khepra-mcp)](https://smithery.ai/servers/skone/pqc-khepra-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
 [![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
-[![License](https://img.shields.io/badge/License-Community%20%2F%20Commercial-green?style=for-the-badge)](https://nouchix.com)
+[![License](https://img.shields.io/badge/License-Apache_2.0-green?style=for-the-badge)](LICENSE)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
 
-**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. 76 tools. v2.0.0.**
+**Open-source post-quantum cryptographic MCP kernel & compliance discovery server.**
 
-Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
-The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
+Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, featuring the **World's First DoD PQC STIG** built in.
 
 > **[PQC-01-STIG-V1R1 — Full Whitepaper →](docs/PQC-01-STIG-V1R1.md)**  
-> 17 controls covering CNSA 2.0, FIPS 203/204/205, and the NSA's May 2026 MCP security advisory.  
-> The world's first DoD-style Post-Quantum Cryptography STIG, including the first PQC controls for agentic AI and MCP deployments.
-
-> **Live hosted endpoint:** `https://mcp.souhimbou.ai/sse` — zero install, connect in 30 seconds.  
-> Self-host for sovereign/air-gap: [Docker](#option-a-docker-recommended) or [binary](#option-b-compiled-binary).
+> 17 controls covering CNSA 2.0, FIPS 203/204/205, and MCP security advisories.  
+> The world's first open-source DoD-style Post-Quantum Cryptography STIG for AI agents and MCP servers.
 
 ---
 
+## Open-Source Kernel Scope & Repository Boundary
 
-## Tiers
+> [!NOTE]
+> **v2.0.0 Public Kernel Extraction Complete**:
+> - **`PQC-Khepra-MCP` (This Public Repository)**: The newly extracted, open-source post-quantum MCP kernel (Apache 2.0). Contains PQC primitives, the DoD PQC STIG (`pqc_stig`), OWASP Agentic Top 10 assessment (`owasp_agent_assess`), basic AI asset discovery (`scan_shadow_ai`), and NIST SP 800-53 baseline lookups. Built in complete isolation via `kernelports`.
+> - **`khepra-trust-os` (Private Repository)**: The commercial landing zone & trust OS containing the AI Evidence Object fabric (`core/aeo`), Agent Passports (`core/citizenship`), Privileged Enforcement Daemon (`core/enforce`), automated CMMC SSP generator (`core/compliance`), and commercial key management (`core/commercial`).
+> - **Dependency Direction**: Strictly **one-way**. `khepra-trust-os` and all internal tools import this public kernel as a Go module; this public repo never imports private repositories.
 
-| Tier | License Key | Tools | Telemetry | Egress |
-|------|-------------|-------|-----------|--------|
-| **Community** | ❌ Not required | `pqc_stig` + 12 core tools | Opt-in Dark Crypto Intel | Zero (sovereign mode) |
-| **Sovereign** | ✅ Required | All 72 tools | Zero | Zero |
-| **Pharaoh** | ✅ Required | All 72 tools + priority support + SLA | Zero | Zero |
+---
 
-> **Community tier is free.** Run `pqc_stig` to assess your project's quantum readiness against  
-> **PQC-01-STIG-V1R1** — the World's First DoD-style Post-Quantum Cryptography STIG — no license key needed.
+## Tiers & Feature Scope
+
+| Tier | License Key | Open-Source / Commercial Scope | Egress |
+|------|-------------|--------------------------------|--------|
+| **Community** | ❌ Not required | `pqc_stig`, `owasp_agent_assess`, `nist_map`, `scan_shadow_ai` (local) | Zero (Air-gapped) |
+| **Sovereign** | ✅ Required | Full Shadow AI discovery, AI Policy Evaluator, AEO Evidence Graph, Passports | Zero (Air-gapped) |
+| **Pharaoh** | ✅ Required | Privileged Enforcement Daemon interposition (`Deny`/`Quarantine`/`Lock`), FIPS 140-3 | Zero (Air-gapped) |
 
 ---
 
 ## What It Does
 
-KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. Ask Claude or any MCP client to scan a system, map findings to STIG/NIST/CMMC controls, and generate an executive-ready risk report — all without sending data to external APIs.
+PQC-Khepra-MCP connects your AI assistant directly to a post-quantum compliance and security engine. Ask Claude, Cursor, or any MCP client to assess quantum readiness, run OWASP agentic security checks, and query DISA STIG benchmarks — all without sending data to external APIs.
 
 **Key capabilities:**
-- 36,195 STIG/CCI/NIST 800-53/800-171/CMMC mappings (offline, bundled)
-- Post-quantum cryptographic attestation on every tool call (ML-DSA-65 / FIPS 204)
+- Post-quantum cryptographic attestation on tool calls (ML-DSA-65 / FIPS 204)
 - **World's First DoD PQC STIG** — 17 controls covering CNSA 2.0 / FIPS 203/204/205 + agentic AI / MCP ([PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md))
-- Godfather Report: dollar-denominated business impact per finding (FAIR model)
+- OWASP Agentic Top 10 vulnerability assessment (`owasp_agent_assess`)
+- Shadow AI asset discovery & port scanner (`scan_shadow_ai`)
+- Live DISA STIG Viewer API v2 integration (`stig_live_query`)
+- Practical Linux Hardening checks (`linux_hardening_check`) based on *The Practical Linux Hardening Guide*
 - Air-gap and SCIF compatible — sovereign/ironbank modes make zero egress calls
 - Flat annual licensing — no per-token or per-query charges
 - Runs on your metal: on-prem, DoD, IC, classified environments
@@ -734,3 +740,6 @@ Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executi
 - **Phone**: (518) 304-4450
 
 Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
+
+
+
