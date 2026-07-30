@@ -245,8 +245,7 @@ export const ComplianceKnowledgeGraph: React.FC = () => {
 
   const refreshGraph = async () => {
     try {
-      // Simulate fetching updated graph data
-      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'generate_knowledge_graph',
           includeRemediations: true,
@@ -256,12 +255,78 @@ export const ComplianceKnowledgeGraph: React.FC = () => {
 
       if (error) throw error;
 
-      // For now, regenerate pending data
-      setGraphData(generatePendingGraphData());
+      const rawNodes: any[] = Array.isArray(data?.nodes) ? data.nodes : [];
+      const rawEdges: any[] = Array.isArray(data?.edges) ? data.edges : [];
+
+      if (rawNodes.length === 0) {
+        // The agent returned no graph data yet. Keep the honest empty
+        // state rather than claiming a successful refresh happened.
+        setGraphData(generatePendingGraphData());
+        toast({
+          title: "No Graph Data Available",
+          description: "The knowledge graph agent did not return any nodes yet.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Lay real nodes out on a circle since the agent response doesn't
+      // include canvas coordinates.
+      const typeColors: Record<string, string> = {
+        framework: '#3b82f6',
+        control: '#a855f7',
+        asset: '#ef4444',
+        evidence: '#22c55e',
+        remediation: '#ec4899',
+        user: '#f59e0b',
+        organization: '#14b8a6'
+      };
+      const centerX = 400;
+      const centerY = 300;
+      const radius = 220;
+      const nodes: GraphNode[] = rawNodes.map((n, index) => {
+        const angle = (index / rawNodes.length) * 2 * Math.PI;
+        return {
+          id: n.id ?? `node-${index}`,
+          label: n.label ?? n.name ?? n.id ?? `Node ${index}`,
+          type: (n.type ?? 'asset') as GraphNode['type'],
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+          radius: n.radius ?? 30,
+          color: typeColors[n.type] ?? '#6b7280',
+          status: n.status,
+          metadata: n.metadata ?? {},
+          connections: Array.isArray(n.connections) ? n.connections : []
+        };
+      });
+
+      const edges: GraphEdge[] = rawEdges.map((e) => ({
+        from: e.from,
+        to: e.to,
+        type: (e.type ?? 'affects') as GraphEdge['type'],
+        strength: typeof e.strength === 'number' ? e.strength : 0.5,
+        color: e.color ?? '#94a3b8',
+        animated: !!e.animated
+      }));
+
+      const compliantAssets = nodes.filter(n => n.type === 'asset' && n.status === 'compliant').length;
+      const totalAssets = nodes.filter(n => n.type === 'asset').length;
+      const complianceScore = totalAssets > 0 ? Math.round((compliantAssets / totalAssets) * 100) : 0;
+
+      setGraphData({
+        nodes,
+        edges,
+        metadata: {
+          totalNodes: nodes.length,
+          totalEdges: edges.length,
+          complianceScore,
+          lastUpdated: new Date()
+        }
+      });
 
       toast({
         title: "Graph Updated",
-        description: "Knowledge graph has been refreshed with latest data",
+        description: `Knowledge graph refreshed with ${nodes.length} nodes and ${edges.length} relationships`,
       });
     } catch (error) {
       console.error('Failed to refresh graph:', error);
