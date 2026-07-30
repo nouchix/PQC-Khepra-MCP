@@ -217,7 +217,7 @@ conflicting commercial terms, in accordance with DFARS 227.7202-3.
          - nist_map, khepra_query_stig, dark_crypto_contribute (opt-in),
            agent_record, dag_attestation, khepra_get_compliance_score,
            khepra_query_threat_intel, discover_assets, acp_status,
-           khepra_export_attestation, khepra_export_poam (12 core tools);
+           khepra_export_attestation, khepra_export_poam (24 core tools);
      (c) Use the Community Tier tools for any purpose, including personal,
          commercial, educational, and U.S. Government use, without payment.
 
