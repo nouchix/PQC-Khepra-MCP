@@ -1,4 +1,4 @@
-// Package g0dm0d3 implements the AdinKhepra AI brain layer.
+// package intelligence implements the AdinKhepra AI brain layer.
 //
 // G0DM0D3 provides a pluggable AI provider abstraction with sovereign-first
 // design — the primary backend is always local Ollama (zero egress, air-gap
@@ -15,7 +15,7 @@
 // Security invariant: ALL external AI API calls are isolated to this package.
 // No other package in the codebase may call api.anthropic.com or similar.
 // The core engine (DAG, STIG, ASAF, PQC) operates independently.
-package g0dm0d3
+package intelligence
 
 import (
 	"bytes"
@@ -383,7 +383,7 @@ func NewServer(dagStore *dag.PersistentMemory) *G0DM0D3Server {
 	}
 }
 
-// HandleChat is the HTTP handler for /api/g0dm0d3/chat
+// HandleChat is the HTTP handler for /api/intelligence/chat
 //
 // Accepts POST with body: {"message":"...","stream":false}
 // Returns 405 on GET with usage hint (audit fix: was silently routing to provider).
@@ -404,7 +404,7 @@ func (s *G0DM0D3Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
 			"error":    "method not allowed — use POST",
-			"usage":    `POST /api/g0dm0d3/chat`,
+			"usage":    `POST /api/intelligence/chat`,
 			"body":     `{"message":"your question here","stream":false}`,
 			"provider": s.Provider.Name(),
 		})

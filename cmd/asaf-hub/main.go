@@ -1,4 +1,4 @@
-// ASAF Stargate Hub — The Unification Binary
+﻿// ASAF Stargate Hub — The Unification Binary
 //
 // "Take the skin and muscles of the CMMC Graph UI and bolt it on the skeleton
 //  and nervous system of the PQC-Khepra-MCP Server."
@@ -472,6 +472,7 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("pqc_stig", tools.HandlePQCSTIG)
 	executor.RegisterFunc("cmmc_assess", tools.HandleCMMCAssess)
 	executor.RegisterFunc("agent_record", tools.HandleAgentRecord)
+	executor.RegisterFunc("attest_export", tools.HandleAttestExport)
 	executor.RegisterFunc("khepra_export_attestation", tools.HandleKhepraExportAttestation)
 	executor.RegisterFunc("khepra_export_poam", tools.HandleKhepraExportPOAM)
 	executor.RegisterFunc("khepra_query_stig", tools.HandleKhepraQuerySTIG)

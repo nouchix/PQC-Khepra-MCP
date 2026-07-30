@@ -1,0 +1,69 @@
+﻿# KHEPRA Demo Environment — DVWA Sandboxed Target
+# NouchiX / SecRed Knowledge Inc.
+# Purpose: Pitch Pulse July 10, 2026 — Shock & Awe demo target
+#
+# SECURITY: DVWA is intentionally vulnerable. DEMO-ONLY.
+# - DVWA binds to 127.0.0.1:4280 ONLY
+# - Network: khepra-demo (bridge, isolated from production)
+# - Never use on production without network isolation
+#
+# Deploy:   docker compose -f docker-compose.dvwa.yml up -d
+# Teardown: docker compose -f docker-compose.dvwa.yml down -v
+
+version: '3.8'
+
+services:
+  dvwa:
+    image: ghcr.io/digininja/dvwa:latest
+    container_name: khepra-dvwa
+    restart: unless-stopped
+    environment:
+      - DB_SERVER=khepra-demo-db
+      - DB_DATABASE=dvwa
+      - DB_USER=dvwa
+      - DB_PASSWORD=dvwa_demo_2026
+      - DVWA_SECURITY_LEVEL=low
+      - RECAPTCHA_PRIV_KEY=
+      - RECAPTCHA_PUB_KEY=
+    ports:
+      - "127.0.0.1:4280:80"
+    depends_on:
+      khepra-demo-db:
+        condition: service_healthy
+    networks:
+      - khepra-demo
+    labels:
+      com.nouchix.role: "demo-target"
+      com.nouchix.product: "khepra-asaf"
+      com.nouchix.exposure: "localhost-only"
+
+  khepra-demo-db:
+    image: mariadb:10.11
+    container_name: khepra-demo-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=khepra_root_2026
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=dvwa_demo_2026
+    volumes:
+      - khepra-demo-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pkhepra_root_2026"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - khepra-demo
+    labels:
+      com.nouchix.role: "demo-db"
+
+networks:
+  khepra-demo:
+    driver: bridge
+    name: khepra-demo
+
+volumes:
+  khepra-demo-db-data:
+    name: khepra-demo-db-data

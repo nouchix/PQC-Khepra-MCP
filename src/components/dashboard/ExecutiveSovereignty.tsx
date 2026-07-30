@@ -2,18 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { TrendingUp, DollarSign, AlertCircle } from "lucide-react";
 
 const ExecutiveSovereignty = () => {
-    // Mock data - will be replaced with API calls
-    const riskExposure = "$5.2M";
-    const complianceScore = 78;
-    const criticalFindings = 5;
+    // No real risk-quantification, compliance-scoring, or findings backend is
+    // wired up yet. Report honest zero/empty defaults instead of a fabricated
+    // dollar-value risk exposure, compliance score, and threat list.
+    const riskExposure = "N/A";
+    const complianceScore = 0;
+    const criticalFindings = 0;
 
-    const topThreats = [
-        { id: 1, title: "SSH Port 22 Exposed to Internet", severity: "CRITICAL", impact: "$1.2M" },
-        { id: 2, title: "Unpatched CVE-2024-1234 (RCE)", severity: "CRITICAL", impact: "$890K" },
-        { id: 3, title: "Weak TLS Configuration (Legacy Crypto)", severity: "HIGH", impact: "$650K" },
-        { id: 4, title: "Missing MFA on Admin Accounts", severity: "HIGH", impact: "$420K" },
-        { id: 5, title: "Outdated Windows Server 2012", severity: "MEDIUM", impact: "$310K" },
-    ];
+    const topThreats: Array<{ id: number; title: string; severity: string; impact: string }> = [];
 
     return (
         <div className="space-y-6">
@@ -67,6 +63,11 @@ const ExecutiveSovereignty = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
+                        {topThreats.length === 0 && (
+                            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-center text-sm text-slate-500">
+                                No threat data available. Connect a scanning or risk-quantification integration to populate this list.
+                            </div>
+                        )}
                         {topThreats.map((threat, index) => (
                             <div
                                 key={threat.id}
