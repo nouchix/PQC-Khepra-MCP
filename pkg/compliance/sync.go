@@ -122,11 +122,14 @@ func GlobalSync(a *attest.RiskAttestation, privKey string) error {
 // The token is never hardcoded. Set it in .env or as a system env var.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const (
-	stigViewerBaseURL = "https://stigviewer.com/api"
-	// Integrity key for request signing (identifies this KHEPRA deployment)
-	stigViewerIntegrityKey = "2faf08c3265f7f2400524d10100e74104d8d6df134f1f6d709ba0ba5004cc4b4"
-)
+const stigViewerBaseURL = "https://stigviewer.com/api"
+
+// stigViewerIntegrityKey returns the per-deployment request-signing key from
+// KHEPRA_STIGVIEWER_INTEGRITY_KEY. Empty means the X-Khepra-Integrity header is
+// omitted — the key identifies a deployment and must never be committed.
+func stigViewerIntegrityKey() string {
+	return os.Getenv("KHEPRA_STIGVIEWER_INTEGRITY_KEY")
+}
 
 // STIGViewerClient fetches live STIG checklists and benchmark data from
 // the STIG Viewer API (https://stigviewer.com).
@@ -268,8 +271,9 @@ func (c *STIGViewerClient) IsConfigured() bool {
 
 func (c *STIGViewerClient) setHeaders(req *http.Request) {
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("X-Khepra-Integrity", stigViewerIntegrityKey)
+	if k := stigViewerIntegrityKey(); k != "" {
+		req.Header.Set("X-Khepra-Integrity", k)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "AdinKhepra-ASAF/2.0 (+https://nouchix.com)")
 }
-
