@@ -21,7 +21,7 @@ export const ThreatIntelligence = () => {
   });
   const { toast } = useToast();
 
-  // Mock feed status for display
+  // Derived entirely from the real `threats` data loaded by useThreatIntelligence — no fabrication
   const feedStats = {
     total_indicators: threats.length,
     critical_threats: threats.filter(t => t.threat_level === 'CRITICAL').length,

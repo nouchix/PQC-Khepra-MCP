@@ -16,25 +16,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 const (
 	msgLicenseIDRequired = "license_id parameter is required"
 
 	// Tier shortcuts used by Stripe webhook handler.
-	licenseRaTier        = license.TierRa
-	licenseCommunityTier = license.TierKhepri
+	licenseProTier       = license.TierPro
+	licenseCommunityTier = license.TierCommunity
 )
 
-// Merkaba Egyptian Licensing System Handlers (Version 2)
-// Integrates with Scarab/Motherboard API server (apiserver)
+// License Handlers (Version 2)
+// Integrates with the API server
 //
 // These handlers provide REST endpoints for:
 // - License information retrieval
-// - Egyptian tier management (Khepri, Ra, Atum, Osiris)
+// - Tier management (Community, Pro, Enterprise, Sovereign)
 // - Telemetry enrollment and heartbeats
 // - License usage tracking
 //
@@ -42,9 +42,9 @@ const (
 // and provides read-only operations. License creation is handled by the
 // telemetry enrollment process.
 
-// handleCreateLicense creates a new Egyptian tier license
+// handleCreateLicense creates a new license
 // POST /api/v1/license/create
-// Body: {"tier": "khepri|ra|atum|osiris", "customer": "...", "duration_days": 365}
+// Body: {"tier": "community|pro|enterprise|sovereign", "customer": "...", "duration_days": 365}
 func (s *Server) handleCreateLicense(c *gin.Context) {
 	var req struct {
 		Tier         string `json:"tier" binding:"required"`
@@ -61,25 +61,25 @@ func (s *Server) handleCreateLicense(c *gin.Context) {
 		return
 	}
 
-	// Map tier string to EgyptianTier enum
-	tierMap := map[string]license.EgyptianTier{
-		"khepri": license.TierKhepri,
-		"ra":     license.TierRa,
-		"atum":   license.TierAtum,
-		"osiris": license.TierOsiris,
+	// Map tier string to LicenseTier enum
+	tierMap := map[string]license.LicenseTier{
+		"community":  license.TierCommunity,
+		"pro":        license.TierPro,
+		"enterprise": license.TierEnterprise,
+		"sovereign":  license.TierSovereign,
 	}
 
 	tier, ok := tierMap[req.Tier]
 	if !ok {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error:   "invalid_tier",
-			Message: fmt.Sprintf("Tier must be one of: khepri, ra, atum, osiris (got: %s)", req.Tier),
+			Message: fmt.Sprintf("Tier must be one of: community, pro, enterprise, sovereign (got: %s)", req.Tier),
 			Code:    http.StatusBadRequest,
 		})
 		return
 	}
 
-	// Generate license ID (e.g. atum-machineid)
+	// Generate license ID (e.g. enterprise-<uuid8>)
 	licenseID := string(tier) + "-" + uuid.New().String()[:8]
 
 	// Create real license via manager
@@ -150,11 +150,11 @@ func (s *Server) handleUpgradeLicense(c *gin.Context) {
 	}
 
 	// Map tier string
-	tierMap := map[string]license.EgyptianTier{
-		"khepri": license.TierKhepri,
-		"ra":     license.TierRa,
-		"atum":   license.TierAtum,
-		"osiris": license.TierOsiris,
+	tierMap := map[string]license.LicenseTier{
+		"community":  license.TierCommunity,
+		"pro":        license.TierPro,
+		"enterprise": license.TierEnterprise,
+		"sovereign":  license.TierSovereign,
 	}
 
 	newTier, ok := tierMap[req.NewTier]
@@ -403,7 +403,23 @@ func (s *Server) handleStripeWebhook(c *gin.Context) {
 
 // handleCheckoutCompleted activates a Ra-tier license for the machine_id in
 // the checkout session metadata and broadcasts the activation over WebSocket.
+//
+// Two independent checkout flows share this webhook: the machine-license flow
+// (client_reference_id = machine_id) and the org/seat SaaS billing flow from
+// stripe_billing.go (client_reference_id = our internal "cs_..." session ID,
+// tagged via metadata.internal_session_id). This is the ONLY place either
+// flow is marked complete — there is no client-reachable completion endpoint
+// in production.
 func (s *Server) handleCheckoutCompleted(event stripeWebhookEvent) {
+	if internalSessionID := event.Data.Object.Metadata["internal_session_id"]; internalSessionID != "" {
+		if _, err := s.completeCheckoutSession(internalSessionID); err != nil {
+			fmt.Printf("[STRIPE] org/seat session completion failed for %s: %v\n", internalSessionID, err)
+		} else {
+			fmt.Printf("[STRIPE] org/seat checkout session completed: %s\n", internalSessionID)
+		}
+		return
+	}
+
 	machineID := event.Data.Object.ClientReferenceID
 	if machineID == "" {
 		machineID = event.Data.Object.Metadata["machine_id"]
@@ -414,9 +430,9 @@ func (s *Server) handleCheckoutCompleted(event stripeWebhookEvent) {
 		return
 	}
 
-	// Activate a Ra-tier (Hunter) 365-day license for this machine.
-	licenseID := "ra-" + machineID[:min(8, len(machineID))]
-	if _, err := s.licMgr.CreateLicense(licenseID, licenseRaTier, 365); err != nil {
+	// Activate a Pro-tier 365-day license for this machine.
+	licenseID := "lic-" + machineID[:min(8, len(machineID))]
+	if _, err := s.licMgr.CreateLicense(licenseID, licenseProTier, 365); err != nil {
 		fmt.Printf("[STRIPE] license activation failed for machine %s: %v\n", machineID, err)
 		// Still return 200 — Stripe will not retry; log for manual recovery.
 	} else {
@@ -429,7 +445,7 @@ func (s *Server) handleCheckoutCompleted(event stripeWebhookEvent) {
 			"type":       "license_activated",
 			"machine_id": machineID,
 			"license_id": licenseID,
-			"tier":       "ra",
+			"tier":       licenseProTier,
 		})
 	}
 }
@@ -438,10 +454,11 @@ func (s *Server) handleCheckoutCompleted(event stripeWebhookEvent) {
 func (s *Server) handleSubscriptionDeleted(event stripeWebhookEvent) {
 	machineID := event.Data.Object.Metadata["machine_id"]
 	if machineID != "" {
-		licenseID := "ra-" + machineID[:min(8, len(machineID))]
+		licenseID := "lic-" + machineID[:min(8, len(machineID))]
 		fmt.Printf("[STRIPE] Subscription cancelled — revoking license %s\n", licenseID)
-		// Upgrade to community (lowest tier) effectively revokes Ra access.
-		_ = s.licMgr.UpgradeLicense(licenseID, licenseCommunityTier)
+		// Downgrade to Community (lowest tier) revokes paid access. SetTier (not
+		// UpgradeLicense) because this is a downgrade, which UpgradeLicense rejects.
+		_ = s.licMgr.SetTier(licenseID, licenseCommunityTier)
 	}
 }
 
@@ -508,7 +525,6 @@ func min(a, b int) int {
 	}
 	return b
 }
-
 
 // handleRevokeLicense marks a license as revoked following a Stripe subscription cancellation.
 // POST /api/v1/license/revoke

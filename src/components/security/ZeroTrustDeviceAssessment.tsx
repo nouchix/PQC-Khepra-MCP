@@ -125,18 +125,9 @@ const ZeroTrustDeviceAssessment = () => {
   };
 
   const performDeviceAssessment = async () => {
-    // Simulate comprehensive device assessment
-    const _assessment = {
-      trustScore: 85,
-      behavioralScore: 78,
-      validationResult: 'passed' as const,
-      remediationRequired: false,
-      remediationActions: [] as string[],
-      riskFactors: {},
-      complianceStatus: {},
-      securityPosture: {},
-      networkContext: {}
-    };
+    // Comprehensive device assessment computed from real, checkable browser/
+    // device signals below (secure context, cookies, connection info, crypto
+    // support, etc.) — no fabricated scores.
 
     // Browser security checks
     const browserChecks = {
