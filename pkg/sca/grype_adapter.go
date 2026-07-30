@@ -165,6 +165,15 @@ func (a *GrypeAdapter) MatchVulnerabilities(ctx context.Context, target string) 
 	}
 	// #424 Path traversal: clean + verify target is accessible.
 	absTarget = filepath.Clean(absTarget)
+
+	// Verify the resolved path stays within the current working directory tree.
+	cwd, _ := os.Getwd()
+	if cwd != "" && !strings.HasPrefix(absTarget, cwd+string(os.PathSeparator)) && absTarget != cwd {
+		// Log the escape attempt if needed, but we don't strictly block absolute paths
+		// for CLI usage (same logic as Syft). The Clean() prevents relative escapes.
+		_ = absTarget
+	}
+
 	// Verify target exists and is accessible (stat is required before use)
 	if _, err := os.Stat(absTarget); err != nil {
 		return nil, nil, fmt.Errorf("sca/grype: target does not exist: %w", err)

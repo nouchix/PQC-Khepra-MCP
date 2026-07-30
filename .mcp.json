@@ -1,14 +1,11 @@
 {
-  "_comment": "KHEPRA MCP Client Config — SOVEREIGN / AIR-GAP MODE. For SaaS (Fly.io+Supabase), use .mcp.saas.json instead.",
+  "_comment": "KHEPRA MCP Client Config — SOVEREIGN / AIR-GAP MODE with Cloudflare MCP Integration.",
   "mcpServers": {
-    "khepra-mcp": {
-      "command": "uvx.exe",
+    "pqc-khepra-mcp": {
+      "command": "go",
       "args": [
-        "mcpower-proxy==0.0.87",
-        "--wrapped-config",
-        "{\n      \"_comment\": \"Pre-built binary — sovereign mode. Bypasses shell profile stdout banner that poisons JSON-RPC stream.\",\n      \"command\": \"C:\\\\Users\\\\intel\\\\blackbox\\\\PQC-Khepra-MCP\\\\bin\\\\khepra-mcp.exe\",\n      \"args\": [],\n      \"env\": {\n        \"KHEPRA_MODE\": \"sovereign\",\n        \"KHEPRA_NETWORK_POLICY\": \"lan\",\n        \"KHEPRA_SERVICE_SECRET\": \"${KHEPRA_SERVICE_SECRET}\",\n        \"MCP_PQC_ENABLED\": \"true\"\n      }\n    }",
-        "--name",
-        "khepra-mcp"
+        "run",
+        "/Applications/Whitebox/PQC-Khepra-MCP/cmd/khepra-mcp/main.go"
       ],
       "env": {
         "KHEPRA_MODE": "sovereign",
@@ -16,6 +13,21 @@
         "KHEPRA_SERVICE_SECRET": "${KHEPRA_SERVICE_SECRET}",
         "MCP_PQC_ENABLED": "true"
       }
+    },
+    "cloudflare": {
+      "url": "https://mcp.cloudflare.com/mcp"
+    },
+    "cloudflare-docs": {
+      "url": "https://docs.mcp.cloudflare.com/mcp"
+    },
+    "cloudflare-bindings": {
+      "url": "https://bindings.mcp.cloudflare.com/mcp"
+    },
+    "cloudflare-builds": {
+      "url": "https://builds.mcp.cloudflare.com/mcp"
+    },
+    "cloudflare-observability": {
+      "url": "https://observability.mcp.cloudflare.com/mcp"
     }
   }
 }

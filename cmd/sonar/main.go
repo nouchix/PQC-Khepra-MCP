@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
+
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -197,7 +199,7 @@ func signSnapshotPQC(snapshot *audit.AuditSnapshot) {
 	// If it specifically accepted adinkra key types, we would have needed to update pkg/audit too.
 	// Since I cannot check pkg/audit right now but Iron Bank status says "Refactor to Use Standard Libraries",
 	// I assume passing standard bytes or adapting is the goal.
-	snapshot.SealWithPQC(skBytes, pkBytes)
+	snapshot.SealWithPQC(skBytes, pkBytes, attestenvelope.AdinkraSigner{})
 }
 
 func writeSnapshot(snapshot *audit.AuditSnapshot) {
@@ -213,7 +215,7 @@ func generateTelemetryProof(snapshot *audit.AuditSnapshot) {
 		skBytes, _ := sk.MarshalBinary()
 		pkBytes, _ := pk.MarshalBinary()
 
-		proof, err := snapshot.GenerateTelemetryProof(skBytes, pkBytes, VERSION, fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
+		proof, err := snapshot.GenerateTelemetryProof(skBytes, pkBytes, VERSION, fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH), attestenvelope.AdinkraSigner{})
 		if err == nil {
 			proofData, _ := json.MarshalIndent(proof, "", "  ")
 			os.WriteFile("khepra_proof.sig", proofData, 0644)

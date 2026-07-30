@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 )
 
 // AuditSnapshot represents the comprehensive output from AdinKhepra Sonar.
@@ -425,7 +426,7 @@ type TelemetryProof struct {
 
 // SealWithPQC signs the audit snapshot with Dilithium3 for non-repudiation.
 // This ensures the snapshot cannot be tampered with and provides cryptographic proof of origin.
-func (a *AuditSnapshot) SealWithPQC(privateKey, publicKey []byte) error {
+func (a *AuditSnapshot) SealWithPQC(privateKey, publicKey []byte, signer kernelports.Signer) error {
 	// Serialize the snapshot without the signature field
 	tempSig := a.PQCSignature
 	a.PQCSignature = nil
@@ -437,7 +438,7 @@ func (a *AuditSnapshot) SealWithPQC(privateKey, publicKey []byte) error {
 	}
 
 	// Sign the data
-	signature, err := adinkra.Sign(privateKey, data)
+	signature, err := attestenvelope.Sign(data, privateKey, signer)
 	if err != nil {
 		a.PQCSignature = tempSig
 		return fmt.Errorf("failed to sign snapshot: %v", err)
@@ -457,7 +458,7 @@ func (a *AuditSnapshot) SealWithPQC(privateKey, publicKey []byte) error {
 
 // VerifyPQC verifies the Dilithium3 signature on the audit snapshot.
 // Returns true if the signature is valid and the snapshot has not been tampered with.
-func (a *AuditSnapshot) VerifyPQC() (bool, error) {
+func (a *AuditSnapshot) VerifyPQC(signer kernelports.Signer) (bool, error) {
 	if a.PQCSignature == nil {
 		return false, fmt.Errorf("snapshot is not signed")
 	}
@@ -487,12 +488,12 @@ func (a *AuditSnapshot) VerifyPQC() (bool, error) {
 	a.PQCSignature = tempSig
 
 	// Verify the signature
-	return adinkra.Verify(publicKey, data, signature)
+	return attestenvelope.Verify(data, signature, publicKey, signer), nil
 }
 
 // GenerateTelemetryProof creates a sanitized, PQC-signed proof of scan.
 // It extracts only high-level metrics (no PII, no specific vulnerabilities).
-func (a *AuditSnapshot) GenerateTelemetryProof(privateKey, publicKey []byte, version, platform string) (*TelemetryProof, error) {
+func (a *AuditSnapshot) GenerateTelemetryProof(privateKey, publicKey []byte, version, platform string, signer kernelports.Signer) (*TelemetryProof, error) {
 	proof := &TelemetryProof{
 		ScanID:         a.ScanID,
 		Timestamp:      a.Timestamp,
@@ -509,7 +510,7 @@ func (a *AuditSnapshot) GenerateTelemetryProof(privateKey, publicKey []byte, ver
 		return nil, fmt.Errorf("failed to serialize telemetry proof: %v", err)
 	}
 
-	signature, err := adinkra.Sign(privateKey, data)
+	signature, err := attestenvelope.Sign(data, privateKey, signer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign telemetry proof: %v", err)
 	}

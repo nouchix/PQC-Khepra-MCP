@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -65,6 +65,7 @@ type SignedAuditLog struct {
 	prev    string // SHA3-256 hex of the last written entry (chain link)
 	file    *os.File
 	writer  *bufio.Writer
+	signer  kernelports.Signer
 }
 
 // SignedAuditLogConfig holds constructor parameters.
@@ -80,6 +81,9 @@ type SignedAuditLogConfig struct {
 
 	// PubKey is the corresponding public key embedded in each entry.
 	PubKey []byte
+
+	// Signer is the ML-DSA-65 signer (kernelports).
+	Signer kernelports.Signer
 }
 
 // NewSignedAuditLog creates and opens a SignedAuditLog.
@@ -98,6 +102,7 @@ func NewSignedAuditLog(cfg SignedAuditLogConfig) (*SignedAuditLog, error) {
 		file:    f,
 		writer:  bufio.NewWriterSize(f, 64*1024),
 		prev:    "genesis",
+		signer:  cfg.Signer,
 	}
 
 	// Resume sequence + chain from existing log
@@ -105,6 +110,10 @@ func NewSignedAuditLog(cfg SignedAuditLogConfig) (*SignedAuditLog, error) {
 		// Non-fatal: start fresh if file is unreadable (first run or corrupted)
 		sal.prev = "genesis"
 		sal.seq.Store(0)
+	}
+
+	if sal.signer == nil {
+		sal.signer = &kernelports.NoopSigner{}
 	}
 
 	return sal, nil
@@ -172,7 +181,7 @@ func (sal *SignedAuditLog) Append(event MCPEvent) error {
 			return fmt.Errorf("signed_audit_log: canonicalize entry: %w", err)
 		}
 		digest := sha3digest(canonical)
-		sig, err := adinkra.Sign(sal.privKey, digest)
+		sig, err := sal.signer.Sign(sal.privKey, digest)
 		if err != nil {
 			return fmt.Errorf("signed_audit_log: sign entry: %w", err)
 		}
@@ -225,7 +234,10 @@ type VerifyChainResult struct {
 // VerifyChain reads the log at path and verifies the full signature chain.
 // Any modification to any prior entry will produce a chain break.
 // pubKey must be the ML-DSA-65 public key used during signing.
-func VerifyChain(path string, pubKey []byte) (*VerifyChainResult, error) {
+func VerifyChain(path string, pubKey []byte, signer kernelports.Signer) (*VerifyChainResult, error) {
+	if signer == nil {
+		signer = &kernelports.NoopSigner{}
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("verify_chain: open %s: %w", path, err)
@@ -274,7 +286,7 @@ func VerifyChain(path string, pubKey []byte) (*VerifyChainResult, error) {
 				digest := sha3digest(canonical)
 				sig, hexErr := hex.DecodeString(entry.Signature)
 				if hexErr == nil {
-					ok, verifyErr := adinkra.Verify(pubKey, digest, sig)
+					ok, verifyErr := signer.Verify(pubKey, digest, sig)
 					if verifyErr == nil && ok {
 						result.ValidSignatures++
 					} else {

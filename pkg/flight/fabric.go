@@ -680,6 +680,10 @@ type fabricResponseWriter struct {
 
 func (c *fabricResponseWriter) WriteHeader(status int) {
 	c.status = status
+	// #703 XSS mitigation: prevent browsers from MIME-sniffing passthrough content as HTML
+	if c.ResponseWriter.Header().Get("X-Content-Type-Options") == "" {
+		c.ResponseWriter.Header().Set("X-Content-Type-Options", "nosniff")
+	}
 	c.ResponseWriter.WriteHeader(status)
 }
 
