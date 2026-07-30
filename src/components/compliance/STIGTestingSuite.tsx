@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 import {
   TestTube,
   Play,
@@ -33,6 +34,7 @@ interface TestSuite {
 export const STIGTestingSuite: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [selectedSuite, setSelectedSuite] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Awaiting telemetry for real test suites
   const testSuites: TestSuite[] = [];
@@ -76,11 +78,14 @@ export const STIGTestingSuite: React.FC = () => {
   };
 
   const runAllTests = async () => {
-    setIsRunning(true);
-    // Simulate test execution
-    setTimeout(() => {
-      setIsRunning(false);
-    }, 5000);
+    // No test execution backend is wired up yet — there is no service that
+    // runs these STIG test suites. Report honestly instead of animating a
+    // fake multi-second "run" that produces no results.
+    toast({
+      title: "Test Execution Not Available",
+      description: "Running STIG test suites is not yet implemented — no backend executes these tests.",
+      variant: "destructive"
+    });
   };
 
   const exportTestReport = () => {

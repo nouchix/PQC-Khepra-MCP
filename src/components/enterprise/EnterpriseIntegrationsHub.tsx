@@ -23,6 +23,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { OpenControlsAPIService } from '@/services/OpenControlsAPIService';
 
 import { MLTrainingPipeline } from '@/services/MLTrainingPipeline';
@@ -57,30 +58,49 @@ export const EnterpriseIntegrationsHub: React.FC<EnterpriseIntegrationsHubProps>
 
   const loadIntegrationStatus = async () => {
     try {
-      // Mock integration status - ready for real API calls
-      setIntegrations([
-        {
-          name: 'DISA STIGs API (STIGViewer)',
-          status: 'connected',
-          lastSync: new Date().toISOString(),
-          performanceScore: 95,
-          dataQuality: 92
-        },
-        {
-          name: 'Open Controls Intelligence',
-          status: 'connected',
-          lastSync: new Date().toISOString(),
-          performanceScore: 98,
-          dataQuality: 96
-        },
-        {
-          name: 'ML Training Pipeline',
-          status: 'connected',
-          lastSync: new Date().toISOString(),
-          performanceScore: 88,
-          dataQuality: 85
-        }
-      ]);
+      // Real integration status comes from enhanced_open_controls_integrations
+      // rows written by OpenControlsAPIService.authenticateWithDISA /
+      // syncOpenControlsIntelligence — never fabricated. Integrations with no
+      // recorded row default to 'disconnected'.
+      const knownIntegrations = [
+        'DISA STIGs API (STIGViewer)',
+        'Open Controls Intelligence',
+        'ML Training Pipeline'
+      ];
+
+      const { data, error } = await supabase
+        .from('enhanced_open_controls_integrations')
+        .select('*')
+        .eq('organization_id', organizationId);
+
+      if (error) throw error;
+
+      const rows: any[] = data || [];
+      setIntegrations(
+        knownIntegrations.map((name) => {
+          const row = rows.find((r) => r.integration_name === name);
+          if (!row) {
+            return {
+              name,
+              status: 'disconnected' as const,
+              lastSync: new Date(0).toISOString(),
+              performanceScore: 0,
+              dataQuality: 0
+            };
+          }
+          return {
+            name,
+            status: (row.sync_status === 'authenticated' || row.sync_status === 'success'
+              ? 'connected'
+              : row.sync_status === 'pending'
+                ? 'pending'
+                : 'error') as IntegrationStatus['status'],
+            lastSync: row.last_sync_timestamp || row.performance_metrics?.last_auth || new Date(0).toISOString(),
+            performanceScore: 0,
+            dataQuality: 0
+          };
+        })
+      );
     } catch (error) {
       console.error('Failed to load integration status:', error);
       toast({
@@ -107,20 +127,23 @@ export const EnterpriseIntegrationsHub: React.FC<EnterpriseIntegrationsHubProps>
       if (!response.ok) throw new Error('AGI API unreachable');
       
       const agiStatus = await response.json();
-      
+
+      // Only real fields from the AGI status API are used — no invented
+      // accuracy values. Defaults to 0 when the API doesn't report a real
+      // accuracy for that component.
       setMlModels([
         {
           id: 'souhimbou_anomaly_detector',
           name: 'SouHimBou Anomaly Detector',
-          accuracy: 0.89, // Base accuracy from training logs
-          lastTrained: agiStatus.last_anomaly_time || new Date().toISOString(),
+          accuracy: agiStatus.components?.anomaly_detector?.accuracy ?? 0,
+          lastTrained: agiStatus.last_anomaly_time || 'N/A',
           status: agiStatus.components?.anomaly_detector === 'ACTIVE' ? 'active' : 'training'
         },
         {
           id: 'kasa_intent_classifier',
           name: 'KASA Intent Classifier',
-          accuracy: 0.94,
-          lastTrained: new Date().toISOString(),
+          accuracy: agiStatus.components?.intent_classifier?.accuracy ?? 0,
+          lastTrained: agiStatus.last_intent_time || 'N/A',
           status: agiStatus.components?.intent_classifier === 'ACTIVE' ? 'active' : 'offline'
         }
       ]);
@@ -142,14 +165,16 @@ export const EnterpriseIntegrationsHub: React.FC<EnterpriseIntegrationsHubProps>
   const connectToDISAAPI = async () => {
     try {
       setLoading(true);
+      // No real credential-entry flow exists yet — this records a placeholder
+      // authentication rather than validating a real DISA STIGs API key.
       const result = await OpenControlsAPIService.authenticateWithDISA(organizationId, {
-        api_key: 'ready_for_real_api_key'
+        api_key: 'placeholder_pending_real_credential_flow'
       });
-      
+
       if (result.success) {
         toast({
-          title: "DISA STIGs API Connected",
-          description: result.message
+          title: "DISA STIGs API — Placeholder Authentication Recorded",
+          description: "No real credential was validated. Wire up a real API key entry flow before treating this as connected."
         });
         await loadIntegrationStatus();
       }
@@ -396,10 +421,14 @@ export const EnterpriseIntegrationsHub: React.FC<EnterpriseIntegrationsHubProps>
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    This integration is ready for the DISA STIGs API. Authentication and data sync capabilities are fully implemented.
+                    The caching and sync plumbing for this integration is implemented, but there is
+                    no real credential-entry flow yet — clicking Connect currently records a
+                    placeholder authentication rather than validating a real DISA STIGs API key.
+                    Treat "Connected" status here as not-yet-verified until a real credential flow
+                    is wired up.
                   </AlertDescription>
                 </Alert>
-                
+
                 <div className="flex gap-2">
                   <Button onClick={connectToDISAAPI} disabled={loading}>
                     {loading ? 'Connecting...' : 'Connect to DISA API'}
@@ -430,9 +459,11 @@ export const EnterpriseIntegrationsHub: React.FC<EnterpriseIntegrationsHubProps>
             <CardContent>
               <div className="space-y-4">
                 <Alert>
-                  <CheckCircle className="h-4 w-4" />
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Open Controls integration framework is ready. Sync capabilities and intelligence processing are implemented.
+                    Sync plumbing exists, but real intelligence processing is not yet wired up —
+                    syncing currently records 0 intelligence updates since there is no live Open
+                    Controls feed connected.
                   </AlertDescription>
                 </Alert>
                 

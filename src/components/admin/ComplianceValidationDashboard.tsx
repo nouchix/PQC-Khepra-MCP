@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileCheck, Shield, CheckCircle, AlertTriangle, RefreshCw, Book } from 'lucide-react';
+import { FileCheck, Shield, AlertTriangle, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ComplianceFramework {
   name: string;
@@ -25,86 +26,64 @@ export const ComplianceValidationDashboard = () => {
   const [frameworks, setFrameworks] = useState<ComplianceFramework[]>([]);
   const [loading, setLoading] = useState(false);
   const [overallCompliance, setOverallCompliance] = useState(0);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   const runComplianceValidation = async () => {
     setLoading(true);
-    
+
     try {
-      // Simulate comprehensive compliance validation
-      const complianceResults: ComplianceFramework[] = [
-        {
-          name: 'CMMC Level 2',
-          version: '2.0',
-          category: 'DoD Cybersecurity',
-          controls_total: 110,
-          controls_passed: 108,
-          controls_failed: 2,
-          controls_not_applicable: 0,
-          compliance_percentage: 98.2,
-          last_assessment: new Date().toISOString(),
-          status: 'COMPLIANT',
-          critical_gaps: ['Multi-Factor Authentication for all admin accounts', 'Incident response plan documentation']
-        },
-        {
-          name: 'NIST Cybersecurity Framework',
-          version: '1.1',
-          category: 'Federal Security Standards',
-          controls_total: 108,
-          controls_passed: 103,
-          controls_failed: 3,
-          controls_not_applicable: 2,
-          compliance_percentage: 95.4,
-          last_assessment: new Date().toISOString(),
-          status: 'COMPLIANT',
-          critical_gaps: ['Continuous monitoring implementation', 'Supply chain risk management', 'Privacy impact assessments']
-        },
-        {
-          name: 'NIST 800-53',
-          version: 'Rev 5',
-          category: 'Security Controls',
-          controls_total: 325,
-          controls_passed: 298,
-          controls_failed: 12,
-          controls_not_applicable: 15,
-          compliance_percentage: 91.7,
-          last_assessment: new Date().toISOString(),
-          status: 'MOSTLY_COMPLIANT',
-          critical_gaps: ['Physical security controls', 'Media sanitization procedures', 'Personnel security screening']
-        },
-        {
-          name: 'DoD SRG',
-          version: '6.0',
-          category: 'DoD Security Requirements',
-          controls_total: 156,
-          controls_passed: 144,
-          controls_failed: 8,
-          controls_not_applicable: 4,
-          compliance_percentage: 92.3,
-          last_assessment: new Date().toISOString(),
-          status: 'MOSTLY_COMPLIANT',
-          critical_gaps: ['STIG compliance validation', 'Vulnerability management automation']
-        },
-        {
-          name: 'FedRAMP Moderate',
-          version: '4.0',
-          category: 'Cloud Security',
-          controls_total: 325,
-          controls_passed: 312,
-          controls_failed: 8,
-          controls_not_applicable: 5,
-          compliance_percentage: 96.0,
-          last_assessment: new Date().toISOString(),
-          status: 'COMPLIANT',
-          critical_gaps: ['Continuous monitoring dashboard', 'Automated security testing']
+      // Real compliance data comes from validation results actually recorded
+      // against the frameworks below — this dashboard never fabricates scores.
+      const { data, error } = await supabase
+        .from('compliance_validation_results')
+        .select('*')
+        .order('validated_at', { ascending: false });
+
+      if (error) throw error;
+
+      const rows: any[] = data || [];
+      const byFramework = new Map<string, any[]>();
+      for (const row of rows) {
+        const key = row.framework_type || 'Unknown';
+        if (!byFramework.has(key)) byFramework.set(key, []);
+        byFramework.get(key)!.push(row);
+      }
+
+      const complianceResults: ComplianceFramework[] = Array.from(byFramework.entries()).map(
+        ([name, results]) => {
+          const passed = results.filter((r) => r.status === 'PASSED').length;
+          const failed = results.filter((r) => r.status === 'FAILED').length;
+          const notApplicable = results.filter((r) => r.status === 'NOT_APPLICABLE').length;
+          const total = results.length;
+          const pct = total > 0 ? Math.round((passed / total) * 1000) / 10 : 0;
+          return {
+            name,
+            version: results[0]?.framework_version || 'N/A',
+            category: results[0]?.category || 'N/A',
+            controls_total: total,
+            controls_passed: passed,
+            controls_failed: failed,
+            controls_not_applicable: notApplicable,
+            compliance_percentage: pct,
+            last_assessment: results[0]?.validated_at || new Date(0).toISOString(),
+            status: pct >= 95 ? 'COMPLIANT' : pct > 0 ? 'MOSTLY_COMPLIANT' : 'NOT_ASSESSED',
+            critical_gaps: results
+              .filter((r) => r.status === 'FAILED')
+              .map((r) => r.findings)
+              .filter(Boolean)
+          };
         }
-      ];
+      );
 
       setFrameworks(complianceResults);
-      
-      // Calculate overall compliance
-      const avgCompliance = complianceResults.reduce((sum, framework) => sum + framework.compliance_percentage, 0) / complianceResults.length;
-      setOverallCompliance(Math.round(avgCompliance));
+      setLastChecked(new Date());
 
+      const avgCompliance =
+        complianceResults.length > 0
+          ? complianceResults.reduce((sum, framework) => sum + framework.compliance_percentage, 0) /
+            complianceResults.length
+          : 0;
+      setOverallCompliance(Math.round(avgCompliance));
     } catch (error) {
       console.error('Error running compliance validation:', error);
     } finally {
@@ -119,7 +98,8 @@ export const ComplianceValidationDashboard = () => {
   const getComplianceStatus = (percentage: number) => {
     if (percentage >= 95) return { status: 'Excellent', color: 'text-green-600', variant: 'default' as const };
     if (percentage >= 90) return { status: 'Good', color: 'text-yellow-600', variant: 'secondary' as const };
-    return { status: 'Needs Improvement', color: 'text-red-600', variant: 'destructive' as const };
+    if (percentage > 0) return { status: 'Needs Improvement', color: 'text-red-600', variant: 'destructive' as const };
+    return { status: 'No Data', color: 'text-muted-foreground', variant: 'outline' as const };
   };
 
   const getStatusColor = (status: string) => {
@@ -127,6 +107,7 @@ export const ComplianceValidationDashboard = () => {
       case 'COMPLIANT': return 'bg-green-100 text-green-800';
       case 'MOSTLY_COMPLIANT': return 'bg-yellow-100 text-yellow-800';
       case 'NON_COMPLIANT': return 'bg-red-100 text-red-800';
+      case 'NOT_ASSESSED': return 'bg-gray-100 text-gray-600';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -139,12 +120,12 @@ export const ComplianceValidationDashboard = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Compliance Validation Dashboard</h1>
           <p className="text-muted-foreground">
-            CMMC, NIST, DoD, and FedRAMP compliance framework validation
+            Live compliance validation results recorded against implemented frameworks
           </p>
         </div>
         <Button onClick={runComplianceValidation} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Run Compliance Validation
+          Refresh
         </Button>
       </div>
 
@@ -158,7 +139,7 @@ export const ComplianceValidationDashboard = () => {
             </Badge>
           </CardTitle>
           <CardDescription>
-            Aggregate compliance across all implemented frameworks
+            Aggregate compliance across frameworks with recorded validation results
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,12 +154,14 @@ export const ComplianceValidationDashboard = () => {
               </div>
             </div>
             <Progress value={overallCompliance} className="h-3" />
-            
-            {overallCompliance < 95 && (
+
+            {frameworks.length === 0 && !loading && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Some compliance gaps detected. Review framework-specific findings and address critical gaps before production deployment.
+                  No compliance validation results have been recorded yet. Run real framework
+                  assessments and store results in compliance_validation_results to populate this
+                  dashboard.
                 </AlertDescription>
               </Alert>
             )}
@@ -213,7 +196,7 @@ export const ComplianceValidationDashboard = () => {
                   </div>
                 </div>
                 <Progress value={framework.compliance_percentage} className="h-2" />
-                
+
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-2 bg-green-50 rounded">
                     <div className="text-lg font-semibold text-green-600">
@@ -234,12 +217,12 @@ export const ComplianceValidationDashboard = () => {
                     <div className="text-xs text-gray-600">N/A</div>
                   </div>
                 </div>
-                
+
                 {framework.critical_gaps.length > 0 && (
                   <div className="mt-4">
                     <h4 className="text-sm font-semibold mb-2 flex items-center">
                       <AlertTriangle className="h-4 w-4 mr-1 text-yellow-500" />
-                      Critical Gaps
+                      Failed Controls
                     </h4>
                     <div className="space-y-1">
                       {framework.critical_gaps.map((gap, gapIndex) => (
@@ -250,7 +233,7 @@ export const ComplianceValidationDashboard = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="text-xs text-muted-foreground">
                   Last Assessment: {new Date(framework.last_assessment).toLocaleString()}
                 </div>
@@ -260,46 +243,32 @@ export const ComplianceValidationDashboard = () => {
         ))}
       </div>
 
-      {/* Compliance Recommendations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Compliance Improvement Recommendations</CardTitle>
-          <CardDescription>
-            Priority actions to achieve full compliance across all frameworks
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Multi-Factor Authentication:</strong> Implement MFA for all administrative accounts to meet CMMC Level 2 requirements.
-              </AlertDescription>
-            </Alert>
-            
-            <Alert>
-              <FileCheck className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Documentation:</strong> Complete incident response plan documentation and privacy impact assessments for NIST compliance.
-              </AlertDescription>
-            </Alert>
-            
-            <Alert>
-              <Book className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Continuous Monitoring:</strong> Implement automated compliance monitoring dashboard for FedRAMP and NIST requirements.
-              </AlertDescription>
-            </Alert>
-            
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>STIG Compliance:</strong> Validate DoD STIG compliance across all systems to meet DoD SRG requirements.
-              </AlertDescription>
-            </Alert>
-          </div>
-        </CardContent>
-      </Card>
+      {frameworks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance Notes</CardTitle>
+            <CardDescription>
+              Derived directly from recorded validation results — no scores are estimated or assumed
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  Framework percentages reflect only controls with a recorded PASSED/FAILED result.
+                </AlertDescription>
+              </Alert>
+              <Alert>
+                <FileCheck className="h-4 w-4" />
+                <AlertDescription>
+                  {lastChecked ? `Last refreshed: ${lastChecked.toLocaleString()}` : 'Not yet refreshed.'}
+                </AlertDescription>
+              </Alert>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
