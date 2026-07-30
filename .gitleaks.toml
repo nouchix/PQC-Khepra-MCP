@@ -1,0 +1,55 @@
+# .gitleaks.toml — KHEPRA secret-scanning configuration
+title = "KHEPRA Comprehensive Secret Scanning Rules"
+
+[[rules]]
+id          = "khepra-license-key"
+description = "KHEPRA License Key (kphr_ prefix)"
+regex       = '''kphr_(com|sov|pha)_[A-Za-z0-9\-_]{20,}'''
+keywords    = ["kphr_"]
+severity    = "CRITICAL"
+
+  [rules.allowlist]
+  regexes     = ['''kphr_sov_your-license-key-here''', '''kphr_com_your-license-key-here''', '''kphr_pha_your-license-key-here''']
+
+[[rules]]
+id          = "cloudflare-user-token"
+description = "Cloudflare API Token (cfut_ prefix)"
+regex       = '''cfut_[A-Za-z0-9\-_]{30,}'''
+keywords    = ["cfut_"]
+severity    = "CRITICAL"
+
+[[rules]]
+id          = "anthropic-api-key"
+description = "Anthropic API Key (sk-ant-api prefix)"
+regex       = '''sk-ant-api[0-9]{2}-[A-Za-z0-9\-_]{40,}'''
+keywords    = ["sk-ant-api"]
+severity    = "CRITICAL"
+
+[[rules]]
+id          = "stripe-secret-key"
+description = "Stripe Live Secret Key"
+regex       = '''sk_live_[0-9a-zA-Z]{24,}'''
+keywords    = ["sk_live_"]
+severity    = "CRITICAL"
+
+[[rules]]
+id          = "supabase-access-token"
+description = "Supabase Access / MCP Token"
+regex       = '''sbp_[a-f0-9]{40}'''
+keywords    = ["sbp_"]
+severity    = "CRITICAL"
+
+[[rules]]
+id          = "hostinger-api-token"
+description = "Hostinger API Token"
+regex       = '''EYKs[A-Za-z0-9]{40,}'''
+keywords    = ["EYKs"]
+severity    = "CRITICAL"
+
+[allowlist]
+paths = [
+  '''.env\.example''',
+  '''\.env\.example\..*''',
+  '''docs/.*''',
+  '''README.*''',
+]

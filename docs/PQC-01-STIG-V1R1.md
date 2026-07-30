@@ -818,7 +818,7 @@ The KHEPRA MCP Server addresses the NSA's identified MCP security gaps as follow
 
 | Mode | Use Case | Network | Key Capability |
 |------|----------|---------|----------------|
-| `community` | Evaluation and open use | Internet-connected | `pqc_stig` + 12 core tools, zero license key required |
+| `community` | Evaluation and open use | Internet-connected | `pqc_stig` + 24 core tools, zero license key required |
 | `sovereign` | Air-gapped / SCIF / on-prem DoD | Fully offline | All 32 tools, zero egress, all KHEPRA Protocol primitives |
 | `ironbank` | FedRAMP / IL4 / IL5 production | Controlled enclave | Iron Bank hardened image, FIPS 140-3 validated crypto path |
 

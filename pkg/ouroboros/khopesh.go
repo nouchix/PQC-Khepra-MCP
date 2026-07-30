@@ -53,7 +53,7 @@ func (rb *RemediationBlade) Strike(heka maat.Heka) error {
 	result, err := remediator.Remediate(heka.Isfet.ID)
 
 	if err != nil {
-		log.Printf("[%q] Remediation FAILED for %q: %v", rb.name, khlog.SanitizeForLog(heka.Isfet.ID), err)
+		log.Printf("[%q] Remediation FAILED for %q: %v", rb.name, khlog.SanitizeForLog(heka.Isfet.ID), khlog.SanitizeForLog(err.Error()))
 		return err
 	}
 

@@ -72,11 +72,19 @@ stripe trigger customer.subscription.deleted
 
 1. Customer completes Stripe Checkout
 2. Stripe fires `checkout.session.completed` webhook
-3. Edge Function generates `KHRPA-XXXX-XXXX-XXXX-XXXX` license key
-4. License JSON is signed with ML-DSA-65 private key
-5. Signed `.adinkhepra` file emailed to customer via Resend
-6. Customer sets `KHEPRA_LICENSE_PATH=/path/to/license.adinkhepra`
+3. Edge Function generates and signs the license with ML-DSA-65 private key
+4. **API key** (`kphr_{tier}_{base64url-payload}`) is emailed to customer via Resend
+   — `.adinkhepra` file is attached for air-gap / SCIF customers
+5. Connected customers: add to `.env`:
+   ```
+   KHEPRA_LICENSE_KEY=kphr_sov_eyJ...
+   ```
+6. Air-gap / SCIF customers: transfer `.adinkhepra` via approved media, then:
+   ```
+   KHEPRA_LICENSE_PATH=/etc/khepra/license.adinkhepra
+   ```
 7. `khepra-mcp` validates signature against embedded public key at startup
+   — `KHEPRA_LICENSE_KEY` is checked first; `KHEPRA_LICENSE_PATH` is the fallback
 
 ## Air-Gap / SCIF Delivery
 

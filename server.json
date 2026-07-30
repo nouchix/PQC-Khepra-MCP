@@ -74,6 +74,22 @@
     {
       "name": "agent_record",
       "description": "Send AI agent tool calls and outputs to the SouHimBou AI Flight Recorder for tamper-evident capture with DAG-anchored PQC attestation."
+    },
+    {
+      "name": "scan_shadow_ai",
+      "description": "Discover unapproved AI services, agents, LLMs, and vector DBs across target CIDRs."
+    },
+    {
+      "name": "attest_ai_policy",
+      "description": "Evaluate discovered AI findings against governance policy, returning verdicts and postures."
+    },
+    {
+      "name": "linux_hardening_check",
+      "description": "Run real-time Linux host hardening checks against Trimstray Practical Hardening & DISA RHEL rules."
+    },
+    {
+      "name": "stig_live_query",
+      "description": "Query the live DISA STIG Viewer API v2 for updated benchmarks, CCIs, and fix texts."
     }
   ]
 }

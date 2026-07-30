@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Shield, Mail, ChevronRight, Linkedin, Twitter, Github } from 'lucide-react';
+import { Shield, Mail, ChevronRight, Globe, MessageSquare, Code } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from '@/lib/router-compat';
 
@@ -154,13 +154,13 @@ export const FooterConversion = () => {
             </div>
             <div className="flex items-center gap-4">
               <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#00ffff] transition-colors">
-                <Linkedin className="h-5 w-5" />
+                <Globe className="h-5 w-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-[#00ffff] transition-colors">
-                <Twitter className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-[#00ffff] transition-colors">
-                <Github className="h-5 w-5" />
+                <Code className="h-5 w-5" />
               </a>
             </div>
           </div>

@@ -1,34 +1,26 @@
 # Git line ending normalization for cross-platform development
 # Ensures shell scripts and Go files always use LF in the repo
 # regardless of OS (prevents bash "bad interpreter" errors on Linux CI)
-
 # Default: normalize all text files to LF on commit
 * text=auto eol=lf
-
 # Shell scripts: always LF (bash fails on CRLF)
 *.sh text eol=lf
-
 # Go source: LF
 *.go text eol=lf
-
 # YAML/JSON/TOML: LF
 *.yml text eol=lf
 *.yaml text eol=lf
 *.json text eol=lf
 *.toml text eol=lf
-
 # Markdown: LF
 *.md text eol=lf
-
 # Dockerfiles: LF
 Dockerfile text eol=lf
 Dockerfile.* text eol=lf
 Makefile text eol=lf
 Makefile.* text eol=lf
-
 # CSV data files: LF (STIG/CCI databases)
-*.csv text eol=lf
-
+*.csv filter=lfs diff=lfs merge=lfs -text
 # Binary files: no line ending conversion
 *.exe binary
 *.dll binary
@@ -40,8 +32,10 @@ Makefile.* text eol=lf
 *.ico binary
 *.pdf binary
 *.mp4 binary
-*.tar.gz binary
+*.tar.gz filter=lfs diff=lfs merge=lfs -text
 *.zip binary
-
 # Public key files: binary
 *.pub binary
+khepra-mcp filter=lfs diff=lfs merge=lfs -text
+go/bin/* filter=lfs diff=lfs merge=lfs -text
+go/pkg/tool/darwin_arm64/* filter=lfs diff=lfs merge=lfs -text
