@@ -26,7 +26,7 @@ const (
 	// HardenedServerName identifies this server in the MCP `initialize` response.
 	HardenedServerName = "khepra-mcp"
 	// HardenedServerVersion is the current server version.
-	HardenedServerVersion = "1.0.0"
+	HardenedServerVersion = "2.0.0"
 	// ProtocolVersion is the latest MCP protocol version we implement.
 	ProtocolVersion = "2024-11-05"
 	// ProtocolVersionLatest is the most recent version we fully support.
