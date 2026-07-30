@@ -109,7 +109,8 @@ export const STIGRemediationCenter: React.FC<STIGRemediationCenterProps> = ({
       setLoading(true);
       setRemediationProgress(prev => ({ ...prev, [findingId]: 0 }));
 
-      // Simulate progress
+      // Animate a loading bar while the real orchestrator call below is in flight;
+      // the actual result/status comes from that call's response, not from this timer.
       const progressInterval = setInterval(() => {
         setRemediationProgress(prev => ({
           ...prev,

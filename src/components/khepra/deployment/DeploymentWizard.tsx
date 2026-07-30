@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Shield, ChevronLeft, ChevronRight, CheckCircle, Loader2, Brain } from 'lucide-react';
+import { Sparkles, Shield, ChevronLeft, ChevronRight, CheckCircle, Loader2, Brain, AlertCircle } from 'lucide-react';
 import { AdinkraSymbolDisplay } from '../AdinkraSymbolDisplay';
 import { EnvironmentDetection } from './EnvironmentDetection';
 import { DeploymentVectorSelector } from './DeploymentVectorSelector';
@@ -400,35 +400,28 @@ function ConfigurationStep({ data, onDataChange }: any) {
 }
 
 function VerificationStep({ data, onDataChange }: any) {
-  const [verificationStatus, setVerificationStatus] = useState({
+  // No real verification backend is wired up yet for agent registry,
+  // cryptographic validation, cultural alignment, or network security. This
+  // used to fake each check with a timed delay and flip every status to
+  // "Verified" regardless of actual state. Report the honest, unverified
+  // state instead of a fabricated pass.
+  const verificationStatus = {
     agentRegistry: false,
     cryptographicValidation: false,
     culturalAlignment: false,
     networkSecurity: false
-  });
+  };
 
   useEffect(() => {
-    // Simulate verification process
-    const verifySteps = async () => {
-      const steps = Object.keys(verificationStatus);
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setVerificationStatus(prev => ({
-          ...prev,
-          [steps[i]]: true
-        }));
-      }
-      onDataChange({ verified: true });
-    };
-    verifySteps();
+    onDataChange({ verified: false, reason: 'verification_not_implemented' });
   }, [onDataChange]);
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-xl font-bold mb-4">Verifying KHEPRA Protocol Deployment</h3>
+        <h3 className="text-xl font-bold mb-4">KHEPRA Protocol Verification</h3>
         <p className="text-muted-foreground">
-          Performing final security validation and cultural alignment checks
+          Automated verification is not yet implemented — these checks have not been performed.
         </p>
       </div>
 
@@ -436,21 +429,15 @@ function VerificationStep({ data, onDataChange }: any) {
         {Object.entries(verificationStatus).map(([key, status]) => (
           <div
             key={key}
-            className={`flex items-center space-x-3 p-4 rounded-lg border ${
-              status ? 'border-green-500/20 bg-green-500/5' : 'border-border'
-            }`}
+            className="flex items-center space-x-3 p-4 rounded-lg border border-border"
           >
-            {status ? (
-              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-            ) : (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
-            )}
+            <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
             <div className="flex-1">
               <div className="font-medium text-sm sm:text-base">
                 {key.split(/(?=[A-Z])/).join(' ')}
               </div>
               <div className="text-xs text-muted-foreground">
-                {status ? 'Verified' : 'Verifying...'}
+                {status ? 'Verified' : 'Not available'}
               </div>
             </div>
           </div>
