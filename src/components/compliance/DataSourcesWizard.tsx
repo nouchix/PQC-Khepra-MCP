@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { EnvironmentSelectionStep } from './wizard-steps/EnvironmentSelectionStep';
 import { ConnectionMethodStep } from './wizard-steps/ConnectionMethodStep';
@@ -100,32 +101,32 @@ export const DataSourcesWizard: React.FC<DataSourcesWizardProps> = ({
   const handleFinish = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual STIG-Connector integration
-      // await STIGConnectorService.configureDataSources(organizationId, wizardData);
-      
-      // TODO: Store configuration in Supabase
-      // await supabase.from('data_source_configurations').insert({
-      //   organization_id: organizationId,
-      //   environments: wizardData.environments,
-      //   use_cases: wizardData.useCases,
-      //   connection_methods: wizardData.connectionMethods,
-      //   connection_details: wizardData.connectionDetails,
-      //   scanning_config: wizardData.scanningConfig
-      // });
-      
-      // Simulate deployment with GitHub/Supabase integration
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Data Sources Connected Successfully",
-        description: `Connected ${wizardData.environments.length} environment types across ${wizardData.useCases.length} use cases. STIG-Connector is now active.`,
+      // Persist the configuration to the real data_source_configurations
+      // table. There is no STIG-Connector deployment service wired up yet,
+      // so we store the configuration for later use rather than fabricating
+      // a "STIG-Connector is now active" claim.
+      const { error } = await supabase.from('data_source_configurations').insert({
+        organization_id: organizationId,
+        environments: wizardData.environments,
+        use_cases: wizardData.useCases,
+        connection_methods: wizardData.connectionMethods,
+        connection_details: wizardData.connectionDetails,
+        scanning_config: wizardData.scanningConfig
       });
-      
+
+      if (error) throw error;
+
+      toast({
+        title: "Data Source Configuration Saved",
+        description: `Saved configuration for ${wizardData.environments.length} environment types across ${wizardData.useCases.length} use cases. Live scanning is not yet wired up to this configuration.`,
+      });
+
       onClose();
     } catch (error) {
+      console.error('Failed to save data source configuration:', error);
       toast({
-        title: "Deployment Failed", 
-        description: "Failed to configure data sources. Please try again.",
+        title: "Save Failed",
+        description: "Failed to save data source configuration. Please try again.",
         variant: "destructive"
       });
     } finally {
