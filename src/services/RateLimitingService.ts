@@ -86,6 +86,9 @@ class RateLimitingService {
     }
 
     try {
+      // No persisted API-usage log table/query is wired up yet, so real hourly/daily
+      // usage counts cannot be computed. Until that integration exists this honestly
+      // reports zero observed usage (fail-open) rather than fabricating counts.
       const usageData: any[] = [];
 
       const now = new Date();
@@ -166,7 +169,9 @@ class RateLimitingService {
     limitType: string
   ) {
     try {
-      // Mock implementation until tables are available
+      // No dedicated rate-limit-hit table/endpoint exists yet, so this cannot persist
+      // to a real backend. Logging for visibility until that storage is available,
+      // rather than silently pretending the hit was recorded somewhere.
       console.log('Recording rate limit hit:', {
         organizationId,
         apiProvider,

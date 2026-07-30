@@ -144,7 +144,7 @@ func TestProtectUnprotectLicense(t *testing.T) {
 	// Create test license
 	license := &License{
 		ID:        "pharaoh-001",
-		Tier:      TierOsiris,
+		Tier:      TierSovereign,
 		NodeQuota: -1,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().AddDate(1, 0, 0),
@@ -152,8 +152,7 @@ func TestProtectUnprotectLicense(t *testing.T) {
 			"all-features",
 			"air-gap-licensing",
 		},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	// Protect license for storage
@@ -404,9 +403,9 @@ func TestProtectUnprotectConfig(t *testing.T) {
 	keys, _ := GenerateProtectionKeys("Eban")
 
 	configData := map[string]interface{}{
-		"api_key":      "secret-api-key-12345",
-		"db_password":  "super-secret-password",
-		"vault_token":  "hvs.XXXXXXXX",
+		"api_key":       "secret-api-key-12345",
+		"db_password":   "super-secret-password",
+		"vault_token":   "hvs.XXXXXXXX",
 		"feature_flags": []string{"air-gap", "telemetry"},
 	}
 

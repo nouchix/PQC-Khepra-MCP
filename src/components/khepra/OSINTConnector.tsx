@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { Separator } from '@/components/ui/separator';
 import { Globe, Database, Shield, Activity, AlertTriangle, CheckCircle, Clock, Network, Zap, Eye } from 'lucide-react';
-import { AdinkraAlgebraicEngine } from '@/khepra/aae/AdinkraEngine';
+import { useToast } from '@/hooks/use-toast';
 
 interface OSINTSource {
   id: string;
@@ -30,6 +30,7 @@ interface OSINTFeed {
 }
 
 export const OSINTConnector = () => {
+  const { toast } = useToast();
   const [sources, setSources] = useState<OSINTSource[]>([]);
   const [feeds, setFeeds] = useState<OSINTFeed[]>([]);
   const [syncingAll, setSyncingAll] = useState(false);
@@ -166,50 +167,34 @@ export const OSINTConnector = () => {
   };
 
   const handleSyncSource = async (sourceId: string) => {
-    setSources(prev => prev.map(s => 
-      s.id === sourceId ? { ...s, status: 'syncing' } : s
+    // No real OSINT feed synchronization backend is wired up yet — this used
+    // to fake a 2-second delay and then report a successful sync with a
+    // generated fingerprint. Report an honest failure instead of pretending
+    // the feed was refreshed.
+    setSources(prev => prev.map(s =>
+      s.id === sourceId ? { ...s, status: 'error' } : s
     ));
 
-    // Simulate sync process with KHEPRA protocol
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const source = sources.find(s => s.id === sourceId);
-    if (source) {
-      // Generate KHEPRA fingerprint for the sync
-      const fingerprint = AdinkraAlgebraicEngine.generateFingerprint(
-        `${sourceId}-${Date.now()}`,
-        [source.khepraMapping]
-      );
-
-      // Update feed data
-      setFeeds(prev => [
-        ...prev.filter(f => f.source !== sourceId),
-        {
-          source: sourceId,
-          indicators: [], // Real indicators come from the OSINT feed response
-          lastUpdate: new Date(),
-          khepraFingerprint: fingerprint
-        }
-      ]);
-
-      setSources(prev => prev.map(s => 
-        s.id === sourceId ? { 
-          ...s, 
-          status: 'active', 
-          lastSync: new Date(),
-          records: s.records // Real record count requires feed response metadata
-        } : s
-      ));
-    }
+    toast({
+      title: "Sync Not Available",
+      description: "Live OSINT feed synchronization is not yet implemented — source data was not refreshed.",
+      variant: "destructive"
+    });
   };
 
   const handleSyncAll = async () => {
     setSyncingAll(true);
-    
-    for (const source of sources) {
-      await handleSyncSource(source.id);
-    }
-    
+
+    // No real OSINT feed synchronization backend is wired up yet. Mark all
+    // sources as failed and report a single honest notice instead of faking
+    // a successful sync of every source.
+    setSources(prev => prev.map(s => ({ ...s, status: 'error' })));
+    toast({
+      title: "Sync Not Available",
+      description: "Live OSINT feed synchronization is not yet implemented — no sources were refreshed.",
+      variant: "destructive"
+    });
+
     setSyncingAll(false);
   };
 

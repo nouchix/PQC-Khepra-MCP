@@ -30,7 +30,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Build khepra-mcp binary
@@ -126,7 +126,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: 'go.mod'
           cache: true
 
       - name: go vet
@@ -134,11 +134,18 @@ jobs:
 
       - name: Check for hardcoded secrets
         run: |
-          # Scan source for patterns that shouldn't be committed
+          # Scan source for secret VALUES that shouldn't be committed.
+          # Patterns require actual key material after the prefix so that
+          # legitimate references (os.Getenv("KHEPRA_LICENSE_KEY"), doc
+          # comments like "sk_live...", detection-pattern strings such as
+          # "ghp_") do not trip the gate. Test files are excluded: they
+          # carry deliberately fake fixture keys (e.g. AWS's documented
+          # AKIAIOSFODNN7EXAMPLE) that TruffleHog already vets separately.
           if grep -rn --include="*.go" \
-            -E "(KHEPRA_LICENSE_KEY|sk_live_|ghp_|AKIA[A-Z0-9]{16})" \
+            -E "(KHEPRA_LICENSE_KEY[[:space:]]*[:=][[:space:]]*\"[^\"]{8,}\"|sk_[l]ive_[A-Za-z0-9]{8,}|ghp_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})" \
             --exclude-dir=vendor \
             --exclude-dir=.git \
+            --exclude="*_test.go" \
             . ; then
             echo "::error::Potential hardcoded secret found in source code."
             exit 1
