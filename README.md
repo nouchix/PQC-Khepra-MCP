@@ -635,9 +635,9 @@ docker load < khepra-mcp.tar.gz
 
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
-| Community | Free | Not required | `pqc_stig` + 12 core tools |
-| Sovereign | Annual flat fee | Required | All 34 tools, air-gap, on-prem |
-| Pharaoh | Annual flat fee | Required | All 34 tools + priority support + SLA |
+| Community | Free | Not required | `pqc_stig` + 24 core tools |
+| Sovereign | Annual flat fee | Required | All 72 tools, air-gap, on-prem |
+| Pharaoh | Annual flat fee | Required | All 72 tools + priority support + SLA |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
 - Sovereign/Pharaoh: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
