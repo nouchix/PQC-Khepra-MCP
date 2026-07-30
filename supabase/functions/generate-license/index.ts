@@ -65,7 +65,8 @@ async function sendLicenseEmail(
   licenseKey: string,
   tier: string,
   expiresAt: string,
-  licenseFileContent: string
+  licenseFileContent: string,
+  envApiKey: string
 ): Promise<void> {
   if (!RESEND_API_KEY) return; // skip if not configured
 
@@ -83,11 +84,14 @@ async function sendLicenseEmail(
         <h2>KHEPRA MCP License Issued</h2>
         <p>Thank you for your purchase. Your license details:</p>
         <ul>
-          <li><strong>License Key:</strong> ${licenseKey}</li>
+          <li><strong>License Key ID:</strong> ${licenseKey}</li>
           <li><strong>Tier:</strong> ${tier}</li>
           <li><strong>Expires:</strong> ${expiresAt}</li>
         </ul>
-        <p>Save the attached <code>.adinkhepra</code> file and set its path via:</p>
+        <h3>Instant Setup (.env):</h3>
+        <p>Copy and paste the following line into your <code>.env</code> file:</p>
+        <pre style="background: #1e1e1e; color: #4af626; padding: 12px; border-radius: 6px;">KHEPRA_LICENSE_KEY=${envApiKey}</pre>
+        <p>Or save the attached <code>.adinkhepra</code> file and set its path via:</p>
         <pre>KHEPRA_LICENSE_PATH=/path/to/license.adinkhepra</pre>
         <p>Support: <a href="mailto:support@nouchix.com">support@nouchix.com</a></p>
       `,
@@ -188,6 +192,16 @@ Deno.serve(async (req: Request) => {
         const signature = await signPayload(payload, signingKeyB64);
         const licenseFile = JSON.stringify({ ...payload, signature }, null, 2);
 
+        // Encode as KHEPRA_LICENSE_KEY (kphr_{tier}_{base64url}) for .env
+        const tierSlug = tier.toLowerCase().startsWith("pha") || tier.toLowerCase() === "enterprise"
+          ? "pha"
+          : tier.toLowerCase().startsWith("com")
+          ? "com"
+          : "sov";
+        const base64UrlPayload = btoa(licenseFile)
+          .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const envApiKey = `kphr_${tierSlug}_${base64UrlPayload}`;
+
         // Upsert license record
         const { error } = await supabase.from("licenses").upsert(
           {
@@ -214,7 +228,7 @@ Deno.serve(async (req: Request) => {
         });
 
         // Email license to customer
-        await sendLicenseEmail(customerEmail, licenseKey, tier, expiresAt, licenseFile);
+        await sendLicenseEmail(customerEmail, licenseKey, tier, expiresAt, licenseFile, envApiKey);
         break;
       }
 
@@ -246,7 +260,7 @@ Deno.serve(async (req: Request) => {
     }
   } catch (err) {
     console.error("License generation error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: "Internal server error during license generation" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
