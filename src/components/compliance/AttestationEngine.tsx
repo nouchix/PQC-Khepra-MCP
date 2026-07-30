@@ -79,7 +79,7 @@ export const AttestationEngine: React.FC = () => {
   };
 
   useEffect(() => {
-    // Simulate real-time attestation updates
+    // Periodically re-run the real attestation refresh
     const interval = setInterval(refreshAttestations, 30000);
 
     return () => clearInterval(interval);
@@ -150,6 +150,11 @@ export const AttestationEngine: React.FC = () => {
       const frameworkAttestations = attestations.filter(att => att.framework === framework);
       const compliantCount = frameworkAttestations.filter(att => att.status === 'compliant').length;
 
+      // No backend exists yet to actually assemble and store a downloadable
+      // evidence package archive, so we don't fabricate a working-looking
+      // downloadUrl (that would 404). The package metadata below is derived
+      // from real in-memory attestation state, but it isn't persisted or
+      // exportable until a real package generation service is wired up.
       const newPackage: EvidencePackage = {
         id: `pkg-${Date.now()}`,
         name: `${framework} Compliance Package - ${new Date().toLocaleDateString()}`,
@@ -159,18 +164,15 @@ export const AttestationEngine: React.FC = () => {
         totalControls: frameworkAttestations.length,
         compliantControls: compliantCount,
         packageHash: `sha256:package:${crypto.randomUUID().replace(/-/g, '')}`,
-        downloadUrl: `/downloads/${framework.toLowerCase().replaceAll(' ', '-')}-${Date.now()}.zip`,
+        downloadUrl: undefined,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90)
       };
-
-      // Simulate package generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
 
       setEvidencePackages(prev => [...prev, newPackage]);
 
       toast({
-        title: "Evidence Package Generated",
-        description: `${framework} compliance package is ready for download`,
+        title: "Evidence Package Metadata Created",
+        description: `${framework} package metadata was generated, but downloadable export is not yet implemented.`,
       });
 
     } catch (error) {

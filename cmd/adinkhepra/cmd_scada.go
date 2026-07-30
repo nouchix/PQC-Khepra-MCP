@@ -104,16 +104,11 @@ func invokeMmereDane() {
 	pod := adinkra.NewAkokoNanPod("Fuzz-Target")
 
 	fmt.Println("Testing the flow of Oracle Register 40001 (Energy Setpoint)...")
-	merit, burden := pod.MmereDane("oracle-prime")
-
-	fmt.Printf("\nRitual Results (Trade-off Logic):\n")
-	fmt.Printf("   - Spirit Merit: %.2f (Security)\n", merit)
-	fmt.Printf("   - Vessel Burden: %.2f (Stability Impact)\n", burden)
-
-	if merit > burden {
-		fmt.Println("\n[DECISION] Akofena (Surgical Response) APPROVED. Correcting local flow.")
-	} else {
-		fmt.Println("\n[DECISION] Action REJECTED. Potential harm to the Sanctuary detected.")
+	_, _, err := pod.MmereDane("oracle-prime")
+	if err != nil {
+		fmt.Printf("\n[ERROR] %v\n", err)
+		fmt.Println("No APPROVED/REJECTED decision was made — do not treat this as a real safety verdict.")
+		return
 	}
 }
 
