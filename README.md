@@ -26,14 +26,17 @@ The only MCP compliance server that runs on your metal — with the **World's Fi
 
 ## Tiers
 
-| Tier | License Key | Tools | Telemetry | Egress |
-|------|-------------|-------|-----------|--------|
-| **Community** | ❌ Not required | `pqc_stig` + 12 core tools | Opt-in Dark Crypto Intel | Zero (sovereign mode) |
-| **Sovereign** | ✅ Required | All 72 tools | Zero | Zero |
-| **Pharaoh** | ✅ Required | All 72 tools + priority support + SLA | Zero | Zero |
+| Tier | Price | License Key | Tools | Continuous Compliance Scanning | Egress |
+|------|-------|-------------|-------|---------------------------------|--------|
+| **Community** | Free | ❌ Not required | `pqc_stig` + 12 core tools | — | Zero (sovereign mode) |
+| **Pro** | $19/mo | ✅ Required | Compliance reporting, ACP, NHI inventory | ✅ | Zero |
+| **Enterprise** | $499/mo | ✅ Required | All 76 tools | ✅ | Zero |
+| **Sovereign** | Custom — [Contact Sales](https://khepra.nouchix.com) | ✅ Required | All 76 tools + air-gap/offline licensing + HSM | ✅ | Zero |
 
 > **Community tier is free.** Run `pqc_stig` to assess your project's quantum readiness against  
 > **PQC-01-STIG-V1R1** — the World's First DoD-style Post-Quantum Cryptography STIG — no license key needed.
+>
+> **Continuous compliance scanning (autopilot) is included in every paid tier** — it's core to the product, not an upsell.
 
 ---
 
@@ -217,7 +220,7 @@ Config file location:
 }
 ```
 
-#### Sovereign / Pharaoh tier (with license key)
+#### Pro / Enterprise / Sovereign tier (with license key)
 
 ```json
 {
@@ -519,7 +522,7 @@ Contribute anonymized cryptographic algorithm telemetry to the SouHimBou AI Dark
 
 ---
 
-### Sovereign / Pharaoh Tier
+### Pro / Enterprise / Sovereign Tier
 
 #### `ert_scan`
 Enterprise Risk & Threat scan across STIG, NIST 800-53, NIST 800-171, CMMC, and FedRAMP. Returns Godfather Report with dollar-denominated business impact.
@@ -577,7 +580,7 @@ Set via `KHEPRA_MODE` environment variable. Unknown values are rejected at start
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `KHEPRA_LICENSE_KEY` | Sovereign/Pharaoh only | — | License key. Community tier runs without one. Get at [nouchix.com](https://nouchix.com) |
+| `KHEPRA_LICENSE_KEY` | Pro/Enterprise/Sovereign only | — | License key. Community tier runs without one. Get at [nouchix.com](https://nouchix.com) |
 | `KHEPRA_MODE` | No | `sovereign` | Deployment mode: `sovereign`, `ironbank`, `hybrid`, `edge` |
 | `KHEPRA_MANIFEST_PATH` | No | `manifest.json` | Path to signed tool manifest file |
 | `KHEPRA_HOME` | No | `/var/lib/khepra` | Data and compliance DB directory |
@@ -625,16 +628,18 @@ docker load < khepra-mcp.tar.gz
 
 ## Licensing
 
-**Flat annual licensing — no per-token or per-query charges.**
+**No per-token or per-query charges on any paid tier.**
 
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
 | Community | Free | Not required | `pqc_stig` + 12 core tools |
-| Sovereign | Annual flat fee | Required | All 34 tools, air-gap, on-prem |
-| Pharaoh | Annual flat fee | Required | All 34 tools + priority support + SLA |
+| Pro | $19/mo | Required | Compliance reporting, ACP, NHI inventory, autopilot |
+| Enterprise | $499/mo | Required | All 76 tools, autopilot |
+| Sovereign | Custom — Contact Sales | Required | All 76 tools + air-gap/offline licensing + HSM, autopilot |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
-- Sovereign/Pharaoh: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+- Pro/Enterprise: self-serve billing
+- Sovereign: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
 
 ---
 
