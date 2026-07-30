@@ -89,7 +89,6 @@ Start watching: adinkhepra watch
 Run your first CMMC assessment: adinkhepra compliance scan --framework CMMC_L2`)
 }
 
-
 func main() {
 	if len(os.Args) < 2 {
 		usage()
@@ -761,6 +760,14 @@ func secureDelete(path string) (retErr error) {
 
 // ... existing keygenCmd ...
 
+// crackCmd previously ran a scripted time.Sleep narrative ("BKZ reduction",
+// "SVP solver", a meaningless time.Now()-derived "entropy" number) that
+// always concluded "CRACKING FAILED / QUANTUM RESISTANCE VERIFIED" —
+// regardless of the target file's contents, or whether it even existed.
+// That fabricated a specific, false security guarantee. There is no real
+// lattice-reduction cryptanalysis engine in this codebase (building one is
+// a research-grade undertaking, not something to fake), so this command
+// honestly reports that instead of performing theater.
 func crackCmd(args []string) {
 	if len(args) < 1 {
 		fmt.Println("Error: missing public key path")
@@ -768,49 +775,29 @@ func crackCmd(args []string) {
 	}
 	target := args[0]
 
-	fmt.Printf("\n[AGI] INITIATING CRYPTANALYSIS ON: %s\n", target)
-	time.Sleep(500 * time.Millisecond)
-
-	fmt.Println("[AGI] ANALYZING LATTICE STRUCTURE...")
-	fmt.Println("      Type: Module-Lattice (Dilithium Mode 3)")
-	fmt.Println("      Dimension: 2464 degrees of freedom")
-	time.Sleep(800 * time.Millisecond)
-
-	fmt.Println("\n[ATTACK] Starting Basis Reduction (BKZ Algorithm)...")
-
-	// Simulation Loop
-	reductionAttempts := 5
-	for i := 0; i < reductionAttempts; i++ {
-		time.Sleep(600 * time.Millisecond)
-		entropy := time.Now().UnixNano() % 1000
-		fmt.Printf("      [BKZ-%d] Reduction Delta: 1.05... [FAIL] | Residual Entropy: %d bits\n", i*10+20, entropy)
+	if _, err := os.Stat(target); err != nil {
+		fmt.Printf("Error: cannot read target key file %q: %v\n", target, err)
+		return
 	}
 
-	time.Sleep(500 * time.Millisecond)
-	fmt.Println("\n[ATTACK] Attempting Shortest Vector Problem (SVP) solver...")
-	time.Sleep(1000 * time.Millisecond)
-	fmt.Println("      [SVP] Evolving Lattice Basis... ")
-	time.Sleep(800 * time.Millisecond)
-	fmt.Println("      [SVP] ORTHOGONALIZATION FAILED. Basis too oblique.")
-
-	fmt.Println("\n" + `===============================================================
- CRITICAL ALERT: CRACKING FAILED
-===============================================================`)
-	fmt.Println(" ANALYSIS : The Shortest Vector Problem appears computationally infeasible.")
-	fmt.Println(" OUTCOME  : Private Key remains mathematically SECURE.")
-	fmt.Println(" STATUS   : QUANTUM RESISTANCE VERIFIED.")
-	fmt.Println("===============================================================")
+	fmt.Println("\n[adinkhepra] Automated cryptanalysis is not implemented.")
+	fmt.Printf("No lattice-reduction (BKZ/SVP) attack was run against %q.\n", target)
+	fmt.Println("This command previously printed a scripted, fabricated attack narrative")
+	fmt.Println("that always claimed success ('QUANTUM RESISTANCE VERIFIED') regardless of")
+	fmt.Println("the target. Real cryptanalytic assurance for ML-DSA-65 comes from NIST's")
+	fmt.Println("published security proofs, not from a fake local attack simulation.")
 }
 
 // asafAPIURL returns the ASAF gateway URL from env or the local sovereign default.
 //
 // Priority:
-//   1. ASAF_API_URL env var (explicit override — use for cloud SaaS)
-//   2. Local agent on port 45444 (sovereign default — no cloud, no key required)
+//  1. ASAF_API_URL env var (explicit override — use for cloud SaaS)
+//  2. Local agent on port 45444 (sovereign default — no cloud, no key required)
 //
 // To use the cloud SaaS (Profile A):
-//   export ASAF_API_URL=https://agent.souhimbou.ai
-//   export ASAF_API_KEY=<your-key>
+//
+//	export ASAF_API_URL=https://agent.souhimbou.ai
+//	export ASAF_API_KEY=<your-key>
 func asafAPIURL() string {
 	if v := os.Getenv("ASAF_API_URL"); v != "" {
 		return strings.TrimRight(v, "/")
@@ -857,10 +844,10 @@ type scanStatusResp struct {
 
 // licenseStatus is the minimal shape of GET /api/v1/license/status.
 type licenseStatus struct {
-	Valid      bool   `json:"valid"`
+	Valid       bool   `json:"valid"`
 	LicenseTier string `json:"license_tier"`
-	LicenseID  string `json:"license_id"`
-	ExpiresAt  string `json:"expires_at"`
+	LicenseID   string `json:"license_id"`
+	ExpiresAt   string `json:"expires_at"`
 }
 
 // stripeCheckoutSession is what Stripe returns on session creation.
@@ -872,9 +859,9 @@ type stripeCheckoutSession struct {
 // scanCmd runs a scan (mode="full") or a full certify flow (mode="certify").
 func scanCmd(args []string, mode string) {
 	fs := flag.NewFlagSet(mode, flag.ExitOnError)
-	target  := fs.String("target", "", "Target host or IP to scan")
+	target := fs.String("target", "", "Target host or IP to scan")
 	profile := fs.String("profile", "", "Scan profile (e.g. nemoclaw)")
-	apiKey  := fs.String("api-key", os.Getenv("ASAF_API_KEY"), "ASAF API key (or set ASAF_API_KEY)")
+	apiKey := fs.String("api-key", os.Getenv("ASAF_API_KEY"), "ASAF API key (or set ASAF_API_KEY)")
 	fs.Parse(args)
 
 	if *target == "" {
@@ -903,7 +890,9 @@ func scanCmd(args []string, mode string) {
 			fmt.Fprintf(os.Stderr, "    .\\adinkhepra-windows-amd64.exe scan --target %s\n\n", *target)
 			os.Exit(1)
 		}
-		if healthResp.Body != nil { healthResp.Body.Close() }
+		if healthResp.Body != nil {
+			healthResp.Body.Close()
+		}
 	}
 
 	// ── Step 1: Run the compliance scan ──────────────────────────────────────
@@ -1219,12 +1208,12 @@ func keygenCmd(args []string) {
 	// 3. Standard Compatibility Keys (Ed25519 - Maximum Portability)
 	stdPrivPath := *out + "_ed25519"
 	stdPubPath := *out + "_ed25519.pub"
-	
+
 	// Generate Ed25519 Keypair
 	edPub, edPriv, err := ed25519.GenerateKey(rand.Reader)
 	if err == nil {
 		// Write Private Key (OpenSSH Format)
-		// We use the util.WriteOpenSSHPrivateKey helper if available, 
+		// We use the util.WriteOpenSSHPrivateKey helper if available,
 		// otherwise we manually marshal to PKCS8 as it's universally accepted.
 		edPrivBytes, _ := x509.MarshalPKCS8PrivateKey(edPriv)
 		block := &pem.Block{Type: "PRIVATE KEY", Bytes: edPrivBytes}
@@ -1235,7 +1224,7 @@ func keygenCmd(args []string) {
 		if err == nil {
 			pubLine := ssh.MarshalAuthorizedKey(sshPub)
 			pubLine = bytes.TrimSpace(pubLine)
-			
+
 			// Strictly one-word or email comment for Hostinger panel
 			// We strip the eban: and nkyinkyim: markers for the raw .pub file
 			cleanComment := *comment
@@ -1334,9 +1323,10 @@ func explainCmd(args []string) {
 		fmt.Printf("   - Matter (Data):   %d bytes\n", size-1592)
 		fmt.Println(" Meaning: 'Reality bent into a riddle.'")
 	}
-	// AGI Semantic Analysis Layer
-	fmt.Printf("\n[AGI] SOUHIMBOU ARCHITECT INTERVENTION...\n")
-	time.Sleep(600 * time.Millisecond) // Simulate cognitive processing
+	// Heuristic explanation based on artifact size/extension (no live AI inference is
+	// performed here; the fake processing delay previously used to imply real-time
+	// "cognitive processing" has been removed).
+	fmt.Printf("\n[EXPLAIN] Heuristic size-based analysis:\n")
 
 	if size == 1568 {
 		fmt.Println(" \"This is a Vessel of Silence. A pure Kyber-1024 geometric lattice designed")

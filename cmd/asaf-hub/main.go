@@ -1,4 +1,4 @@
-// ASAF Stargate Hub — The Unification Binary
+﻿// ASAF Stargate Hub — The Unification Binary
 //
 // "Take the skin and muscles of the CMMC Graph UI and bolt it on the skeleton
 //  and nervous system of the PQC-Khepra-MCP Server."
@@ -39,9 +39,10 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/fleet"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/hub"
+	stargate "github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/stargate"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/scanner"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/policy"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
@@ -293,19 +294,28 @@ func main() {
 	setupStargateUI(mux, logger)
 
 	// Fleet Manager REST API
-	hub.NewFleetHandlers(fleetRegistry).Register(mux)
+	stargate.NewFleetHandlers(fleetRegistry).Register(mux)
 
 	// Fleet Scanner (trigger + SSE progress + last results)
-	hub.NewFleetScanHandlers(fleetScanner).Register(mux)
+	stargate.NewFleetScanHandlers(fleetScanner).Register(mux)
 
 	// KASA status
-	hub.NewKASAHandlers().Register(mux)
+	stargate.NewKASAHandlers().Register(mux)
 
 	// Imhotep remediation approval
-	hub.NewImhotepHandlers().Register(mux)
+	stargate.NewImhotepHandlers().Register(mux)
 
 	// Blackhole VPN
-	hub.NewBlackholeHandlers(hubExtAddr).Register(mux)
+	ebg := policy.NewEgressBoundaryGuard(
+		[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
+		dagStore,
+		nil,
+		nil,
+		nil,
+		keyID,
+		privKey,
+	)
+	stargate.NewBlackholeHandlers(hubExtAddr, ebg).Register(mux)
 
 	// Health (Hub-level — MCP has its own at :8444/health)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
@@ -462,6 +472,7 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("pqc_stig", tools.HandlePQCSTIG)
 	executor.RegisterFunc("cmmc_assess", tools.HandleCMMCAssess)
 	executor.RegisterFunc("agent_record", tools.HandleAgentRecord)
+	executor.RegisterFunc("attest_export", tools.HandleAttestExport)
 	executor.RegisterFunc("khepra_export_attestation", tools.HandleKhepraExportAttestation)
 	executor.RegisterFunc("khepra_export_poam", tools.HandleKhepraExportPOAM)
 	executor.RegisterFunc("khepra_query_stig", tools.HandleKhepraQuerySTIG)

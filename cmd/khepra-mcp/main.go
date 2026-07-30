@@ -1,4 +1,4 @@
-// Khepra MCP Server — Hardened Entry Point (AD-006 / AD-008)
+﻿// Khepra MCP Server — Hardened Entry Point (AD-006 / AD-008)
 //
 // This binary implements the world's first PQC-secured MCP server.
 // It runs as a subprocess launched by AI tools (Claude, Cursor, Windsurf)
@@ -35,6 +35,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -44,11 +45,13 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/flight"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
+
 
 func main() {
 	// All diagnostic output goes to stderr (MCP: stdout = JSON-RPC only).
@@ -249,6 +252,38 @@ func main() {
 		logger.Printf("[DAG-SEED] %d demo nodes seeded into Master DAG", seededCount)
 	}
 
+	// ── SouHimBou AI Flight Recorder (Autonomous — Step 7 of every tool call) ──
+	// The recorder is instantiated HERE and injected into the Router.
+	// After this point, every tool call — success or failure — is automatically
+	// written as a chain-linked, ML-DSA-65 signed FlightFrame with no user action.
+	// Non-negotiable: this is the core SouHimBou AI value proposition.
+	defaultFlightLog := "/var/log/khepra/khepra-flight.ndjson"
+	if home := os.Getenv("USERPROFILE"); home != "" {
+		defaultFlightLog = home + `\.khepra\khepra-flight.ndjson`
+	} else if home := os.Getenv("HOME"); home != "" {
+		defaultFlightLog = home + "/.khepra/khepra-flight.ndjson"
+	}
+	flightLogPath := getEnvOr("KHEPRA_FLIGHT_LOG_PATH", defaultFlightLog)
+	// Ensure parent directory exists
+	if mkdirErr := os.MkdirAll(filepath.Dir(flightLogPath), 0700); mkdirErr != nil {
+		logger.Printf("WARN: could not create flight log directory %s: %v", filepath.Dir(flightLogPath), mkdirErr)
+	}
+	flightRecorder, flightErr := flight.New(flight.RecorderConfig{
+		Path:    flightLogPath,
+		PrivKey: privKey,
+		PubKey:  pubKey,
+	})
+	if flightErr != nil {
+		// Non-fatal: log loudly but continue. The DAG attestation still captures all calls.
+		logger.Printf("WARN: SouHimBou Flight Recorder unavailable (%s): %v — router will operate without flight log",
+			flightLogPath, flightErr)
+		flightRecorder = nil
+	} else {
+		logger.Printf("[FLIGHT] SouHimBou AI Flight Recorder ACTIVE — %s (ML-DSA-65 signed, chain-linked)", flightLogPath)
+		defer flightRecorder.Close()
+	}
+
+
 	// Derive HMAC root key for per-invocation tokens from the ML-DSA-65 session key
 	invocationRootKey := khepramcp.DeriveRootKey(privKey)
 
@@ -274,6 +309,9 @@ func main() {
 		MaxConcurrent:     maxConcurrent,
 		// License enforcement
 		License: licenseClaim,
+		// Autonomous Flight Recording — SouHimBou AI core value proposition.
+		// Every tool call is automatically flight-recorded with zero user action.
+		FlightRecorder: flightRecorder,
 	})
 	if err != nil {
 		logger.Fatalf("FATAL: router construction failed: %v", err)
@@ -501,6 +539,8 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("cmmc_assess", tools.HandleCMMCAssess)
 	// agent_record — Layer 4→3 bridge: SouHimBou AI Flight Recorder
 	executor.RegisterFunc("agent_record", tools.HandleAgentRecord)
+	// attest_export — C3PAO 13-artifact evidence ZIP (SPRS + ML-DSA-65 manifest)
+	executor.RegisterFunc("attest_export", tools.HandleAttestExport)
 
 	// ── Sovereign Tools (no Supabase, no network — 100% offline) ───────────
 	// P0: C3PAO artifact — existential differentiator
@@ -578,6 +618,11 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("fim_baseline", tools.HandleFIMBaseline)
 	executor.RegisterFunc("audit_dag_integrity", tools.HandleAuditExport)
 
+	// ── Sprint 3 Additions: Agentic Layer & Governance ──────────────────────
+	executor.RegisterFunc("playbook_execute", tools.HandlePlaybookExecute)
+	executor.RegisterFunc("asaf_lint", tools.HandleASAFLint)
+	executor.RegisterFunc("compliance_model_check", tools.HandleComplianceModelCheck)
+
 	// ── Sprint 4: Sword (Recon + Scanning + Attack Graph) ───────────────────
 	executor.RegisterFunc("enumerate_host", tools.HandleEnumerateHost)
 	executor.RegisterFunc("fingerprint_device", tools.HandleFingerprintDevice)
@@ -653,6 +698,52 @@ func defaultToolSpecs() []khepramcp.ToolSpec {
 	}
 
 	return []khepramcp.ToolSpec{
+		// ── Sprint 3 Additions ───────────────────────────────────────────────
+		{
+			Name: "playbook_execute", Description: "Trigger a SOAR playbook from the agent channel",
+			RiskClass: khepramcp.RiskDestructive, Scope: "soar:execute",
+			SchemaVersion: "1.0.0", SchemaHash: hash("playbook_execute"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+			MaxPrivilege: "none",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"playbook_name": map[string]any{"type": "string", "description": "Name of the playbook to execute"},
+					"environment":   map[string]any{"type": "string", "description": "Execution environment: 'staging' or 'production'"},
+				},
+				"required": []string{"playbook_name"},
+			},
+		},
+		{
+			Name: "asaf_lint", Description: "Lint an ASAF Policy Declaration Language snippet",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:lint",
+			SchemaVersion: "1.0.0", SchemaHash: hash("asaf_lint"),
+			AllowedBackend: "in-process", TimeoutMs: 5000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"policy_snippet": map[string]any{"type": "string", "description": "The ASAF policy string to lint"},
+				},
+				"required": []string{"policy_snippet"},
+			},
+		},
+		{
+			Name: "compliance_model_check", Description: "Verify if an LLM meets compliance requirements for the current deployment tier",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:model",
+			SchemaVersion: "1.0.0", SchemaHash: hash("compliance_model_check"),
+			AllowedBackend: "in-process", TimeoutMs: 5000,
+			MaxPrivilege: "read-only",
+			ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"model_name": map[string]any{"type": "string", "description": "LLM identifier (e.g. 'claude-3-7-sonnet', 'llama3.1:8b')"},
+					"tier":       map[string]any{"type": "string", "description": "Deployment tier: 'sovereign', 'hybrid', or 'edge'"},
+				},
+				"required": []string{"model_name"},
+			},
+		},
+
 		// ── ACP (Agent Control Plane) ────────────────────────────────────────
 		{
 			Name: "acp_status", Description: "List active ACP credentials and their expiry status",

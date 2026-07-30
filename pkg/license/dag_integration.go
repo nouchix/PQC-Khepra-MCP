@@ -253,7 +253,7 @@ func (dle *DAGLicenseEnforcer) GetLicenseUsageStats(licenseID string) map[string
 	}
 }
 
-// EnforceAirGapIfNeeded validates Pharaoh tier offline licenses
+// EnforceAirGapIfNeeded validates Sovereign tier offline licenses
 // Called by: cmd/agent/main.go on startup
 func (dle *DAGLicenseEnforcer) EnforceAirGapIfNeeded(licenseID string, systemIsAirGapped bool) error {
 	dle.mu.Lock()
@@ -264,19 +264,20 @@ func (dle *DAGLicenseEnforcer) EnforceAirGapIfNeeded(licenseID string, systemIsA
 		return fmt.Errorf(ErrLicenseNotFoundFmt, licenseID)
 	}
 
-	// Only Pharaoh tier can use air-gap
-	if systemIsAirGapped && lic.Tier != TierOsiris {
-		return fmt.Errorf("air-gap deployment requires Pharaoh tier, got %s", lic.Tier)
+	// Only Sovereign tier can use air-gap
+	if systemIsAirGapped && lic.Tier != TierSovereign {
+		return fmt.Errorf("air-gap deployment requires Sovereign tier, got %s", lic.Tier)
 	}
 
-	// If Pharaoh tier and air-gapped, validate offline signature
-	if lic.Tier == TierOsiris && systemIsAirGapped {
+	// If Sovereign tier and air-gapped, validate offline signature
+	if lic.Tier == TierSovereign && systemIsAirGapped {
 		if lic.OfflineLicenseSig == "" {
-			return fmt.Errorf("Pharaoh tier requires offline license signature (Shu Breath)")
+			return fmt.Errorf("Sovereign tier requires a signed offline license artifact")
 		}
 
-		// Cryptographic validation: parse JSON payload, verify expiry, and confirm license ID.
-		valid, err := ValidateOfflineLicense(lic.OfflineLicenseSig)
+		// Real ML-DSA-65 verification against the compiled-in master public key —
+		// see pqc_signing.go VerifyLicense. Forged or expired artifacts are rejected.
+		valid, err := ValidateOfflineLicense(lic.OfflineLicenseSig, MasterPublicKey)
 		if err != nil {
 			return fmt.Errorf("offline license validation failed for %s: %w", licenseID, err)
 		}
@@ -288,7 +289,8 @@ func (dle *DAGLicenseEnforcer) EnforceAirGapIfNeeded(licenseID string, systemIsA
 	return nil
 }
 
-// RekeyOfflineLicense renews air-gap license (annual)
+// RekeyOfflineLicense renews air-gap license (annual). Only callable by the
+// signing authority (NouchiX), which holds the master private key.
 // Called by: CLI command "adinkhepra renew-offline-license"
 func (dle *DAGLicenseEnforcer) RekeyOfflineLicense(licenseID string) (string, error) {
 	dle.mu.Lock()
@@ -299,12 +301,17 @@ func (dle *DAGLicenseEnforcer) RekeyOfflineLicense(licenseID string) (string, er
 		return "", fmt.Errorf(ErrLicenseNotFoundFmt, licenseID)
 	}
 
-	if lic.Tier != TierOsiris {
-		return "", fmt.Errorf("only Pharaoh tier supports offline licensing")
+	if lic.Tier != TierSovereign {
+		return "", fmt.Errorf("only Sovereign tier supports offline licensing")
+	}
+
+	authority, err := loadMasterSigningAuthority()
+	if err != nil {
+		return "", fmt.Errorf("cannot rekey offline license: %w", err)
 	}
 
 	// Generate new offline license (valid 365 days)
-	newSig, err := dle.manager.GenerateOfflineLicense(licenseID, 365)
+	newSig, err := dle.manager.GenerateOfflineLicense(licenseID, 365, authority)
 	if err != nil {
 		return "", err
 	}

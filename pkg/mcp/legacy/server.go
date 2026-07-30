@@ -182,7 +182,7 @@ func NewServer(cfg Config) *Server {
 		cfg.ServerName = "Khepra MCP Server"
 	}
 	if cfg.ServerVersion == "" {
-		cfg.ServerVersion = "1.0.0"
+		cfg.ServerVersion = "2.0.0"
 	}
 	return &Server{
 		cfg:       cfg,

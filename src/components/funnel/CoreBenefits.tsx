@@ -4,48 +4,48 @@ import { Bot, Eye, ShieldCheck, Cpu } from 'lucide-react';
 export const CoreBenefits = () => {
   const benefits = [
     {
-      icon: Bot,
-      title: 'Agentic SOC — AI Watching AI',
+      icon: Eye,
+      title: 'Agentic Observability & Key Monitoring',
       badge: 'Live',
       badgeColor: 'bg-green-500/20 text-green-300 border-green-500/30',
       description:
-        'SouHimBou AI is your AI Security Architect. It wraps every agent in your stack, attests each tool call to an immutable DAG, and runs KASA autonomous threat detection in the background — 24/7.',
-      gradient: 'from-cyan-500/15 to-blue-500/10',
-      borderColor: 'border-cyan-500/30',
-      iconColor: 'text-cyan-400',
+        'Stop flying blind. SouHimBou AI acts as your flight recorder, wrapping every agent in your stack to attest each tool call to an immutable DAG. Monitor API key access and usage in real-time, 24/7.',
+      gradient: 'from-green-500/15 to-emerald-500/10',
+      borderColor: 'border-green-500/30',
+      iconColor: 'text-green-400',
     },
     {
       icon: ShieldCheck,
-      title: 'Post-Quantum Attestation',
-      badge: 'FIPS 204',
+      title: 'OWASP MCP & LLM Abuse Protection',
+      badge: 'Active Defense',
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
       description:
-        'Every tool call is ML-DSA-65 signed before it hits the DAG. Your audit trail is quantum-safe today — not after NIST mandates it. C3PAO and CMMC auditors can verify the chain cryptographically.',
+        'Recent real-life cases of AI abuse (like prompt injections executing unauthorized terminal commands) cost companies millions. We enforce OWASP LLM and API Top 10 controls at the gateway level, keeping your agents SSRF-clean.',
       gradient: 'from-amber-500/15 to-orange-500/10',
       borderColor: 'border-amber-500/30',
       iconColor: 'text-amber-400',
     },
     {
-      icon: Eye,
-      title: '36,195 Compliance Mappings',
-      badge: 'Embedded',
+      icon: Bot,
+      title: 'AI Mandate Compliance',
+      badge: 'FIPS 204',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
       description:
-        'STIG → CCI → NIST 800-53 → NIST 800-171 → CMMC — all embedded in the binary. Zero external API calls, zero internet dependency. Air-gappable. Sovereign. The only compliance engine that runs on your metal.',
+        'From CMMC to the EU AI Act, prove your AI agents operate securely. 36,195 framework mappings embedded. Every tool call is ML-DSA-65 signed, delivering a cryptographically verifiable chain of custody for auditors.',
       gradient: 'from-purple-500/15 to-pink-500/10',
       borderColor: 'border-purple-500/30',
       iconColor: 'text-purple-400',
     },
     {
       icon: Cpu,
-      title: 'KASA Autonomous Threat Engine',
-      badge: 'EA-Powered',
+      title: 'Flat Pricing — No Token Extortion',
+      badge: 'Unlimited',
       badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
       description:
-        'KASA runs a 50-individual evolutionary algorithm that continuously updates threat-weighted compliance fitness — so the system gets smarter as your threat landscape shifts. Every generation ML-DSA-65 signed to DAG.',
-      gradient: 'from-blue-500/15 to-cyan-500/10',
-      borderColor: 'border-blue-500/30',
-      iconColor: 'text-blue-400',
+        'Developers are burning tens of thousands in unexpected API token fees with frontier models. SouHimBou AI provides an enterprise-grade agentic SOC with predictable, flat monthly pricing. No surprises.',
+      gradient: 'from-cyan-500/15 to-blue-500/10',
+      borderColor: 'border-cyan-500/30',
+      iconColor: 'text-cyan-400',
     },
   ];
 

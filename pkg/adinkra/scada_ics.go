@@ -2,7 +2,6 @@ package adinkra
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 )
 
@@ -96,12 +95,21 @@ func NewAkokoNanPod(name string) *AkokoNanPod {
 	}
 }
 
-// MmereDane (formerly SystemicFuzz) explores the trade-off space between Benefit and Impact.
-func (p *AkokoNanPod) MmereDane(vesselID string) (float64, float64) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	merit := 0.6 + (r.Float64() * 0.4) // Security Benefit
-	burden := r.Float64() * 0.5        // Stability Impact
-	return merit, burden
+// MmereDane (formerly SystemicFuzz) previously returned two random.Float64()
+// numbers labeled "Security Benefit" and "Stability Impact" for a named ICS
+// vessel/register — the CLI command that calls this (cmd_scada.go's
+// invokeMmereDane) then compared them to print a real-looking safety
+// decision ("APPROVED. Correcting local flow." / "REJECTED. Potential harm
+// to the Sanctuary detected.") for what it described as a real SCADA
+// register (an "Energy Setpoint"). That is a coin-flip dressed up as an ICS
+// safety/security assessment — dangerous if anyone relied on the verdict for
+// an actual industrial control system. There is no real trade-off analysis
+// engine here, so this now fails loudly instead of fabricating a decision.
+func (p *AkokoNanPod) MmereDane(vesselID string) (float64, float64, error) {
+	return 0, 0, fmt.Errorf(
+		"MmereDane trade-off analysis is not implemented for vessel %q — "+
+			"no real security/stability assessment engine exists; refusing to "+
+			"return a fabricated merit/burden score", vesselID)
 }
 
 // AttestVitality (formerly AttestState) binds a vessel's force to the ASAF framework.
