@@ -16,7 +16,7 @@ export interface BetaEnrollment {
 export const BETA_FEATURES = {
   trailblazer_beta: {
     stig_registry_view: true,
-    ai_verification: true, // Mock only
+    ai_verification: false, // Not implemented for this tier yet — was hardcoded true as a mock
     evidence_bundles: false,
     asset_scanning: false,
     drift_detection: false,
