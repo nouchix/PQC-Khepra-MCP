@@ -7,6 +7,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Brain, X, Send, Info, Minimize2, Maximize2 } from 'lucide-react';
 import { AdinkraSymbolDisplay } from '../AdinkraSymbolDisplay';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useOrganizationContext } from '@/components/OrganizationProvider';
 
 interface Message {
   id: string;
@@ -28,6 +31,8 @@ export const PapyrusAIAssistant: React.FC<PapyrusAIAssistantProps> = ({
   deploymentData,
   onClose
 }) => {
+  const { user } = useAuth();
+  const { currentOrganization } = useOrganizationContext();
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -113,10 +118,11 @@ How may I assist you on this journey?`,
   const sendMessage = async () => {
     if (!inputMessage.trim()) return;
 
+    const messageText = inputMessage;
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       type: 'user',
-      content: inputMessage,
+      content: messageText,
       timestamp: new Date()
     };
 
@@ -124,105 +130,43 @@ How may I assist you on this journey?`,
     setInputMessage('');
     setIsThinking(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const response = generateResponse(inputMessage);
+    // Route to the real grok-ai-agent backend (the same edge function used by
+    // FloatingAIAssistant.tsx) instead of the previous keyword-matched canned
+    // response generator that faked an "AI response" behind a timed delay.
+    try {
+      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
+        body: {
+          message: messageText,
+          organizationId: currentOrganization?.organization_id,
+          userId: user?.id,
+          context: {
+            assistant: 'papyrus',
+            deploymentStep: currentStep?.id,
+            deploymentData,
+          }
+        }
+      });
+
+      if (error) throw error;
+
       const aiMessage: Message = {
         id: `papyrus-${Date.now()}`,
         type: 'papyrus',
-        content: response.content,
+        content: data?.response || "I didn't receive a response from the assistant. Please try again.",
         timestamp: new Date(),
-        cultural_context: response.cultural_context,
-        suggestions: response.suggestions
       };
       setMessages(prev => [...prev, aiMessage]);
+    } catch (error: any) {
+      const errorMessage: Message = {
+        id: `papyrus-error-${Date.now()}`,
+        type: 'system',
+        content: `Unable to reach the AI assistant: ${error?.message || 'please try again.'}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsThinking(false);
-    }, 1500);
-  };
-
-  const generateResponse = (userInput: string) => {
-    const input = userInput.toLowerCase();
-    
-    if (input.includes('khepra') || input.includes('protocol')) {
-      return {
-        content: `The KHEPRA Protocol (Kinetic Heuristic Encryption for Perimeter-Resilient Agents) is a revolutionary cybersecurity framework that integrates African mathematical wisdom with quantum-safe cryptography. 
-
-Named after the sacred scarab beetle that symbolizes transformation and protection in ancient Egyptian culture, KHEPRA transforms your infrastructure into a living, breathing defense system that adapts and learns.
-
-Key features:
-• Adinkra-encoded security policies
-• Quantum-resistant encryption
-• Cultural threat intelligence
-• Autonomous agent networks
-• Supersymmetric validation`,
-        cultural_context: 'Khepra - Transformation and renewal',
-        suggestions: [
-          'How does Adinkra encoding work?',
-          'What is quantum-safe cryptography?',
-          'Tell me about cultural threat intelligence'
-        ]
-      };
     }
-    
-    if (input.includes('cultural') || input.includes('adinkra')) {
-      return {
-        content: `Cultural symbolism in cybersecurity isn't just aesthetic - it's functional intelligence. Adinkra symbols represent complex mathematical relationships that can encode security policies in ways that are both human-readable and cryptographically secure.
-
-For example:
-• Eban (fortress) encodes perimeter defense strategies
-• Nkyinkyim (journey) represents adaptive data flow patterns
-• Gye Nyame (supremacy) governs hierarchical access controls
-
-This approach creates security systems that are intuitively understood by human operators while being mathematically rigorous for AI agents.`,
-        cultural_context: 'Adinkra - Symbolic wisdom encoding',
-        suggestions: [
-          'Show me specific symbol meanings',
-          'How does this improve security?',
-          'Can I customize the cultural context?'
-        ]
-      };
-    }
-    
-    if (input.includes('secure') || input.includes('safe') || input.includes('security')) {
-      return {
-        content: `KHEPRA provides multi-layered security that goes beyond traditional approaches:
-
-**Quantum Safety**: Post-quantum cryptography protects against future quantum computing threats.
-
-**Cultural Resilience**: Symbolic encoding creates security patterns that are resistant to algorithmic attacks because they embed human wisdom.
-
-**Autonomous Adaptation**: AI agents learn and adapt to new threats while maintaining cultural alignment.
-
-**Transparency**: Unlike black-box security, KHEPRA's cultural foundation makes security decisions explainable and auditable.
-
-Your data isn't just encrypted - it's protected by wisdom that has safeguarded communities for centuries.`,
-        cultural_context: 'Dwennimmen - Humility and strength',
-        suggestions: [
-          'How does quantum-safe encryption work?',
-          'What threats does this protect against?',
-          'How do I monitor the security?'
-        ]
-      };
-    }
-    
-    // Default response
-    return {
-      content: `I understand you're curious about this aspect of KHEPRA. Let me share some wisdom from the ancestors: "The best security comes not from walls alone, but from understanding the nature of what you protect."
-
-In the context of your question, KHEPRA approaches this through:
-• Adaptive intelligence that learns your specific environment
-• Cultural patterns that resist algorithmic prediction
-• Community-based validation that ensures authenticity
-• Symbolic encoding that creates multi-layered protection
-
-What specific aspect would you like me to explore further?`,
-      cultural_context: 'Aya - Endurance and resourcefulness',
-      suggestions: [
-        'Explain how KHEPRA adapts',
-        'What is community-based validation?',
-        'How does symbolic encoding work?'
-      ]
-    };
   };
 
   const handleSuggestionClick = (suggestion: string) => {

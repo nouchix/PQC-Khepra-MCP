@@ -44,7 +44,7 @@ RUN GOEXPERIMENT=boringcrypto CGO_ENABLED=1 \
 RUN /build/adinkhepra version || true
 
 # Stage 2: Runtime image (UBI9-minimal for Iron Bank compatibility)
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9
 
 # Install runtime dependencies
 # Note: BoringCrypto requires glibc (dynamically linked)

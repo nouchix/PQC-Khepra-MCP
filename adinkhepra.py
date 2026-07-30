@@ -8,17 +8,15 @@ Classification: CUI // NOFORN
 TRL: 10 (Production-Ready)
 """
 
+import http.client
+import json
 import os
+import platform
+import re
+import socket
 import subprocess
 import sys
-import platform
-import json
 import time
-import http.client
-import signal
-import socket
-import re
-from typing import Optional, List, Tuple
 
 # ============================================================================
 # CONFIGURATION
@@ -196,7 +194,7 @@ def build(component: str, fips: bool = True) -> bool:
     except FileNotFoundError:
         print_error("'go' command not found. Please install Go 1.22+")
         return False
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — launcher-level catch-all, error is reported
         print_error(f"Build error: {e}")
         return False
 
@@ -232,12 +230,11 @@ def wait_for_port(port: int, host: str = "127.0.0.1", timeout: int = PORT_WAIT_T
         print_error(f"Invalid port number: {port}")
         return False
     
-    if host not in ("127.0.0.1", "localhost", "0.0.0.0"):
-        # Only allow loopback or any address for testing
-        if not re.match(r'^[0-9a-fA-F:.]+$', host):  # Basic IP validation
-            print_error(f"Invalid host: {host}")
-            return False
-    
+    # Allow loopback/any-address names, otherwise require a basic IP shape
+    if host not in ("127.0.0.1", "localhost", "0.0.0.0") and not re.match(r'^[0-9a-fA-F:.]+$', host):  # nosec B104 — allowlist comparison, not a socket bind
+        print_error(f"Invalid host: {host}")
+        return False
+
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -246,9 +243,9 @@ def wait_for_port(port: int, host: str = "127.0.0.1", timeout: int = PORT_WAIT_T
             sock.connect((host, port))
             sock.close()
             return True
-        except (socket.error, socket.timeout):
+        except OSError:
             time.sleep(0.5)
-        except Exception:
+        except Exception:  # noqa: BLE001 — launcher-level catch-all, error is reported
             # Catch other socket exceptions
             time.sleep(0.5)
     return False
@@ -265,7 +262,7 @@ def check_port_available(port: int, host: str = "127.0.0.1") -> bool:
         result = sock.connect_ex((host, port))
         sock.close()
         return result != 0  # Port is available if connection fails
-    except (socket.error, OSError):
+    except OSError:
         return True
 
 
@@ -273,7 +270,7 @@ def check_port_available(port: int, host: str = "127.0.0.1") -> bool:
 # TELEMETRY SERVER
 # ============================================================================
 
-def start_telemetry_server() -> Optional[subprocess.Popen]:
+def start_telemetry_server() -> subprocess.Popen | None:
     """
     Start the telemetry server for local license validation.
     
@@ -333,7 +330,7 @@ def start_telemetry_server() -> Optional[subprocess.Popen]:
     except FileNotFoundError:
         print_warning("npx/wrangler not found, skipping telemetry server")
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — launcher-level catch-all, error is reported
         print_warning(f"Telemetry server error: {e}")
         return None
 
@@ -354,7 +351,7 @@ def _run_unit_tests() -> bool:
     except FileNotFoundError:
         print_error("'go' command not found. Please install Go 1.22+")
         return False
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — launcher-level catch-all, error is reported
         print_error(f"Test execution error: {e}")
         return False
 
@@ -387,11 +384,11 @@ def _test_pqc_key_gen() -> bool:
         output = e.output if isinstance(e.output, str) else e.output.decode() if e.output else ""
         print_error(f"CLI execution failed: {output}")
         return False
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — launcher-level catch-all, error is reported
         print_error(f"Key generation error: {e}")
         return False
 
-def _wait_for_agent() -> Optional[http.client.HTTPConnection]:
+def _wait_for_agent() -> http.client.HTTPConnection | None:
     attempts = AGENT_STARTUP_TIMEOUT * 2
     conn = None
     while attempts > 0:
@@ -500,7 +497,7 @@ def validate() -> bool:
 # LAUNCH FUNCTIONS
 # ============================================================================
 
-def launch(args: Optional[List[str]] = None) -> None:
+def launch(args: list[str] | None = None) -> None:
     """
     Launch the complete ADINKHEPRA stack.
     
@@ -590,7 +587,7 @@ def launch(args: Optional[List[str]] = None) -> None:
 # RUN FUNCTIONS
 # ============================================================================
 
-def run(component: str, args: List[str]) -> None:
+def run(component: str, args: list[str]) -> None:
     """
     Run a Khepra Protocol component.
     
@@ -615,7 +612,7 @@ def run(component: str, args: List[str]) -> None:
         subprocess.call([binary] + args, shell=False)
     except KeyboardInterrupt:
         pass
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — launcher-level catch-all, error is reported
         print_error(f"Execution error: {e}")
         sys.exit(1)
 
@@ -624,7 +621,7 @@ def run(component: str, args: List[str]) -> None:
 # TNOK GATEWAY
 # ============================================================================
 
-def launch_tnok(args: List[str]) -> None:
+def launch_tnok(args: list[str]) -> None:
     """
     Launch Tnok Stealth Gateway (CSfC Mode).
     
@@ -656,7 +653,7 @@ def launch_tnok(args: List[str]) -> None:
         subprocess.call([sys.executable, "-m", "tnokd.__main__"] + args, shell=False)
     except KeyboardInterrupt:
         print_success("Tnok Stealth Gateway shutdown")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — launcher-level catch-all, error is reported
         print_error(f"Tnok error: {e}")
         sys.exit(1)
 

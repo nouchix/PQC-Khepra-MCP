@@ -233,7 +233,7 @@ func (hbc *HybridBillingCalculator) CalculateMonthlyCost() *MonthlyCost {
 ║          KHEPRA HYBRID BILLING STATEMENT (%s)         ║
 ╠═════════════════════════════════════════════════════════════╣
 ║                                                             ║
-║  BASE TIER (Scout/Hunter/Hive/Pharaoh)      $%.2f         ║
+║  BASE TIER (Community/Pro/Enterprise/Sovereign) $%.2f      ║
 ║                                                             ║
 %s
 ║
@@ -279,10 +279,10 @@ The three forces create perfect Ma'at (cosmic balance).
 // GetTierBaseCost returns the base cost for a tier.
 func GetTierBaseCost(tier string) float64 {
 	costs := map[string]float64{
-		"khepri": 50,
-		"ra":     500,
-		"atum":   2000,
-		"osiris": 0, // Custom pricing
+		"community":  0,
+		"pro":        19,
+		"enterprise": 499,
+		"sovereign":  0, // Custom pricing — contact sales
 	}
 	return costs[tier]
 }
@@ -310,21 +310,21 @@ func PricingExample(tierName string, scans, criticals, nodes, gbDays int) {
 // Example Usage Function
 // ============================================================================
 
-// ExampleHunterTierBilling demonstrates pricing for Hunter tier customer.
-func ExampleHunterTierBilling() {
+// ExampleEnterpriseTierBilling demonstrates pricing for an Enterprise tier customer.
+func ExampleEnterpriseTierBilling() {
 	fmt.Print(`
-SCENARIO: Hunter Tier Customer
+SCENARIO: Enterprise Tier Customer
 ──────────────────────────────
-Base Tier:           $500/month
+Base Tier:           $499/month
 200 scans:           200 × $0.10 = $20
 5 critical findings: 5 × $1.00 = $5
 3 active nodes:      3 × $50 = $150
 100 GB-days storage: 100 × $0.01 = $1
 ────────────────────────────────
-TOTAL:               $676/month
+TOTAL:               $675/month
 `)
 
-	calc := NewHybridBillingCalculator(500.0)
+	calc := NewHybridBillingCalculator(499.0)
 	calc.SunMetrics.TotalScans = 200
 	calc.SunMetrics.CriticalFindings = 5
 	calc.EarthMetrics.ActiveNodes = 3
