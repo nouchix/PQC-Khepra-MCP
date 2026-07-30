@@ -91,18 +91,46 @@ func TestCheckTelemetryEnabled_CommunityOptIn(t *testing.T) {
 	}
 }
 
-func TestCheckTelemetryEnabled_EnterpriseDefault(t *testing.T) {
+// Opt-in is now uniform across modes. These previously asserted the opposite
+// for enterprise — that an unset KHEPRA_TELEMETRY meant "beacon" — which is
+// the behaviour that let a sovereign deployment phone home by default.
+func TestCheckTelemetryEnabled_EnterpriseDefaultIsOff(t *testing.T) {
 	os.Setenv("KHEPRA_MODE", "enterprise")
 	os.Unsetenv("KHEPRA_TELEMETRY")
 	t.Cleanup(func() {
 		os.Unsetenv("KHEPRA_MODE")
 	})
-	if err := checkTelemetryEnabled(); err != nil {
-		t.Errorf("enterprise mode without opt-out should pass: %v", err)
+	if err := checkTelemetryEnabled(); err == nil {
+		t.Error("enterprise mode without explicit opt-in must not beacon")
 	}
 }
 
-func TestCheckTelemetryEnabled_EnterpriseOptOut(t *testing.T) {
+// The case that matters most: a deployment advertising itself as air-gapped
+// must not open an outbound connection because nobody remembered to opt out.
+func TestCheckTelemetryEnabled_SovereignDefaultIsOff(t *testing.T) {
+	os.Setenv("KHEPRA_MODE", "sovereign")
+	os.Unsetenv("KHEPRA_TELEMETRY")
+	t.Cleanup(func() {
+		os.Unsetenv("KHEPRA_MODE")
+	})
+	if err := checkTelemetryEnabled(); err == nil {
+		t.Error("sovereign mode without explicit opt-in must not beacon")
+	}
+}
+
+func TestCheckTelemetryEnabled_ExplicitOptInAnyMode(t *testing.T) {
+	for _, mode := range []string{"community", "enterprise", "sovereign"} {
+		os.Setenv("KHEPRA_MODE", mode)
+		os.Setenv("KHEPRA_TELEMETRY", "true")
+		if err := checkTelemetryEnabled(); err != nil {
+			t.Errorf("%s + KHEPRA_TELEMETRY=true should be permitted: %v", mode, err)
+		}
+	}
+	os.Unsetenv("KHEPRA_MODE")
+	os.Unsetenv("KHEPRA_TELEMETRY")
+}
+
+func TestCheckTelemetryEnabled_OptOutStillHonoured(t *testing.T) {
 	os.Setenv("KHEPRA_MODE", "enterprise")
 	os.Setenv("KHEPRA_TELEMETRY", "false")
 	t.Cleanup(func() {
@@ -111,6 +139,17 @@ func TestCheckTelemetryEnabled_EnterpriseOptOut(t *testing.T) {
 	})
 	if err := checkTelemetryEnabled(); err == nil {
 		t.Error("enterprise + KHEPRA_TELEMETRY=false should return error")
+	}
+}
+
+// DetectGeographicHint probes 169.254.169.254 and metadata.google.internal.
+// With telemetry off it must not make those requests at all, and must still
+// return a usable value.
+func TestDetectGeographicHint_NoProbeWhenTelemetryDisabled(t *testing.T) {
+	os.Unsetenv("KHEPRA_MODE")
+	os.Unsetenv("KHEPRA_TELEMETRY")
+	if hint := DetectGeographicHint(); hint != "on-prem" {
+		t.Errorf("expected on-prem without telemetry opt-in, got %q", hint)
 	}
 }
 

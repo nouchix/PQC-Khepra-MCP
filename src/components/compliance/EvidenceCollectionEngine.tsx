@@ -112,48 +112,69 @@ export const EvidenceCollectionEngine: React.FC = () => {
     setIsCollecting(true);
     setCollectionProgress(0);
 
-    try {
-      // Simulate evidence collection across integrations including infrastructure
-      const progressInterval = setInterval(() => {
-        setCollectionProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            return 100;
-          }
-          return prev + 15; // Fixed increment; real progress tracking requires event stream from edge function
-        });
-      }, 500);
+    // Real progress tracking requires an event stream from the edge
+    // function, which doesn't exist yet. This interval is a visual loading
+    // indicator only — the actual result below always comes from the real
+    // invoke() response, never a fabricated one.
+    const progressInterval = setInterval(() => {
+      setCollectionProgress(prev => (prev >= 90 ? prev : prev + 15));
+    }, 500);
 
-      // Call enhanced evidence collection function
-      const { data: _data, error } = await supabase.functions.invoke('grok-ai-agent', {
+    try {
+      const connectedSources = integrations.filter(i => i.status === 'connected').map(i => i.source);
+
+      const { data, error } = await supabase.functions.invoke('grok-ai-agent', {
         body: {
           action: 'collect_evidence',
           framework,
-          integrations: integrations.filter(i => i.status === 'connected').map(i => i.source),
+          integrations: connectedSources,
           include_infrastructure: true,
           automation_level: 'high'
         }
       });
 
+      clearInterval(progressInterval);
+      setCollectionProgress(100);
+
       if (error) throw error;
 
-      setTimeout(() => {
-        clearInterval(progressInterval);
-        setCollectionProgress(100);
+      const collectedEvidence: EvidenceItem[] = Array.isArray(data?.evidence)
+        ? data.evidence.map((item: any) => ({
+            id: item.id ?? crypto.randomUUID(),
+            controlId: item.controlId ?? item.control_id ?? 'Unknown',
+            stigId: item.stigId,
+            framework: item.framework ?? framework,
+            evidenceType: item.evidenceType ?? item.evidence_type ?? 'document',
+            source: item.source ?? 'grok-ai-agent',
+            collectedAt: item.collectedAt ? new Date(item.collectedAt) : new Date(),
+            status: item.status ?? 'collected',
+            metadata: item.metadata ?? { hash: '', size: 0, integrity: false },
+            description: item.description ?? '',
+            path: item.path
+          }))
+        : [];
 
+      setEvidenceItems(collectedEvidence);
+
+      if (collectedEvidence.length > 0 || connectedSources.length > 0) {
         toast({
-          title: "Enhanced Evidence Collection Complete",
-          description: `Collected evidence from ${integrations.filter(i => i.status === 'connected').length} integrated systems including infrastructure discovery`,
+          title: "Evidence Collection Complete",
+          description: `Collected ${collectedEvidence.length} evidence item(s) from ${connectedSources.length} integrated system(s)`,
         });
+      } else {
+        toast({
+          title: "No Evidence Collected",
+          description: "No integrations are connected yet, so no evidence was collected.",
+          variant: "destructive"
+        });
+      }
 
-        // Refresh evidence items
-        initializeEvidenceSystem();
-        setIsCollecting(false);
-      }, 3000);
-
+      setIsCollecting(false);
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Evidence collection failed:', error);
       setIsCollecting(false);
+      setCollectionProgress(0);
       toast({
         title: "Collection Failed",
         description: "Unable to complete evidence collection",

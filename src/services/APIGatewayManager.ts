@@ -241,21 +241,16 @@ export class APIGatewayManager {
       const errorRate = 100 - recentMetrics.success_rate;
       const avgResponseTime = recentMetrics.average_response_time;
 
-      // Auto-scaling logic
-      let scalingAction: 'scale_up' | 'scale_down' | 'no_action' = 'no_action';
-      let reason = 'System operating within normal parameters';
-      const currentCapacity = 100; // Mock current capacity
-      let targetCapacity = currentCapacity;
-
-      if (currentLoad > 80 || errorRate > 5 || avgResponseTime > 1000) {
-        scalingAction = 'scale_up';
-        targetCapacity = Math.min(currentCapacity * 1.5, 500);
-        reason = 'High load detected: scaling up to handle increased traffic';
-      } else if (currentLoad < 20 && errorRate < 1 && avgResponseTime < 200) {
-        scalingAction = 'scale_down';
-        targetCapacity = Math.max(currentCapacity * 0.8, 50);
-        reason = 'Low load detected: scaling down to optimize costs';
-      }
+      // Real auto-scaling requires actual infrastructure/cloud provider capacity data
+      // (e.g. current instance count from a cloud provider API), which is not yet
+      // integrated. Without a real capacity baseline we cannot honestly recommend a
+      // scale_up/scale_down target, so we report the observed load and take no action
+      // rather than fabricating a capacity number and a scaling decision derived from it.
+      const currentCapacity = 0; // Real value requires infrastructure capacity API integration
+      const scalingAction: 'scale_up' | 'scale_down' | 'no_action' = 'no_action';
+      const reason = 'Auto-scaling unavailable: real infrastructure capacity data is not yet integrated. ' +
+        `Observed load: ${currentLoad.toFixed(1)} req/min, error rate: ${errorRate.toFixed(1)}%, avg response: ${avgResponseTime}ms`;
+      const targetCapacity = currentCapacity;
 
       // Record scaling decision
       await supabase
@@ -283,8 +278,8 @@ export class APIGatewayManager {
       console.error('Auto-scaling failed:', error);
       return {
         scaling_action: 'no_action',
-        current_capacity: 100,
-        target_capacity: 100,
+        current_capacity: 0,
+        target_capacity: 0,
         reason: 'Auto-scaling unavailable due to system error'
       };
     }
@@ -323,16 +318,14 @@ export class APIGatewayManager {
     error?: string;
   }> {
     try {
-      // Mock service forwarding - ready for real service integration
-      if (route.target_service === 'disa-stigs-api') {
+      // Real per-service forwarding is not yet wired up for any target service on this
+      // gateway. Rather than fabricate a "success" response for known service names,
+      // honestly report that forwarding is unimplemented so callers don't mistake this
+      // for a real upstream reply.
+      if (route.target_service === 'disa-stigs-api' || route.target_service === 'open-controls') {
         return {
-          success: true,
-          data: { message: 'Mock DISA STIGs API response', payload }
-        };
-      } else if (route.target_service === 'open-controls') {
-        return {
-          success: true,
-          data: { message: 'Mock Open Controls response', payload }
+          success: false,
+          error: `Service forwarding for '${route.target_service}' is not yet implemented in this gateway`
         };
       }
 

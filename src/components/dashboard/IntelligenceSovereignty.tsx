@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, Globe, Shield, Zap, Radar, Activity } from "lucide-react";
 
 const IntelligenceSovereignty = () => {
-    // Mock data - will be replaced with real API calls
-    const cisaKevCount = 12;
-    const shodanAssets = 8;
-    const pqcScore = 65;
+    // No real CISA KEV correlation, Shodan asset scan, or PQC readiness
+    // backend is wired up yet. Report honest zero/empty defaults instead of
+    // fabricated counts and scores.
+    const cisaKevCount = 0;
+    const shodanAssets = 0;
+    const pqcScore = 0;
 
     return (
         <div className="space-y-6">
@@ -30,27 +32,8 @@ const IntelligenceSovereignty = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">CVE-2024-1234</div>
-                                        <div className="text-xs text-slate-500 mt-1">Apache Log4j RCE</div>
-                                    </div>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-red-900/50 text-red-300">
-                                        EXPLOITED
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">CVE-2024-5678</div>
-                                        <div className="text-xs text-slate-500 mt-1">Windows SMB Vulnerability</div>
-                                    </div>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-red-900/50 text-red-300">
-                                        EXPLOITED
-                                    </span>
-                                </div>
+                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-center text-sm text-slate-500">
+                                No CISA KEV correlation data available. Connect a vulnerability feed to populate this list.
                             </div>
                         </div>
                     </div>
@@ -77,27 +60,8 @@ const IntelligenceSovereignty = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">192.168.1.100:22</div>
-                                        <div className="text-xs text-slate-500 mt-1">SSH Server (OpenSSH 7.4)</div>
-                                    </div>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-red-900/50 text-red-300">
-                                        CRITICAL
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">192.168.1.101:443</div>
-                                        <div className="text-xs text-slate-500 mt-1">HTTPS (TLS 1.2)</div>
-                                    </div>
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900/50 text-yellow-300">
-                                        MEDIUM
-                                    </span>
-                                </div>
+                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-center text-sm text-slate-500">
+                                No Shodan scan results available. Connect a Shodan API key to populate this list.
                             </div>
                         </div>
                     </div>
@@ -129,8 +93,8 @@ const IntelligenceSovereignty = () => {
                                     <Zap className="w-4 h-4 text-green-500" />
                                     <h4 className="text-sm font-medium text-slate-200">Quantum-Safe</h4>
                                 </div>
-                                <div className="text-2xl font-bold text-green-400">15</div>
-                                <div className="text-xs text-slate-500 mt-1">Kyber/Dilithium keys</div>
+                                <div className="text-2xl font-bold text-muted-foreground">N/A</div>
+                                <div className="text-xs text-slate-500 mt-1">Kyber/Dilithium keys — no scan data yet</div>
                             </div>
 
                             <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
@@ -138,8 +102,8 @@ const IntelligenceSovereignty = () => {
                                     <Zap className="w-4 h-4 text-red-500" />
                                     <h4 className="text-sm font-medium text-slate-200">Legacy Crypto</h4>
                                 </div>
-                                <div className="text-2xl font-bold text-red-400">8</div>
-                                <div className="text-xs text-slate-500 mt-1">RSA/ECDSA keys</div>
+                                <div className="text-2xl font-bold text-muted-foreground">N/A</div>
+                                <div className="text-xs text-slate-500 mt-1">RSA/ECDSA keys — no scan data yet</div>
                             </div>
                         </div>
 

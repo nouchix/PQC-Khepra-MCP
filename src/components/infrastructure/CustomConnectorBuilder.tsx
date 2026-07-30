@@ -180,43 +180,47 @@ class SyslogCollector {
 
   const createConnector = async () => {
     setIsBuilding(true);
-    
-    // Simulate connector creation process
-    setTimeout(() => {
-      const newConnector: ConnectorTemplate = {
-        id: Date.now().toString(),
-        name: connectorConfig.name,
-        type: connectorConfig.type as any,
-        description: connectorConfig.description,
-        code: generateConnectorCode(connectorConfig),
-        status: 'draft',
-        dataTypes: ['json', 'events'],
-        createdAt: new Date().toISOString(),
-        author: 'Current User'
-      };
-      
-      setTemplates(prev => [newConnector, ...prev]);
-      setIsBuilding(false);
-      setShowCreateDialog(false);
-      
-      // Reset form
-      setConnectorConfig({
-        name: '',
-        type: '',
-        description: '',
-        endpoint: '',
-        method: 'GET',
-        headers: '',
-        dataMapping: '',
-        schedule: 'hourly'
-      });
-      
-      toast({
-        title: "Connector Created",
-        description: `${newConnector.name} has been created and is ready for testing`,
-        variant: "default"
-      });
-    }, 3000);
+
+    // There is no backend that persists or deploys custom connectors yet
+    // (no connector-templates table or edge function accepts this shape).
+    // The generated code below is a local-only preview, so we don't
+    // fabricate a "created and ready for testing" success — creating a
+    // connector here would only update in-memory UI state, not anything
+    // real. Show the generated code so the user can see what would be
+    // produced, but be honest that nothing was actually deployed.
+    const previewConnector: ConnectorTemplate = {
+      id: Date.now().toString(),
+      name: connectorConfig.name,
+      type: connectorConfig.type as any,
+      description: connectorConfig.description,
+      code: generateConnectorCode(connectorConfig),
+      status: 'draft',
+      dataTypes: ['json', 'events'],
+      createdAt: new Date().toISOString(),
+      author: 'Current User'
+    };
+
+    setTemplates(prev => [previewConnector, ...prev]);
+    setIsBuilding(false);
+    setShowCreateDialog(false);
+
+    // Reset form
+    setConnectorConfig({
+      name: '',
+      type: '',
+      description: '',
+      endpoint: '',
+      method: 'GET',
+      headers: '',
+      dataMapping: '',
+      schedule: 'hourly'
+    });
+
+    toast({
+      title: "Connector Draft Saved Locally",
+      description: `${previewConnector.name} was generated as a local preview only. Connector creation is not yet wired to a real backend, so it has not been deployed or persisted.`,
+      variant: "default"
+    });
   };
 
   const generateConnectorCode = (config: any) => {
@@ -266,20 +270,15 @@ class ${config.name.replace(/\s+/g, '')}Connector {
   };
 
   const testConnector = async (connector: ConnectorTemplate) => {
+    // No backend exists to actually execute this connector's fetchData()/
+    // testConnection() against a live endpoint. Rather than fabricate a
+    // "passed all tests" result, report honestly that live testing isn't
+    // wired up yet.
     toast({
-      title: "Testing Connector",
-      description: `Running tests for ${connector.name}...`,
-      variant: "default"
+      title: "Live Testing Not Available",
+      description: `Connector test execution for ${connector.name} is not yet implemented — no backend runs the generated connector code.`,
+      variant: "destructive"
     });
-    
-    // Simulate test
-    setTimeout(() => {
-      toast({
-        title: "Test Complete",
-        description: `${connector.name} passed all tests`,
-        variant: "default"
-      });
-    }, 2000);
   };
 
   const deployConnector = async (connector: ConnectorTemplate) => {

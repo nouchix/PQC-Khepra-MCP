@@ -443,3 +443,118 @@ func HandleAgentRecord(ctx context.Context, call mcp.MCPToolCall) (any, []string
 		RecordedAt: recordedAt,
 	}, warnings, nil
 }
+
+// ─── asaf_lint ───────────────────────────────────────────────────────────────
+
+// ASAFLintResponse is the output of asaf_lint.
+type ASAFLintResponse struct {
+	Valid      bool     `json:"valid"`
+	Errors     []string `json:"errors"`
+	ControlID  string   `json:"control_id,omitempty"`
+	Frameworks []string `json:"frameworks,omitempty"`
+}
+
+// HandleASAFLint lints an ASAF Policy Declaration Language snippet.
+func HandleASAFLint(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	snippet, _ := call.Args["policy_snippet"].(string)
+	if snippet == "" {
+		return nil, nil, fmt.Errorf("asaf_lint: policy_snippet is required")
+	}
+
+	var errors []string
+	valid := true
+	var frameworks []string
+	controlID := ""
+
+	// Simple regex/parsing logic for demo purposes
+	if !strings.Contains(snippet, "control") {
+		errors = append(errors, "missing 'control' block definition")
+		valid = false
+	} else {
+		// extract control ID (e.g. control AC-2 { )
+		parts := strings.Split(snippet, "control ")
+		if len(parts) > 1 {
+			idPart := strings.Split(parts[1], " ")[0]
+			controlID = strings.TrimSpace(idPart)
+		}
+	}
+
+	if !strings.Contains(snippet, "@symbol(") {
+		errors = append(errors, "missing required @symbol annotation")
+		valid = false
+	}
+	if !strings.Contains(snippet, "@framework(") {
+		errors = append(errors, "missing required @framework annotation")
+		valid = false
+	} else {
+		// extract frameworks
+		parts := strings.Split(snippet, "@framework(")
+		if len(parts) > 1 {
+			fwPart := strings.Split(parts[1], ")")[0]
+			frameworks = append(frameworks, fwPart)
+		}
+	}
+
+	if !strings.Contains(snippet, "maps:") {
+		errors = append(errors, "missing 'maps:' clause to bind compliance frameworks")
+		valid = false
+	}
+
+	return &ASAFLintResponse{
+		Valid:      valid,
+		Errors:     errors,
+		ControlID:  controlID,
+		Frameworks: frameworks,
+	}, nil, nil
+}
+
+// ─── compliance_model_check ──────────────────────────────────────────────────
+
+// ComplianceModelCheckResponse is the output of compliance_model_check.
+type ComplianceModelCheckResponse struct {
+	ModelName     string   `json:"model_name"`
+	Tier          string   `json:"tier"`
+	Compliant     bool     `json:"compliant"`
+	Violations    []string `json:"violations,omitempty"`
+	ApprovedFor   []string `json:"approved_for,omitempty"`
+}
+
+// HandleComplianceModelCheck verifies if an LLM is approved for the given context.
+func HandleComplianceModelCheck(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	modelName, _ := call.Args["model_name"].(string)
+	if modelName == "" {
+		return nil, nil, fmt.Errorf("compliance_model_check: model_name is required")
+	}
+
+	tier, _ := call.Args["tier"].(string)
+	if tier == "" {
+		tier = "hybrid" // default to hybrid if not specified
+	}
+
+	compliant := true
+	var violations []string
+	var approvedFor []string
+
+	// Basic static compliance logic based on AGENTS.md
+	if strings.Contains(strings.ToLower(modelName), "claude") || strings.Contains(strings.ToLower(modelName), "anthropic") || strings.Contains(strings.ToLower(modelName), "gpt-4") {
+		if strings.ToLower(tier) == "sovereign" {
+			compliant = false
+			violations = append(violations, "Commercial LLMs are prohibited in Sovereign (Air-gapped) tier")
+		} else {
+			approvedFor = append(approvedFor, "hybrid", "edge")
+		}
+	} else if strings.Contains(strings.ToLower(modelName), "llama") || strings.Contains(strings.ToLower(modelName), "mistral") {
+		approvedFor = append(approvedFor, "sovereign", "hybrid", "edge")
+	} else {
+		compliant = false
+		violations = append(violations, "Model is not on the approved provider list")
+	}
+
+	return &ComplianceModelCheckResponse{
+		ModelName:   modelName,
+		Tier:        tier,
+		Compliant:   compliant,
+		Violations:  violations,
+		ApprovedFor: approvedFor,
+	}, nil, nil
+}

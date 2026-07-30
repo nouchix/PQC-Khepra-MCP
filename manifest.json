@@ -1,9 +1,9 @@
 {
   "version": "2.0.0",
-  "revision": "build-1782713495",
-  "generated_at": "2026-06-29T06:11:35Z",
+  "revision": "build-1783825404",
+  "generated_at": "2026-07-12T03:03:24Z",
   "hash_algorithm": "SHA-256",
-  "public_key_id": "fd4b9fa39a4a4cda",
+  "public_key_id": "9ef5ea773e0a35b5",
   "tools": [
     {
       "name": "acp_status",
@@ -15,8 +15,7 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
+      "destructive": false
     },
     {
       "name": "acp_issue",
@@ -29,7 +28,6 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": true,
-      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "agent_id": {
@@ -68,7 +66,6 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": true,
-      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "credential_id": {
@@ -92,8 +89,7 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
+      "destructive": false
     },
     {
       "name": "nhi_orphans",
@@ -105,8 +101,7 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
+      "destructive": false
     },
     {
       "name": "nhi_excessive",
@@ -119,7 +114,6 @@
       "timeout_ms": 5000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "max_scopes": {
@@ -144,8 +138,7 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
+      "destructive": false
     },
     {
       "name": "nhi_revoke",
@@ -158,7 +151,6 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": true,
-      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "nhi_id": {
@@ -183,7 +175,6 @@
       "timeout_ms": 90000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "framework": {
@@ -191,7 +182,7 @@
             "type": "string"
           },
           "image_ref": {
-            "description": "Container image to scan",
+            "description": "Container image to scan (overrides project_path)",
             "type": "string"
           },
           "lanes": {
@@ -211,7 +202,7 @@
     },
     {
       "name": "ert_readiness",
-      "description": "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap.",
+      "description": "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap. Air-gap safe.",
       "risk_class": "read_only",
       "scope": "ert:compliance",
       "schema_version": "1.0.0",
@@ -220,7 +211,6 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -233,7 +223,7 @@
     },
     {
       "name": "ert_architect",
-      "description": "Package B: Live supply chain risk — Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping.",
+      "description": "Package B: Live supply chain risk — Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping. Requires syft+grype in PATH.",
       "risk_class": "read_only",
       "scope": "ert:supply-chain",
       "schema_version": "1.0.0",
@@ -242,7 +232,6 @@
       "timeout_ms": 300000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -264,7 +253,6 @@
       "timeout_ms": 180000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "pilot",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -286,7 +274,6 @@
       "timeout_ms": 300000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "pilot",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -296,6 +283,155 @@
         },
         "type": "object"
       }
+    },
+    {
+      "name": "dag_attestation",
+      "description": "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
+      "risk_class": "read_only",
+      "scope": "dag:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "9524d2458d5911f9e40ca2990b9624adc9813695c8cadc0bef6fcf25bd7ab871",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "godfather_report",
+      "description": "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
+      "risk_class": "read_only",
+      "scope": "compliance:report",
+      "schema_version": "1.0.0",
+      "schema_hash": "204967014a373a01309d8f67b475d1befa91d32cbbf1664d1d6fc4541465e9e0",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "approval_required": {
+            "description": "Stage report for human review before delivery (default: false)",
+            "type": "boolean"
+          },
+          "engagement_id": {
+            "description": "Optional engagement/ticket ID for traceability",
+            "type": "string"
+          },
+          "framework": {
+            "description": "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "godfather_approve",
+      "description": "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
+      "risk_class": "read_only",
+      "scope": "compliance:report",
+      "schema_version": "1.0.0",
+      "schema_hash": "b5d6439e8bb1db66a872a6c4bf9da5cdbb9e7efe0567993b2103677d99107371",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "staged_token": {
+            "description": "Token returned by godfather_report when approval_required=true",
+            "type": "string"
+          }
+        },
+        "required": [
+          "staged_token"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "nist_map",
+      "description": "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
+      "risk_class": "read_only",
+      "scope": "compliance:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "63a0a8f837896e84384160a2bdc4bb825371253423763019451506fa819b9557",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "framework": {
+            "description": "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
+            "type": "string"
+          },
+          "query": {
+            "description": "Search query (e.g. 'multi-factor authentication', 'encryption at rest')",
+            "type": "string"
+          },
+          "top_k": {
+            "description": "Max results to return (default: 10, max: 50)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_watch",
+      "description": "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes. Satisfies CMMC AC.2.006, CM.2.061, SI.2.217.",
+      "risk_class": "read_only",
+      "scope": "compliance:monitor",
+      "schema_version": "1.0.0",
+      "schema_hash": "b1fa86ecfd4a13e3ce2492a53c878ed52a623e07e8466524da8da7311ead4006",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Action: register | status | unregister",
+            "type": "string"
+          },
+          "framework": {
+            "description": "Compliance framework for triggered scans",
+            "type": "string"
+          },
+          "path": {
+            "description": "Filesystem path to watch",
+            "type": "string"
+          },
+          "watch_id": {
+            "description": "Watch ID (for status/unregister)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "discover_assets",
+      "description": "Step 01 — Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
+      "risk_class": "read_only",
+      "scope": "asset:discover",
+      "schema_version": "1.0.0",
+      "schema_hash": "e340878acf84ed5d0ab328df1dade4ec0bf637d9a1c90bb0ade091f7e4f19c74",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false
     },
     {
       "name": "stig_check",
@@ -308,7 +444,6 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "framework": {
@@ -330,7 +465,6 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "profile": {
@@ -356,7 +490,6 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "level": {
@@ -368,113 +501,48 @@
       }
     },
     {
-      "name": "nist_map",
-      "description": "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
+      "name": "agent_record",
+      "description": "Record an agent action in the SouHimBou AI Flight Recorder. In sovereign mode, records to PQC-signed DAG audit log. Required for AI flight recorder compliance evidence.",
       "risk_class": "read_only",
-      "scope": "compliance:read",
+      "scope": "audit:write",
       "schema_version": "1.0.0",
-      "schema_hash": "63a0a8f837896e84384160a2bdc4bb825371253423763019451506fa819b9557",
+      "schema_hash": "48867265e7c92b0b9bcc8644edd78d1ec621bbfa8864745b543422c2c0c480cc",
       "allowed_backend": "in-process",
-      "timeout_ms": 5000,
+      "timeout_ms": 15000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
-          "framework": {
-            "description": "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
+          "action": {
+            "description": "Agent action to record",
             "type": "string"
           },
-          "query": {
-            "description": "Search query (e.g. 'multi-factor authentication')",
+          "agent_id": {
+            "description": "Agent identifier",
             "type": "string"
           },
-          "top_k": {
-            "description": "Max results to return (default: 10, max: 50)",
-            "type": "number"
-          }
-        },
-        "required": [
-          "query"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "dag_attestation",
-      "description": "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
-      "risk_class": "read_only",
-      "scope": "dag:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "9524d2458d5911f9e40ca2990b9624adc9813695c8cadc0bef6fcf25bd7ab871",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "godfather_report",
-      "description": "Generate an executive compliance report covering CMMC/STIG/NIST frameworks. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
-      "risk_class": "read_only",
-      "scope": "compliance:report",
-      "schema_version": "1.0.0",
-      "schema_hash": "204967014a373a01309d8f67b475d1befa91d32cbbf1664d1d6fc4541465e9e0",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "approval_required": {
-            "description": "Stage report for human review before delivery (default: false)",
-            "type": "boolean"
+          "metadata": {
+            "description": "Additional metadata",
+            "type": "object"
           },
-          "engagement_id": {
-            "description": "Optional engagement/ticket ID for traceability",
+          "session_id": {
+            "description": "Session identifier",
             "type": "string"
           },
-          "framework": {
-            "description": "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
-            "type": "string"
-          },
-          "scope": {
-            "description": "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "godfather_approve",
-      "description": "Deliver a staged executive compliance report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
-      "risk_class": "read_only",
-      "scope": "compliance:report",
-      "schema_version": "1.0.0",
-      "schema_hash": "b5d6439e8bb1db66a872a6c4bf9da5cdbb9e7efe0567993b2103677d99107371",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "staged_token": {
-            "description": "Token returned by godfather_report when approval_required=true",
+          "tool_name": {
+            "description": "Tool that was invoked",
             "type": "string"
           }
         },
         "required": [
-          "staged_token"
+          "action"
         ],
         "type": "object"
       }
     },
     {
       "name": "khepra_export_attestation",
-      "description": "Export PQC-signed attestation package covering all active compliance frameworks. C3PAO-ready evidence artifact — ML-DSA-65 signed, DAG-anchored.",
+      "description": "Export PQC-signed attestation package covering all active compliance frameworks. No network required. C3PAO-ready evidence artifact — ML-DSA-65 signed, DAG-anchored, NIST SP 800-171A compliant.",
       "risk_class": "read_only",
       "scope": "compliance:attest",
       "schema_version": "1.0.0",
@@ -483,7 +551,6 @@
       "timeout_ms": 120000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "pilot",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -496,7 +563,7 @@
     },
     {
       "name": "khepra_export_poam",
-      "description": "Export a DFARS 252.204-7012 POA\u0026M (Plan of Action \u0026 Milestones) from the current DAG state. Maps open findings to remediation timelines.",
+      "description": "Export a DFARS 252.204-7012 POA\u0026M (Plan of Action \u0026 Milestones) from the current DAG state. Maps open findings to remediation timelines. Required for CMMC conditional certification.",
       "risk_class": "read_only",
       "scope": "compliance:poam",
       "schema_version": "1.0.0",
@@ -504,12 +571,11 @@
       "allowed_backend": "in-process",
       "timeout_ms": 30000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise"
+      "destructive": false
     },
     {
       "name": "khepra_query_stig",
-      "description": "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls by ID or keyword.",
+      "description": "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls, and CMMC practices by ID or keyword.",
       "risk_class": "read_only",
       "scope": "compliance:read",
       "schema_version": "1.0.0",
@@ -518,7 +584,6 @@
       "timeout_ms": 5000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "control_id": {
@@ -551,12 +616,11 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
+      "destructive": false
     },
     {
       "name": "khepra_query_threat_intel",
-      "description": "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT\u0026CK mappings.",
+      "description": "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT\u0026CK mappings, and CNSA 2.0 quantum impact.",
       "risk_class": "read_only",
       "scope": "threat:read",
       "schema_version": "1.0.0",
@@ -565,7 +629,6 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "cve_id": {
@@ -602,103 +665,11 @@
       "allowed_backend": "in-process",
       "timeout_ms": 10000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "khepra_watch",
-      "description": "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes.",
-      "risk_class": "read_only",
-      "scope": "compliance:monitor",
-      "schema_version": "1.0.0",
-      "schema_hash": "b1fa86ecfd4a13e3ce2492a53c878ed52a623e07e8466524da8da7311ead4006",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "action": {
-            "description": "Action: register | status | unregister",
-            "type": "string"
-          },
-          "framework": {
-            "description": "Compliance framework for triggered scans",
-            "type": "string"
-          },
-          "path": {
-            "description": "Filesystem path to watch",
-            "type": "string"
-          },
-          "watch_id": {
-            "description": "Watch ID (for status/unregister)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "action"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "discover_assets",
-      "description": "Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
-      "risk_class": "read_only",
-      "scope": "asset:discover",
-      "schema_version": "1.0.0",
-      "schema_hash": "e340878acf84ed5d0ab328df1dade4ec0bf637d9a1c90bb0ade091f7e4f19c74",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "agent_record",
-      "description": "Record an agent action in the SouHimBou AI Flight Recorder. Records to PQC-signed DAG audit log.",
-      "risk_class": "read_only",
-      "scope": "audit:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "48867265e7c92b0b9bcc8644edd78d1ec621bbfa8864745b543422c2c0c480cc",
-      "allowed_backend": "in-process",
-      "timeout_ms": 15000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "action": {
-            "description": "Agent action to record",
-            "type": "string"
-          },
-          "agent_id": {
-            "description": "Agent identifier",
-            "type": "string"
-          },
-          "metadata": {
-            "description": "Additional metadata",
-            "type": "object"
-          },
-          "session_id": {
-            "description": "Session identifier",
-            "type": "string"
-          },
-          "tool_name": {
-            "description": "Tool that was invoked",
-            "type": "string"
-          }
-        },
-        "required": [
-          "action"
-        ],
-        "type": "object"
-      }
+      "destructive": false
     },
     {
       "name": "flight_export",
-      "description": "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls.",
+      "description": "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls, verifies tamper chain, computes SOW pilot KPIs.",
       "risk_class": "read_only",
       "scope": "audit:read",
       "schema_version": "1.0.0",
@@ -706,12 +677,11 @@
       "allowed_backend": "in-process",
       "timeout_ms": 30000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot"
+      "destructive": false
     },
     {
       "name": "owasp_agent_assess",
-      "description": "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence.",
+      "description": "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence packet. 100% offline.",
       "risk_class": "read_only",
       "scope": "security:assess",
       "schema_version": "1.0.0",
@@ -720,7 +690,6 @@
       "timeout_ms": 30000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "profile": {
@@ -733,7 +702,7 @@
     },
     {
       "name": "dark_crypto_contribute",
-      "description": "Privacy-preserving contribution of anonymized cryptographic inventory to the Global Quantum Exposure Network. Returns aggregate quantum risk ranking.",
+      "description": "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. No sensitive data leaves the machine. Returns global quantum exposure rank.",
       "risk_class": "read_only",
       "scope": "community:contribute",
       "schema_version": "1.0.0",
@@ -741,12 +710,11 @@
       "allowed_backend": "in-process",
       "timeout_ms": 30000,
       "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
+      "destructive": false
     },
     {
       "name": "sbom_generate",
-      "description": "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations.",
+      "description": "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations. Falls back to go.mod/requirements.txt walk when syft is not in PATH.",
       "risk_class": "read_only",
       "scope": "sbom:generate",
       "schema_version": "1.0.0",
@@ -755,7 +723,6 @@
       "timeout_ms": 180000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "pilot",
       "args_schema": {
         "properties": {
           "format": {
@@ -772,7 +739,7 @@
     },
     {
       "name": "threat_model",
-      "description": "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT\u0026CK mappings. 100% offline.",
+      "description": "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT\u0026CK mappings. Detects project technology profile and produces a context-aware threat catalog. 100% offline.",
       "risk_class": "read_only",
       "scope": "threat:model",
       "schema_version": "1.0.0",
@@ -781,7 +748,6 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
-      "tier": "community",
       "args_schema": {
         "properties": {
           "framework": {
@@ -795,939 +761,7 @@
         },
         "type": "object"
       }
-    },
-    {
-      "name": "kasa_start",
-      "description": "Start the KASA autonomous security agent. Launches: vulnerability hunting hourly, internal pentest daily (NIST 800-53 CA-8), CMMC compliance audit daily. Every action is DAG-attested.",
-      "risk_class": "destructive",
-      "scope": "kasa:control",
-      "schema_version": "1.0.0",
-      "schema_hash": "c7df27c9945dfc26b616c6b132b9b20ab7341904e581cd8da50cf8b8dc2fa6cc",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "enterprise"
-    },
-    {
-      "name": "kasa_status",
-      "description": "Check current status of the KASA autonomous agent: uptime, active tasks, threat score, and EA kernel generation.",
-      "risk_class": "read_only",
-      "scope": "kasa:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "dd5a2e99dd41449c054ad0f2a309a828be85e0b8c0b6587f51ec0a59e649ebb4",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "kasa_task",
-      "description": "Inject a security directive into the KASA task queue, bound to an Adinkra symbol (Eban=defense, Sankofa=forensics, OwoForoAdobe=vigilance, Dwennimmen=remediation). Executed within KASA's next cognitive cycle (≤5s).",
-      "risk_class": "read_only",
-      "scope": "kasa:control",
-      "schema_version": "1.0.0",
-      "schema_hash": "aa280de8503b325988d220b0b73ac61f36ff0b7f72cfaa851afa1c64156854a9",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "description": {
-            "description": "Task directive for KASA to execute",
-            "type": "string"
-          },
-          "symbol": {
-            "description": "Adinkra symbol binding (default: Eban)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "description"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "kasa_scan",
-      "description": "Run KASA's port/service scanner against a target, with AI threat analysis. Maps to MITRE ATT\u0026CK T1046. Every finding is DAG-attested with ML-DSA-65.",
-      "risk_class": "read_only",
-      "scope": "kasa:scan",
-      "schema_version": "1.0.0",
-      "schema_hash": "39bb99749b25fabdb7d5b2888389a5f148f5c8eea198c86ae556e16a52e96732",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "target": {
-            "description": "Scan target (default: 127.0.0.1)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "kasa_forensics",
-      "description": "Trigger an immediate KASA forensic snapshot — processes, network connections, open ports, file hashes — compared against the last snapshot for anomaly detection. DAG-attested under symbol Sankofa.",
-      "risk_class": "read_only",
-      "scope": "kasa:forensics",
-      "schema_version": "1.0.0",
-      "schema_hash": "cb3c2f802720527b2263d50a98bcd6ed99e15dd4c7c3e30cbb59198797962ebc",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "kasa_crypto_agent",
-      "description": "Run the KASA Crypto Agent: detects tampering via entropy/structural feature analysis, computes a threat level, and auto-quarantines components above the Critical threshold with PQC-sealed forensic snapshots.",
-      "risk_class": "read_only",
-      "scope": "kasa:crypto",
-      "schema_version": "1.0.0",
-      "schema_hash": "085f1a549315793a06eb3f6298cefa021d1005ecb588d03e65957fb85ccf7a09",
-      "allowed_backend": "in-process",
-      "timeout_ms": 15000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "component_id": {
-            "description": "Component identifier to check for tampering (default: PQC-Khepra-MCP)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "ea_evolve",
-      "description": "Run Evolutionary Algorithm threat evolution. Optimizes for: NIST 800-171 control coverage, PQC readiness, threat posture. Returns the fittest genome with Adinkra symbol binding.",
-      "risk_class": "read_only",
-      "scope": "kasa:evolve",
-      "schema_version": "1.0.0",
-      "schema_hash": "76b6b79bd14d54d59f094716cf3449cb1cdb108db4bfa8e59d91c8cac92f1beb",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "generations": {
-            "description": "Number of EA generations (default: 10)",
-            "type": "number"
-          },
-          "population_size": {
-            "description": "Population size (default: 50)",
-            "type": "number"
-          },
-          "target": {
-            "description": "Target to evolve against (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "ea_threat_score",
-      "description": "Calculate a composite threat score for a target using the EA kernel. Returns CVSS-band score, confidence interval, and contributing factors.",
-      "risk_class": "read_only",
-      "scope": "kasa:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "ea1deae4db438f500d33a4f1b6ea8c91ea7b46a61f651cd1bd740450c9d5917e",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "target": {
-            "description": "Target to score (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "ea_risk_summary",
-      "description": "Synthesize EA-driven risk summary: vulnerability exposure, compliance gap, PQC migration cost, blast radius. Same engine as Godfather Report.",
-      "risk_class": "read_only",
-      "scope": "kasa:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "1d09ead7cc31f065fe5c62502eef8f6b7700e4dcd6a12d79f6972d4841880eba",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "target": {
-            "description": "Target to summarize (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "quantum_optimize",
-      "description": "Run Ising model quantum-inspired optimization for attack surface analysis. Simulates quantum annealing to find optimal defense configuration.",
-      "risk_class": "read_only",
-      "scope": "kasa:quantum",
-      "schema_version": "1.0.0",
-      "schema_hash": "4b8274671ba0c7c17a928d1c879ade03c91d2b94182d5cc67b949bcd2dbe07d4",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "target": {
-            "description": "Target system to optimize (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "threat_lookup",
-      "description": "Look up a CVE, IP, or domain against embedded CISA KEV + MITRE ATT\u0026CK databases. Returns CVE details, CVSS/EPSS scores, ATT\u0026CK TTP mapping.",
-      "risk_class": "read_only",
-      "scope": "threat:lookup",
-      "schema_version": "1.0.0",
-      "schema_hash": "08b4d755a9604224e7c5b5cf9c0826fc5caaa7a9ace8998f22e95411c1cf707f",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "query": {
-            "description": "CVE ID, IP address, domain, or keyword to look up",
-            "type": "string"
-          }
-        },
-        "required": [
-          "query"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "drift_detect",
-      "description": "Detect configuration drift between current state and a signed baseline. Uses the KHEPRA DriftEngine with Adinkra symbol binding.",
-      "risk_class": "read_only",
-      "scope": "compliance:drift",
-      "schema_version": "1.0.0",
-      "schema_hash": "acaf9cd8e6850c5c023eca1d507e59990b40a088693ce5d5da62c9b16e805505",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot"
-    },
-    {
-      "name": "ir_incident",
-      "description": "Create a new incident in the KHEPRA IR Manager. Every incident is ML-DSA-65 signed at creation and DAG-attested.",
-      "risk_class": "destructive",
-      "scope": "ir:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "f952bb22badf6a0836ba09e50175fdc8ea0bedd0007f8cb4d01b2a72c2608ffa",
-      "allowed_backend": "in-process",
-      "timeout_ms": 15000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "description": {
-            "description": "Incident description",
-            "type": "string"
-          },
-          "severity": {
-            "description": "Severity: critical | high | medium | low",
-            "type": "string"
-          },
-          "title": {
-            "description": "Incident title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "severity"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "ir_add_ioc",
-      "description": "Add an Indicator of Compromise to an existing incident. The IOC is ML-DSA-65 signed and DAG-recorded.",
-      "risk_class": "destructive",
-      "scope": "ir:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "f719e9b36e74986ea997b00720acc262c9123690435e7df73064ee8f05f9c9fd",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "incident_id": {
-            "description": "Incident ID to attach IOC to",
-            "type": "string"
-          },
-          "ioc_type": {
-            "description": "IOC type: ip | domain | hash | url | email",
-            "type": "string"
-          },
-          "value": {
-            "description": "IOC value",
-            "type": "string"
-          }
-        },
-        "required": [
-          "incident_id",
-          "ioc_type",
-          "value"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "flight_record",
-      "description": "Record an agent tool call to the SouHimBou AI Flight Recorder with cryptographic attestation. Creates a cryptographically verifiable audit trail.",
-      "risk_class": "read_only",
-      "scope": "audit:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "5963b963f5a2c287055063308845c6e0ffb8146e0462fba76ea0f151b8e0684f",
-      "allowed_backend": "in-process",
-      "timeout_ms": 15000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "outcome": {
-            "description": "Outcome: success | failure | partial",
-            "type": "string"
-          },
-          "scope": {
-            "description": "Scope/context of the call",
-            "type": "string"
-          },
-          "tool_name": {
-            "description": "Name of the tool that was called",
-            "type": "string"
-          }
-        },
-        "required": [
-          "tool_name"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "ouroboros_waf_eye",
-      "description": "Ouroboros WAF Eye — real-time web application firewall status from the Mitochondrial API Server. Returns blocked requests, threat patterns, and active rules.",
-      "risk_class": "read_only",
-      "scope": "ouroboros:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "fa0e9d0f1150c80afac15a7fb1ede894e3d9c7060d14d38ff0ae9f18ad3bb1fe",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "ouroboros_stig_eye",
-      "description": "Ouroboros STIG Eye — continuous STIG compliance monitoring status. Returns current compliance posture and drift alerts.",
-      "risk_class": "read_only",
-      "scope": "ouroboros:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "ccc13d9609e327365dcf030ccf1710f1b96ea5c81b4611c57506a128566110b9",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "ouroboros_vuln_eye",
-      "description": "Ouroboros Vuln Eye — continuous vulnerability scanning status. Returns active CVEs, EPSS scores, and remediation priority.",
-      "risk_class": "read_only",
-      "scope": "ouroboros:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "8a5178c7e75caf08b0bc815109630fe728e193d1a1e43abaefba185f5a75d562",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "ouroboros_fim_eye",
-      "description": "Ouroboros FIM Eye — file integrity monitoring status. Returns hash baseline comparison and drift alerts.",
-      "risk_class": "read_only",
-      "scope": "ouroboros:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "611cb6c5f15eea92a2cece2b8334b5d7aac6fb02f00a3c3b36936085a41ecb92",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "forensic_snapshot",
-      "description": "Collect a DFIR-grade forensic snapshot: processes, network connections, loaded modules, environment variables. ML-DSA-65 signed, DAG-attested.",
-      "risk_class": "read_only",
-      "scope": "forensics:collect",
-      "schema_version": "1.0.0",
-      "schema_hash": "9bdf7bb0f71fde3d25cb77d8a095d81d21a4003668bf8d65fd313a9310fd3435",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot"
-    },
-    {
-      "name": "fim_baseline",
-      "description": "Create a file integrity monitoring baseline. Monitors critical paths using SHA-256 hash baselines. Baseline is DAG-attested.",
-      "risk_class": "read_only",
-      "scope": "fim:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "b5a6eeb3a93ea29686a53bbee84e30df2c3aae07edec83579b89435557d1f201",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "path": {
-            "description": "Directory path to baseline",
-            "type": "string"
-          }
-        },
-        "required": [
-          "path"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "audit_dag_integrity",
-      "description": "Full integrity audit of the KASA DAG. Verifies: node count, parent linkage, PQC metadata completeness, and signature chain.",
-      "risk_class": "read_only",
-      "scope": "dag:audit",
-      "schema_version": "1.0.0",
-      "schema_hash": "7e0ffc37ddea8dd9159c67fdd0b1353403f40314d021cb4b082d0066cfd25847",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot"
-    },
-    {
-      "name": "enumerate_host",
-      "description": "Enumerate host information: OS, kernel, network interfaces, running services, users, installed packages. MITRE ATT\u0026CK T1082.",
-      "risk_class": "read_only",
-      "scope": "recon:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "fb0e390413f3d5c9e31ed5d9da7b5679f44626bad88ed0cc7d2e3ea8bd10e78e",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "target": {
-            "description": "Target host (default: localhost)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "fingerprint_device",
-      "description": "Fingerprint a network device: OS detection, service banners, protocol analysis. MITRE ATT\u0026CK T1046.",
-      "risk_class": "read_only",
-      "scope": "recon:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "0b8a53c35611db22bad7d184be3d92ba2c5892eb7975c0df37a5b85996eb2f25",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "target": {
-            "description": "Target IP or hostname",
-            "type": "string"
-          }
-        },
-        "required": [
-          "target"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "port_scan",
-      "description": "TCP port scan with service banner grabbing. Identifies open ports and running services. MITRE ATT\u0026CK T1046.",
-      "risk_class": "destructive",
-      "scope": "recon:scan",
-      "schema_version": "1.0.0",
-      "schema_hash": "4ea5c49b8fcdb9c07b90d8bac322e18f7e6cad248e357edab34265b7f391d867",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "ports": {
-            "description": "Port range (default: 1-1024)",
-            "type": "string"
-          },
-          "target": {
-            "description": "Target IP or hostname",
-            "type": "string"
-          }
-        },
-        "required": [
-          "target"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "vuln_scan",
-      "description": "Scan project for known vulnerabilities in dependencies (Go, NPM, Python). Returns CVE IDs, CVSS scores, affected packages, and fix versions.",
-      "risk_class": "read_only",
-      "scope": "scan:vuln",
-      "schema_version": "1.0.0",
-      "schema_hash": "b89631a7ee8c3b97823bf2cb5b254a3ae96b9b2e66219d7180435eddef430f5e",
-      "allowed_backend": "in-process",
-      "timeout_ms": 180000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "target_dir": {
-            "description": "Directory to scan (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "secret_scan",
-      "description": "Scan for hardcoded secrets using entropy analysis + pattern matching. Detects: AWS keys, GitHub tokens, private keys, JWT secrets, database passwords.",
-      "risk_class": "read_only",
-      "scope": "scan:secrets",
-      "schema_version": "1.0.0",
-      "schema_hash": "cb5d8ba82be372adac329bf5e9b15e24cf8f972a0c4d894368bfb17e9e47f57e",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "target_dir": {
-            "description": "Directory to scan (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "container_scan",
-      "description": "Analyze Dockerfile and container manifests for security misconfigurations and base image vulnerabilities.",
-      "risk_class": "read_only",
-      "scope": "scan:container",
-      "schema_version": "1.0.0",
-      "schema_hash": "73803f31d96dd5626a5bbcdb150a54019c2b895be19af71caa8bdc5ac94579c8",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "target_dir": {
-            "description": "Directory containing Dockerfile (default: current directory)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "compliance_scan",
-      "description": "Run built-in compliance checks against CIS, STIG, and NIST baselines. Returns pass/fail per control with remediation guidance.",
-      "risk_class": "read_only",
-      "scope": "scan:compliance",
-      "schema_version": "1.0.0",
-      "schema_hash": "60e1eb1d88bed686e438c903c4edbbc0ace8869e7cb389da6cecad8c9c9cd7d9",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "framework": {
-            "description": "Framework: CIS | STIG | NIST | ALL (default: ALL)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "packet_analyze",
-      "description": "Analyze a PCAP capture file. Extracts: protocol distribution, suspicious connections, DNS queries, HTTP methods, potential C2 patterns.",
-      "risk_class": "read_only",
-      "scope": "scan:network",
-      "schema_version": "1.0.0",
-      "schema_hash": "8612a5e4b5bf44851c78afb0867d08766e02ea24431044e80b1a75cb8930dc12",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "capture_file": {
-            "description": "Path to PCAP capture file",
-            "type": "string"
-          }
-        },
-        "required": [
-          "capture_file"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "attack_graph",
-      "description": "Generate an attack graph from current NHI inventory. Models lateral movement paths, privilege escalation vectors, and blast radius.",
-      "risk_class": "read_only",
-      "scope": "threat:attack",
-      "schema_version": "1.0.0",
-      "schema_hash": "ac915f442983dd413956dafe419b6b0740dc982d2abb776b27691a13fc9cc8b1",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "pilot"
-    },
-    {
-      "name": "pqc_sign",
-      "description": "Sign arbitrary data with ML-DSA-65. Returns base64-encoded signature and public key ID. Air-gap safe.",
-      "risk_class": "read_only",
-      "scope": "pqc:sign",
-      "schema_version": "1.0.0",
-      "schema_hash": "79e9daf58ae956fbcfe5510a29ba578de0007aa67c1ba2ba7c188e8ca04616f0",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "data": {
-            "description": "Data to sign (string or base64)",
-            "type": "string"
-          },
-          "symbol": {
-            "description": "Adinkra symbol to bind (default: Eban)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "pqc_verify",
-      "description": "Verify an ML-DSA-65 signature against data. Returns verification result and signer metadata.",
-      "risk_class": "read_only",
-      "scope": "pqc:verify",
-      "schema_version": "1.0.0",
-      "schema_hash": "017c3d7a8820a6a09d05244736775c45844268b422afe611ad01736954523f15",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "data": {
-            "description": "Original data that was signed",
-            "type": "string"
-          },
-          "signature": {
-            "description": "Base64-encoded signature",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data",
-          "signature"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "pqc_keygen",
-      "description": "Generate a new ML-DSA-65 keypair for agent identity. Returns public key (base64) and key ID. Private key is stored securely.",
-      "risk_class": "read_only",
-      "scope": "pqc:keygen",
-      "schema_version": "1.0.0",
-      "schema_hash": "8208384f5c2b037ad0e38db2316ec60929f52eaf8b6fe27d107450dacc9c2456",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community"
-    },
-    {
-      "name": "dag_write",
-      "description": "Write a manually-specified attested node to the shared KASA DAG. Use for arbitrary compliance events, human approvals, and audit points.",
-      "risk_class": "destructive",
-      "scope": "dag:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "ce78a3b089241dccd74d211fbbd2db30fb85c11707b5574f763da3a9e378cfd6",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "action": {
-            "description": "Action name for the DAG node",
-            "type": "string"
-          },
-          "symbol": {
-            "description": "Adinkra symbol (default: Sankofa)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "action"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "dag_query",
-      "description": "Query the KASA DAG for nodes matching criteria. Returns matched nodes with signatures and provenance.",
-      "risk_class": "read_only",
-      "scope": "dag:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "5d503a32f05588425276e8aa1172abe85edc17f26a2a31d3d0bd605777bb5f17",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "community",
-      "args_schema": {
-        "properties": {
-          "action": {
-            "description": "Filter by action name",
-            "type": "string"
-          },
-          "limit": {
-            "description": "Max results (default: 20)",
-            "type": "number"
-          },
-          "symbol": {
-            "description": "Filter by Adinkra symbol",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "dag_audit",
-      "description": "Perform a full integrity audit of the KASA DAG. Verifies node count, parent linkage, PQC metadata completeness.",
-      "risk_class": "read_only",
-      "scope": "dag:audit",
-      "schema_version": "1.0.0",
-      "schema_hash": "4a2e9bb6a476c70c2c69a2e99b29419ff8b804fecdc0dfc67e1a1d3b4cb3af26",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise"
-    },
-    {
-      "name": "phantom_stealth",
-      "description": "Engage network security posture hardening mode. Reduces attack surface exposure through traffic obfuscation and endpoint protection.",
-      "risk_class": "destructive",
-      "scope": "opsec:stealth",
-      "schema_version": "1.0.0",
-      "schema_hash": "9f2ea002c87103cb200665de39e876fe45d6cdd36040db44e5931cb54897844f",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "device_id": {
-            "description": "Device identifier",
-            "type": "string"
-          },
-          "symbol": {
-            "description": "Security profile (default: Eban)",
-            "type": "string"
-          },
-          "target_city": {
-            "description": "Deployment region",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "identity_shroud",
-      "description": "Encode a credential or token using post-quantum obfuscation for secure transport.",
-      "risk_class": "read_only",
-      "scope": "opsec:shroud",
-      "schema_version": "1.0.0",
-      "schema_hash": "250c89ead9e87481d42e78536bb8dd28e53316e2f35d1b093cc507f89f6eb57b",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "strand": {
-            "description": "Credential to encode",
-            "type": "string"
-          }
-        },
-        "required": [
-          "strand"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "identity_epiphany",
-      "description": "Decode a PQC-obfuscated credential back to its original form.",
-      "risk_class": "read_only",
-      "scope": "opsec:reveal",
-      "schema_version": "1.0.0",
-      "schema_hash": "1c832cfd86e292e9d6488e29154e40ec36938180c7c39db47484bbc76e5d6ae7",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "tier": "enterprise",
-      "args_schema": {
-        "properties": {
-          "verse": {
-            "description": "Encoded credential to decode",
-            "type": "string"
-          }
-        },
-        "required": [
-          "verse"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "drbc_backup",
-      "description": "Create a DRBC genesis backup of the KHEPRA project. AES-256-GCM encrypted, ML-DSA-65 signed.",
-      "risk_class": "destructive",
-      "scope": "drbc:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "70a3ef5cab00a2690424e5e537e6e33a17066acccf87565bac237a27850f0416",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "password": {
-            "description": "Encryption password for the backup",
-            "type": "string"
-          }
-        },
-        "required": [
-          "password"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "drbc_restore",
-      "description": "Restore the KHEPRA project from a DRBC genesis backup. Requires the same password used during backup.",
-      "risk_class": "destructive",
-      "scope": "drbc:write",
-      "schema_version": "1.0.0",
-      "schema_hash": "a060e6eae479bff87151547094c8914b31caf026147099be427a873331814ff4",
-      "allowed_backend": "in-process",
-      "timeout_ms": 120000,
-      "network_allowed": false,
-      "destructive": true,
-      "tier": "pilot",
-      "args_schema": {
-        "properties": {
-          "password": {
-            "description": "Decryption password",
-            "type": "string"
-          },
-          "target_dir": {
-            "description": "Target directory for restore",
-            "type": "string"
-          }
-        },
-        "required": [
-          "password",
-          "target_dir"
-        ],
-        "type": "object"
-      }
     }
   ],
-  "signature": "7b6d66be7de60ac7fe4970410374c4811d7a05372a0523fa25f9b02bf2f0dad30824392acede379bf9f0a61d772f614f2694294e3fcfc9e293811498f25349782dd7379a1de61f423c72823e2118e4d29015cfee219c1455ed26ff9fb48a40643745b13b8e33da82078ac00574d657332239b9eab85b4f7c979ef0127f4123997ab8898aaebf5e399d0c8be23ac779470e2f6b5dc7d09ec4aca57acdb9339c8f3e88ec343ad7e7a7e9981e665501dfaa58efe5581a44086e96ac2ac05346f643c00be9c9466be4b58235a89108e48a4b4f588f99331edb2a9f30714e3505a9e1509d9e30864ddaa76d16a540355ee2793eb2c760771f1881e852cab0b1cceee9360b1e6db9bd5b9757437d3fa30c1bbfbccba87b007ee412503be9e6018438658a258216898763e4b8fd18eec19a3f49449f853e88c8162793d73d947c3a18910477422f204552dab76955dcc0c84c8d0508a9a89966de262c4591c5cef9b9d8ae5024dc6826f17c5d118e0badf1e0be36c8ac36db3793fec80228c5fd2e718e7524a995eff170286b914b6125255b765ce058856564edd3283c2b9db45a4878bc6e00154614a5445fa33aecc117e5cbb2d02c423e529a5e6bb99f266129f70ab42d20f88e86838d14dbd6fd1bb9f2673377510fb36ae29c3b4db8a24590d6edc6e03f51c643c12de073967beca3faff0c1605969a6ae316d8e5728ed5c400e328e289a2e39e50d155b41dbd5511a5e5cee698af302be3d21368a73340c886fb0bbd29e9d2c599ba8794ceaa9c05d8c01feeeefd21dffae3f8da1b6a5750513737e23df9148416002b5aa9d05d5ec264f4cafb15eaca9c7e59868c30948cee5060f7bdee4081cf129c741b5fd0fe0056ccc70cb95955b772861472f828a65f77dbc84ce9898392c261dfa4a391f99799a41e56c17ef1c5648bb36ebc55d504d302cb9dbb6c2b4226c05fd84dd964694fdc4f42c254e4b4dcd803829ba73fe8c3f3902a0a84b7c3e1d02bf33fd1c9b294ac0e4ec629f4f8adb5bb95ccf1aa42942b252a23b608f9162d58b2402a4e25c4cb718f34cf76197d3080a50c58334f2f39fdf5b11343f07a3aef374a264f0b5386dd24f22345931cf3ebab0d91df62b768e5282ae7ad157a6514b80ced9fe0c561f3d983a70f81615e25ba00ed06b9188177ef9cd48da96c4dd3221cf37ea524d47ca45dbbbdbdfb6f55e14561f602d5a329c199ed4c753f75762951a151e18a2b1478aff62be63c9437afcefb63a15562da7c2e6a6d1dba36ee901fbd7b3b1a5a459d910c39a5aabd56abfe4a96a8b353197f37056de341b1bbdc0e5a7dcc60ed2a904d5d2474aa4e152a6dd1fbdece39f49bfaa77216b985813a3e41baf312c3c9fb02ac20d6966f7538cfc748f95df3224cc99d82ead4f5267458c8dcd65cd13915d55b3248ca48c4ffe61b1dc8d2db16f14545593a5a880270b2341c8866d24be1b63709376360ea0d408564760f7c94bbac75e52f7385273cb0dd42a43a4edf976e6949d9b776bc1894cff47e1704ccff9d39e5b8af7ccd9741adfa0d00555abc5b9511dba25b86c2f31ffb5954e589cd253739a46f3e6bfdf006dd7c95e0c675b67820bbc8e6cafd6ac8a417d0967482edd0fc8f9f6bda50a07b9856e5990741923a5627b06e57a1267963388bbf31defb6e056ee91c7a6f3798e5031d12b8354878944ac7e7b5830c2a7a05656ea9d9695cbda6a168b29da98603cc0ebcf3f8b8639cc7200834155c850e9179294ed0c9255c7120450d7b8142e3e5928982bcaac2ce4feb6994b8abbdbcd66449d7055d264aeebeed71577f15e28b41274cfe174eeb9d79a75d85fe35a77d7e2dd66a4be21e2546b98c6d4d90ee11dac312816260ff71edf48321c1ea9fdd9a2870ce6ba7578f4f0d4f878f6582390c0eaf142bb097afa833ab991065ee2664763089c6baf11375efa18c5b24d568d7aa4f8eb37167b600b17c08b4a02fe044339eb18a469a8ee66c9b145e3735c5362e2117b2dc119b4500c9e1f15ae6d130a1fc746272f44a1de82e1cf7d15b1dbdcfb5f09567fd630cc6417aa8eec467d17634c834f931e63534e4959217cbbcd532777c8b520d78f8693b14cca1aec4ed08e1dbc7af99db80110045f2662c38a8a5c073cf501115415922e953533f5051351eb4c37bd4389f71fc8adfc54b7f1932fdd690f1c908da60522dfc0c2efea2e8f44664a772db213bf0684b584a98a9f488ca8bce79f5431529eb7d025cbce99a223bc628d51905652c908cd942bdbe4ed9933eed95483e73bfa2d4e67dbda1d4697afa4dfa2967b06574f49ba726c700d3b6c48e04737619e9fd77d80e78481c55458dfcd33bfbbbc93ddb029860594b5506ac8afd60d05696c637c2a858c3380fd1babad2dc473fe8e1362e9ac4cbd05a57c27e3e6ebe6fd008a65e84e8f62ad853aea8fcefaa21c7ebc9ab5b6320bb093519b1b386d263b8a97a5c11ac35998f17f16348bfb9cbff29c2c1e4d42f411fc21d2d07428f90be901598899d873f3da67fb5e2564583367539b805e1213a9a4837fc4fa71afb1fd79214785ad9485a06c9a90693b91bd28de2fc7a13072fff25e2df9502516f90ea277f83af250a8f490ca47866a316319db8184d0a2e4e0349de3b658f0506c219b737ddf69a79f0e6932e4abaef47df3f5ae5def8288773eac4c382fec8d882655201c2d2d2683ef3d6528e4a9ff64c7498e899c67bba7b3278f176e017f8814071e0af41badd6b17165f7f5e14f53a07e93e5c8bb9a8b724641dce82c9e213b814a0f7d996852b35d190073a551681d17fcb1a07dbc59c9520193e84288f88ae0ae13697d0a592d06fa616982c101660fccc79929eb9ed077ce085f26bf01c0061d8b14bdd4e026c02ea79cdc5508e431353f537c4d8c28d733b00458a80312828a99f53671e008eb932004af0d3ef0ecfc0343826a199999a1702203a4df5ba2d7d38fa2e35e3336f0451f8d8443d8fffa919e6ccfac0c19a30b2f8544fff4b517d3504330eb28f4638c9bb9ddb2efde5f0af0a47b45c8539d9c686827ede74666fd20f283c4997f454f07d7b71dd36d3e210a5e50ce83ce86563947f24eda876bbed7145dcd4303e56d4c613fdd4e67e0a3f88e4fd5fc6919fd12582e20a5ad4206c6fc87a5846363fe69603a349a29b28e5a3d5ecb98986e7a41fa2c62c9da9960c8c56621981cca245c2a8d4585b47b297ef483d9d18b3a7a2d0075000db95edda4dd016e365068e63b2a863b5850755c16b5520695ca4386cd1c1966a66147e1dab096213f1d8fba056da57cd17a9acbd5929ade7f8040d9eb6b6abfc94362a18332b52fe7a694a7ae72eb4be61fea3466ed6c861488d66976fd5838b54781d905a15cbf2f86f6dd219047f5817c619c0de618659e5bed1f3763a5666c544884017f8a85f7d1a8e50b0c140c1945ded9927f51dcbcf9e1d432d9fa14103fae83c34b9b2f00fde638630ba8d39b627037d6833cc0d46d8c5cec675efbf277de92cf896fecc05e052ebc02a982815da3de7c0ed987a9293b71a560bda92f878d371cdc5781ad6ea33778fd078f4ba2c6833ef57d71172a7cd70124656cd7bef4afbf7c8ba8f000ebccd744d7e0bd5337ca588640a7ac284c6f6d2b12c85e3bb2415bed6f002ec162c46b3fb91c66770f31b98424b08cdc2567a6eb1548859c396b46f7c5a8df7c96fddac97d8f1b62dd7a5db87e06afdfb9807dbc224e0471bb9b905ecdaceb23e45c17ffd9db92ecb16d9be65b0495a28863b1f5fad0eb9149e023d1449c6e66f98fd52506edc71861e03fcc5698349962506da568d7474bd074b268d79450d43abfddd73ae0527d08b604d68349539863fda5b33ead5598b9ce5103a7b4f0ffaa23085ee30fbce9d01fe298190d075e5349cb46c3b9fa0b43297dd84b09f51f254a8b4352eefeff2a2cee3a77bd2390cc04303773482c378c30700a1a9727844d77f55482831b12fae7905ff09c2af6f8bd43dd7f6f41c2e20a3d39595bc7b4b52ddebdd0edc68a430e3a26cc8213e76e79da4a0b06f252ba9bc0eaa0140500613f0b97d9c6761b87284ad85eacad9251f296d29050d05e79a173acca5e6870b34fd3d447001f324ff19ea1e2ea93b59533439eb7f9fdfce1d33c7eff4664e52c137ec88704326a9ee93563ff14fca5a077144456244ebd02a065557bcd3f8bb1d5b81b6e1ba0bd391f48fdb12ebf96ca846bbcade21fe230ed15c696a6a1a292e623fc10ce4a673e6fa9d700bc28d6203e78e777a31abdedc05b75f808448691c67d7ca93fa6b0b7bbff065a044ae8aba5c7245843e305055829c3cb1291d59660a4b20684f6fbac3526b8aa0e4f3a002a3627f5df2a34ee8e440e1c023c69c340782bc32fbe4f027dba3029c104ddb00f5a4d271077c824e4e67abbb33817443ab63ab7a10f245750354fa47c599ee1bc09ce744103653bb245a4c560da23ebdef3acad7b26f00488bfb132e8663b12ca2027142277f101ce97e6a203b137452f778efdccf636bab9d57268f02577efbee26260c34d71798534992d4256e87889d84b3e7453c5faea6c80b3b80a3a5bbc0c2cad2d6dd1fbedae8477023a9e8030597e6f341545c92a2000000000000000000000000000000000000000000000000000b0f1114191e"
+  "signature": "4e06540ca239a8246609edc6cf1fe349897d82b89554fc443f51756076f1d09376966fcc1c888324ad64b4e3a211c38e563fc4cf987ca70b45ef801bfc3ccfe4b614ae2bd48bd2e29f61cba9672a0fae89abec4f783ea1106114c1a1e3a808d998ede71e7a52c7dacc886cadf4d961b47e88a046a68e0e2cac87fd9fa806445f2c2ffcf14e888bc345368863a1f412bba913eae5accfd9ff41b9fb2c32ca427fdf29e07073a410ac0473f9980a38bdaf8a2d0c767b817ab0ba9b4527481f2fb9053aa69be30b68cdbb34b89776c77a6bbc0514b554be6287eecf76b20e78b2c5172dc3a0980f25b2e3647998da70c46b98ae8100c0d361fe4c0fe07cccfe7c1a2a543e8384b36edf7f1054d6bb94c8d732d97dc5942cfa7a6f1d8f4d7a72c2191d0601c1045bbb8f77ffe1694368d23fa359897f6700d46fd82b657161d894205c4cd2f228de32ed503d4396569ea53fb0d0ff2473f1de9b380a42074cab61c827f5cd3f34ed8205f690c75e1ca53eab3c56840c36fc5f35d85a41b262ae4dadb9881255f71cc36bcd6f5ec095516d8a1e251c4634e879cc788057de70c27a4a17e17eaccf238a059addd5e2c3027a894462a0cbb4dbb0d54cc7a3596fa7cc16a90a543512656762a0877d008294b56c7bf86874783cb896151bec13139271a227f15a61b5bcd50aab0f40c3abacf3b442ebf0454897ec977bd2116ad020665c25aaa2860aa57789398e446938ee1d62f134edebc6cd990b89f1d679a3a4d5b76560a9ddab9b7632a7364c1140a21bdeca665fa180f60d18d850791a32d2902bde38d54f4276efb1b264d19bbf1dc4bd4b27e317926cca29a184ed3e91bd0ecea1f6a8c861ac94c192aa709f9f52aa87b6322213d96e45566d70f947cc839838b89d7e9aac60c5dab65dd718e81985ec6a558dab1e6bce5faa734b2213318cf506591f42ec2f0061f73bd47bdfbc2170172396a3b8a3766253dcecbe990e660fcc3caae4746706d46628ef4157c96dc926792183dcd8df94b79e3f84350567d3cc4888b362cf3ab42025382aeb3bed123a8fd0c8990088f91c0bf3d33263e1073e7cf53f9823507c275129603bbd093ded92f9076d002d4ae790ba962be63dbfa34df9842d9646cf523edfb14ff337745393f7991c4cef68020fb3fbc09cd3f2e3fa0cbd465a5e28114b053adcf454c733ae3213619b52eb6c8419f993c74b3419bbbf5a0ff7efeeb517b2c91a4a780fd4de914947374910f1ad3a92f4ee9b154556e549a6d0594fb8a7198d2b024536d759811b370ff099b2c1644e7a01efd81d371a75d4872c36379bf261981e4c07ebb66273e82957ae3c0c7b528e14c6bfe7a08f308042d60a5d116f6ca16f7e260217f940ea5be737ef572e10ba85537d7e4cdc41c9c77bac84653eaa47b03354d3f66b6d555dd63f3b7ee7ab9464dc2ff567c180f486b3e22e4b29557f33972eb892f0cdc874fe0cc376322ad2c81470dd1b992cd2e498f8865b3edb250610b95a8bffe22564da718c561b628ec5a34eff3c345f24d6d40b976b7abc19c228eb45ef557a32cd20a7ff48fad0e40df062e096364c19d39dfb84b5564c9377bf1f2c7727bb4d99ac9b532aaca809e1654b665c715682312f8dae7961b1d9796b18e9e83e39e7394bf96c78aff408d75948bb219af560570492842efc56ec3202730b7484d30d98611d84ccfbcabe3bce9e90471f9663621d94fea2238d75ed172eae7b90d088e2007ac921bcd8c9d28c5ffe5b198e7f6dd722d67c3d42a403921bf3144153e5e4025cff517f7bcd4ba9d396e28c8a9b1613a53d70128546571ee83db2bf7c5f5f973d9a4f67218517e39e1196e44ce7d413b50970edf011d8ef4c7471fcfdab75dc70f847c46179ecae3058696300f3cd4e89577a853231a88319d4601873e235f84eada5d997e2ad899b833c520261ec0e09f79080f2610d55afdb8eb827c7d8c3c8f34b88fa0674004ffc9be1e0186ca34ca9cd171da7e04ecaedfd53ebcee1780f91fd535e68504d8c2d50ddd3803e79f214f8e4c5dbd8fd8da2a496fe913ac2543ea0000594de9641587d86972a7972fec37e35eaa11667e46d96c6c70b7cccd48747d29f8874f29b0ba919fac7cb784cbdfb73141aa888dbf950a4ae597815d3b4323dbcf6b02d57b00a8b5b4b9147cbace2b2249a56bd02b3219948ba6dd9605a1a3bc70bfcbfdd69fed7da5142c9cc0701334c1ada39c5427d37689888d1d3a91c0c2f1ea7ab94f3f1d60465aa438824e11d69d36c612eec8e91fa20668007d81b6af7ed3fce632bb23cae62cc18b362b1bacb13c3c26ea47301e13d885b29e8ba4dfd48157f87609cc9c5a37accef403e6b09214dac1a8b1b2f5dca97c083894f29365efb0282c0f3dea4b85f2db45ab81186159f6d3cb47574d6389911a684e4590a46ca9850b074bcd8f16157845eea6d1f8e20481e7f89f81eb11693bb52f36baba9d16096f926a667101a8ae38d679d3d9f0139ca47f93481e56b78facdd87915daf6cfe784ae678df31c83e2da229cf90120e7cc88e232c249f110346ee14738c6332d390ec95f68b5d920096680c97e7a11939c767d97e0e752a215e3e620b2d7f42c5a524a6c5b78717e121e339fe96274098c5aae2e1c18d753df858f0e02818b8ca1ecd8adfa50a75f5cd7df26fa14a344a58e8bae9f019a7d89c7e6c80d236af2bcca88ddb39b21a76ce4d4047ddab4fd51a4593e07d1431271fb4441914c5a16887205dd3295b16c179c6219e42fc9968e86c5a2289a7683d34bface5cf85c8e9cb58dbe473c89582be352a85ee422a795b4b61aace072b460e2518a0ba89c4034f92772848145867f979e1121787779251a2d343e961c6c0b9b9b6b936000fb547a9280a58d78fa7a88b2b3ebb29a05d40c8cad2075b30ebc317bda5eae8ebf8122dbbd1b4562d7691a5e7281219ad5124159f4e123c3110ec415953e87ecee41b9e33fe83018a0d5c44cfb4c34fbca5673f49c8231477bf4bf06456fe3b14f978b8368c46be88af05f4701586491cd5aff5c6f96e944ddbb26bbde9ed274e2890ebf43f681b8afccf37a5ab47f0591c08d19d400b791a323f98c8f3671de654e7914b417c047fb33b72fb21cb93abfc1bfcdae72f6cea024296354468292716154d2f602610e018808f6be0d98e647e3d0325e8f27c0fc34cdadc77d1f89e491869313ff14b3f2fe2bb9f0e737305af4dedf60b287799135b442034885294c8101ddc14c178c1fd179a2198cc36cc47f90e9650db0b4269912473c8714ad0b4d32a7d3ae0abe0120c102cbae2be2a9d5108962b28c3fc6bc25fd8fd9c6118db1530229e180cd14efe0d630ddcc60f8e6a81fd9d6e5e8c52a201fb5b2e5be883742d14bde7c280e7d218ddcf521c02432ff29dc2f38d0a424a712a2683886d7f88527dd92ffe6768deada1ac35342f9047926c46b4688eac6e03b8143cd649c0c6d23f3936f557f81de1960fb7056a73ee34ba35330e622043062c134a65ef320c946381a383a315a51b13913f8228d9fcf4bff22fbb3dbf93958484b531e2e74a2fdc7de50740bceb3194928e5481b121bb6a06eeeaeb157284937303e55b2a4213b42a028178443aa16e589c1dab2a91a01ffcba5eebb340deab2fc23094dc84faf219646b42116876af5b2a0820a7339b58264fb303b34b72b02d0ed783e02662cbec618740a0f08fde6df3204b6aca585f0f2d5fedd40528e2e3b61e86378cbf58bac13dd63000707438754b885b808609fb607cfc887224799127cf71552bc5f7453ec6eedc707fe7faf0fecabffbfb7de4624c43aafcd5afca7990a26863110f953e2ff1667a5e4596abf6e3e09ad0d32402b24d10ddd568a0796fdde5f5cde21d88ef1cd46acd8c3f4312de6d650cac5382e5c11b7eb6944471be6cd5804eeafcf7c88a7827169e036d082b2b73a6e14acbed6b662e45c2a812a96ce2c6a52474a90faabef68f3ed82a642644bdcec2cf2ec7c02f75390ae28a6ad493bde2c35fb1be8ceb1f1d2cc401c388c79ccb5c61a15d0b4bbcdde3417294018cabcd6fb2e0378788caa11fb230e6e08ee8fde94a45816a7835b42e78485c4cef7a6891fc95254067a45196c60035b8f5a1907a2b87efb3f6750ada383b00b095aa5d94c6ae14903048f0222d834acdff528bf4440c60dbe0e417a8cb12664b3b68729953aca50b1e9ffed33fd63c275ca59e5cd3e43ca5a6dfce57c86cdaa424c2e5441f60db7a551afc5c4ec3461e73e93b57c1e689b3fe8b2c919e13bdb1f2ed5f7b214c53a2f82c086669211b6f188e862713f6659e18af1a678b9f005d06f42f39456863f8fdb271c3a1b5b7cde4bf80466bae9dabaa5594f61e612c757b799df07c35fc175a4f1661bc2d2fd5ac20935ff5b7be284a0b6b8bf73ee5de8c4b3d885b84178f1f5b7b18990a5ecf294ceef39a2ded5029a216980abb2cc8317b98c5d5064c7a411050d1002d7e92d6db5fbfdf61b57baa1b3c9bb11d1ee3663b185c1561b1818668d2b87e109c68d668833578e4406c9ce17c294d6f6fc94057a85befd14f3d343703ccd0010d38a9645586d6e7f8a8ba6c93b567b97448e97a9ca080f3c58687e90ace5154d5062838c538f95d7000000000000000000000000000000000000090d121b2125"
 }

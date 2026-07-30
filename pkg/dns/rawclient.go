@@ -2,10 +2,10 @@ package dns
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -48,7 +48,11 @@ func encodeName(name string) []byte {
 }
 
 func buildQuery(qtype uint16, name string) []byte {
-	id := uint16(rand.Intn(65536))
+	// Transaction ID must be unpredictable — math/rand would let an off-path
+	// attacker guess/spoof it (the classic DNS cache-poisoning weakness).
+	var idBuf [2]byte
+	_, _ = rand.Read(idBuf[:])
+	id := binary.BigEndian.Uint16(idBuf[:])
 	msg := make([]byte, 0, 32+len(name))
 	msg = append(msg, byte(id>>8), byte(id))
 	msg = append(msg, 0x01, 0x00) // standard query, recursion desired

@@ -231,7 +231,7 @@ const OnboardingOrchestrator: React.FC = () => {
               <p className="text-xs text-gray-600">OpenClaw default port (18789) checked automatically. Custom ports also supported.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400 font-medium">Email <span className="text-gray-600">(optional — to receive your report)</span></label>
+              <label className="text-sm text-gray-400 font-medium">Email <span className="text-gray-600">(mandatory — to receive your report)</span></label>
               <Input
                 type="email"
                 placeholder="you@company.com"
@@ -242,7 +242,7 @@ const OnboardingOrchestrator: React.FC = () => {
             </div>
             <Button
               onClick={handleScan}
-              disabled={!target.trim()}
+              disabled={!target.trim() || !email.trim() || !email.includes('@')}
               className="w-full bg-gradient-to-r from-[#00ffff] to-[#0088ff] text-black font-bold py-5"
             >
               <Shield className="h-4 w-4 mr-2" />

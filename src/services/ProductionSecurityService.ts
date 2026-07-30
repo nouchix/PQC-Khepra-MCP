@@ -645,18 +645,14 @@ export class ProductionSecurityService {
   // Real remediation task execution
   async executeRemediationTask(taskId: string): Promise<boolean> {
     try {
-      // For now, simulate remediation task execution
-      // In production, this would integrate with the database
-      
-      await this.logSecurityEvent('remediation_task_executed', {
-        taskId,
-        timestamp: new Date().toISOString()
-      });
-
-      // Simulate execution time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      return true;
+      // There is no persisted remediation-task store to look `taskId` up against yet,
+      // so we cannot honestly execute or verify a specific remediation task here.
+      // Previously this logged a fabricated "remediation_task_executed" audit event
+      // and unconditionally returned success after a fake delay; that has been removed
+      // to avoid writing false audit trail entries. Use `protectAsset` / the
+      // `executeRemediation` switch below for real, asset-backed remediation actions.
+      console.warn(`executeRemediationTask(${taskId}): remediation task lookup/persistence is not yet implemented`);
+      return false;
     } catch (error) {
       console.error('Remediation task execution failed:', error);
       return false;

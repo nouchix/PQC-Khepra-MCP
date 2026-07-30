@@ -1,0 +1,11 @@
+{
+  "id": "KMAHNAHKTRMIMKGNKSUKMLGNASSNLMOIHSRNSNESNEGRUIAGAPMINGMEUGNKHYSP",
+  "parents": null,
+  "action": "seshat-inscription",
+  "symbol": "maat-decision",
+  "time": "2026-07-06T20:14:51-04:00",
+  "pqc_metadata": {
+    "data": "map[action:observe autonomous:true isfet_id:SV-258090r926289_rule kasa_wisdom:KASA unavailable realm:duat severity:MINOR]"
+  },
+  "hash": "KMAHNAHKTRMIMKGNKSUKMLGNASSNLMOIHSRNSNESNEGRUIAGAPMINGMEUGNKHYSP"
+}

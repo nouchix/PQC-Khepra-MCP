@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import { KhepraScansWidget } from '@/components/khepra/KhepraScansWidget';
 import { KhepraLicenseWidget } from '@/components/khepra/KhepraLicenseWidget';
 import { KhepraDAGVisualization } from '@/components/khepra/KhepraDAGVisualization';
@@ -58,23 +59,41 @@ function sanitizeDeploymentUrl(url: string): string {
   return '';
 }
 
-// Mock function to get deployment config from Supabase
-// In production, this would fetch from your Supabase database
+// Fetch deployment config from Supabase.
+// NOTE: Both URL and API key are stored in sessionStorage (not localStorage) to avoid
+// persisting connection config across browser sessions. (CWE-312 / alert #540)
 async function getDeploymentConfig(orgId: string): Promise<DeploymentConfig | null> {
-  // TODO: Replace with actual Supabase query
-  // const { data } = await supabase
-  //   .from('deployments')
-  //   .select('vps_url, api_key, organization_name')
-  //   .eq('organization_id', orgId)
-  //   .single();
+  const { data, error } = await supabase
+    .from('deployments')
+    .select('vps_url, api_key, organization_name')
+    .eq('organization_id', orgId)
+    .single();
 
-  // Mock data for development
-  // NOTE: Both URL and API key are stored in sessionStorage (not localStorage) to avoid
-  // persisting connection config across browser sessions. (CWE-312 / alert #540)
+  if (error || !data) {
+    // Fall back to a locally cached (session-only) override if the org has no
+    // registered deployment row yet, otherwise honestly report "not found" so the
+    // UI shows the real "Deployment Not Found" state instead of fabricated defaults.
+    const cachedUrl = sessionStorage.getItem(`khepra_url_${orgId}`);
+    const cachedKey = sessionStorage.getItem(`khepra_key_${orgId}`);
+    if (!cachedUrl) return null;
+    return {
+      deploymentUrl: cachedUrl,
+      apiKey: cachedKey || '',
+      organizationName: 'Organization',
+    };
+  }
+
+  const deploymentUrl = data.vps_url || sessionStorage.getItem(`khepra_url_${orgId}`);
+  if (!deploymentUrl) {
+    // Row exists but has no usable URL yet — honestly report "not configured"
+    // rather than fabricating a localhost placeholder.
+    return null;
+  }
+
   return {
-    deploymentUrl: sessionStorage.getItem(`khepra_url_${orgId}`) || 'http://localhost:8080',
-    apiKey: sessionStorage.getItem(`khepra_key_${orgId}`) || 'test-api-key',
-    organizationName: 'Development Organization',
+    deploymentUrl,
+    apiKey: data.api_key || sessionStorage.getItem(`khepra_key_${orgId}`) || '',
+    organizationName: data.organization_name || 'Organization',
   };
 }
 

@@ -207,6 +207,8 @@ func TestLicense_Community_GodfatherReport_Blocked(t *testing.T) {
 	// Display name for TierPro is "Pro" (see mcp_gate.go TierDisplayNames)
 	if !strings.Contains(resp.ErrorMessage, "Pro") {
 		t.Errorf("expected 'Pro' in error message, got: %s", resp.ErrorMessage)
+	if !strings.Contains(resp.ErrorMessage, "Sovereign") {
+		t.Errorf("expected 'Sovereign' in error message, got: %s", resp.ErrorMessage)
 	}
 	if !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
 		t.Errorf("expected upgrade URL in error message, got: %s", resp.ErrorMessage)
@@ -244,6 +246,9 @@ func TestLicense_Community_ACP_AllBlocked(t *testing.T) {
 			// ACP tools require Pro (TierPro) — display name is "Pro"
 			if !strings.Contains(resp.ErrorMessage, "Pro") {
 				t.Errorf("%s: expected 'Pro' in error, got: %s", tool, resp.ErrorMessage)
+			// ACP tools require Pro (TierPro) — display name is "Sovereign"
+			if !strings.Contains(resp.ErrorMessage, "Sovereign") {
+				t.Errorf("%s: expected 'Sovereign' in error, got: %s", tool, resp.ErrorMessage)
 			}
 		})
 	}
@@ -310,6 +315,7 @@ func TestLicense_Pilot_ACP_StillBlocked(t *testing.T) {
 	resp, _ := r.HandleToolCall(context.Background(), toolCall("acp_status"), nil, "local")
 	// acp_status is TierPro — Pro license SHOULD unlock it.
 	// This test verifies that nhi_revoke (Enterprise tier) is still blocked.
+	// This test verifies that nhi_revoke (Pharaoh/Enterprise) is still blocked.
 	resp, _ = r.HandleToolCall(context.Background(), toolCall("nhi_revoke"), nil, "local")
 	if !resp.IsError {
 		t.Fatal("nhi_revoke pilot: expected Enterprise gate, pilot should not unlock NHI revoke")
