@@ -30,8 +30,8 @@ export const useKhepraProtection = () => {
     securityLevel: 'CLASSIFIED',
     deploymentStatus: 'inactive',
     lastActivated: null,
-    vulnerabilitiesFound: 1,
-    protectedAssets: 3
+    vulnerabilitiesFound: 0,
+    protectedAssets: 0
   });
 
   const enableKhepraProtection = useCallback(async () => {
@@ -208,24 +208,17 @@ function determineDeploymentVector(environment: string, securityClearance: strin
 }
 
 async function initializeProtectionLayers(deploymentVector: string): Promise<void> {
-  // Simulate initialization of different protection layers based on deployment vector
-  const layers = {
-    'sgx-enclave': ['memory-encryption', 'attestation', 'sealed-storage'],
-    'kubernetes-hardened': ['pod-security', 'network-policies', 'rbac'],
-    'docker-isolated': ['container-isolation', 'security-contexts'],
-    'development-sandbox': ['basic-monitoring', 'log-collection']
-  };
-
-  const requiredLayers = layers[deploymentVector] || layers['development-sandbox'];
-  
-  // Simulate async initialization
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  console.log(`Initialized KHEPRA protection layers: ${requiredLayers.join(', ')}`);
+  // No real protection-layer deployment backend exists yet — nothing actually
+  // provisions memory-encryption/attestation/pod-security/etc. for a given
+  // deployment vector. This used to fake a 2-second delay and log a
+  // fabricated "Initialized KHEPRA protection layers" success message. Fail
+  // honestly instead of claiming protection layers were deployed.
+  throw new Error(`Protection layer initialization for '${deploymentVector}' is not yet implemented`);
 }
 
 async function performSecurityScan(): Promise<number> {
-  // Simulate security scanning
+  // Real vulnerability scanning against deployed protection layers is not
+  // implemented; this queries existing threat_intelligence records instead.
   try {
     // Query real vulnerability count from threat intelligence
     const { count } = await supabase

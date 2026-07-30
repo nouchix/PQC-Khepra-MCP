@@ -61,10 +61,20 @@ jobs:
       - name: Scan for command injection (Go)
         run: |
           echo "🔍 Scanning for command injection patterns..."
-          CMD_INJECTION=$(grep -rn "exec\.Command.*fmt\.Sprintf\|exec\.Command.*\+" \
-            --include="*.go" pkg/ cmd/ 2>/dev/null || true)
+          # Go's exec.Command does NOT invoke a shell, so passing dynamic values
+          # as separate argv elements (e.g. exec.Command("syft", "dir:"+target))
+          # is safe. Real command injection needs one of two sinks:
+          #   (A) a shell interpreter (sh/bash/cmd/powershell -c) fed a script
+          #       assembled via concatenation or fmt.Sprintf, or
+          #   (B) the command NAME (first arg) built via concatenation/Sprintf.
+          # Flag exactly those; test files excluded. Deeper analysis: CodeQL SAST.
+          # (The previous heuristic used BRE, where \+ is the one-or-more
+          # quantifier, not a literal '+', so it matched every exec.Command line.)
+          CMD_INJECTION=$(grep -rEn \
+            'exec\.Command(Context)?\(.*"(sh|bash|zsh|pwsh|powershell|cmd)".*("-c"|"-Command"|"/c"|"/C").*(\+|fmt\.Sprintf)|exec\.Command(Context)?\([^",)]*(\+ *[a-zA-Z]|fmt\.Sprintf)' \
+            --include="*.go" pkg/ cmd/ 2>/dev/null | grep -v "_test.go" || true)
           if [ -n "$CMD_INJECTION" ]; then
-            echo "⚠️ Potential command injection — sanitize input before exec.Command:"
+            echo "⚠️ Potential command injection — a shell command or command name is built from dynamic input:"
             echo "$CMD_INJECTION"
             exit 1
           else

@@ -177,33 +177,19 @@ export class PerformanceAnalyticsEngine {
 
       if (error) throw error;
 
-      // Mock bottleneck analysis - ready for real analysis algorithms
-      const bottlenecks = [
-        {
-          bottleneck_type: 'database' as const,
-          severity: 'high' as const,
-          description: 'Database queries showing increased response times and high CPU usage',
-          affected_components: ['postgresql-cluster', 'api-endpoints'],
-          recommended_actions: [
-            'Optimize slow queries identified in query analysis',
-            'Consider database indexing improvements',
-            'Review connection pooling configuration'
-          ],
-          estimated_resolution_time: '2-4 hours'
-        },
-        {
-          bottleneck_type: 'api' as const,
-          severity: 'medium' as const,
-          description: 'API rate limiting causing increased response times during peak hours',
-          affected_components: ['api-gateway', 'load-balancer'],
-          recommended_actions: [
-            'Increase API rate limits for authenticated users',
-            'Implement request queuing for burst traffic',
-            'Consider adding additional API instances'
-          ],
-          estimated_resolution_time: '1-2 hours'
-        }
-      ];
+      // Real bottleneck detection requires an APM/observability integration capable of
+      // analyzing actual latency, error-rate, and resource-utilization signals. No such
+      // analysis algorithm is wired up yet, so we honestly report no detected
+      // bottlenecks rather than always returning the same fabricated database/API
+      // findings regardless of what `_recentMetrics` actually contains.
+      const bottlenecks: Array<{
+        bottleneck_type: 'cpu' | 'memory' | 'disk' | 'network' | 'database' | 'api';
+        severity: 'low' | 'medium' | 'high' | 'critical';
+        description: string;
+        affected_components: string[];
+        recommended_actions: string[];
+        estimated_resolution_time: string;
+      }> = [];
 
       // Store bottleneck analysis
       await supabase
@@ -246,29 +232,14 @@ export class PerformanceAnalyticsEngine {
     estimated_cost_impact: number;
   }> {
     try {
-      // Mock auto-optimization - ready for real optimization algorithms
-      const optimizations = [
-        {
-          type: 'cache_optimization',
-          description: 'Optimized cache TTL settings based on usage patterns',
-          impact: 'Reduced response time by 15%'
-        },
-        {
-          type: 'resource_scaling',
-          description: 'Auto-scaled compute resources based on load patterns',
-          impact: 'Improved throughput by 20%'
-        },
-        {
-          type: 'query_optimization',
-          description: 'Applied database query optimizations',
-          impact: 'Reduced database load by 25%'
-        }
-      ];
+      // Real auto-optimization requires an actual optimization engine (cache tuning,
+      // autoscaling, query optimization, etc.) integrated with live infrastructure.
+      // No such engine is wired up yet, so no optimizations are applied or fabricated
+      // here; we honestly report that nothing was changed.
+      const optimizations: Array<{ type: string; description: string; impact: string }> = [];
 
-      const performanceImprovement = optimizations.length * 0.1; // Mock 10% per optimization
-      const costImpact = optimizationLevel === 'aggressive' ? 0.15 :
-        optimizationLevel === 'moderate' ? 0.05 :
-          -0.05; // Conservative might reduce costs
+      const performanceImprovement = 0; // Real value requires an executed optimization engine
+      const costImpact = 0; // Real value requires an executed optimization engine
 
       // Record optimizations
       await supabase
@@ -315,31 +286,19 @@ export class PerformanceAnalyticsEngine {
   }> {
     try {
       // Cost-performance analysis requires real cost tracking integration (AWS Cost Explorer, etc.)
+      // optimization_opportunities/roi_projections previously held hardcoded dollar figures
+      // ($1500/$800/$1200 savings, 15/28/45% ROI) presented as real analysis output — no cost
+      // tracking integration exists to derive any of this, so it's now honestly empty until
+      // one is wired up.
       const analysis = {
         total_cost: 0, // Real value requires AWS Cost Explorer or cloud billing API
         cost_per_performance_unit: 0, // Real value requires cost and performance data
-        optimization_opportunities: [
-          {
-            area: 'Resource Right-sizing',
-            potential_savings: 1500,
-            performance_impact: 'Minimal impact with 10% resource optimization'
-          },
-          {
-            area: 'Cache Optimization',
-            potential_savings: 800,
-            performance_impact: '15% improvement in response times'
-          },
-          {
-            area: 'Auto-scaling Tuning',
-            potential_savings: 1200,
-            performance_impact: 'Better resource utilization during peak/off-peak'
-          }
-        ],
-        roi_projections: {
-          '3_months': 0.15,
-          '6_months': 0.28,
-          '12_months': 0.45
-        }
+        optimization_opportunities: [] as Array<{
+          area: string;
+          potential_savings: number;
+          performance_impact: string;
+        }>,
+        roi_projections: {} as Record<string, number>
       };
 
       // Store analysis
@@ -379,55 +338,95 @@ export class PerformanceAnalyticsEngine {
   }
 
   private static async analyzeTrends(metrics: any[]) {
-    // Mock trend analysis
-    return {
-      performance_trend: 'improving' as const,
-      usage_trend: 'increasing' as const,
-      error_trend: 'stable' as const
-    };
+    // Derive trends from the actual queried metrics rather than always claiming
+    // things are improving/increasing regardless of the data. With too few data
+    // points to compare, we honestly report 'stable' instead of guessing.
+    if (!metrics || metrics.length < 2) {
+      return {
+        performance_trend: 'stable' as const,
+        usage_trend: 'stable' as const,
+        error_trend: 'stable' as const
+      };
+    }
+
+    const midpoint = Math.floor(metrics.length / 2);
+    const firstHalf = metrics.slice(0, midpoint);
+    const secondHalf = metrics.slice(midpoint);
+    const avgValue = (rows: any[]) =>
+      rows.length > 0 ? rows.reduce((sum, m) => sum + (m.metric_value || 0), 0) / rows.length : 0;
+
+    const firstAvg = avgValue(firstHalf);
+    const secondAvg = avgValue(secondHalf);
+    const relativeDelta = firstAvg !== 0 ? (secondAvg - firstAvg) / firstAvg : 0;
+
+    // metric_value in this table is typically a latency/response-time style figure,
+    // so a meaningful decrease is treated as "improving" and a meaningful increase as
+    // "degrading".
+    const performance_trend =
+      relativeDelta < -0.05 ? 'improving' as const :
+        relativeDelta > 0.05 ? 'degrading' as const :
+          'stable' as const;
+
+    const usage_trend =
+      secondHalf.length > firstHalf.length ? 'increasing' as const :
+        secondHalf.length < firstHalf.length ? 'decreasing' as const :
+          'stable' as const;
+
+    // Real error-rate trend requires per-record error/status data, which this generic
+    // metrics table does not carry, so we honestly report 'stable' rather than guess.
+    const error_trend = 'stable' as const;
+
+    return { performance_trend, usage_trend, error_trend };
   }
 
   private static async generateOptimizationRecommendations(organizationId: string, summary: any, trends: any): Promise<OptimizationRecommendation[]> {
-    // Mock optimization recommendations
-    return [
-      {
-        id: `rec_${Date.now()}_001`,
+    // Recommendations are derived from the real summary/trend signals that were
+    // actually computed above, instead of always returning the same two canned
+    // suggestions regardless of measured performance. When there is no signal
+    // indicating a problem, no recommendation is fabricated.
+    const recommendations: OptimizationRecommendation[] = [];
+
+    if (summary?.average_response_time > 500) {
+      recommendations.push({
+        id: `rec_${Date.now()}_response_time`,
         type: 'performance',
         priority: 'high',
-        title: 'Optimize Database Query Performance',
-        description: 'Several database queries are taking longer than optimal. Implementing proper indexing could improve response times significantly.',
+        title: 'Investigate Elevated Response Times',
+        description: `Average response time of ${summary.average_response_time}ms exceeds the 500ms target based on collected metrics; review recent query and endpoint performance.`,
         estimated_impact: {
-          performance_improvement: 0.25,
-          cost_reduction: 0.05,
+          performance_improvement: 0, // Requires real measurement after remediation
+          cost_reduction: 0,
           implementation_effort: 'medium'
         },
         implementation_steps: [
-          'Analyze slow query logs',
-          'Create appropriate database indexes',
-          'Optimize query structures',
-          'Test performance improvements'
+          'Review APM traces for slow endpoints',
+          'Analyze database query performance',
+          'Validate caching effectiveness'
         ],
-        prerequisites: ['Database admin access', 'Maintenance window']
-      },
-      {
-        id: `rec_${Date.now()}_002`,
-        type: 'cost',
+        prerequisites: ['APM/monitoring integration', 'Database admin access']
+      });
+    }
+
+    if (trends?.performance_trend === 'degrading') {
+      recommendations.push({
+        id: `rec_${Date.now()}_degrading_trend`,
+        type: 'performance',
         priority: 'medium',
-        title: 'Right-size Compute Resources',
-        description: 'Analysis shows some resources are over-provisioned. Right-sizing could reduce costs while maintaining performance.',
+        title: 'Address Degrading Performance Trend',
+        description: 'Recent performance metrics show a degrading trend compared to the earlier measurement window in this reporting period.',
         estimated_impact: {
-          performance_improvement: 0.0,
-          cost_reduction: 0.15,
-          implementation_effort: 'low'
+          performance_improvement: 0,
+          cost_reduction: 0,
+          implementation_effort: 'medium'
         },
         implementation_steps: [
-          'Review resource utilization patterns',
-          'Identify over-provisioned instances',
-          'Gradually reduce resource allocation',
-          'Monitor performance impact'
+          'Correlate the trend with recent deployments or load changes',
+          'Review infrastructure capacity'
         ],
-        prerequisites: ['Resource monitoring data', 'Auto-scaling configuration']
-      }
-    ];
+        prerequisites: ['Historical performance data']
+      });
+    }
+
+    return recommendations;
   }
 }
