@@ -1,0 +1,100 @@
+{
+  "name": "khepra-mcp",
+  "displayName": "KHEPRA — PQC Compliance MCP",
+  "description": "Connect AI assistants in VS Code to KHEPRA's sovereign STIG/NIST/CMMC compliance engine over MCP — air-gappable, zero token cost, with the world's first DoD-style Post-Quantum Cryptography STIG.",
+  "version": "0.1.0",
+  "publisher": "nouchix",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "mcp",
+    "model context protocol",
+    "stig",
+    "nist",
+    "cmmc",
+    "compliance",
+    "pqc",
+    "post-quantum",
+    "fips",
+    "khepra"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nouchix/PQC-Khepra-MCP"
+  },
+  "homepage": "https://github.com/nouchix/PQC-Khepra-MCP",
+  "bugs": {
+    "url": "https://github.com/nouchix/PQC-Khepra-MCP/issues"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "khepra.mcpProvider",
+        "label": "KHEPRA Compliance Server"
+      }
+    ],
+    "configuration": {
+      "title": "KHEPRA",
+      "properties": {
+        "khepra.mode": {
+          "type": "string",
+          "enum": [
+            "sovereign",
+            "ironbank",
+            "hybrid",
+            "edge"
+          ],
+          "default": "sovereign",
+          "description": "KHEPRA_MODE deployment mode passed to the server. 'sovereign' makes zero network calls."
+        },
+        "khepra.transport": {
+          "type": "string",
+          "enum": [
+            "docker",
+            "binary"
+          ],
+          "default": "docker",
+          "description": "How VS Code should launch the KHEPRA MCP server."
+        },
+        "khepra.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the khepra-mcp binary. Required when khepra.transport is 'binary'."
+        },
+        "khepra.licenseKey": {
+          "type": "string",
+          "default": "",
+          "description": "Sovereign/Pharaoh tier license key. Leave blank to run the free Community tier (pqc_stig + 12 core tools)."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "khepra.openWhitepaper",
+        "title": "KHEPRA: Open PQC STIG Whitepaper"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.102.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
