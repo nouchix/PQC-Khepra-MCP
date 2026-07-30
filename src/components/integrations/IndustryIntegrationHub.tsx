@@ -49,7 +49,7 @@ export const IndustryIntegrationHub = () => {
   
   const { user } = useAuth();
   const { toast } = useToast();
-  const { authState } = useKhepraAuth();
+  const { authState, isMonitoring } = useKhepraAuth();
   const khepraAuth = authState?.isAuthenticated || false;
   const culturalContext = authState?.culturalContext || null;
   
@@ -62,7 +62,6 @@ export const IndustryIntegrationHub = () => {
   const [showDoDOnly, setShowDoDOnly] = useState(false);
   const [khepraData, setKhepraData] = useState<KhepraIntegrationData | null>(null);
   const [papyrusInsights, setPapyrusInsights] = useState<PapyrusWisdomInsight[]>([]);
-  const [aiAgentActive, setAiAgentActive] = useState(false);
   const [integrationProgress, setIntegrationProgress] = useState(0);
 
   // Check if user is DoD (based on security clearance or role)
@@ -140,14 +139,6 @@ export const IndustryIntegrationHub = () => {
       loadPapyrusInsights();
     }
   }, [userIntegrations, culturalContext]);
-
-    // Simulate AI agent activity
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAiAgentActive(prev => !prev);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Handle voice assistant integration requests
   const _handleVoiceIntegrationRequest = async (request: string) => {
@@ -342,7 +333,7 @@ export const IndustryIntegrationHub = () => {
                 DoD Secure Mode
               </Badge>
             )}
-            {aiAgentActive && (
+            {isMonitoring && (
               <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20 animate-pulse">
                 <Brain className="h-3 w-3 mr-1" />
                 AI Agent Active
