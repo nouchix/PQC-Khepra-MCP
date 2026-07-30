@@ -24,7 +24,7 @@ type Manager struct {
 	validationMu     sync.RWMutex
 	heartbeatStopCh  chan struct{}
 	enrollmentToken  string          // Optional enrollment token for auto-registration
-	egyptianMgr      *LicenseManager // Internal Egyptian Tier license manager
+	nodeQuotaMgr     *LicenseManager // Internal node-quota license manager
 }
 
 // NewManager creates license manager
@@ -46,7 +46,7 @@ func NewManager(serverURL string) (*Manager, error) {
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
 
-	// Initialize Egyptian Tier license manager with persistence
+	// Initialize node-quota license manager with persistence
 	home, _ := os.UserHomeDir()
 	if home == "" {
 		home = "."
@@ -54,8 +54,8 @@ func NewManager(serverURL string) (*Manager, error) {
 	tierStorePath := filepath.Join(home, ".khepra", "tiers.json")
 
 	return &Manager{
-		client:      client,
-		egyptianMgr: NewLicenseManager(tierStorePath),
+		client:       client,
+		nodeQuotaMgr: NewLicenseManager(tierStorePath),
 	}, nil
 }
 
@@ -384,9 +384,9 @@ func (m *Manager) GetFullStatus() *ValidateResponse {
 		resp = &r
 	}
 
-	// Try to populate LicenseID from the Egyptian Manager if missing
-	if resp.LicenseID == "" && m.egyptianMgr != nil {
-		licenses := m.egyptianMgr.GetAllLicenses()
+	// Try to populate LicenseID from the node-quota manager if missing
+	if resp.LicenseID == "" && m.nodeQuotaMgr != nil {
+		licenses := m.nodeQuotaMgr.GetAllLicenses()
 		if len(licenses) > 0 {
 			resp.LicenseID = licenses[0].ID
 		}
@@ -402,24 +402,29 @@ func (m *Manager) Stop() {
 	}
 }
 
-// CreateLicense creates a new Egyptian tier license
-func (m *Manager) CreateLicense(id string, tier EgyptianTier, days int) (*License, error) {
-	return m.egyptianMgr.CreateLicense(id, tier, days)
+// CreateLicense creates a new license
+func (m *Manager) CreateLicense(id string, tier LicenseTier, days int) (*License, error) {
+	return m.nodeQuotaMgr.CreateLicense(id, tier, days)
 }
 
 // GetLicense retrieves a license by ID
 func (m *Manager) GetLicense(id string) (*License, error) {
-	return m.egyptianMgr.GetLicense(id)
+	return m.nodeQuotaMgr.GetLicense(id)
 }
 
 // GetAllLicenses returns all managed licenses
 func (m *Manager) GetAllLicenses() []*License {
-	return m.egyptianMgr.GetAllLicenses()
+	return m.nodeQuotaMgr.GetAllLicenses()
 }
 
 // UpgradeLicense upgrades a license to a higher tier
-func (m *Manager) UpgradeLicense(id string, newTier EgyptianTier) error {
-	return m.egyptianMgr.UpgradeLicense(id, newTier)
+func (m *Manager) UpgradeLicense(id string, newTier LicenseTier) error {
+	return m.nodeQuotaMgr.UpgradeLicense(id, newTier)
+}
+
+// SetTier changes a license's tier in either direction — see LicenseManager.SetTier.
+func (m *Manager) SetTier(id string, newTier LicenseTier) error {
+	return m.nodeQuotaMgr.SetTier(id, newTier)
 }
 
 // Register registers the machine with a token

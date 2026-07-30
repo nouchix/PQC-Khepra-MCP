@@ -33,14 +33,14 @@ type Server struct {
 	version     string
 	httpServer  *http.Server
 	agentMgr    AgentManagerInterface
-	mcpStore    MCPStore              // Supabase MCP persistence layer (optional)
-	nlProcessor *mcp.NLProcessor      // Natural language → tool chain processor (optional)
-	pqcGateway  *auth.PQCAuthGateway  // PQC-SAML-OAuth2 auth gateway (optional)
-	sigPrivKey  []byte                // ML-DSA-65 Dilithium3 signing key (server identity)
-	sigPubKey   []byte                // ML-DSA-65 Dilithium3 verification key (server identity)
-	sekhemTriad *sekhem.SekhemTriad   // Ouroboros cycle, WAF realm, sensor/actuator mesh (optional)
-	recorder    *asaf.Recorder        // ASAF flight recorder — nil until WithASAFRecorder is called
-	autopilot   *AutopilotEngine      // Continuous compliance scheduler (Autopilot tier)
+	mcpStore    MCPStore             // Supabase MCP persistence layer (optional)
+	nlProcessor *mcp.NLProcessor     // Natural language → tool chain processor (optional)
+	pqcGateway  *auth.PQCAuthGateway // PQC-SAML-OAuth2 auth gateway (optional)
+	sigPrivKey  []byte               // ML-DSA-65 Dilithium3 signing key (server identity)
+	sigPubKey   []byte               // ML-DSA-65 Dilithium3 verification key (server identity)
+	sekhemTriad *sekhem.SekhemTriad  // Ouroboros cycle, WAF realm, sensor/actuator mesh (optional)
+	recorder    *asaf.Recorder       // ASAF flight recorder — nil until WithASAFRecorder is called
+	autopilot   *AutopilotEngine     // Continuous compliance scheduler (Autopilot tier)
 }
 
 const (
@@ -76,11 +76,12 @@ type LicenseManager interface {
 	ValidateAPIKey(apiKey string) (bool, error)
 	GetStatus() LicenseStatus
 
-	// Egyptian Tier management
-	CreateLicense(id string, tier license.EgyptianTier, days int) (*license.License, error)
+	// Tier management (Community / Pro / Enterprise / Sovereign)
+	CreateLicense(id string, tier license.LicenseTier, days int) (*license.License, error)
 	GetLicense(id string) (*license.License, error)
 	GetAllLicenses() []*license.License
-	UpgradeLicense(id string, newTier license.EgyptianTier) error
+	UpgradeLicense(id string, newTier license.LicenseTier) error
+	SetTier(id string, newTier license.LicenseTier) error
 
 	// Telemetry & Enrollment
 	Register(token string) (*license.RegisterResponse, error)
@@ -190,6 +191,13 @@ func (s *Server) setupRoutes() {
 	// Internal license revocation — called by the webhook service on subscription cancellation.
 	// No Bearer auth (webhook has no credentials); protected by localhost-only guard in handler.
 	pubV1.POST("/license/revoke", s.handleRevokeLicense)
+
+	// Fleet endpoints (public for local discovery / UI compatibility)
+	pubFleet := pubV1.Group("/fleet")
+	{
+		pubFleet.POST("/enclaves/local/discover", s.handleFleetDiscover)
+		pubFleet.POST("/enclaves/local/enroll", s.handleFleetEnroll)
+	}
 
 	// API v1 routes — PQC auth when gateway is wired, legacy API key otherwise
 	v1 := s.router.Group("/api/v1")

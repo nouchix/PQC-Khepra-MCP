@@ -36,9 +36,9 @@ jobs:
 
       - name: Set up Go
         if: matrix.language == 'go'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.25'
+          go-version-file: 'go.mod'
           cache: false
 
       - name: Initialize CodeQL

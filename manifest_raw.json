@@ -1,0 +1,767 @@
+{
+  "version": "1.0.0",
+  "revision": "build-1783825539",
+  "generated_at": "2026-07-12T03:05:39Z",
+  "hash_algorithm": "SHA-256",
+  "public_key_id": "fa96b0cbe697d80b",
+  "tools": [
+    {
+      "name": "acp_status",
+      "description": "List active ACP credentials and their expiry status",
+      "risk_class": "read_only",
+      "scope": "acp:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "05ad45dda2aed064c726444774a74499f5ed714913c7086e47113d1bf245de03",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "acp_issue",
+      "description": "Issue a new PQC credential via the Agent Control Plane",
+      "risk_class": "destructive",
+      "scope": "acp:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "292858740df7087108a51b10e94dcf2f17e85b9141e7af8fa39cc76d861d9273",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": true,
+      "args_schema": {
+        "properties": {
+          "agent_id": {
+            "description": "Agent identifier",
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "symbol": {
+            "description": "Adinkra symbol (default: Nkyinkyim)",
+            "type": "string"
+          },
+          "ttl_minutes": {
+            "description": "Credential TTL in minutes",
+            "type": "number"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "acp_revoke",
+      "description": "Revoke an active ACP credential",
+      "risk_class": "destructive",
+      "scope": "acp:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "b17d22356b3a4a509dd94334ac763cb7f8311e43175718e5252d08c5cacf2831",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": true,
+      "args_schema": {
+        "properties": {
+          "credential_id": {
+            "description": "Credential ID to revoke",
+            "type": "string"
+          }
+        },
+        "required": [
+          "credential_id"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "nhi_inventory",
+      "description": "List all non-human identities (service accounts, API keys, certificates)",
+      "risk_class": "read_only",
+      "scope": "nhi:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "2bf1ccfb842aeb825990eb0d4faf70ab0c681b2cb03b151a212a059b06717ef5",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "nhi_orphans",
+      "description": "Identify orphaned non-human identities with no active owner",
+      "risk_class": "read_only",
+      "scope": "nhi:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "d66c13ac0a9776c0f071362b793ea74860b1d6827a8eeef7dc76684e4fc17bd5",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "nhi_excessive",
+      "description": "Identify NHIs with overly broad permissions",
+      "risk_class": "read_only",
+      "scope": "nhi:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "cb8cbebebf617fd37f2d0fbe0bae03512dc69594c235e8e253c5c45613928488",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "max_scopes": {
+            "description": "Max scopes before flagging (default: 5)",
+            "type": "number"
+          },
+          "risk_threshold": {
+            "description": "Min risk score to flag (default: 0.5)",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "nhi_expired",
+      "description": "List expired or soon-to-expire non-human identities",
+      "risk_class": "read_only",
+      "scope": "nhi:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "274041d744f772a884c23a6cef4ba79198b36d6af309e7741c43e76806e471c0",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "nhi_revoke",
+      "description": "Revoke a non-human identity credential",
+      "risk_class": "destructive",
+      "scope": "nhi:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "c85a603c05303421b6c62dc0c5edb708e18ff171206af2cec598b8a349bfaeff",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": true,
+      "args_schema": {
+        "properties": {
+          "nhi_id": {
+            "description": "NHI identifier to revoke",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nhi_id"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ert_scan",
+      "description": "Run ERT security scan (SBOM, CVE, secrets, STIG, PQC inventory) in Docker sandbox",
+      "risk_class": "sandboxed",
+      "scope": "ert:scan",
+      "schema_version": "1.0.0",
+      "schema_hash": "ba99405a08c399235ff715a30be8c8e84639d77c1b5e4baf910bc7b9207a192a",
+      "allowed_backend": "docker",
+      "timeout_ms": 90000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "framework": {
+            "description": "Compliance framework: CMMC_L2, NIST_800_171, etc.",
+            "type": "string"
+          },
+          "image_ref": {
+            "description": "Container image to scan (overrides project_path)",
+            "type": "string"
+          },
+          "lanes": {
+            "description": "Scan lanes: sca, horus, compliance",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "project_path": {
+            "description": "Path to project directory",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ert_readiness",
+      "description": "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap. Air-gap safe.",
+      "risk_class": "read_only",
+      "scope": "ert:compliance",
+      "schema_version": "1.0.0",
+      "schema_hash": "6ae165af5e97a5ffca197584c7ca8b70085c664704e12ba7b6a62c7c296c5b08",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "project_path": {
+            "description": "Path to project directory (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ert_architect",
+      "description": "Package B: Live supply chain risk — Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping. Requires syft+grype in PATH.",
+      "risk_class": "read_only",
+      "scope": "ert:supply-chain",
+      "schema_version": "1.0.0",
+      "schema_hash": "308e12b0d6e2e11c57b9c91e6c8307debd146959007fd5f92facb4ddae2a4769",
+      "allowed_backend": "in-process",
+      "timeout_ms": 300000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "project_path": {
+            "description": "Path to project directory (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ert_crypto",
+      "description": "Package C: PQC readiness attestation — source-level crypto primitive scan, SBOM crypto library inventory, weak primitive detection (MD5/SHA1/DES/RC4), CNSA 2.0 quantum risk context.",
+      "risk_class": "read_only",
+      "scope": "ert:pqc",
+      "schema_version": "1.0.0",
+      "schema_hash": "fab6daa75ddd03d7c1ea595324815b374264157003ae99df9dc91baa17f8a731",
+      "allowed_backend": "in-process",
+      "timeout_ms": 180000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "project_path": {
+            "description": "Path to project directory (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ert_godfather",
+      "description": "Package D: EA KernelRouter causal risk attestation. Runs STIG, PQC, SBOM, Network agents in parallel, produces board-level causal chain with CVSS-band dollar impact and DAG-signed evidence node.",
+      "risk_class": "read_only",
+      "scope": "ert:godfather",
+      "schema_version": "1.0.0",
+      "schema_hash": "7cfd2d2b1da609c1e9ec7bc09cfa63be1a6e67dd5763ea074934738b401e1f14",
+      "allowed_backend": "in-process",
+      "timeout_ms": 300000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "project_path": {
+            "description": "Path to project directory (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "dag_attestation",
+      "description": "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
+      "risk_class": "read_only",
+      "scope": "dag:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "9524d2458d5911f9e40ca2990b9624adc9813695c8cadc0bef6fcf25bd7ab871",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "godfather_report",
+      "description": "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
+      "risk_class": "read_only",
+      "scope": "compliance:report",
+      "schema_version": "1.0.0",
+      "schema_hash": "204967014a373a01309d8f67b475d1befa91d32cbbf1664d1d6fc4541465e9e0",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "approval_required": {
+            "description": "Stage report for human review before delivery (default: false)",
+            "type": "boolean"
+          },
+          "engagement_id": {
+            "description": "Optional engagement/ticket ID for traceability",
+            "type": "string"
+          },
+          "framework": {
+            "description": "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "godfather_approve",
+      "description": "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
+      "risk_class": "read_only",
+      "scope": "compliance:report",
+      "schema_version": "1.0.0",
+      "schema_hash": "b5d6439e8bb1db66a872a6c4bf9da5cdbb9e7efe0567993b2103677d99107371",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "staged_token": {
+            "description": "Token returned by godfather_report when approval_required=true",
+            "type": "string"
+          }
+        },
+        "required": [
+          "staged_token"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "nist_map",
+      "description": "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
+      "risk_class": "read_only",
+      "scope": "compliance:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "63a0a8f837896e84384160a2bdc4bb825371253423763019451506fa819b9557",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "framework": {
+            "description": "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
+            "type": "string"
+          },
+          "query": {
+            "description": "Search query (e.g. 'multi-factor authentication', 'encryption at rest')",
+            "type": "string"
+          },
+          "top_k": {
+            "description": "Max results to return (default: 10, max: 50)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_watch",
+      "description": "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes. Satisfies CMMC AC.2.006, CM.2.061, SI.2.217.",
+      "risk_class": "read_only",
+      "scope": "compliance:monitor",
+      "schema_version": "1.0.0",
+      "schema_hash": "b1fa86ecfd4a13e3ce2492a53c878ed52a623e07e8466524da8da7311ead4006",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Action: register | status | unregister",
+            "type": "string"
+          },
+          "framework": {
+            "description": "Compliance framework for triggered scans",
+            "type": "string"
+          },
+          "path": {
+            "description": "Filesystem path to watch",
+            "type": "string"
+          },
+          "watch_id": {
+            "description": "Watch ID (for status/unregister)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "discover_assets",
+      "description": "Step 01 — Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
+      "risk_class": "read_only",
+      "scope": "asset:discover",
+      "schema_version": "1.0.0",
+      "schema_hash": "e340878acf84ed5d0ab328df1dade4ec0bf637d9a1c90bb0ade091f7e4f19c74",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "stig_check",
+      "description": "Check a system path or configuration against STIG controls. Default: RHEL-09-STIG-V1R3. Returns CAT I/II/III findings with remediation guidance and compliance score.",
+      "risk_class": "read_only",
+      "scope": "stig:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "8b04f6ec0626fbea7d04dc57e3480b67a4885cace8114c13c0e1b5fd65d25eb6",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "framework": {
+            "description": "Compliance framework (default: RHEL-09-STIG-V1R3)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "pqc_stig",
+      "description": "World's First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
+      "risk_class": "read_only",
+      "scope": "stig:pqc",
+      "schema_version": "1.0.0",
+      "schema_hash": "931ab0881d2e0abf6b0031ba568f5e68854470a25ad56ad86fd6880cca179a28",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "profile": {
+            "description": "Scan profile: quick | full (default: full)",
+            "type": "string"
+          },
+          "scan_path": {
+            "description": "Path to scan (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "cmmc_assess",
+      "description": "CMMC Level 1/2/3 assessment via KHEPRA compliance database (36,195 STIG→CCI→NIST→CMMC mappings). Returns satisfaction score, gaps, C3PAO readiness flag, and PQC status.",
+      "risk_class": "read_only",
+      "scope": "compliance:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "21fcfd48c490d37535e4f30be1c226b95448c20d9874a81cfb61cf83df7ad838",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "level": {
+            "description": "CMMC level: '1', '2', or '3' (default: '2')",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "agent_record",
+      "description": "Record an agent action in the SouHimBou AI Flight Recorder. In sovereign mode, records to PQC-signed DAG audit log. Required for AI flight recorder compliance evidence.",
+      "risk_class": "read_only",
+      "scope": "audit:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "48867265e7c92b0b9bcc8644edd78d1ec621bbfa8864745b543422c2c0c480cc",
+      "allowed_backend": "in-process",
+      "timeout_ms": 15000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Agent action to record",
+            "type": "string"
+          },
+          "agent_id": {
+            "description": "Agent identifier",
+            "type": "string"
+          },
+          "metadata": {
+            "description": "Additional metadata",
+            "type": "object"
+          },
+          "session_id": {
+            "description": "Session identifier",
+            "type": "string"
+          },
+          "tool_name": {
+            "description": "Tool that was invoked",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_export_attestation",
+      "description": "Export PQC-signed attestation package covering all active compliance frameworks. No network required. C3PAO-ready evidence artifact — ML-DSA-65 signed, DAG-anchored, NIST SP 800-171A compliant.",
+      "risk_class": "read_only",
+      "scope": "compliance:attest",
+      "schema_version": "1.0.0",
+      "schema_hash": "c51f7020a6452533128579830651a450e75a7b9fe8173fbe7a040f2de6f520cb",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "project_path": {
+            "description": "Path to project root (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_export_poam",
+      "description": "Export a DFARS 252.204-7012 POA\u0026M (Plan of Action \u0026 Milestones) from the current DAG state. Maps open findings to remediation timelines. Required for CMMC conditional certification.",
+      "risk_class": "read_only",
+      "scope": "compliance:poam",
+      "schema_version": "1.0.0",
+      "schema_hash": "7fac2ec775ff896a9d7ea64dfe5dd360d53f5872dd3d9313446560b313b3b5b3",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "khepra_query_stig",
+      "description": "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls, and CMMC practices by ID or keyword.",
+      "risk_class": "read_only",
+      "scope": "compliance:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "201fe5ac3d9299cd20538adcfcde4792c926536fef2d47562e8d382a5f1fcbd2",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "control_id": {
+            "description": "Control ID (CCI-XXXXXX, SV-XXXXXX, AC-1, etc.)",
+            "type": "string"
+          },
+          "framework": {
+            "description": "Filter by framework: STIG, CCI, NIST-800-53, CMMC",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max results (default: 10)",
+            "type": "integer"
+          },
+          "query": {
+            "description": "Keyword search query",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_get_compliance_score",
+      "description": "Fast compliance score without full scan. Returns current CMMC/NIST/STIG satisfaction percentages from cached DAG state.",
+      "risk_class": "read_only",
+      "scope": "compliance:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "9f0de73f003b143705224a9f465f3626a1174186d684f3dd154a3631a37891e9",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "khepra_query_threat_intel",
+      "description": "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT\u0026CK mappings, and CNSA 2.0 quantum impact.",
+      "risk_class": "read_only",
+      "scope": "threat:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "3be74892e9d1e35150a0a336350950340822c0342e5af67a2c7658b745cd656a",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "cve_id": {
+            "description": "Specific CVE identifier (e.g. CVE-2024-12345)",
+            "type": "string"
+          },
+          "kev_only": {
+            "description": "Filter to CISA KEV only (default: false)",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Max results (default: 10)",
+            "type": "integer"
+          },
+          "pqc_impact": {
+            "description": "Include CNSA 2.0 quantum impact assessment (default: false)",
+            "type": "boolean"
+          },
+          "query": {
+            "description": "Search term (CVE ID, product name, or keyword)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_get_dag_chain",
+      "description": "Export the PQC-signed DAG chain for the current session. Returns all DAG nodes with ML-DSA-65 signatures and Adinkra symbol provenance.",
+      "risk_class": "read_only",
+      "scope": "dag:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "3f0af326280df4453aeeb096fecd5db4b3d3ec7a19eb1dce971b3eb54c983147",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "flight_export",
+      "description": "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls, verifies tamper chain, computes SOW pilot KPIs.",
+      "risk_class": "read_only",
+      "scope": "audit:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "cb3629048f2260c53120ce85bb1423352dd2dc00f2c25f6ff38bca81db707cb6",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "owasp_agent_assess",
+      "description": "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence packet. 100% offline.",
+      "risk_class": "read_only",
+      "scope": "security:assess",
+      "schema_version": "1.0.0",
+      "schema_hash": "e59d4872f05b5adec657e56af1afd1c826e690bd8b49fa3d879bc05a6898f3e9",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "profile": {
+            "description": "Assessment profile: quick | full (default: full)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "dark_crypto_contribute",
+      "description": "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. No sensitive data leaves the machine. Returns global quantum exposure rank.",
+      "risk_class": "read_only",
+      "scope": "community:contribute",
+      "schema_version": "1.0.0",
+      "schema_hash": "11d7d7d39f0e1935b8085b97234f8a2c24493beddf16b8b4fad82ef7a533329d",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false
+    },
+    {
+      "name": "sbom_generate",
+      "description": "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations. Falls back to go.mod/requirements.txt walk when syft is not in PATH.",
+      "risk_class": "read_only",
+      "scope": "sbom:generate",
+      "schema_version": "1.0.0",
+      "schema_hash": "49f52db3063634471e15cb6a828626f5e2875af9e971307ff7a427a5ae40af29",
+      "allowed_backend": "in-process",
+      "timeout_ms": 180000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "format": {
+            "description": "Output format: cyclonedx | spdx (default: cyclonedx)",
+            "type": "string"
+          },
+          "project_path": {
+            "description": "Path to project directory (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "threat_model",
+      "description": "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT\u0026CK mappings. Detects project technology profile and produces a context-aware threat catalog. 100% offline.",
+      "risk_class": "read_only",
+      "scope": "threat:model",
+      "schema_version": "1.0.0",
+      "schema_hash": "5ae849847c9022f2d4b0c2af87a812d09668f1ea7435ce015cdf31ed2d4287ae",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "args_schema": {
+        "properties": {
+          "framework": {
+            "description": "Threat framework: STRIDE | PASTA | LINDDUN (default: STRIDE)",
+            "type": "string"
+          },
+          "project_path": {
+            "description": "Path to project directory (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    }
+  ],
+  "signature": "072ad80dc8a4d96f5f60f4eecd4223b3762de322f432d5f355415f35475c2de46eeca72a86074323b990994423a4c4a9258503170bbe35c2b824396dc340d736bf7d06cae8ddb278247af25904faaa65b7a397a2d3f3bb272027503876155c142088d7ce12ded4a0d3811d57ab7cfb7bef6eb747ff8c4c8a2fac91ddfd3b891ef87ebc14c934e7cf08f8a8ffdc20fdcd616a45e53d72cc7d9732681818fe7225ba58981aa2478014b873fe570db419a5e1d657fd4571632674b1024cbdedde786b1848d8aa60534b23c9b929885c86adf01d00b32ab9268feda53f130f58574acbba5aeb6f2e19496bfc335a3ff44258fd257b94dae5cd7bc6b5006905e8e3de188e0f421b1a791d383b197cfb81e27ae58bf4231f39db35542cc748bc885e365e75a6598cc31c255014a424ce3270f3027abfce0338020e97c5360ba9b1b1a38e956164be7b8150e1f0572ad6ed9ec15bf2ae326e85c0cefd5ceca2552e36814beee5369e576a474f5cbe183e5c4d8a4e9a0c1a720603bd800d36db295e24daf42207465e1ec377e96c4eb20a32df0d4f61217ba21fbcadc36b7ef2ceac1d1890105622b2579135cbedc663d12016f26fece0febfb2bf507b62bb9aac7dd14274e618a7ab35a90b2d717a3c60ec0c1d000d718732f721795ea994883ca18ae9747f2035bf7fb8f84f13ff342825f497937cb1e839553f99f9bc4504936bf91bc3885a39d6d96e4be3cd6915034c8f8fcda7cc014caa3f436cf5dabdd53251b12391f500c9dc019e4a318f9ed28e63d1e53a4d97a016ea18623d56429c54dab839340196facb171e8bffa1abcef75cdbf563014a317b1f425c78bc14bea03818ae257670dde0ec1382a5f8783581c3e2fd336103277b7829ef9a2f825bfc7f1e2821cac864562000ef24670e1408e622911b52bfbd60a0dc2b5e7b88823467f874b0f06d792b5ee0d1195a554c89320db08f17b279b19ce4f72be0b589e96160d4d9879133ad4df71733b1ff24649a7579cb02d94c609cb6586c782c48ec00569d0b74113f77e3b12a9421b7e74b503f9f9499e845ee1e36b33c31bad91f101afcae1bb36aaa6d793657a775fd10f01e835bdaf452af2ae7d3ef7e22b6fdeec190a3213c5d6aafcbfe01537fb91113ac0ba595fd70197f5cb90afebe47252fe34ed48879bf5d1f6cc158b532be0d00de16d1c8c6db3bb9aa1da2710a51966fdc5afb2bc496fa159e9754034fceb0e8c2912e3b7817e1845b3d42e4ebd90147dcff8de23a201868e004f579dadb4ee9285840f64672b7be2146e756e8f362b86e41eb6a5dea32e2750b83735d884d92d9127a53076b2965eda24ae3c9967c90947e8aa44d38fef2ac74ceb46e3e25aa102b5d97966d06de456e0f37aaf4ea72783eedd189976744005bea7369dac595f052d9c58a112d7481cab570438e34e2f8e9ce498fb9403b9aa4e03c07450810dcdf062a1a443f10432deba277df5b2cab2784bd73122d77fd09d8d33f4f505946024758f204e9547e84c4d74d8dd734827e5c7f3c8955c5f0f26349076d559b53879d7e51baef155e65478d8c4fae7b754cf376cdd62aca8115d8c4ccd038301174eb53ce13279b82ccee08380ac10eadc7a48adc872b31c0a91856882333571eaac78ae24f9505005691d3b274b70ae5a3b1707bff6df2036d80bc7f669d1b1a6d00f30cb782185d3dd991d610098f82a20494c69d8cb32bd5e3bb3e2827716e8fc6ebb116431cfd0daa4d21c94f367af04fb2e93af2bb06adcfdb41049e91aed1bcade8763cea73ed1c15c5dd53aa6fad90db940e0ba2a6690197d56506fa3bc2f22b29efc2b5a90dec6919b7c42f6273f632f5f03dc53092047d28da7b730a0378f2cf553b79b3c88d1756d5f20a4418e878baa9983739abeedf3b46a62f5bb2e46bb7d394640eed142ee390487ca27434df9e5cc26af89b2a0dd827152369beef85682a94dba05e3f09d11fdeeee6ffe9c9d380f96bccc9068c076b03f9b45f5360a1215bc3cf7d1f46184d44aee67af305730b13c8f21d74ba9196cee761a60ad4aaca2c338a289858f6565fe6633019e3dfd2ef9d437f62488bf623d7f5fffccdeee1cab4ee7755f0dfa99c189675c1afa6cc84d3f28a6a6801ecfc609007cc7a7b2285d44410ca6092abdb206217f62e076a6d6dd007510ee9fb69fc432c315e33c3657f45e81cc4e40dc5881a8015016c16533e6f62c8e91bd34afcf4050f4bca2584282acc9679a2308d1724ed3b13803d35d859816b9f79a303692a5d2589dce416d56f83e924e47d60896d74ff7ebb0ebef4199e11981f2d018f054f0c3db6727c024ddb71d627451d6b97debb190af8ebc3f51d4c83fed086d042a179ceb62f3608e4e296af54724391834d11ca5a415891f13b0166238c4d4c2a7c0807a9232aafe9d415c0f3a09f36d0df0aa2271f0b9699535a00a12779bfd340b3d3a529d4680bb9be2e775f0271b695c43c6b69b5347cfec9634f15c53ba1b6631dc17bd4e7fd98945df29ef65f9669c26a2c3b0314a01df101825075fe73eb19349da674c8fb9e2de2fd25f025f1542f3c6c275a9592d2287f6001ec24aa6543f9c512c92b59e8ce2f9cb1d024ac59218dd7c4a231c22b4a1d32638c26d1ef57355f7bdc531c13943c5f6926a3a0f7b22859e41936644695207444d77e40501a6a9ecb21b2902595ade9e478d002d0db431648b7fbe0e865277753021f5aa9305a40a0bb38465688331379f4635dc191890a00974fad987b2c6ad44f2a2f8098fb65ed839a9408fe1561fc2183b93168f505831b63f9a237f3317948379cc44fad48ade3cc4ccf0c49cee1bcd00695c967659727f945f86f4470f572867c4845e2c2cf96c6248df16cffe606049f09b016760a512fd43bb83d711b3d4a24e581cf993f66f2eb8d584b8b58e04817d5ad2f7a5a55d54be237a1c6ebc8dbb8da5e1d2614a788f360a0954c6bf5c575873c30935f73d81df16aab314ff8d296880fe70ce79457a1ba9ad882264d8eac0eec17f25597191a2548c7b1e8956768426be11ca57ee2c0caa1d7d509da5a40d3f8c588d27c49345fc97e56f647a6d6d14cfd16758e701cf4ea80d58f0f383e266d57dfaf5f354236522cb8f767b384c308ccd4ef39275f9374ee7e4f9bb8ac170534a6270ee05ecd0b0aceadaef270febd974d78b29529afe73485c48aad94b57308c5c1d491e7900f8343446ed3d7be916aa36d9193e0209301ea41fa09429c8bb3be753ff1d4bf682fb0c8c045fb0cfff64216058da0b8536910207d78482e575585803042ca78ba44d2a6545c579170619a4bcc30017b79c95a01c131f7600b3d57695a56be9c7ebc03402a40644ca7ccd37fdb53aeef20d7e14c157c4e7df8ccf5896835da68651dcbdd96f409f81fe8260152603bafaaf096cefe33bd571b1a72d5ec72815a76e4759f2de4f52b49e3e4f6290dc59b12b27ac4fa47ea038bcb8c4966be3b68b84bda9dd545c03cb4bacd636afcc63e94db1638a95a2765edaa1ed406cf8f4e6c3e8baeecac9278df7e5bc76b25402b45c8649534574e5712c57c0f6531c5f80382043fe5912db94b81f112ed3ba9caaed7076ed714bb11365f29f55b847c747d635c0a2ca74860cd708ff21e9c8953d6b47767c221ce5db61fcb65e7be82b34f5df89571992dddd38259a0a168cfc400035cb8ce0fc155f87ed6ed5b06945e2a94a5509aff0af546b2c955b59108eaa8959e1f1c5b207d3045a45ca1a16a4b13b18c38e5ce1f73c56d0a330058f3319460b782f50bc9c2037cd0a05d72965d03b3391d594e2b339e71c7fb9330a44cc9bc7aa84a0ada88f5b450d56970efe7fdd7301a80be4b10217b2af28257d346c631164a9e228cf5defe85c442697b40697e69e123dd3b74010bdb78a57bab8517e2cb6cd9d6bfd2b762ebcbbeb67c510ce0e886ee86e2ac0fff2fc2342b91a72448482bb20c85e172dbac8284144b238d5884256659b3d4a05288268997dc2deac855b4c4bbbdb02d70d2928cd013c3a1e910110d13443e4efcf989ae4ac92f9c800e5bc1d35b9f5e5c818b07b78e4bba82a39a7fa6c19b99f32935acd5bd35c181a6541be5cb5ef69789d80f8e0967d536634fbf71e0e1999513db977235d83adfa218ad92ef011d08b79efe368b82fb588ddf58520f6270a983e2c5edfc3f116d445296e512e60d0cc301d2596febb64f7019e90eca94c5262d1c59d69f86a70267a6b659e985df464fdba462f45f102ee74370cfe6816c5b7b9cd67c5cf4b44d4e3e5b8d65de91ebbf1dbae5008a1a8cd2fadbcc789d95de0fc12e9a49200b52ff1c0c6292aa76d523f750c8bd94b4ea55e46e15085e7c64b98671a6893343e9720dba0c544deea2a25e092bee1c2a661df26ffef9ff2ddb975415137fb764b2decd3d8da2387681113485c5ff942037ef1bd6a3ae5f26cf9377cefbd121eebd2c2363e548df1c62c0cea8f24eca8b0103fca7dd1af3b4ae2d915c3e071dd539f256fdbf9364ba0c8b7a1e4c74e2fc0d13d30ff08e1093c1346fcf8b35ee78c1a9c31aa3ef4b5cafedc593708cec9dbb56b0e3e270013b79929b2628626468aa33667d9db5e708236db1badcddfc031e37b5ccdcf20b3b808bdde7f300000000000000000000000000000000050b11192027"
+}

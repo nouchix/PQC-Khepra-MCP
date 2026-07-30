@@ -51,7 +51,6 @@ export const AutomatedRemediation = () => {
   const { toast } = useToast();
   const { currentOrganization } = useOrganization();
 
-  // Mock data
   useEffect(() => {
     // Awaiting telemetry for real tasks and rules
     const pendingTasks: RemediationTask[] = [];
