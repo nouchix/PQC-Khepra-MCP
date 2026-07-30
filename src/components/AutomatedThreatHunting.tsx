@@ -11,6 +11,7 @@ import { Search, Mail, TrendingUp, Clock, CheckCircle, AlertTriangle, ExternalLi
 
 import { useToast } from '@/hooks/use-toast';
 import { useThreatIntelligence } from '@/hooks/useThreatIntelligence';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HuntQuery {
   id: string;
@@ -46,11 +47,11 @@ export const AutomatedThreatHunting = () => {
   const [huntQueries, setHuntQueries] = useState<HuntQuery[]>([]);
   const [reports, setReports] = useState<HuntReport[]>([]);
   const [splunkIntegration, setSplunkIntegration] = useState<SplunkIntegration>({
-    connected: true,
+    connected: false,
     baseUrl: 'https://splunk.enterprise.local:8000',
-    status: 'online',
-    lastSync: new Date(),
-    indexesMonitored: ['main', 'security', 'firewall', 'proxy', 'dns']
+    status: 'offline',
+    lastSync: new Date(0),
+    indexesMonitored: []
   });
   const [automationEnabled, setAutomationEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -59,9 +60,33 @@ export const AutomatedThreatHunting = () => {
 
   useEffect(() => {
     generateHuntQueries();
-    generateMockReports();
-    simulateDailyAutomation();
+    loadReports();
+    logDailyAutomationStatus();
+    checkSplunkConnection();
   }, [threats]);
+
+  const checkSplunkConnection = async () => {
+    try {
+      // Reuse the same real backend check useIntegrations() uses to detect a
+      // configured Splunk integration — no fabricated "connected" status.
+      const { data, error } = await supabase.functions.invoke('siem-integration', {
+        body: { action: 'splunk_integration', config: {}, organizationId: 'current' }
+      });
+
+      if (error) throw error;
+
+      const configured = Boolean(data?.results?.configured);
+      setSplunkIntegration(prev => ({
+        ...prev,
+        connected: configured,
+        status: configured ? 'online' : 'offline',
+        lastSync: configured ? new Date() : prev.lastSync
+      }));
+    } catch (error) {
+      console.error('Failed to check Splunk connection:', error);
+      setSplunkIntegration(prev => ({ ...prev, connected: false, status: 'error' }));
+    }
+  };
 
   const generateHuntQueries = () => {
     const queries: HuntQuery[] = threats.slice(0, 10).map((threat, index) => ({
@@ -108,15 +133,15 @@ export const AutomatedThreatHunting = () => {
     return baseQueries[type as keyof typeof baseQueries] || baseQueries.ip;
   };
 
-  const generateMockReports = () => {
+  const loadReports = () => {
     // Awaiting telemetry for actual reports
     const pendingReports: HuntReport[] = [];
 
     setReports(pendingReports);
   };
 
-  const simulateDailyAutomation = () => {
-    // Simulate the automated daily process
+  const logDailyAutomationStatus = () => {
+    // Logs automation status; the actual daily hunt/report pipeline is not implemented yet
     if (automationEnabled) {
       console.log('🚨 Daily Threat Intelligence Automation Active:');
       console.log('📊 Collecting 1,000+ new threat feeds...');
@@ -135,7 +160,7 @@ export const AutomatedThreatHunting = () => {
         q.id === queryId ? { ...q, status: 'running' } : q
       ));
 
-      // Simulate hunt execution
+      // Fixed delay only; no real Splunk query execution is wired up yet
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Real results require Splunk query execution response
@@ -174,10 +199,22 @@ export const AutomatedThreatHunting = () => {
   };
 
   const generateDailyReport = async () => {
+    if (reports.length === 0) {
+      // No real report-generation pipeline is wired up yet (reports are only
+      // populated from real hunt telemetry, which doesn't exist yet), so
+      // honestly report that rather than crash on a fabricated report.
+      toast({
+        title: "No Report Data",
+        description: "No hunt telemetry is available yet to generate a daily report from.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Simulate report generation
+      // No real report-generation pipeline; unreachable while reports is always empty
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const todayReport = reports[0];
@@ -190,7 +227,7 @@ export const AutomatedThreatHunting = () => {
         variant: todayReport.cleanEnvironment ? "default" : "destructive"
       });
 
-      // Simulate email sending
+      // No real email delivery is wired up yet; logs the would-be content instead
       const emailData = {
         subject: todayReport.cleanEnvironment
           ? "🛡️ Daily Threat Hunt: Clean Environment"
