@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -144,55 +144,54 @@ export const RemediationOrchestrator: React.FC = () => {
     fetchData();
   }, []);
 
-  const processExecutionProgress = (prev: RemediationExecution[]) => prev.map(execution => {
-    if (execution.status === 'running' && execution.progress < 100) {
-      const newProgress = Math.min(100, execution.progress + 10); // Fixed increment; real progress requires event stream from remediation engine
-      const newStatus = newProgress >= 100 ? 'completed' : 'running';
-
-      if (newStatus === 'completed') {
-        return {
-          ...execution,
-          status: newStatus as any,
-          progress: 100,
-          endTime: new Date(),
-          logs: [
-            ...execution.logs,
-            {
-              timestamp: new Date(),
-              step: 'completion',
-              level: 'info' as any,
-              message: 'Remediation completed successfully'
-            }
-          ]
-        };
-      }
-
-      return {
-        ...execution,
-        progress: newProgress,
-        currentStep: Math.floor((newProgress / 100) * (selectedPlaybook?.steps.length || 3)),
-        logs: execution.progress < 50 && newProgress >= 50 ? [
-          ...execution.logs,
-          {
-            timestamp: new Date(),
-            step: `step-${Math.floor(newProgress / 33) + 1}`,
-            level: 'info' as any,
-            message: `Executing step ${Math.floor(newProgress / 33) + 1}...`
-          }
-        ] : execution.logs
-      };
-    }
-    return execution;
-  });
+  // Keep a ref to the latest executions so the polling interval below
+  // always reads current state without needing to be recreated.
+  const executionsRef = useRef(executions);
+  useEffect(() => {
+    executionsRef.current = executions;
+  }, [executions]);
 
   useEffect(() => {
-    // Simulate execution progress updates
-    const interval = setInterval(() => {
-      setExecutions(processExecutionProgress);
-    }, 3000);
+    // Real progress requires an event stream from the remediation engine.
+    // Rather than fabricate progress/completion locally, poll the real
+    // remediation_executions table (the source of truth updated by the
+    // backend) for status changes on in-flight executions.
+    const interval = setInterval(async () => {
+      const runningIds = executionsRef.current
+        .filter(e => e.status === 'running')
+        .map(e => e.id);
+
+      if (runningIds.length === 0) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('remediation_executions')
+          .select('*')
+          .in('id', runningIds);
+
+        if (error) throw error;
+        if (!data || data.length === 0) return;
+
+        setExecutions(prev => prev.map(execution => {
+          const updated = data.find((d: any) => d.id === execution.id);
+          if (!updated) return execution;
+
+          return {
+            ...execution,
+            status: (updated.status || execution.status) as any,
+            progress: updated.status === 'completed' ? 100 : execution.progress,
+            endTime: updated.end_time ? new Date(updated.end_time) : execution.endTime,
+            logs: Array.isArray(updated.logs) ? updated.logs.map(mapExecutionLog) : execution.logs,
+            rollbackAvailable: updated.status === 'completed'
+          };
+        }));
+      } catch (err) {
+        console.error('Error polling remediation execution status:', err);
+      }
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [selectedPlaybook]);
+  }, []);
 
   const executePlaybook = async (playbook: RemediationPlaybook) => {
     setSelectedPlaybook(playbook);

@@ -51,7 +51,7 @@ const integrations: Integration[] = [
     rating: 4.6,
     downloads: 2100,
     price: 'free',
-    status: 'installed',
+    status: 'available',
     tags: ['AWS', 'Cloud', 'Configuration'],
     icon: <Cloud className="h-6 w-6" />,
     features: ['Config drift detection', 'Compliance reporting', 'Automated remediation', 'Cost optimization'],
@@ -115,7 +115,7 @@ const integrations: Integration[] = [
     rating: 4.4,
     downloads: 750,
     price: 'enterprise',
-    status: 'pending',
+    status: 'available',
     tags: ['ITSM', 'Workflow', 'Automation'],
     icon: <Zap className="h-6 w-6" />,
     features: ['Incident management', 'Change control', 'Asset tracking', 'Compliance workflows'],
@@ -149,20 +149,16 @@ export const IntegrationMarketplace = () => {
   });
 
   const handleInstall = (integrationId: string) => {
-    console.log('📦 Installing integration:', integrationId);
+    // This marketplace catalog is not yet wired to a real one-click install
+    // pipeline for these vendors. Rather than fabricate an "installed"
+    // success, honestly point the user at the Active Integrations tab where
+    // real connectors (Splunk, Elastic, custom API, etc.) can be configured.
+    const integration = integrations.find(i => i.id === integrationId);
     toast({
-      title: "Installing Integration",
-      description: "Setting up the integration... This may take a few minutes.",
+      title: "Install Not Yet Available",
+      description: `One-click install for ${integration?.name ?? 'this integration'} isn't wired up yet. Configure it from the Active Integrations tab instead.`,
+      variant: "destructive"
     });
-
-    // Simulate installation
-    setTimeout(() => {
-      console.log('✅ Integration installed successfully:', integrationId);
-      toast({
-        title: "Integration Installed",
-        description: "Successfully installed and configured the integration.",
-      });
-    }, 2000);
   };
 
   const handleConfigure = (integrationId: string) => {

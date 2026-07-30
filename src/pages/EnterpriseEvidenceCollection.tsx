@@ -59,22 +59,25 @@ const EnterpriseEvidenceCollectionPage = () => {
   const triggerAutomatedCollection = async () => {
     try {
       setCollecting(true);
-      
-      // Simulate automated evidence collection
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
+
+      // There is no wired-up automated collection engine (e.g. a scheduled agent
+      // or edge function) for this button to invoke yet. Rather than fabricate a
+      // "collection started" success after a fake delay, honestly report that
+      // automated collection isn't available and only refresh the real evidence
+      // list from the database.
       toast({
-        title: "Evidence Collection Started",
-        description: "Automated evidence collection has been initiated across all monitored systems."
+        title: "Automated Collection Not Available",
+        description: "Automated evidence collection is not yet integrated. Use manual evidence upload/collection in the meantime.",
+        variant: "destructive"
       });
 
-      fetchEvidenceData();
+      await fetchEvidenceData();
 
     } catch (error) {
       console.error('Error triggering collection:', error);
       toast({
         title: "Collection Failed",
-        description: "Failed to start automated evidence collection",
+        description: "Failed to refresh evidence collection data",
         variant: "destructive"
       });
     } finally {
@@ -83,9 +86,12 @@ const EnterpriseEvidenceCollectionPage = () => {
   };
 
   const generateComplianceReport = () => {
+    // No real report-generation/export pipeline is wired up yet; avoid claiming a
+    // report was generated when nothing was produced.
     toast({
-      title: "Report Generated",
-      description: "Comprehensive compliance evidence report has been generated and is ready for download."
+      title: "Report Generation Not Available",
+      description: "Automated compliance report generation is not yet implemented.",
+      variant: "destructive"
     });
   };
 

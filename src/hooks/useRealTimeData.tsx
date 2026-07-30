@@ -56,22 +56,19 @@ export const useRealTimeData = () => {
     };
   };
 
-  // Simulate real-time connection
+  // Honest placeholder data until a real security tool integration is
+  // connected, plus a real-time Supabase subscription whose connection
+  // status is reported accurately (not fabricated).
   useEffect(() => {
-    setIsConnected(true);
-    
     // Initialize with placeholder data showing platform capabilities
     const placeholderMetrics = [generatePlaceholderMetrics()];
     const placeholderEvents = [generatePlaceholderEvent()];
-    
+
     setMetrics(placeholderMetrics);
     setSecurityEvents(placeholderEvents);
 
-    // Remove intervals - real data will come from integrations
-    // const metricsInterval = null;
-    // const eventsInterval = null;
-
-    // Real Supabase subscription for actual security events
+    // Real Supabase subscription for actual security events; isConnected
+    // reflects the real subscription status instead of being fabricated.
     const eventsSubscription = supabase
       .channel('security-events-realtime')
       .on(
@@ -85,7 +82,9 @@ export const useRealTimeData = () => {
           setSecurityEvents(prev => [payload.new as SecurityEvent, ...prev.slice(0, 49)]);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
 
     return () => {
       eventsSubscription.unsubscribe();

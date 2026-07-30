@@ -220,7 +220,10 @@ export const useIntegrations = () => {
           }
         });
       } else {
-        // For other integrations, create a local entry
+        // For other integrations, create a local entry and validate it
+        // against the real integration-manager Edge Function (the same
+        // backend used by testConnection below) instead of faking a delayed
+        // "connected" status regardless of whether the integration works.
         const newIntegration: Integration = {
           id: `int_${Date.now()}`,
           name: template.name,
@@ -237,8 +240,32 @@ export const useIntegrations = () => {
 
         setIntegrations(prev => [newIntegration, ...prev]);
 
-        // Simulate API call delay for non-Splunk integrations
-        setTimeout(() => markIntegrationConnected(newIntegration.id), 3000);
+        try {
+          const testResult = await supabase.functions.invoke('integration-manager', {
+            body: {
+              action: 'test',
+              integration_type: template.name.toLowerCase().replaceAll(' ', '-'),
+              config,
+              integration_id: newIntegration.id
+            }
+          });
+
+          const isConnected = testResult.data?.success === true;
+          setIntegrations(prev =>
+            prev.map(int =>
+              int.id === newIntegration.id
+                ? { ...int, status: isConnected ? 'CONNECTED' : 'ERROR', last_sync: new Date().toISOString() }
+                : int
+            )
+          );
+        } catch (testError) {
+          console.error('Integration validation failed:', testError);
+          setIntegrations(prev =>
+            prev.map(int =>
+              int.id === newIntegration.id ? { ...int, status: 'ERROR' } : int
+            )
+          );
+        }
       }
 
       return { success: true };

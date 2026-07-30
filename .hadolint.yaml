@@ -1,0 +1,13 @@
+# hadolint configuration — Khepra MCP kernel
+#
+# Reproducibility for these images comes from pinned base images plus
+# --no-cache / clean steps, NOT from per-OS-package version pins. On rolling
+# distro mirrors (Alpine, Red Hat UBI) old package versions are pulled from the
+# mirror within weeks, so pinning apk/apt/dnf package versions makes builds fail
+# unpredictably instead of making them more reproducible. We therefore do not
+# enforce the OS-package-pinning rules. Every other rule — including DL3007
+# (no :latest base images) — stays active and blocking.
+ignored:
+  - DL3008 # apt-get install without a version pin
+  - DL3018 # apk add without a version pin
+  - DL3041 # dnf/microdnf install without a version pin
