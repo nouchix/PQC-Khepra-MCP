@@ -204,11 +204,9 @@ func TestLicense_Community_GodfatherReport_Blocked(t *testing.T) {
 	if !resp.IsError {
 		t.Fatal("godfather_report community: expected tier gate error, got success")
 	}
-	// Display name for TierPro is "Pro" (see mcp_gate.go TierDisplayNames)
+	// godfather_report requires TierPro; display name is "Pro" (see mcp_gate.go TierDisplayNames)
 	if !strings.Contains(resp.ErrorMessage, "Pro") {
 		t.Errorf("expected 'Pro' in error message, got: %s", resp.ErrorMessage)
-	if !strings.Contains(resp.ErrorMessage, "Sovereign") {
-		t.Errorf("expected 'Sovereign' in error message, got: %s", resp.ErrorMessage)
 	}
 	if !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
 		t.Errorf("expected upgrade URL in error message, got: %s", resp.ErrorMessage)
@@ -246,9 +244,6 @@ func TestLicense_Community_ACP_AllBlocked(t *testing.T) {
 			// ACP tools require Pro (TierPro) — display name is "Pro"
 			if !strings.Contains(resp.ErrorMessage, "Pro") {
 				t.Errorf("%s: expected 'Pro' in error, got: %s", tool, resp.ErrorMessage)
-			// ACP tools require Pro (TierPro) — display name is "Sovereign"
-			if !strings.Contains(resp.ErrorMessage, "Sovereign") {
-				t.Errorf("%s: expected 'Sovereign' in error, got: %s", tool, resp.ErrorMessage)
 			}
 		})
 	}
