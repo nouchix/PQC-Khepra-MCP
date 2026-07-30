@@ -5,7 +5,7 @@
 //
 // Coverage:
 //   - Community tier: ert_scan + nist_map allowed; all others gated
-//   - Pilot tier: + godfather_report/approve + khepra_watch unlocked
+//   - Pro tier: + godfather_report/approve + khepra_watch unlocked
 //   - Enterprise tier: all 13 tools unlocked
 //   - nil license: identical to Community
 //   - Tampered tier field: still enforced (claim is already verified before router)
@@ -34,7 +34,7 @@ func communityLicense() *licpkg.KhepraLicense {
 func pilotLicense() *licpkg.KhepraLicense {
 	return &licpkg.KhepraLicense{
 		LicenseID: "test-pilot",
-		Tier:      licpkg.TierPilot,
+		Tier:      licpkg.TierPro,
 		Tenant:    "ACME Defense LLC (Pilot)",
 		ExpiresAt: time.Now().Add(365 * 24 * time.Hour),
 	}
@@ -144,7 +144,6 @@ func routerWithLicense(t *testing.T, lic *licpkg.KhepraLicense) *Router {
 	return r
 }
 
-
 func toolCall(name string) MCPToolCall {
 	return MCPToolCall{
 		RequestID: "req-" + name,
@@ -167,7 +166,7 @@ func toolCallConfirmed(name string) MCPToolCall {
 // ─── Community Tier ───────────────────────────────────────────────────────────
 
 // TestLicense_Community_ErtScan_Blocked verifies that ert_scan requires TierEnterprise
-// (Pharaoh) and is correctly blocked at Community tier.
+// (Enterprise) and is correctly blocked at Community tier.
 // Note: ert_scan is gated at TierEnterprise per mcp_gate.go mcpToolTier table.
 // The free Community equivalent is ert_crypto (crypto-only lane).
 func TestLicense_Community_ErtScan_Blocked(t *testing.T) {
@@ -177,11 +176,11 @@ func TestLicense_Community_ErtScan_Blocked(t *testing.T) {
 		t.Fatalf("ert_scan community: unexpected hard error: %v", err)
 	}
 	if !resp.IsError {
-		t.Fatal("ert_scan community: expected Pharaoh tier gate, got success")
+		t.Fatal("ert_scan community: expected Enterprise tier gate, got success")
 	}
-	// Display name for TierEnterprise is "Pharaoh"
-	if !strings.Contains(resp.ErrorMessage, "Pharaoh") {
-		t.Errorf("expected 'Pharaoh' in error message, got: %s", resp.ErrorMessage)
+	// Display name for TierEnterprise is "Enterprise"
+	if !strings.Contains(resp.ErrorMessage, "Enterprise") {
+		t.Errorf("expected 'Enterprise' in error message, got: %s", resp.ErrorMessage)
 	}
 }
 
@@ -205,9 +204,9 @@ func TestLicense_Community_GodfatherReport_Blocked(t *testing.T) {
 	if !resp.IsError {
 		t.Fatal("godfather_report community: expected tier gate error, got success")
 	}
-	// Display name for TierPilot is "Sovereign" (see mcp_gate.go TierDisplayNames)
-	if !strings.Contains(resp.ErrorMessage, "Sovereign") {
-		t.Errorf("expected 'Sovereign' in error message, got: %s", resp.ErrorMessage)
+	// Display name for TierPro is "Pro" (see mcp_gate.go TierDisplayNames)
+	if !strings.Contains(resp.ErrorMessage, "Pro") {
+		t.Errorf("expected 'Pro' in error message, got: %s", resp.ErrorMessage)
 	}
 	if !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
 		t.Errorf("expected upgrade URL in error message, got: %s", resp.ErrorMessage)
@@ -242,9 +241,9 @@ func TestLicense_Community_ACP_AllBlocked(t *testing.T) {
 			if !resp.IsError {
 				t.Fatalf("%s community: expected tier gate, got success", tool)
 			}
-			// ACP tools require Sovereign (TierPilot) — display name is "Sovereign"
-			if !strings.Contains(resp.ErrorMessage, "Sovereign") {
-				t.Errorf("%s: expected 'Sovereign' in error, got: %s", tool, resp.ErrorMessage)
+			// ACP tools require Pro (TierPro) — display name is "Pro"
+			if !strings.Contains(resp.ErrorMessage, "Pro") {
+				t.Errorf("%s: expected 'Pro' in error, got: %s", tool, resp.ErrorMessage)
 			}
 		})
 	}
@@ -275,7 +274,7 @@ func TestLicense_Nil_TreatedAsCommunity(t *testing.T) {
 	if resp.IsError {
 		t.Fatalf("nist_map nil license: expected success, got: %s", resp.ErrorMessage)
 	}
-	// Sovereign tools fail — acp_status requires TierPilot
+	// Pro tools fail — acp_status requires TierPro
 	resp, _ = r.HandleToolCall(context.Background(), toolCall("acp_status"), nil, "local")
 	if !resp.IsError {
 		t.Fatal("acp_status nil license: expected tier gate")
@@ -309,14 +308,14 @@ func TestLicense_Pilot_KhepraWatch_Allowed(t *testing.T) {
 func TestLicense_Pilot_ACP_StillBlocked(t *testing.T) {
 	r := routerWithLicense(t, pilotLicense())
 	resp, _ := r.HandleToolCall(context.Background(), toolCall("acp_status"), nil, "local")
-	// acp_status is TierPilot (Sovereign) — Pilot license SHOULD unlock it.
-	// This test verifies that nhi_revoke (Pharaoh/Enterprise) is still blocked.
+	// acp_status is TierPro — Pro license SHOULD unlock it.
+	// This test verifies that nhi_revoke (Enterprise tier) is still blocked.
 	resp, _ = r.HandleToolCall(context.Background(), toolCall("nhi_revoke"), nil, "local")
 	if !resp.IsError {
-		t.Fatal("nhi_revoke pilot: expected Pharaoh gate, pilot should not unlock NHI revoke")
+		t.Fatal("nhi_revoke pilot: expected Enterprise gate, pilot should not unlock NHI revoke")
 	}
-	if !strings.Contains(resp.ErrorMessage, "Pharaoh") {
-		t.Errorf("expected 'Pharaoh' in error, got: %s", resp.ErrorMessage)
+	if !strings.Contains(resp.ErrorMessage, "Enterprise") {
+		t.Errorf("expected 'Enterprise' in error, got: %s", resp.ErrorMessage)
 	}
 }
 
