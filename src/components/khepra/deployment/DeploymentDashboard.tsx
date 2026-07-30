@@ -65,7 +65,8 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Simulate real-time data
+  // No real deployment telemetry backend is wired up yet. Report an honest
+  // pending/empty state instead of fabricating live metrics.
   useEffect(() => {
     const loadDashboardData = () => {
       const pendingStatus: DeploymentStatus = {
@@ -496,7 +497,7 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
                   <CardContent className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Response Time</span>
-                      <span className="text-sm font-medium">12ms</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Throughput</span>
@@ -504,7 +505,7 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Availability</span>
-                      <span className="text-sm font-medium text-green-500">99.98%</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -523,11 +524,11 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">False Positives</span>
-                      <span className="text-sm font-medium">2</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Detection Rate</span>
-                      <span className="text-sm font-medium text-green-500">98.7%</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -542,15 +543,15 @@ export const DeploymentDashboard: React.FC<DeploymentDashboardProps> = ({
                   <CardContent className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Learning Rate</span>
-                      <span className="text-sm font-medium">94%</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Cultural Alignment</span>
-                      <span className="text-sm font-medium text-purple-500">97%</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Prediction Accuracy</span>
-                      <span className="text-sm font-medium text-green-500">91%</span>
+                      <span className="text-sm font-medium text-muted-foreground">N/A</span>
                     </div>
                   </CardContent>
                 </Card>

@@ -265,6 +265,7 @@ var ToolTierMap = map[string]string{
 	"ert_crypto":              TierPilot,
 	"ert_godfather":           TierPilot,
 	"flight_export":           TierPilot,
+	"attest_export":           TierPilot, // C3PAO 13-artifact evidence ZIP (ML-DSA-65 signed)
 	"khepra_export_attestation": TierPilot,
 	"forensic_snapshot":       TierPilot,
 	"fim_baseline":            TierPilot,

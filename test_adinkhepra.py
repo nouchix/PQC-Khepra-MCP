@@ -179,14 +179,24 @@ class TestBuildFunctions(unittest.TestCase):
 class TestTelemetryServer(unittest.TestCase):
     """Test telemetry server functions."""
     
+    @patch('adinkhepra.is_sovereign', return_value=False)
     @patch('os.path.exists')
-    def test_start_telemetry_server_missing_dir(self, mock_exists):
-        """Test telemetry server when directory is missing."""
+    def test_start_telemetry_server_missing_dir(self, mock_exists, mock_sovereign):
+        """Test telemetry server when directory is missing (non-sovereign: skip)."""
         mock_exists.return_value = False
-        
+
         result = adinkhepra.start_telemetry_server()
-        
+
         self.assertIsNone(result)
+
+    @patch('os.path.exists')
+    def test_start_telemetry_server_missing_dir_sovereign_aborts(self, mock_exists):
+        """Missing dir in sovereign mode (the default) must fail closed."""
+        mock_exists.return_value = False
+
+        with patch.dict(os.environ, {"KHEPRA_MODE": "sovereign"}):
+            with self.assertRaises(SystemExit):
+                adinkhepra.start_telemetry_server()
     
     @patch('adinkhepra.wait_for_port')
     @patch('subprocess.Popen')
@@ -204,18 +214,20 @@ class TestTelemetryServer(unittest.TestCase):
         self.assertEqual(result, mock_proc)
         self.assertIn('KHEPRA_LICENSE_SERVER', os.environ)
     
+    @patch('adinkhepra.is_sovereign', return_value=False)
     @patch('adinkhepra.wait_for_port')
     @patch('subprocess.Popen')
     @patch('os.path.exists')
-    def test_start_telemetry_server_timeout(self, mock_exists, mock_popen, mock_wait):
-        """Test telemetry server start timeout."""
+    def test_start_telemetry_server_timeout(self, mock_exists, mock_popen, mock_wait, mock_sovereign):
+        """Test telemetry server start timeout (non-sovereign: warn + return None)."""
         mock_exists.return_value = True
         mock_wait.return_value = False
         mock_proc = MagicMock()
         mock_popen.return_value = mock_proc
-        
-        result = adinkhepra.start_telemetry_server()
-        
+
+        with patch.dict(os.environ, {"KHEPRA_MODE": "hybrid"}):
+            result = adinkhepra.start_telemetry_server()
+
         self.assertIsNone(result)
         mock_proc.terminate.assert_called_once()
 
@@ -306,11 +318,12 @@ class TestIntegration(unittest.TestCase):
         mock_proc.poll.return_value = None
         mock_popen.return_value = mock_proc
         
-        # Simulate KeyboardInterrupt after short delay
+        # Interrupt the run loop on the first sleep. Must NOT call time.sleep
+        # here — time.sleep is the patched target, so calling it would recurse
+        # into this side_effect forever (the original RecursionError).
         def interrupt(*args, **kwargs):
-            time.sleep(0.1)
             raise KeyboardInterrupt()
-        
+
         with patch('time.sleep', side_effect=interrupt), \
              patch('adinkhepra.start_telemetry_server', return_value=None):
             

@@ -1,0 +1,15 @@
+{
+  "id": "SMMSGKSLMKTIYTLAYMGAGESIAPRHNAKURKREAMEPSUUIOTIOINKYHNSYPUNNILTN",
+  "parents": null,
+  "action": "GENESIS_CONSTELLATION",
+  "symbol": "KHEPRA",
+  "time": "2026-07-06T19:11:45-04:00",
+  "pqc_metadata": {
+    "initialization": "production_dag",
+    "persistent": "disk_storage",
+    "pqc_signatures": "dilithium3",
+    "singleton": "true",
+    "whitebox_crypto": "enabled"
+  },
+  "hash": "SMMSGKSLMKTIYTLAYMGAGESIAPRHNAKURKREAMEPSUUIOTIOINKYHNSYPUNNILTN"
+}
