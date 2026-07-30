@@ -77,19 +77,21 @@ export class STIGViewerService {
 
       if (error) throw error;
 
-      // Mock response for demo - in production this would come from STIG Viewer API
+      // Return the real gateway response as-is; when a field is genuinely absent
+      // from the live response we report an honest zero/unknown rather than
+      // substituting fixed demo numbers that would mask a missing integration.
       return {
         platform: platform,
-        version: data?.version || '2.6',
-        stigVersion: data?.stig_version || 'V2R6',
-        totalRules: data?.total_rules || 284,
-        applicableRules: data?.applicable_rules || 267,
-        complianceScore: data?.compliance_score || 85,
+        version: data?.version || 'unknown',
+        stigVersion: data?.stig_version || 'unknown',
+        totalRules: data?.total_rules ?? 0,
+        applicableRules: data?.applicable_rules ?? 0,
+        complianceScore: data?.compliance_score ?? 0,
         findings: {
-          open: data?.findings?.open || 23,
-          notApplicable: data?.findings?.not_applicable || 17,
-          notAFinding: data?.findings?.not_a_finding || 195,
-          notReviewed: data?.findings?.not_reviewed || 49
+          open: data?.findings?.open ?? 0,
+          notApplicable: data?.findings?.not_applicable ?? 0,
+          notAFinding: data?.findings?.not_a_finding ?? 0,
+          notReviewed: data?.findings?.not_reviewed ?? 0
         }
       };
     } catch (error) {

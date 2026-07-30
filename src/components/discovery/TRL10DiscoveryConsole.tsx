@@ -78,70 +78,31 @@ export const TRL10DiscoveryConsole: React.FC<TRL10DiscoveryConsoleProps> = ({
 
   const executeDiscoverySequence = async () => {
     if (isScanning) return;
-    
+
     setIsScanning(true);
     addLog('system', '=== TRL10 ASSET DISCOVERY SEQUENCE INITIATED ===');
     addLog('system', `Targets: ${targets.join(', ')}`);
-    
-    // Phase 1: Security Validation
-    addLog('command', 'Performing security validation...', 'system');
-    await simulateDelay(500);
-    addLog('success', '✓ Security clearance verified', 'validation');
-    addLog('success', '✓ Network authorization confirmed', 'validation');
-    addLog('success', '✓ Audit logging enabled', 'validation');
 
-    // Phase 2: Network Discovery
-    for (const target of targets) {
-      addLog('command', `nmap -T2 -sS -sV -O -p 1-65535 --script=safe ${target}`, 'nmap');
-      setCurrentCommand(`Scanning ${target}...`);
-      await simulateDelay(800);
-      
-      // Simulate real Nmap output
-      addLog('output', `Starting Nmap 7.94 ( https://nmap.org ) at ${new Date().toISOString()}`, 'nmap');
-      addLog('output', `Nmap scan report for ${target}`, 'nmap');
-      addLog('output', `Host is up (0.0012s latency).`, 'nmap');
-      
-      // Simulate service discovery
-      const services = await discoverRealServices(target);
-      services.forEach(service => {
-        addLog('output', `${service.port}/${service.protocol} ${service.state} ${service.service} ${service.version || ''}`, 'nmap');
-      });
+    // Real backend call — onStart() triggers the actual discovery request
+    // (useRealTimeAssetDiscovery / enhanced-asset-discovery edge function) in
+    // the parent component. No scan output (open ports, service versions,
+    // Shodan/STIG correlation) is fabricated here; those results only exist
+    // once the backend responds and populates discovered_assets.
+    setCurrentCommand(`Submitting discovery request for ${targets.length} target(s)...`);
+    addLog('command', `Submitting discovery request to backend for: ${targets.join(', ')}`, 'system');
+    try {
+      onStart();
+      addLog('success', `✓ Discovery request submitted for ${targets.length} target(s)`, 'system');
+      addLog('output', 'Awaiting backend response — results will populate the Discovery and Service Mapping tabs once available.', 'system');
+    } catch (error) {
+      addLog('error', 'Failed to submit discovery request to backend', 'system');
     }
 
-    // Phase 3: Shodan Intelligence
-    addLog('command', 'Correlating with Shodan threat intelligence...', 'shodan');
-    await simulateDelay(600);
-    addLog('output', 'Querying Shodan API for threat intelligence...', 'shodan');
-    addLog('success', '✓ Threat intelligence correlation completed', 'shodan');
+    addLog('system', '=== DISCOVERY REQUEST SENT ===');
 
-    // Phase 4: STIG Compliance Mapping
-    addLog('command', 'Mapping discovered services to STIG requirements...', 'system');
-    await simulateDelay(400);
-    addLog('success', '✓ STIG compliance mapping completed', 'system');
-    addLog('success', '✓ Evidence collection prepared', 'system');
-
-    // Phase 5: Results Processing
-    addLog('system', '=== DISCOVERY SEQUENCE COMPLETED ===');
-    addLog('success', `Assets discovered and cataloged`, 'system');
-    addLog('success', `TRL10 audit trail generated`, 'system');
-    
     setIsScanning(false);
     setCurrentCommand('');
-    onStart(); // Trigger parent component to fetch results
   };
-
-  const discoverRealServices = async (target: string) => {
-    // In production, this would make real API calls to discover services
-    // Using network reconnaissance techniques that don't require subprocess execution
-    return [
-      { port: 22, protocol: 'tcp', state: 'open', service: 'ssh', version: 'OpenSSH 8.9p1' },
-      { port: 80, protocol: 'tcp', state: 'open', service: 'http', version: 'Apache httpd 2.4.41' },
-      { port: 443, protocol: 'tcp', state: 'open', service: 'https', version: 'Apache httpd 2.4.41' },
-      { port: 25, protocol: 'tcp', state: 'open', service: 'smtp', version: 'Postfix smtpd' }
-    ];
-  };
-
-  const simulateDelay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const handleStart = () => {
     if (targets.length === 0) {

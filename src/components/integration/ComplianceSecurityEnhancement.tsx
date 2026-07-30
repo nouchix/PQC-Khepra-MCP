@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 
 import { Shield, Lock, FileCheck, AlertTriangle, CheckCircle, Zap, UserCheck, Settings, TrendingUp } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ComplianceFramework {
   id: string;
@@ -32,6 +33,7 @@ interface SecurityControl {
 }
 
 export const ComplianceSecurityEnhancement = () => {
+  const { toast } = useToast();
   const [frameworks, setFrameworks] = useState<ComplianceFramework[]>([
     {
       id: 'soc2-type2',
@@ -154,25 +156,16 @@ export const ComplianceSecurityEnhancement = () => {
   };
 
   const runComplianceValidation = (frameworkId: string) => {
-    setFrameworks(prev => prev.map(fw => 
-      fw.id === frameworkId 
-        ? { ...fw, status: 'in-progress' as const }
-        : fw
-    ));
-    
-    // Simulate validation process
-    setTimeout(() => {
-      setFrameworks(prev => prev.map(fw => 
-        fw.id === frameworkId 
-          ? { 
-              ...fw, 
-              status: 'compliant' as const,
-              coverage: Math.min(fw.coverage + 2, 100),
-              validatedControls: Math.min(fw.validatedControls + 2, fw.controls)
-            }
-          : fw
-      ));
-    }, 2000);
+    // No real automated compliance validation pipeline is wired to this
+    // dashboard yet. Rather than fabricate a "validation succeeded" result
+    // with invented coverage/control increases, honestly report that this
+    // action isn't implemented instead of mutating the displayed scores.
+    const framework = frameworks.find(fw => fw.id === frameworkId);
+    toast({
+      title: "Validation Not Yet Implemented",
+      description: `Automated validation for ${framework?.name ?? 'this framework'} is not connected to a real assessment pipeline yet. Coverage and control counts shown are not updated by this action.`,
+      variant: "destructive"
+    });
   };
 
   return (

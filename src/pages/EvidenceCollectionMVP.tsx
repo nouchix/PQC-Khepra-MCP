@@ -1,14 +1,51 @@
 
+import { useEffect, useState } from 'react';
 import { ConsoleLayout } from '@/components/console/ConsoleLayout';
 import { DashboardToggle } from '@/components/DashboardToggle';
 import { useOrganizationContext } from '@/components/OrganizationProvider';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Upload, Calendar, Shield } from 'lucide-react';
+import { FileText, Download, Upload, Calendar, Shield, Loader2 } from 'lucide-react';
+
+interface EvidenceRow {
+  id: string;
+  title: string;
+  description: string | null;
+  evidence_type: string;
+  collection_method: string | null;
+  collection_date: string;
+}
 
 const EvidenceCollectionMVP = () => {
   const { currentOrganization: _currentOrganization } = useOrganizationContext();
+
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEvidence();
+  }, []);
+
+  const fetchEvidence = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('compliance_evidence')
+        .select('id, title, description, evidence_type, collection_method, collection_date')
+        .order('collection_date', { ascending: false })
+        .limit(25);
+
+      if (error) throw error;
+      setEvidenceItems(data || []);
+    } catch (error) {
+      console.error('Failed to load evidence collection data:', error);
+      setEvidenceItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'stig-dashboard', title: 'STIG Dashboard', path: '/stig-dashboard' },
@@ -18,48 +55,19 @@ const EvidenceCollectionMVP = () => {
     { id: 'billing', title: 'Billing', path: '/billing' },
   ];
 
-  // Mock evidence data
-  const evidenceItems = [
-    {
-      id: '1',
-      title: 'System Configuration Snapshot',
-      type: 'Configuration',
-      stig_rule: 'RHEL-08-010020',
-      collection_date: '2024-01-15',
-      status: 'collected',
-      description: 'Current system configuration state for password policy compliance'
-    },
-    {
-      id: '2',
-      title: 'Access Control List Export',
-      type: 'Access Control',
-      stig_rule: 'RHEL-08-020240',
-      collection_date: '2024-01-14',
-      status: 'pending',
-      description: 'User access permissions and group memberships'
-    },
-    {
-      id: '3',
-      title: 'Audit Log Sample',
-      type: 'Audit Log',
-      stig_rule: 'RHEL-08-030180',
-      collection_date: '2024-01-13',
-      status: 'collected',
-      description: 'System audit trail for security events monitoring'
-    }
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'collected': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'failed': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
+  const collectedToday = evidenceItems.filter((item) => {
+    if (!item.collection_date) return false;
+    const collected = new Date(item.collection_date);
+    const now = new Date();
+    return (
+      collected.getFullYear() === now.getFullYear() &&
+      collected.getMonth() === now.getMonth() &&
+      collected.getDate() === now.getDate()
+    );
+  }).length;
 
   return (
-    <ConsoleLayout 
+    <ConsoleLayout
       currentSection="evidence-collection"
       browserNav={{
         title: 'Evidence Collection',
@@ -95,43 +103,45 @@ const EvidenceCollectionMVP = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Evidence</p>
-                  <p className="text-2xl font-bold text-foreground">156</p>
+                  <p className="text-2xl font-bold text-foreground">{loading ? '--' : evidenceItems.length}</p>
                 </div>
                 <FileText className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Collected Today</p>
-                  <p className="text-2xl font-bold text-green-400">23</p>
+                  <p className="text-2xl font-bold text-green-400">{loading ? '--' : collectedToday}</p>
                 </div>
                 <Download className="h-8 w-8 text-green-400" />
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Pending Collection</p>
-                  <p className="text-2xl font-bold text-yellow-400">8</p>
+                  <p className="text-2xl font-bold text-yellow-400">--</p>
+                  <p className="text-xs text-muted-foreground mt-1">Not tracked yet</p>
                 </div>
                 <Calendar className="h-8 w-8 text-yellow-400" />
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">STIG Rules Covered</p>
-                  <p className="text-2xl font-bold text-primary">142</p>
+                  <p className="text-2xl font-bold text-primary">--</p>
+                  <p className="text-xs text-muted-foreground mt-1">Not tracked yet</p>
                 </div>
                 <Shield className="h-8 w-8 text-primary" />
               </div>
@@ -148,37 +158,46 @@ const EvidenceCollectionMVP = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {evidenceItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="font-medium text-foreground">{item.title}</h3>
-                      <Badge variant="outline">{item.type}</Badge>
-                      <Badge 
-                        variant="outline" 
-                        className={getStatusColor(item.status)}
-                      >
-                        {item.status}
-                      </Badge>
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Loading evidence...
+              </div>
+            ) : evidenceItems.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>No evidence has been collected yet.</p>
+                <p className="text-sm">Use Auto-Collect or Upload Evidence to get started.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {evidenceItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="font-medium text-foreground">{item.title}</h3>
+                        <Badge variant="outline">{item.evidence_type}</Badge>
+                      </div>
+                      {item.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                      )}
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
+                        {item.collection_method && <span>Method: {item.collection_method}</span>}
+                        <span>Collected: {new Date(item.collection_date).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                    <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                      <span>STIG Rule: {item.stig_rule}</span>
-                      <span>Collected: {item.collection_date}</span>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <FileText className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
