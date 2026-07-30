@@ -242,7 +242,7 @@ func (d *KhepraDaemon) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]interface{}{
 		"daemon":   "Khepra-Father",
-		"version":  "1.0.0",
+		"version":  "2.0.0",
 		"uptime":   time.Since(d.startTime).Seconds(),
 		"locked":   d.locked,
 		"dag_size": len(d.dag.All()),
