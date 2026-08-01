@@ -319,7 +319,7 @@ function renderDAG(){
   sim.on("tick",()=>{link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y).attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);node.attr("transform",d=>"translate("+d.x+","+d.y+")")});
 }
 function addNode(label,type,badges){
-  const h="0x"+Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("").toUpperCase();
+  const h="0x"+Array.from({length:16},()=>(crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)).join("").toUpperCase();
   const t=new Date().toLocaleTimeString("en-US",{hour12:false});
   nc++;sc++;document.getElementById("s-n").textContent=nc;document.getElementById("s-s").textContent=sc;
   dnodes.push({label,type,hash:h});
@@ -430,8 +430,8 @@ async function exportAttestation(){
   const tgt=document.getElementById("tgt-url").value||"http://127.0.0.1:4280";
   const ts_now=new Date().toISOString();
   const pkg_id="khepra-"+Date.now();
-  const sig=()=>"ML-DSA-65:"+Array.from({length:32},()=>Math.floor(Math.random()*16).toString(16)).join("").toUpperCase();
-  const hash=()=>"0x"+Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("").toUpperCase();
+  const sig=()=>"ML-DSA-65:"+Array.from({length:32},()=>(crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)).join("").toUpperCase();
+  const hash=()=>"0x"+Array.from({length:16},()=>(crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)).join("").toUpperCase();
   const cat1=FX.filter(f=>f.sev==="CAT I");
   const cat2=FX.filter(f=>f.sev==="CAT II");
   const totExp=FX.reduce((s,f)=>s+f.exp,0);
