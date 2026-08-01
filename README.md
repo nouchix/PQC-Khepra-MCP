@@ -35,7 +35,7 @@ Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, 
 
 | Tier | License Key | Open-Source / Commercial Scope | Egress |
 |------|-------------|--------------------------------|--------|
-| **Community** | ❌ Not required | `pqc_stig`, `owasp_agent_assess`, `nist_map`, `scan_shadow_ai` (local) | Zero (Air-gapped) |
+| **Community** | ❌ Not required | `pqc_stig` + 24 core tools (incl. `owasp_agent_assess`, `nist_map`, `scan_shadow_ai`) | Zero (Air-gapped) |
 | **Sovereign** | ✅ Required | Full Shadow AI discovery, AI Policy Evaluator, AEO Evidence Graph, Passports | Zero (Air-gapped) |
 | **Pharaoh** | ✅ Required | Privileged Enforcement Daemon interposition (`Deny`/`Quarantine`/`Lock`), FIPS 140-3 | Zero (Air-gapped) |
 
