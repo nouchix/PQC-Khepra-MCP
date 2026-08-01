@@ -3,7 +3,7 @@
   "name": "io.github.nouchix/pqc-khepra-mcp",
   "title": "PQC-Khepra MCP — CMMC Autopilot & AI Security Recorder",
   "description": "Post-quantum CMMC compliance scanner & AI agent attestation. FIPS 140-3, ML-DSA-65, 36K+ mappings.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "vendor": "NouchiX / SecRed Knowledge Inc.",
   "repository": {
     "url": "https://github.com/nouchix/PQC-Khepra-MCP.git",
@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp:v1.0.0",
+      "identifier": "ghcr.io/nouchix/pqc-khepra-mcp:v2.0.0",
       "runtimeHint": "docker",
       "transport": {
         "type": "stdio"
