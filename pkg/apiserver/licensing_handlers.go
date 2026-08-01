@@ -403,7 +403,23 @@ func (s *Server) handleStripeWebhook(c *gin.Context) {
 
 // handleCheckoutCompleted activates a Ra-tier license for the machine_id in
 // the checkout session metadata and broadcasts the activation over WebSocket.
+//
+// Two independent checkout flows share this webhook: the machine-license flow
+// (client_reference_id = machine_id) and the org/seat SaaS billing flow from
+// stripe_billing.go (client_reference_id = our internal "cs_..." session ID,
+// tagged via metadata.internal_session_id). This is the ONLY place either
+// flow is marked complete — there is no client-reachable completion endpoint
+// in production.
 func (s *Server) handleCheckoutCompleted(event stripeWebhookEvent) {
+	if internalSessionID := event.Data.Object.Metadata["internal_session_id"]; internalSessionID != "" {
+		if _, err := s.completeCheckoutSession(internalSessionID); err != nil {
+			fmt.Printf("[STRIPE] org/seat session completion failed for %s: %v\n", internalSessionID, err)
+		} else {
+			fmt.Printf("[STRIPE] org/seat checkout session completed: %s\n", internalSessionID)
+		}
+		return
+	}
+
 	machineID := event.Data.Object.ClientReferenceID
 	if machineID == "" {
 		machineID = event.Data.Object.Metadata["machine_id"]
