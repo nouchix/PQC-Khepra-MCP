@@ -230,3 +230,25 @@ ironbank: fips-boring-build
 	@echo "[ADINKHEPRA] Generating Iron Bank Hardening Manifest..."
 	@go run tools/gen_manifest.go "v2.0.0" "bin/$(APP)-fips"
 	@echo "[ADINKHEPRA] Manifest generated: hardening_manifest.yaml"
+
+# Cross-compilation for khepra-mcp across modular targets (windows, mac, linux, embedded)
+.PHONY: cross-compile
+cross-compile:
+	@echo "[KHEPRA-MCP] Cross-compiling for all target platforms..."
+	@mkdir -p bin/release
+	# Windows (AMD64)
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-windows-amd64.exe ./cmd/khepra-mcp
+	# macOS (Apple Silicon ARM64)
+	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-darwin-arm64 ./cmd/khepra-mcp
+	# macOS (Intel AMD64)
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-darwin-amd64 ./cmd/khepra-mcp
+	# Linux (AMD64)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-linux-amd64 ./cmd/khepra-mcp
+	# Linux (ARM64)
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-linux-arm64 ./cmd/khepra-mcp
+	# Embedded / IoT (ARMv7)
+	GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-linux-armv7 ./cmd/khepra-mcp
+	# Embedded (RISC-V)
+	GOOS=linux GOARCH=riscv64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/release/khepra-mcp-linux-riscv64 ./cmd/khepra-mcp
+	@echo "[KHEPRA-MCP] Cross-compilation complete. Binaries saved to bin/release/"
+

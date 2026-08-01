@@ -28,8 +28,8 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Test OpenLicense
-	if err := deps.License.Allow("test_tool"); err != nil {
-		t.Fatalf("Allow failed: %v", err)
+	if err := deps.License.Check("test_tool"); err != nil {
+		t.Fatalf("Check failed: %v", err)
 	}
 
 	// Test NoopFlightRecorder
