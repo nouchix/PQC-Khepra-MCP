@@ -230,3 +230,60 @@ ironbank: fips-boring-build
 	@echo "[ADINKHEPRA] Generating Iron Bank Hardening Manifest..."
 	@go run tools/gen_manifest.go "v2.0.0" "bin/$(APP)-fips"
 	@echo "[ADINKHEPRA] Manifest generated: hardening_manifest.yaml"
+
+# Cross-compilation for khepra-mcp across modular targets (windows, mac, linux, embedded)
+.PHONY: cross-compile
+cross-compile:
+	@echo "[KHEPRA-MCP] Cross-compiling for all target platforms..."
+	@mkdir -p dist/v2.0.0
+	@rm -rf /tmp/pqc-mcp-build-v2.0.0
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0
+	
+	# Windows (AMD64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/windows_amd64
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/windows_amd64/khepra-mcp.exe ./cmd/khepra-mcp
+	@cd /tmp/pqc-mcp-build-v2.0.0/windows_amd64 && zip -q -r $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_windows_amd64.zip *
+	
+	# Windows (ARM64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/windows_arm64
+	GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/windows_arm64/khepra-mcp.exe ./cmd/khepra-mcp
+	@cd /tmp/pqc-mcp-build-v2.0.0/windows_arm64 && zip -q -r $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_windows_arm64.zip *
+	
+	# macOS (Apple Silicon ARM64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/darwin_arm64
+	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/darwin_arm64/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_darwin_arm64.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/darwin_arm64 khepra-mcp
+	
+	# macOS (Intel AMD64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/darwin_amd64
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/darwin_amd64/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_darwin_amd64.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/darwin_amd64 khepra-mcp
+	
+	# Linux (AMD64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/linux_amd64
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/linux_amd64/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_linux_amd64.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/linux_amd64 khepra-mcp
+	
+	# Linux (ARM64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/linux_arm64
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/linux_arm64/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_linux_arm64.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/linux_arm64 khepra-mcp
+	
+	# Embedded / IoT (ARMv7)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/linux_armv7
+	GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/linux_armv7/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_linux_armv7.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/linux_armv7 khepra-mcp
+	
+	# Embedded (RISC-V)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/linux_riscv64
+	GOOS=linux GOARCH=riscv64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/linux_riscv64/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_linux_riscv64.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/linux_riscv64 khepra-mcp
+	
+	# FreeBSD (AMD64)
+	@mkdir -p /tmp/pqc-mcp-build-v2.0.0/freebsd_amd64
+	GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/pqc-mcp-build-v2.0.0/freebsd_amd64/khepra-mcp ./cmd/khepra-mcp
+	@tar -czf $(PWD)/dist/v2.0.0/pqc-khepra-mcp_v2.0.0_freebsd_amd64.tar.gz -C /tmp/pqc-mcp-build-v2.0.0/freebsd_amd64 khepra-mcp
+	
+	@rm -rf /tmp/pqc-mcp-build-v2.0.0
+	@echo "[KHEPRA-MCP] Cross-compilation complete. Archives written to dist/v2.0.0/"
+
