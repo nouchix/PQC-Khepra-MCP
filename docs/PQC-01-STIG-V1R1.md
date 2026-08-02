@@ -13,7 +13,7 @@
 | **Date** | July 2026 |
 | **Classification** | UNCLASSIFIED // FOR PUBLIC RELEASE |
 | **Contact** | contact@nouchix.com · nouchix.com |
-| **Changelog** | v1.1: Updated all citations to DoD Post-Quantum Cryptography Strategy (April 2026, DoD CIO). Replaced unverifiable NSA references with retrievable authoritative sources. Updated control mapping count to 25,185 deduplicated mappings across NIST 800-53, DISA STIG, CCI, CMMC frameworks (see Appendix A for methodology and GitHub source). Removed Section 3 (Agentic AI/MCP) pending official guidance publication. |
+| **Changelog** | v1.1: Updated all citations to DoD Post-Quantum Cryptography Strategy (April 2026, DoD CIO). Anchored Agentic AI & MCP controls to official NIST (Feb 2026) and Five Eyes/CISA/NSA (June 2026) guidelines. Updated control mapping count to 25,185 deduplicated mappings across NIST 800-53, DISA STIG, CCI, CMMC frameworks. |
 
 ---
 
@@ -23,25 +23,22 @@
 * [1. The Policy Gap](#1-the-policy-gap)
   * [1.1 Mandates Without Checklists](#11-mandates-without-checklists)
   * [1.2 The Harvest-Now-Decrypt-Later Threat Is Active Today](#12-the-harvest-now-decrypt-later-threat-is-active-today)
-  * [1.3 What a PQC STIG Needs to Address](#13-what-a-pqc-stig-needs-to-address)
+  * [1.3 The Emerging Agentic AI Attack Surface](#13-the-emerging-agentic-ai-attack-surface)
+  * [1.4 What a PQC STIG Needs to Address](#14-what-a-pqc-stig-needs-to-address)
 * [2. PQC-01-STIG-V1R1: Twelve Core Controls](#2-pqc-01-stig-v1r1-twelve-core-controls)
   * [Control Format](#control-format)
   * [CAT I — High Severity](#cat-i--high-severity)
   * [CAT II — Medium Severity](#cat-ii--medium-severity)
   * [CAT III — Low Severity](#cat-iii--low-severity)
-* [3. Compliance Assessment Methodology](#3-compliance-assessment-methodology)
-  * [3.1 Control Mapping Framework](#31-control-mapping-framework)
-  * [3.2 Assessment Approach](#32-assessment-approach)
-* [4. Control Mapping Methodology](#4-control-mapping-methodology)
-  * [4.1 Cross-Framework Integration](#41-cross-framework-integration)
-  * [4.2 Deduplication Details](#42-deduplication-details)
-* [5. Conclusion and Next Steps](#5-conclusion-and-next-steps)
-  * [5.1 What This STIG Provides](#51-what-this-stig-provides)
-  * [5.2 Recommended Next Steps](#52-recommended-next-steps)
-* [6. References](#6-references)
-  * [Authoritative DoD & NIST Sources](#authoritative-dod--nist-sources)
-  * [Implementation References](#implementation-references)
-  * [Control Mapping Methodology](#control-mapping-methodology)
+* [3. Agentic AI and MCP PQC Controls](#3-agentic-ai-and-mcp-pqc-controls)
+  * [3.1 Why Agentic AI Requires PQC-Specific Controls](#31-why-agentic-ai-requires-pqc-specific-controls)
+  * [3.2 MCP-Specific PQC Controls](#32-mcp-specific-pqc-controls)
+* [4. Compliance Assessment Methodology](#4-compliance-assessment-methodology)
+  * [4.1 Control Mapping Framework](#41-control-mapping-framework)
+  * [4.2 Assessment Approach](#42-assessment-approach)
+* [5. KHEPRA MCP Server: Reference Implementation](#5-khepra-mcp-server-reference-implementation)
+* [6. Conclusion and Next Steps](#6-conclusion-and-next-steps)
+* [7. References](#7-references)
 * [Appendix A: Control Mapping Deduplication Methodology](#appendix-a-control-mapping-deduplication-methodology)
   * [A.1 Data Lineage](#a1-data-lineage)
   * [A.2 Code Evidence](#a2-code-evidence)
@@ -51,28 +48,19 @@
 
 ## Abstract
 
-The Defense Information Systems Agency (DISA) has published Security Technical Implementation Guides (STIGs) for hundreds of technologies — operating systems, databases, web servers, containers — but as of July 2026, no STIG addresses post-quantum cryptographic (PQC) controls.
+The Defense Information Systems Agency (DISA) has published Security Technical Implementation Guides (STIGs) for hundreds of technologies — operating systems, databases, web servers, containers — but as of July 2026, no STIG addresses post-quantum cryptographic (PQC) controls. A parallel gap exists for agentic AI systems and the Model Context Protocol (MCP), which the NSA and international partners identified in 2026 as carrying significant, unaddressed security risks.
 
-This gap is consequential and time-sensitive. The DoD Post-Quantum Cryptography Strategy, published by the DoD Chief Information Officer in April 2026, establishes binding compliance deadlines:
-* **December 31, 2030:** All federal systems must **support** post-quantum cryptography
-* **December 31, 2031:** All federal systems must **use** post-quantum cryptography for new cryptographic operations
+This gap is consequential and compounding. The DoD Post-Quantum Cryptography Strategy, published by the DoD Chief Information Officer in April 2026, establishes binding compliance deadlines:
+* **December 31, 2030:** All federal systems must **support** post-quantum cryptography.
+* **December 31, 2031:** All federal systems must **use** post-quantum cryptography for new cryptographic operations.
 
-The National Security Systems (NSS) community and Defense Industrial Base (DIB) contractors must transition cryptographic infrastructure across thousands of systems within this 4-5 year timeline.
+Meanwhile, MCP — now the de facto standard for AI agent orchestration — was released with what the NSA characterized as a "flexible and underspecified design" that reverses familiar trust patterns. Agentic AI systems, according to joint guidance from ASD, CISA, NSA, NCSC-UK, NCSC-NZ, and the Canadian Cyber Centre (June 2026), introduce structural, privilege, and accountability risks that existing frameworks do not adequately address.
 
-NIST finalized the post-quantum cryptography standards in August 2024:
-* **FIPS 203:** ML-KEM (Kyber) for key encapsulation
-* **FIPS 204:** ML-DSA (Dilithium) for digital signatures
-* **FIPS 205:** SLH-DSA (SPHINCS+) for hash-based signatures
+This paper introduces **PQC-01-STIG-V1R1**, which covers two previously unaddressed domains:
+* **Section 2** presents the 12 core controls governing PQC algorithm selection, key strength, key storage, hybrid transition, certificate validation, cryptographic inventory, testing, and audit logging.
+* **Section 3** presents 5 supplementary controls governing PQC requirements specifically for agentic AI systems and MCP deployments — covering agent identity attestation, MCP message signing, agentic audit trail integrity, tool execution cryptographic authorization, and flight recorder requirements.
 
-The organizational mechanism that translates policy requirements into testable technical controls — the STIG — is missing for PQC entirely.
-
-This paper introduces **PQC-01-STIG-V1R1**: a DoD-style STIG covering twelve core controls governing PQC algorithm selection, key strength, key storage, hybrid transition, certificate validation, cryptographic inventory, testing, and audit logging. All controls are mapped to:
-* **CCI identifiers** (Common Control Identifier, DISA)
-* **NIST 800-53 Rev 5** control families
-* **CMMC v2.0** security practices
-* **DoD RMF** authorization criteria
-
-Together, these controls provide the first unified PQC compliance checklist for federal systems and DIB contractors.
+Together, these 17 controls provide the first unified PQC compliance checklist spanning both classical cryptographic infrastructure and the emerging agentic AI attack surface.
 
 ---
 
@@ -98,8 +86,6 @@ NIST's Algorithmic Work (Completed August 2024):
 
 **The Gap:** Policy mandates exist. Technical standards exist. But the organizational mechanism that translates requirements into testable controls — the STIG — does not.
 
-Current DISA STIG collection covers Windows, RHEL, Kubernetes, databases, web servers, and dozens of other technologies. PQC compliance is not yet addressed. This creates an immediate compliance risk: organizations cannot demonstrate PQC readiness to federal auditors because no agreed-upon checklist exists.
-
 ### 1.2 The Harvest-Now-Decrypt-Later Threat Is Active Today
 
 DoD PQC Strategy (Section 2.1 - Quantum Threat):
@@ -115,12 +101,26 @@ Data encrypted today with RSA-2048 or ECDSA P-256 may be decryptable within 10-1
 * CUI shared in acquisition programs
 * Classified communications with long classification lifespans (often 25+ years)
 
-**The Cost of Non-Migration is Present, Not Future:**
-Information encrypted in 2026 using quantum-vulnerable algorithms represents a current liability if that information's classification or sensitivity extends beyond 2035-2040. The threat is not speculative — it is active collection against systems operating today.
+---
 
-### 1.3 What a PQC STIG Needs to Address
+### 1.3 The Emerging Agentic AI Attack Surface
 
-A DoD-style PQC STIG must provide auditable answers to six operational questions:
+A new dimension of PQC risk has emerged that the original CNSA 2.0 guidance did not anticipate: the deployment of agentic AI systems in NSS and DIB environments.
+
+The NSA's May 2026 Cybersecurity Information Sheet on Model Context Protocol (U/OO/6030316-26) identified MCP as having a security posture that is "highly dependent on implementation discipline rather than protocol guarantees." Specifically, the NSA found that MCP lacks mandatory authentication, has no defined role-based access control at the protocol level, relies on optional OAuth-style bearer tokens without lifecycle management, and produces inconsistent audit logs that vary by implementation.
+
+Joint guidance from ASD, CISA, NSA, NCSC-UK, NCSC-NZ, and the Canadian Cyber Centre (June 2026, *Agentic AI: Considerations for Cybersecurity*) categorizes agentic AI risks into five domains — privilege risks, design and configuration risks, behaviour risks, structural risks, and accountability risks — all of which have PQC-specific dimensions the guidance does not address. Specifically:
+* **Identity spoofing and agent impersonation** require cryptographic agent identity; the guidance recommends this but does not specify PQC requirements.
+* **Accountability risks** require tamper-evident audit logs; the guidance does not specify the cryptographic standard for that tamper-evidence.
+* **Structural risks** from inter-agent communication require authenticated channels; the guidance does not address quantum-safe authentication.
+
+These gaps create a specific PQC exposure: agentic AI systems in NSS contexts may meet behavioral security recommendations while remaining cryptographically vulnerable to harvest-now-decrypt-later attacks on their inter-agent communications and audit records.
+
+---
+
+### 1.4 What a PQC STIG Needs to Address
+
+A DoD-style PQC STIG must provide auditable answers to eight operational questions:
 
 | # | Question | Scope |
 | --- | --- | --- |
@@ -130,8 +130,8 @@ A DoD-style PQC STIG must provide auditable answers to six operational questions
 | 4 | How must hybrid cryptography be implemented during transition? | Classical + PQC simultaneously (2026-2031) |
 | 5 | What implementation pitfalls create vulnerabilities? | Timing side-channels, non-constant-time operations |
 | 6 | How must certificates and chains be validated in a PQC world? | Hybrid PKI, algorithm agility, OID validation |
-
-PQC-01-STIG-V1R1 addresses all six.
+| 7 | How must AI agent identity be cryptographically anchored? | PQC agent certificates, attestation |
+| 8 | How must agentic AI audit trails be cryptographically protected? | Tamper-evident Flight Recorder standards |
 
 ---
 
@@ -610,24 +610,182 @@ When an auditor, C3PAO assessor, or AO evaluates PQC-01-000090, they will execut
 
 ---
 
-## 3. Compliance Assessment Methodology
+## 3. Agentic AI and MCP PQC Controls
 
-### 3.1 Control Mapping Framework
+### 3.1 Why Agentic AI Requires PQC-Specific Controls
 
-Before auditing individual controls, produce a complete CBOM (see PQC-01-000090). Controls referencing specific algorithms cannot be audited without knowing what algorithms the system uses.
+The NSA's May 2026 Cybersecurity Information Sheet on MCP (U/OO/6030316-26) identified a critical insight: MCP reverses the familiar client-server trust model. In MCP deployments, servers may query and execute actions *for* clients rather than responding to them. This inversion creates attack paths that classical security frameworks were not designed to address — and that PQC policy has not yet reached.
 
-### 3.2 Assessment Approach
+Joint guidance from ASD, CISA, NSA, and allied Five Eyes cyber agencies (June 2026, *Agentic AI: Considerations for Cybersecurity*) identified five categories of agentic AI risk, several of which have specific PQC dimensions:
 
-1. **Step 1 — Cryptographic Asset Inventory:** Collect all cryptographic libraries, certificates, symmetric keys, and active enclaves.
-2. **Step 2 — Algorithm Classification:** Match assets against the CNSA 2.0 and PQC guidelines in Section 2.
-3. **Step 3 — Control-by-Control Assessment:** Apply check criteria and record compliance status (PASS / FAIL / NOT APPLICABLE).
-4. **Step 4 — Prioritized Remediation:** Address CAT I findings first.
+* **The accountability gap is the PQC exposure.** When an AI agent takes an action in an NSS context — invoking a tool, accessing CUI, making a compliance decision — that action generates an audit record. If that audit record is signed only with RSA or ECDSA, a harvest-now-decrypt-later adversary can collect it today and later prove the record is forged. The cryptographic integrity of agentic AI audit trails must survive the quantum transition.
+* **The identity gap is the PQC exposure.** The joint Five Eyes guidance recommends that "each agent [be treated] as a distinct principal, a cryptographically anchored identity with its own unique keys or certificates" and that "agents authenticate to services and to one another using secret keys or tokens." Neither recommendation specifies PQC requirements. In an NSS context, agent identity keys signed with classical algorithms are vulnerable to the same harvest-now-decrypt-later attacks as any other key material.
+* **The MCP message signing gap is the PQC exposure.** The NSA found that MCP "currently relies on transport layer encryption (e.g., TLS)" but "the protocol itself cannot enforce or verify encryption and is unaware of message integrity." The NSA recommended extending MCP with "cryptographic signatures directly within the JSON payload." In an NSS context, those signatures must use ML-DSA, not RSA or ECDSA.
+
+The five controls in this section address these three gaps directly. They are formatted consistently with Section 2 controls and use the PQC-01-A namespace to distinguish them as agentic AI-specific.
 
 ---
 
-## 4. Control Mapping Methodology
+### 3.2 MCP-Specific PQC Controls
 
-### 4.1 Cross-Framework Integration
+#### PQC-01-A00010 — AI Agent Identity Cryptographic Anchoring
+
+| Field | Value |
+| --- | --- |
+| **Severity** | CAT I — High |
+| **NIST 800-53** | IA-3 — Device Identification and Authentication |
+| **CCI** | CCI-001958 |
+| **Related Guidance** | Five Eyes Joint Guidance §Identity management |
+
+**Finding**
+
+AI agents deployed in NSS or CUI environments authenticate to services and to each other using classical cryptographic credentials (RSA, ECDSA, Ed25519) that are vulnerable to harvest-now-decrypt-later attacks on stored agent-to-agent communications.
+
+**Check**
+
+For each AI agent deployed in the system:
+1. Inspect the agent identity certificate or key material.
+2. Verify the signing algorithm is ML-DSA-65 or ML-DSA-87 (FIPS 204).
+3. Verify the agent identity key is stored in a FIPS 140-3 Level 3 HSM or equivalent protected store.
+4. Verify that inter-agent authentication uses mutual TLS with ML-DSA certificates.
+5. Verify that agent identity certificates include a defined expiration not exceeding 365 days.
+
+* **PASS:** All agent identity certificates use ML-DSA-65 or ML-DSA-87, are stored in a protected key store meeting PQC-01-000070 requirements, and inter-agent mTLS uses ML-DSA certificates with expiration no greater than 365 days.
+* **FAIL:** Any agent identity certificate uses RSA, ECDSA, or Ed25519. Any agent identity key is stored in an unprotected software keystore. Any inter-agent TLS session uses classical certificates.
+
+**Fix**
+
+Reissue all agent identity certificates using ML-DSA-65 at minimum. Deploy agent identity keys in FIPS 140-3 Level 3 HSMs where available. Update all inter-agent mTLS configurations to use ML-DSA certificates. Implement certificate lifecycle automation to enforce the 365-day expiration.
+
+---
+
+#### PQC-01-A00020 — MCP Message Integrity Signing
+
+| Field | Value |
+| --- | --- |
+| **Severity** | CAT I — High |
+| **NIST 800-53** | SC-8 — Transmission Confidentiality and Integrity |
+| **CCI** | CCI-002418 |
+| **Related Guidance** | NSA U/OO/6030316-26 §Sign and verify MCP messages |
+
+**Finding**
+
+MCP messages between agents, between agents and tools, and between agents and external services are not signed at the application layer with PQC signatures, relying solely on transport-layer TLS that the MCP protocol cannot verify or enforce.
+
+**Check**
+
+Inspect the MCP implementation for:
+1. Presence of a `signature` field in MCP JSON payloads.
+2. Signature algorithm — must be ML-DSA-65 (FIPS 204) or stronger.
+3. Presence of an `expires_at` timestamp in each signed payload (must not exceed 5 minutes from `issued_at`).
+4. Presence of a `nonce` or `message_id` field enabling replay detection.
+5. Signature verification logic on the receiving side that rejects expired or previously-seen nonces.
+
+* **PASS:** All MCP messages in NSS-touching workflows include ML-DSA-65 payload signatures with expiration timestamps not exceeding 5 minutes and nonces verified against a seen-nonce store.
+* **FAIL:** MCP messages rely on transport-layer TLS only, with no application-layer signature. Any application-layer signature uses RSA or ECDSA. Expiration timestamps are absent or exceed 5 minutes.
+
+**Fix**
+
+Extend the MCP implementation to embed ML-DSA-65 signatures in each JSON-RPC payload. Implement a seen-nonce store at each MCP server to enable replay detection. Set expiration to no more than 5 minutes. Validate signatures and expiration on receipt before executing any tool invocation.
+
+---
+
+#### PQC-01-A00030 — Agentic AI Audit Trail Cryptographic Integrity
+
+| Field | Value |
+| --- | --- |
+| **Severity** | CAT II — Medium |
+| **NIST 800-53** | AU-9 — Protection of Audit Information |
+| **CCI** | CCI-001350 |
+| **Related Guidance** | Five Eyes Joint Guidance §Accountability risks; NSA U/OO/6030316-26 §Instrument for logging and detection |
+
+**Finding**
+
+Agentic AI systems in the environment do not produce cryptographically-signed audit records of agent actions, tool invocations, and decision steps, making the audit trail subject to undetectable tampering and vulnerable to retroactive forgery once quantum computing is available.
+
+**Check**
+
+For each agentic AI system:
+1. Verify that each agent action (tool call, API invocation, decision branch, sub-agent spawn) produces a structured log entry.
+2. Verify that log entries are signed with ML-DSA-65 (FIPS 204).
+3. Verify that log entries include: agent identity, action type, tool name (if applicable), input parameters, output summary, timestamp, and parent action ID enabling causal chain reconstruction.
+4. Verify that the log store is append-only (no delete or update operations available to the agent or its runtime).
+5. Verify that log entry hashes use SHA-384 or SHA-512.
+
+* **PASS:** All agent actions produce ML-DSA-65-signed log entries with the required fields, written to an append-only log store, with SHA-384 or SHA-512 hashes.
+* **FAIL:** Agent actions produce unsigned log entries, or entries signed with classical algorithms, or entries missing causal chain fields. The log store permits deletion or modification by agent processes.
+
+**Fix**
+
+Implement a PQC-signed Flight Recorder for all agentic AI operations in NSS contexts. Deploy the log store in an append-only configuration with write access restricted to the logging subsystem. Instrument all agent runtimes to emit structured log events for every action. Use ML-DSA-65 for log entry signing and SHA-384 or SHA-512 for content hashing.
+
+---
+
+#### PQC-01-A00040 — Tool Execution Cryptographic Authorization
+
+| Field | Value |
+| --- | --- |
+| **Severity** | CAT II — Medium |
+| **NIST 800-53** | AC-3 — Access Enforcement |
+| **CCI** | CCI-000213 |
+| **Related Guidance** | NSA U/OO/6030316-26 §Constrain and sandbox tool execution; Five Eyes Joint Guidance §Privilege risks |
+
+**Finding**
+
+Tool invocations by AI agents in NSS or CUI environments are authorized through classical access control mechanisms that do not produce quantum-resistant authorization evidence, preventing post-quantum verification of tool execution authorization records.
+
+**Check**
+
+For each tool invocable by AI agents:
+1. Verify that tool invocation requires a signed authorization token issued by a central authorization service.
+2. Verify that authorization tokens are signed with ML-DSA-65 (FIPS 204).
+3. Verify that authorization tokens are scoped to: specific agent identity, specific tool name, specific parameter constraints, and expiration not exceeding 15 minutes.
+4. Verify that the receiving tool validates the authorization token before execution.
+5. Verify that the authorization service logs each token issuance with a ML-DSA-65-signed record.
+
+* **PASS:** All tool invocations require ML-DSA-65-signed, time-bound authorization tokens scoped to agent identity and tool name, validated by the tool before execution.
+* **FAIL:** Tool invocations use classical signed tokens, unsigned tokens, or no token-based authorization at all. Tokens lack expiration. Tokens are not scoped to specific tools or agents.
+
+**Fix**
+
+Deploy a central authorization service that issues ML-DSA-65-signed, time-bound authorization tokens for each tool invocation. Update tool execution logic to validate tokens before processing. Implement token expiration no greater than 15 minutes. Log all token issuances with ML-DSA-65-signed records.
+
+---
+
+#### PQC-01-A00050 — MCP Server Cryptographic Identity Verification
+
+| Field | Value |
+| --- | --- |
+| **Severity** | CAT II — Medium |
+| **NIST 800-53** | IA-9 — Service Identification and Authentication |
+| **CCI** | CCI-001967 |
+| **Related Guidance** | NSA U/OO/6030316-26 §Choose supported MCP projects; §Design for boundaries |
+
+**Finding**
+
+AI agents connect to MCP servers without verifying the server's cryptographic identity using PQC certificates, creating exposure to tool name collision attacks and MCP server impersonation.
+
+**Check**
+
+For each MCP server in the environment:
+1. Verify that the MCP server presents an ML-DSA-65 certificate for client authentication.
+2. Verify that AI agent MCP clients validate the server certificate against a trusted registry before establishing a session.
+3. Verify that the trusted registry is maintained by the ISSO and reviewed at least monthly for unauthorized additions.
+4. Verify that the agent MCP client rejects connections to servers not present in the trusted registry, regardless of tool description content.
+5. Verify that the MCP server certificate includes the approved tool name list as a certificate extension, preventing undisclosed capability changes.
+
+* **PASS:** All MCP servers present ML-DSA-65 certificates, clients validate against an ISSO-maintained trusted registry, and certificates include approved tool lists that cannot change without certificate reissuance.
+* **FAIL:** MCP servers use RSA or ECDSA certificates, clients do not validate server identity before establishing sessions, or no trusted registry of approved MCP servers exists.
+
+**Fix**
+
+Issue ML-DSA-65 certificates to all MCP servers. Implement client-side certificate validation against an ISSO-maintained trusted registry before any MCP session is established. Include approved tool name lists as certificate extensions so that capability changes require explicit certificate reissuance and registry update. Alert the ISSO when a connection is attempted to an unregistered server.
+
+---
+
+## 4. Compliance Assessment Methodology
+
+### 4.1 Control Mapping Framework
 
 The control framework chains controls across multiple security schemas to provide unified assurance:
 
@@ -635,33 +793,31 @@ $$\text{DISA STIG} \longleftrightarrow \text{CCI} \longleftrightarrow \text{NIST
 
 This structural mapping ensures that resolving a single STIG finding provides compliance evidence across multiple audits.
 
-### 4.2 Deduplication Details
+### 4.2 Assessment Approach
 
-To establish a verified baseline, raw mappings are passed through a compile-time deduplication engine. This resolves overlapping controls where multiple frameworks address the same cryptographic requirement under different identifiers. The process deduplicates duplicate STIG entries to yield exactly **25,185** unique mapping pathways (as detailed in Appendix A).
-
----
-
-## 5. Conclusion and Next Steps
-
-### 5.1 What This STIG Provides
-
-PQC-01-STIG-V1R1 addresses a critical gap in the DoD's compliance infrastructure. Organizations implementing these twelve controls will be able to:
-1. **Demonstrate PQC readiness** to federal auditors and primes
-2. **Prioritize migration efforts** by quantum-risk classification
-3. **Meet DoD PQC Strategy deadlines** (Dec 31, 2030/2031)
-4. **Support C3PAO assessments** with testable controls
-5. **Generate RMF evidence** for system authorization packages
-
-### 5.2 Recommended Next Steps
-
-1. **Immediate:** Organizations should baseline their current cryptographic posture against PQC-01-000090 (CBOM).
-2. **Q3 2026:** C3PAO community should adopt PQC-01-STIG-V1R1 as interim guidance pending official DISA release.
-3. **Q4 2026 - Q2 2027:** DISA should develop official PQC STIG, using this document as technical foundation.
-4. **Ongoing:** Organizations should conduct quarterly CBOM updates and progress tracking toward Dec 31, 2030/2031 deadlines.
+1. **Step 1 — Cryptographic Asset Inventory:** Collect all cryptographic libraries, certificates, symmetric keys, enclaves, and active AI agent runtimes/MCP servers.
+2. **Step 2 — Algorithm Classification:** Match assets against the CNSA 2.0 and PQC guidelines in Section 2 and Section 3.
+3. **Step 3 — Control-by-Control Assessment:** Apply check criteria and record compliance status (PASS / FAIL / NOT APPLICABLE).
+4. **Step 4 — Prioritized Remediation:** Address CAT I findings first.
 
 ---
 
-## 6. References
+## 5. KHEPRA MCP Server: Reference Implementation
+
+The reference implementation demonstrate that all 17 controls are practically implementable in production systems. The KHEPRA Protocol provides the technical mechanism for securing enclaves using:
+* **Symbol-Bound PQC Key Derivation (ASAF primitives):** Deterministic seeding of lattice parameters with symbolic descriptors, anchoring certificates directly to compliance frameworks (NIST, CMMC).
+* **Immutable DAG Causal Attestation Chain:** Every agent action, tool invocation, and compliance decision is logged as a content-addressed node in a directed acyclic graph, ensuring audit records include cryptographic verification of parent action causal relationships.
+* **ASAF Trust Score Binding:** Cryptographically anchoring numerical trust scores and compliance tags to signed task constraints and execution records.
+
+---
+
+## 6. Conclusion and Next Steps
+
+PQC-01-STIG-V1R1 establishes a testable PQC compliance checklist (12 core controls + 5 agentic controls) grounded in official DoD strategic goals, the NSA MCP security advisory, and joint multi-agency agentic AI security guidance.
+
+---
+
+## 7. References
 
 ### Authoritative DoD & NIST Sources
 
@@ -670,7 +826,7 @@ PQC-01-STIG-V1R1 addresses a critical gap in the DoD's compliance infrastructure
   [https://dodcio.defense.gov/Portals/0/Documents/Library/DoW-PQC-Strategy.pdf](https://dodcio.defense.gov/Portals/0/Documents/Library/DoW-PQC-Strategy.pdf)
 * NSA Commercial National Security Algorithm (CNSA) 2.0 Advisory. September 2022.
 
-#### NIST Standards (Authoritative for Federal Compliance)
+#### NIST Standards
 * NIST. "FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard (Kyber)." August 2024.  
   [https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf)
 * NIST. "FIPS 204: Module-Lattice-Based Digital Signature Standard (Dilithium)." August 2024.  
@@ -681,12 +837,19 @@ PQC-01-STIG-V1R1 addresses a critical gap in the DoD's compliance infrastructure
   [https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf)
 * NIST SP 800-208. "Recommendation for Stateful Hash-Based Signature Schemes." August 2024.  
   [https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-208.pdf](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-208.pdf)
+* NIST AI Agent Standards Initiative. February 2026.  
+  [https://www.nist.gov/news-events/news/2026/02/announcing-ai-agent-standards-initiative-interoperable-and-secure](https://www.nist.gov/news-events/news/2026/02/announcing-ai-agent-standards-initiative-interoperable-and-secure)
 
 ### DISA & Compliance Frameworks
 * DISA. "Security Technical Implementation Guides (STIGs)." Current.  
   [https://public.cyber.mil/stigs/](https://public.cyber.mil/stigs/)
 * DISA. "Cybersecurity Maturity Model Certification (CMMC) 2.0." 2023.  
   [https://dodcio.defense.gov/CMMC/](https://dodcio.defense.gov/CMMC/)
+
+### Agentic AI & MCP Guidance
+* Five Eyes Multi-Agency Joint Guidance (NSA, CISA, ASD, NCSC-UK, NCSC-NZ, Cyber Centre Canada). "Agentic AI: Considerations for Cybersecurity." June 2026.  
+  [https://www.cisa.gov/resources-tools/resources/agentic-ai-considerations-cybersecurity](https://www.cisa.gov/resources-tools/resources/agentic-ai-considerations-cybersecurity)
+* NSA Cybersecurity Information Sheet. "Model Context Protocol Security (U/OO/6030316-26)." May 2026.
 
 ### Open Standards
 * RFC 9370: "Hybrid Post-Quantum Key Encapsulation Method (PQC KEM) for TLS 1.3."  
@@ -701,15 +864,10 @@ PQC-01-STIG-V1R1 addresses a critical gap in the DoD's compliance infrastructure
   [https://boringssl.googlesource.com/](https://boringssl.googlesource.com/)
 
 ### Control Mapping Methodology
-
-#### Deduplication Report & Source Code
 * **GitHub Repository:** [https://github.com/EtherVerseCodeMate/giza-cyber-shield](https://github.com/EtherVerseCodeMate/giza-cyber-shield)
 * **Code Location:** `pkg/stig/database.go:468–473` (`RowCount()` function)
 * **Methodology:** `pkg/stig/database.go:32` (unique key indexing)
-
-#### Video Walkthrough
-* "Framework Control Mapping: NIST 800-53 ↔ STIG ↔ CCI ↔ CMMC"  
-  [https://youtu.be/Y1rTf8XUz4s](https://youtu.be/Y1rTf8XUz4s)
+* **Video Walkthrough:** [https://youtu.be/Y1rTf8XUz4s](https://youtu.be/Y1rTf8XUz4s)
 
 ---
 
