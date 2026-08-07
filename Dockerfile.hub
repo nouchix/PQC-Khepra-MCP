@@ -18,7 +18,7 @@
 # Patent Pending: USPTO #73565085
 
 # ── Stage 1: Build Next.js Stargate UI ────────────────────────────────────────
-FROM node:20-alpine AS ui-builder
+FROM node:25-alpine AS ui-builder
 
 WORKDIR /ui
 
