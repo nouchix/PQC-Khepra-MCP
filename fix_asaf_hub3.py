@@ -1,4 +1,3 @@
-import re
 
 with open("cmd/asaf-hub/main.go", "r") as f:
     s = f.read()

@@ -1,4 +1,3 @@
-import re
 
 with open("pkg/mcp/kernelports/kernelports.go", "r") as f:
     s = f.read()

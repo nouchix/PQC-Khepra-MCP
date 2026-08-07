@@ -1,4 +1,3 @@
-import re
 
 with open("pkg/mcp/transport_http.go", "r") as f:
     s = f.read()

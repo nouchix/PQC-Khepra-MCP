@@ -1,4 +1,3 @@
-import re
 with open("scripts/extract_kernel.sh", "r") as f:
     s = f.read()
 
