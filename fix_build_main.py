@@ -1,4 +1,3 @@
-import re
 
 # 1. Fix kernelports.LicenseChecker to use Check
 with open("pkg/mcp/kernelports/kernelports.go", "r") as f:

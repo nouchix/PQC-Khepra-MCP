@@ -1,4 +1,3 @@
-import re
 
 # Restore files to starting point
 import subprocess
