@@ -1,4 +1,3 @@
-import re
 
 with open("pkg/mcp/router.go", "r") as f:
     s = f.read()

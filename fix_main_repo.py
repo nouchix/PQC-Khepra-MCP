@@ -1,4 +1,3 @@
-import re
 
 with open("pkg/license/mcp_gate.go", "r") as f:
     s = f.read()

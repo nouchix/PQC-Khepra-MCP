@@ -1,4 +1,3 @@
-import re
 
 with open("pkg/mcp/legacy/compat.go", "r") as f:
     s = f.read()

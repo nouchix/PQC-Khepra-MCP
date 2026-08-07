@@ -1,4 +1,3 @@
-import re
 
 # Fix mcp_gate.go
 with open("pkg/license/mcp_gate.go", "r") as f:

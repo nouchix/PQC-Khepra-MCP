@@ -41,6 +41,6 @@ window.addEventListener("submit", function () {
     return success(url);
   }
 
-  console.log("no match for text: " + t)
+  console.log("no match for text: " + t);
   return false;
 });

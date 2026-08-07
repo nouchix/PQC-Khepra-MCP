@@ -1,4 +1,3 @@
-import re
 
 # Clean up the bad appends
 for filepath in ["pkg/attestenvelope/attestenvelope.go", "pkg/mcp/legacy/compat.go"]:
