@@ -1,0 +1,21 @@
+language: "en-US"
+early_access: false
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_instructions:
+    - path: "**/*.go"
+      instructions: |
+        - Ensure all authentication logic supports or respects the PQCAuthGateway (ML-DSA-65).
+        - Flag any in-memory state that should be persisted to SQLite/Supabase.
+        - Ensure DEV_MODE bypasses are strictly logged at CRITICAL level.
+    - path: "**/*billing*.go"
+      instructions: |
+        - Ensure no client-side state transitions can activate a subscription without Stripe webhook verification.
+    - path: "**/auth/**/*.go"
+      instructions: |
+        - Flag any missing MFA/TOTP checks for user session establishment.
