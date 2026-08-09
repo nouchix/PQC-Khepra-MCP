@@ -21,13 +21,13 @@ Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, 
 
 ---
 
-## Open-Source Kernel Scope & Repository Boundary
+## Open-Source Reference Implementation & Commercial Upgrade Path
 
 > [!NOTE]
-> **v2.0.0 Public Kernel Extraction Complete**:
-> - **`PQC-Khepra-MCP` (This Public Repository)**: The newly extracted, open-source post-quantum MCP kernel (Apache 2.0). Contains PQC primitives, the DoD PQC STIG (`pqc_stig`), OWASP Agentic Top 10 assessment (`owasp_agent_assess`), basic AI asset discovery (`scan_shadow_ai`), and NIST SP 800-53 baseline lookups. Built in complete isolation via `kernelports`.
-> - **`khepra-trust-os` (Private Repository)**: The commercial landing zone & trust OS containing the AI Evidence Object fabric (`core/aeo`), Agent Passports (`core/citizenship`), Privileged Enforcement Daemon (`core/enforce`), automated CMMC SSP generator (`core/compliance`), and commercial key management (`core/commercial`).
-> - **Dependency Direction**: Strictly **one-way**. `khepra-trust-os` and all internal tools import this public kernel as a Go module; this public repo never imports private repositories.
+> **v2.0.0 Architecture Clarification**:
+> - **`PQC-Khepra-MCP` (This Public Repository)**: This is our **Open-Source Reference Implementation**, provided as a national security contribution to the community. It includes the foundational post-quantum MCP kernel, the DoD PQC STIG, OWASP Agentic Top 10 assessment, and baseline AI asset discovery. It is licensed under Apache 2.0.
+> - **`Khepra Trust OS` (Commercial Closed-Source)**: For enterprise, defense, and CMMC-regulated customers requiring production-grade capabilities, Khepra Trust OS acts as the logical commercial upgrade path. It fully wraps this open-source kernel while introducing advanced AI Governance, Runtime Security, Privileged Enforcement (Actuation), and the proprietary AI Evidence Object (AEO) fabric. 
+> - **Dependency Direction**: Strictly **one-way**. Khepra Trust OS imports this public kernel as a Go module; this public reference repository never imports private commercial code.
 
 ---
 
