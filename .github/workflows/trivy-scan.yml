@@ -49,7 +49,7 @@ jobs:
           ignore-unfixed: true    # Only block on patched vulns
 
       - name: Upload Trivy SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4.37.4
+        uses: github/codeql-action/upload-sarif@v4.37.6
         if: always()
         with:
           sarif_file: "trivy-image.sarif"
@@ -83,7 +83,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload IronBank SARIF
-        uses: github/codeql-action/upload-sarif@v4.37.4
+        uses: github/codeql-action/upload-sarif@v4.37.6
         if: always()
         with:
           sarif_file: "trivy-ironbank.sarif"
@@ -112,7 +112,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload filesystem SARIF
-        uses: github/codeql-action/upload-sarif@v4.37.4
+        uses: github/codeql-action/upload-sarif@v4.37.6
         if: always()
         with:
           sarif_file: "trivy-fs.sarif"
