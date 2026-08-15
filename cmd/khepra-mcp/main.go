@@ -18,6 +18,7 @@ func main() {
 
 	logger.Printf("━━━ KHEPRA MCP OSS KERNEL ━━━")
 	deps := kernelports.Defaults()
+	deps.License = &kernelports.CommercialLicense{Key: os.Getenv("KHEPRA_LICENSE_KEY")}
 
 	demarc := &khepramcp.DefaultDemarcGateway{
 		StdioIdentity: khepramcp.Identity{
