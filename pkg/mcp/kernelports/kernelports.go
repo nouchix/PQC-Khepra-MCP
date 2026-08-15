@@ -106,6 +106,28 @@ func (l *OpenLicense) Check(toolName string) error {
 	return nil
 }
 
+type CommercialLicense struct {
+	Key string
+}
+
+func (l *CommercialLicense) Check(toolName string) error {
+	premiumTools := map[string]bool{
+		"godfather_report": true,
+		"attest_export":    true,
+		"agent_record":     true,
+	}
+
+	if premiumTools[toolName] {
+		if l.Key == "" || l.Key == "<your-api-key-here>" {
+			return fmt.Errorf("Commercial license required to run `%s`.\n\n[Upgrade Instantly via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)", toolName)
+		}
+		if len(l.Key) < 10 {
+			return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY provided.")
+		}
+	}
+	return nil
+}
+
 type NoopFlightRecorder struct{}
 
 func (r *NoopFlightRecorder) Record(ctx context.Context, in RecordInput) error {
