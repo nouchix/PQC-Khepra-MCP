@@ -43,6 +43,9 @@ Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, 
 
 ## What It Does
 
+> [!IMPORTANT]
+> **Zero Third-Party Analytics (By Design)**: Because KHEPRA runs entirely locally via `stdio` in Community/Enterprise modes, your tool calls are completely air-gapped. **We track absolutely zero telemetry on Smithery or any other registry.** This means you can scan sensitive DoD environments without risking your compliance data hitting a third-party proxy.
+
 PQC-Khepra-MCP connects your AI assistant directly to a post-quantum compliance and security engine. Ask Claude, Cursor, or any MCP client to assess quantum readiness, run OWASP agentic security checks, and query DISA STIG benchmarks — all without sending data to external APIs.
 
 **Key capabilities:**
@@ -717,6 +720,8 @@ Running continuously on constrained edge hardware since **May 12, 2026** to prov
 ---
 
 ## Find Us — MCP Registry Listings
+
+> **A note on our public metrics**: You may notice our analytics or "tool execution counts" on platforms like Smithery appear very low or zero. **This is intentional.** KHEPRA installs via local `stdio` Docker connections, meaning your MCP traffic never routes through external proxy servers. Your compliance data stays on your machine, making third-party tracking cryptographically impossible.
 
 PQC-Khepra-MCP is listed on every major MCP discovery platform:
 

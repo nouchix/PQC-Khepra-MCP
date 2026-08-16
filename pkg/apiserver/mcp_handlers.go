@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package apiserver — MCP Handler Routes
 //

@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package license - Supabase PQC Integration
 //

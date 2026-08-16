@@ -1,4 +1,3 @@
-//go:build saas
 // +build saas
 
 // Package gateway — SaaS-only: Supabase PostgREST process timeline store.

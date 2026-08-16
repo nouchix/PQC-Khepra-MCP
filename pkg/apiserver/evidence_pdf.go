@@ -1,4 +1,3 @@
-//go:build saas
 
 // =============================================================================
 // KHEPRA PROTOCOL - PDF Evidence Report Generator
