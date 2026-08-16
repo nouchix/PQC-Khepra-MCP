@@ -115,24 +115,37 @@ func (l *CommercialLicense) Check(toolName string) error {
 		return fmt.Errorf("A free license key is required to run PQC-Khepra-MCP. Get yours instantly at https://nouchix.com/free-key")
 	}
 
-	premiumTools := map[string]bool{
-		"godfather_report": true,
-		"attest_export":    true,
-		"agent_record":     true,
+	communityTools := map[string]bool{
+		"pqc_stig": true, "discover_assets": true, "nist_map": true, "threat_lookup": true,
+		"ouroboros_waf_eye": true, "ouroboros_vuln_eye": true, "ouroboros_fim_eye": true,
+		"enumerate_host": true, "pqc_sign": true, "pqc_verify": true, "pqc_keygen": true,
+		"sbom_generate": true, "kasa_status": true,
 	}
 
-	if premiumTools[toolName] {
-		// Premium tools require a PRO- key
-		if len(l.Key) < 4 || l.Key[:4] != "PRO-" {
-			return fmt.Errorf("Commercial license required to run `%s`.\n\n[Upgrade Instantly via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)", toolName)
-		}
-	} else {
-		// Non-premium tools require at least a FREE- key (or a PRO- key)
-		if len(l.Key) < 5 || (l.Key[:5] != "FREE-" && len(l.Key) >= 4 && l.Key[:4] != "PRO-") {
-			return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY provided. Expected a key starting with FREE- or PRO-.")
-		}
+	proTools := map[string]bool{
+		"godfather_report": true, "godfather_approve": true, "khepra_export_attestation": true, "khepra_export_poam": true,
+		"acp_status": true, "acp_issue": true, "acp_revoke": true,
+		"nhi_inventory": true, "nhi_orphans": true, "nhi_excessive": true, "nhi_expired": true, "nhi_revoke": true,
 	}
-	return nil
+
+	// 1. If it's a Community Tool, allow FREE-, PRO-, or ENT- keys
+	if communityTools[toolName] {
+		if len(l.Key) >= 5 && l.Key[:5] == "FREE-" { return nil }
+		if len(l.Key) >= 4 && l.Key[:4] == "PRO-" { return nil }
+		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
+		return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY. Get your FREE- key at https://nouchix.com/free-key")
+	}
+
+	// 2. If it's a Pro Tool, allow PRO- or ENT- keys
+	if proTools[toolName] {
+		if len(l.Key) >= 4 && l.Key[:4] == "PRO-" { return nil }
+		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
+		return fmt.Errorf("Pro license required to run `%s`.\n\n[Upgrade Instantly via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)", toolName)
+	}
+
+	// 3. Otherwise, it's an Enterprise tool. Only allow ENT- keys
+	if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
+	return fmt.Errorf("Enterprise license required to run `%s`.\n\n[Contact Sales to Upgrade](https://nouchix.com/sales)", toolName)
 }
 
 type NoopFlightRecorder struct{}
