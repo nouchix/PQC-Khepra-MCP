@@ -217,6 +217,11 @@ func main() {
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
 				"target": {"type": "string", "description": "Scan target (default: 127.0.0.1)"},
 			}}},
+		{Name: "khepra_edge_exec", Description: "Execute a command securely on a remote KHEPRA Sentinel node via Bolt protocol. Requires explicit edge node authorization.", RiskClass: "destructive", Scope: "edge:exec", Tier: "enterprise", TimeoutMs: 120000, Destructive: true,
+			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
+				"agent_id": {"type": "string", "description": "Sentinel edge node identifier"},
+				"command":  {"type": "string", "description": "Command or playbook to execute"},
+			}, Required: []string{"agent_id", "command"}}},
 		{Name: "kasa_forensics", Description: "Trigger an immediate KASA forensic snapshot — processes, network connections, open ports, file hashes — compared against the last snapshot for anomaly detection. DAG-attested under symbol Sankofa.", RiskClass: "read_only", Scope: "kasa:forensics", Tier: "enterprise", TimeoutMs: 30000},
 		{Name: "kasa_crypto_agent", Description: "Run the KASA Crypto Agent: detects tampering via entropy/structural feature analysis, computes a threat level, and auto-quarantines components above the Critical threshold with PQC-sealed forensic snapshots.", RiskClass: "read_only", Scope: "kasa:crypto", Tier: "enterprise", TimeoutMs: 15000,
 			ArgsSchema: &ArgsSchema{Type: "object", Properties: map[string]map[string]any{
