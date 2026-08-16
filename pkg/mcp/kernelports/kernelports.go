@@ -111,6 +111,10 @@ type CommercialLicense struct {
 }
 
 func (l *CommercialLicense) Check(toolName string) error {
+	if l.Key == "" || l.Key == "<your-api-key-here>" {
+		return fmt.Errorf("A free license key is required to run PQC-Khepra-MCP. Get yours instantly at https://nouchix.com/free-key")
+	}
+
 	premiumTools := map[string]bool{
 		"godfather_report": true,
 		"attest_export":    true,
@@ -118,11 +122,14 @@ func (l *CommercialLicense) Check(toolName string) error {
 	}
 
 	if premiumTools[toolName] {
-		if l.Key == "" || l.Key == "<your-api-key-here>" {
+		// Premium tools require a PRO- key
+		if len(l.Key) < 4 || l.Key[:4] != "PRO-" {
 			return fmt.Errorf("Commercial license required to run `%s`.\n\n[Upgrade Instantly via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)", toolName)
 		}
-		if len(l.Key) < 10 {
-			return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY provided.")
+	} else {
+		// Non-premium tools require at least a FREE- key (or a PRO- key)
+		if len(l.Key) < 5 || (l.Key[:5] != "FREE-" && len(l.Key) >= 4 && l.Key[:4] != "PRO-") {
+			return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY provided. Expected a key starting with FREE- or PRO-.")
 		}
 	}
 	return nil

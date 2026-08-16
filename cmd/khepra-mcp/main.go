@@ -17,8 +17,13 @@ func main() {
 	defer stop()
 
 	logger.Printf("━━━ KHEPRA MCP OSS KERNEL ━━━")
+	key := os.Getenv("KHEPRA_LICENSE_KEY")
+	if key == "" || key == "<your-api-key-here>" {
+		logger.Fatalf("FATAL: A free license key is required to run PQC-Khepra-MCP. Get yours instantly at https://nouchix.com/free-key")
+	}
+
 	deps := kernelports.Defaults()
-	deps.License = &kernelports.CommercialLicense{Key: os.Getenv("KHEPRA_LICENSE_KEY")}
+	deps.License = &kernelports.CommercialLicense{Key: key}
 
 	demarc := &khepramcp.DefaultDemarcGateway{
 		StdioIdentity: khepramcp.Identity{
