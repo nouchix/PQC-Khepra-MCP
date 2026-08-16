@@ -2,10 +2,10 @@
   "_comment": "KHEPRA MCP Client Config — SOVEREIGN / AIR-GAP MODE with Cloudflare MCP Integration.",
   "mcpServers": {
     "pqc-khepra-mcp": {
-      "command": "go",
+      "command": "bash",
       "args": [
-        "run",
-        "/Applications/Whitebox/PQC-Khepra-MCP/cmd/khepra-mcp/main.go"
+        "-c",
+        "cd /Applications/Whitebox/PQC-Khepra-MCP && GOWORK=off exec go run ./cmd/khepra-mcp"
       ],
       "env": {
         "KHEPRA_MODE": "sovereign",
