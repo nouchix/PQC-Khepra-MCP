@@ -6,7 +6,7 @@
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
 [![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
-[![License](https://img.shields.io/badge/License-Apache_2.0-green?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL_3.0-green?style=for-the-badge)](LICENSE)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
@@ -19,25 +19,29 @@ Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, 
 > 17 controls covering CNSA 2.0, FIPS 203/204/205, and MCP security advisories.  
 > The world's first open-source DoD-style Post-Quantum Cryptography STIG for AI agents and MCP servers.
 
----
+## 🛡️ The Cryptographic Governance Layer
+
+> **"A VPN for AI agents + Flock Camera for AI Agents + Wall/Dogleash for AI Agents."**
+
+We aren't just sending prompts; we are anchoring agent thoughts to a quantum-secure DAG. KHEPRA provides a hardened compliance engine that prevents rogue agentic actions while proving compliance on-the-fly.
 
 ## Open-Source Reference Implementation & Commercial Upgrade Path
 
 > [!NOTE]
 > **v2.0.0 Architecture Clarification**:
-> - **`PQC-Khepra-MCP` (This Public Repository)**: This is our **Open-Source Reference Implementation**, provided as a national security contribution to the community. It includes the foundational post-quantum MCP kernel, the DoD PQC STIG, OWASP Agentic Top 10 assessment, and baseline AI asset discovery. It is licensed under Apache 2.0.
-> - **`Khepra Trust OS` (Commercial Closed-Source)**: For enterprise, defense, and CMMC-regulated customers requiring production-grade capabilities, Khepra Trust OS acts as the logical commercial upgrade path. It fully wraps this open-source kernel while introducing advanced AI Governance, Runtime Security, Privileged Enforcement (Actuation), and the proprietary AI Evidence Object (AEO) fabric. 
-> - **Dependency Direction**: Strictly **one-way**. Khepra Trust OS imports this public kernel as a Go module; this public reference repository never imports private commercial code.
+> - **`PQC-Khepra-MCP` (This Public Repository)**: This is our **Open-Source Reference Implementation**, provided as a national security contribution to the community. It is licensed under **AGPL-3.0**, which legally requires enterprise and DoD adopters who integrate KHEPRA into closed systems to open-source their internal code, unless they purchase a commercial exception.
+> - **`Khepra Trust OS` (Commercial Closed-Source)**: For enterprise, defense, and CMMC-regulated customers requiring production-grade capabilities, Khepra Trust OS acts as the logical commercial upgrade path. It fully wraps this open-source kernel while introducing advanced AI Governance, Runtime Security, Privileged Enforcement (Actuation), and the proprietary AI Evidence Object (AEO) fabric.
 
 ---
 
-## Tiers & Feature Scope
+## Tiers
 
-| Tier | License Key | Open-Source / Commercial Scope | Egress |
-|------|-------------|--------------------------------|--------|
-| **Community** | ✅ Free Key Required | `pqc_stig` + 24 core tools (incl. `owasp_agent_assess`, `nist_map`, `scan_shadow_ai`) | Zero (Air-gapped) |
-| **Sovereign** | ✅ Required | Full Shadow AI discovery, AI Policy Evaluator, AEO Evidence Graph, Passports | Zero (Air-gapped) |
-| **Pharaoh** | ✅ Required | Privileged Enforcement Daemon interposition (`Deny`/`Quarantine`/`Lock`), FIPS 140-3 | Zero (Air-gapped) |
+| Tier | Price | License Key | Tools | Egress |
+|------|-------|-------------|-------|--------|
+| **Community** | Free | ❌ Not required | `pqc_stig` + 12 core tools | Zero (sovereign mode) |
+| **Pro** | $19/mo | ✅ Required | Compliance reporting, ACP, NHI inventory | Zero |
+| **Enterprise** | $499/mo | ✅ Required | All 76 tools | Zero |
+| **Sovereign** | Custom — [Contact Sales](https://khepra.nouchix.com/) | ✅ Required | All 76 tools + air-gap/offline licensing + HSM | Zero |
 
 ---
 
@@ -638,12 +642,14 @@ docker load < khepra-mcp.tar.gz
 
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
-| Community | Free | Required (Free) | `pqc_stig` + 24 core tools |
-| Sovereign | Annual flat fee | Required | All 72 tools, air-gap, on-prem |
-| Pharaoh | Annual flat fee | Required | All 72 tools + priority support + SLA |
+| Community | Free | Not required | `pqc_stig` + 12 core tools |
+| Pro | $19/mo | Required | Compliance reporting, ACP, NHI inventory, autopilot |
+| Enterprise | $499/mo | Required | All 76 tools, autopilot |
+| Sovereign | Custom — Contact Sales | Required | All 76 tools + air-gap/offline licensing + HSM, autopilot |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
-- Sovereign/Pharaoh: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+- Pro/Enterprise: self-serve billing
+- Sovereign: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
 
 ---
 
