@@ -201,8 +201,8 @@
       },
       {
         "key": "KHEPRA_LICENSE_KEY",
-        "description": "License key for AdinKhepra ASAF (Pilot/Program/Enterprise tiers)",
-        "required": false
+        "description": "Free or Premium license key. Get your free key at https://nouchix.com",
+        "required": true
       }
     ]
   },
