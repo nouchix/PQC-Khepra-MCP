@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
-  "revision": "build-1786845590",
-  "generated_at": "2026-08-16T01:59:50Z",
+  "revision": "build-1786852379",
+  "generated_at": "2026-08-16T03:52:59Z",
   "hash_algorithm": "SHA-256",
   "public_key_id": "9ef5ea773e0a35b5",
   "tools": [
@@ -870,6 +870,36 @@
             "type": "string"
           }
         },
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_edge_exec",
+      "description": "Execute a command securely on a remote KHEPRA Sentinel node via Bolt protocol. Requires explicit edge node authorization.",
+      "risk_class": "destructive",
+      "scope": "edge:exec",
+      "schema_version": "1.0.0",
+      "schema_hash": "8722c772294a7f4358b0272bb8bd1cd99b5942c93f0dc2ab0ae574095132eacb",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "agent_id": {
+            "description": "Sentinel edge node identifier",
+            "type": "string"
+          },
+          "command": {
+            "description": "Command or playbook to execute",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "command"
+        ],
         "type": "object"
       }
     },
