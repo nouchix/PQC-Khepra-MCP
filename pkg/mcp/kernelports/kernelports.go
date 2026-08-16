@@ -128,23 +128,29 @@ func (l *CommercialLicense) Check(toolName string) error {
 		"nhi_inventory": true, "nhi_orphans": true, "nhi_excessive": true, "nhi_expired": true, "nhi_revoke": true,
 	}
 
-	// 1. If it's a Community Tool, allow FREE-, PRO-, or ENT- keys
+	// 1. If it's a Community Tool, allow FREE-, PRO-, or ENT- keys (and new kphr_ formats)
 	if communityTools[toolName] {
 		if len(l.Key) >= 5 && l.Key[:5] == "FREE-" { return nil }
 		if len(l.Key) >= 4 && l.Key[:4] == "PRO-" { return nil }
 		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
+		if len(l.Key) >= 9 && l.Key[:9] == "kphr_com_" { return nil }
+		if len(l.Key) >= 9 && l.Key[:9] == "kphr_sov_" { return nil }
+		if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
 		return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY. Get your FREE- key at https://nouchix.com/free-key")
 	}
 
-	// 2. If it's a Pro Tool, allow PRO- or ENT- keys
+	// 2. If it's a Pro/Sovereign Tool, allow PRO-/ENT- or kphr_sov_/kphr_pha_ keys
 	if proTools[toolName] {
 		if len(l.Key) >= 4 && l.Key[:4] == "PRO-" { return nil }
 		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
+		if len(l.Key) >= 9 && l.Key[:9] == "kphr_sov_" { return nil }
+		if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
 		return fmt.Errorf("Pro license required to run `%s`.\n\n[Upgrade Instantly via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)", toolName)
 	}
 
-	// 3. Otherwise, it's an Enterprise tool. Only allow ENT- keys
+	// 3. Otherwise, it's an Enterprise/Pharaoh tool. Only allow ENT- or kphr_pha_ keys
 	if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
+	if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
 	return fmt.Errorf("Enterprise license required to run `%s`.\n\n[Contact Sales to Upgrade](https://nouchix.com/sales)", toolName)
 }
 

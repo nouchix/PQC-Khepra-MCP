@@ -1,6 +1,6 @@
 module github.com/nouchix/PQC-Khepra-MCP
 
-go 1.26
+go 1.23
 
 require (
 	github.com/anchore/clio v0.1.1
