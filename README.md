@@ -35,7 +35,7 @@ Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, 
 
 | Tier | License Key | Open-Source / Commercial Scope | Egress |
 |------|-------------|--------------------------------|--------|
-| **Community** | ❌ Not required | `pqc_stig` + 24 core tools (incl. `owasp_agent_assess`, `nist_map`, `scan_shadow_ai`) | Zero (Air-gapped) |
+| **Community** | ✅ Free Key Required | `pqc_stig` + 24 core tools (incl. `owasp_agent_assess`, `nist_map`, `scan_shadow_ai`) | Zero (Air-gapped) |
 | **Sovereign** | ✅ Required | Full Shadow AI discovery, AI Policy Evaluator, AEO Evidence Graph, Passports | Zero (Air-gapped) |
 | **Pharaoh** | ✅ Required | Privileged Enforcement Daemon interposition (`Deny`/`Quarantine`/`Lock`), FIPS 140-3 | Zero (Air-gapped) |
 
@@ -506,7 +506,7 @@ Expected output: a JSON-RPC response listing all available tools. If you see `"t
 
 ## MCP Tools
 
-### Community Tier (Free — No License Key)
+### Community Tier (Requires Free Key)
 
 #### `pqc_stig` — World's First DoD PQC STIG ⭐
 Assesses a source code directory against **PQC-01-STIG-V1R1**: 12 controls covering CNSA 2.0 algorithm approval, ML-DSA-65 key strength, ML-KEM-768 encapsulation, hybrid cryptography, key storage, constant-time implementation, and certificate chain requirements.
@@ -586,7 +586,7 @@ Set via `KHEPRA_MODE` environment variable. Unknown values are rejected at start
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `KHEPRA_LICENSE_KEY` | Sovereign/Pharaoh only | — | License key. Community tier runs without one. Get at [nouchix.com](https://nouchix.com) |
+| `KHEPRA_LICENSE_KEY` | Yes (All tiers) | — | License key. Get your free Community key at [nouchix.com](https://nouchix.com) |
 | `KHEPRA_MODE` | No | `sovereign` | Deployment mode: `sovereign`, `ironbank`, `hybrid`, `edge` |
 | `KHEPRA_MANIFEST_PATH` | No | `manifest.json` | Path to signed tool manifest file |
 | `KHEPRA_HOME` | No | `/var/lib/khepra` | Data and compliance DB directory |
@@ -638,7 +638,7 @@ docker load < khepra-mcp.tar.gz
 
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
-| Community | Free | Not required | `pqc_stig` + 24 core tools |
+| Community | Free | Required (Free) | `pqc_stig` + 24 core tools |
 | Sovereign | Annual flat fee | Required | All 72 tools, air-gap, on-prem |
 | Pharaoh | Annual flat fee | Required | All 72 tools + priority support + SLA |
 
