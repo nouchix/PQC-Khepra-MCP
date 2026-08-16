@@ -1,4 +1,3 @@
-//go:build saas
 
 package security
 
