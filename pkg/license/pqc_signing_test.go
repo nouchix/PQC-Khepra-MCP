@@ -38,7 +38,7 @@ func TestSignAndVerifyLicense(t *testing.T) {
 	// 2. Create test license
 	license := &License{
 		ID:        "test-pharaoh-001",
-		Tier:      TierOsiris,
+		Tier:      TierSovereign,
 		NodeQuota: -1, // Unlimited
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().AddDate(1, 0, 0), // Valid for 1 year
@@ -47,8 +47,7 @@ func TestSignAndVerifyLicense(t *testing.T) {
 			"air-gap-licensing",
 			"eternal-license",
 		},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	// 3. Sign license (no encryption)
@@ -94,14 +93,13 @@ func TestExpiredLicenseVerification(t *testing.T) {
 
 	// Create expired license
 	license := &License{
-		ID:        "test-expired-001",
-		Tier:      TierOsiris,
-		NodeQuota: -1,
-		CreatedAt: time.Now().AddDate(-1, 0, -1), // Created over a year ago
-		ExpiresAt: time.Now().AddDate(0, 0, -1),  // Expired yesterday
-		Features:  []string{"all-features"},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		ID:             "test-expired-001",
+		Tier:           TierSovereign,
+		NodeQuota:      -1,
+		CreatedAt:      time.Now().AddDate(-1, 0, -1), // Created over a year ago
+		ExpiresAt:      time.Now().AddDate(0, 0, -1),  // Expired yesterday
+		Features:       []string{"all-features"},
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	// Sign license
@@ -128,14 +126,13 @@ func TestForgeryDetection(t *testing.T) {
 	authority2, _ := GenerateSigningAuthority("Fawohodie")
 
 	license := &License{
-		ID:        "test-forgery-001",
-		Tier:      TierOsiris,
-		NodeQuota: -1,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().AddDate(1, 0, 0),
-		Features:  []string{"all-features"},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		ID:             "test-forgery-001",
+		Tier:           TierSovereign,
+		NodeQuota:      -1,
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().AddDate(1, 0, 0),
+		Features:       []string{"all-features"},
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	// Sign with authority1
@@ -171,14 +168,13 @@ func TestEncryptDecryptShuBreath(t *testing.T) {
 
 	// 3. Create and sign license
 	license := &License{
-		ID:        "test-encrypted-001",
-		Tier:      TierOsiris,
-		NodeQuota: -1,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().AddDate(1, 0, 0),
-		Features:  []string{"all-features"},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		ID:             "test-encrypted-001",
+		Tier:           TierSovereign,
+		NodeQuota:      -1,
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().AddDate(1, 0, 0),
+		Features:       []string{"all-features"},
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	shuBreath, err := SignLicense(license, authority, recipientPubKey)
@@ -228,7 +224,7 @@ func TestLicenseManagerPQCIntegration(t *testing.T) {
 	lm := NewLicenseManager("")
 
 	// 2. Create Pharaoh license
-	license, err := lm.CreateLicense("pharaoh-test-001", TierOsiris, 365)
+	license, err := lm.CreateLicense("pharaoh-test-001", TierSovereign, 365)
 	if err != nil {
 		t.Fatalf("Failed to create license: %v", err)
 	}
@@ -284,14 +280,13 @@ func TestSignatureStats(t *testing.T) {
 	}
 
 	license := &License{
-		ID:        "test-stats-001",
-		Tier:      TierOsiris,
-		NodeQuota: -1,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().AddDate(1, 0, 0),
-		Features:  []string{"all-features", "air-gap-licensing"},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		ID:             "test-stats-001",
+		Tier:           TierSovereign,
+		NodeQuota:      -1,
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().AddDate(1, 0, 0),
+		Features:       []string{"all-features", "air-gap-licensing"},
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	shuBreath, err := SignLicense(license, authority, nil)
@@ -306,7 +301,7 @@ func TestSignatureStats(t *testing.T) {
 		t.Error("Incorrect signature scheme in stats")
 	}
 
-	if stats["tier"] != TierOsiris {
+	if stats["tier"] != TierSovereign {
 		t.Error("Incorrect tier in stats")
 	}
 
@@ -349,14 +344,13 @@ func BenchmarkSignLicense(b *testing.B) {
 	authority, _ := GenerateRootCA()
 
 	license := &License{
-		ID:        "bench-license-001",
-		Tier:      TierOsiris,
-		NodeQuota: -1,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().AddDate(1, 0, 0),
-		Features:  []string{"all-features"},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		ID:             "bench-license-001",
+		Tier:           TierSovereign,
+		NodeQuota:      -1,
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().AddDate(1, 0, 0),
+		Features:       []string{"all-features"},
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	b.ResetTimer()
@@ -373,14 +367,13 @@ func BenchmarkVerifyLicense(b *testing.B) {
 	authority, _ := GenerateRootCA()
 
 	license := &License{
-		ID:        "bench-license-002",
-		Tier:      TierOsiris,
-		NodeQuota: -1,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().AddDate(1, 0, 0),
-		Features:  []string{"all-features"},
-		DeityAuthorities: TierConfigurations[TierOsiris].DeityAuthorities,
-		SephirotAccess:   TierConfigurations[TierOsiris].SephirotAccess,
+		ID:             "bench-license-002",
+		Tier:           TierSovereign,
+		NodeQuota:      -1,
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().AddDate(1, 0, 0),
+		Features:       []string{"all-features"},
+		MaxAccessLevel: TierConfigurations[TierSovereign].MaxAccessLevel,
 	}
 
 	shuBreath, _ := SignLicense(license, authority, nil)

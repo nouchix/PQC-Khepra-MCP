@@ -214,7 +214,7 @@ Usage:
 
 func licenseRequestCmd(args []string) {
 	tenant := "unknown"
-	tier := license.TierPilot
+	tier := license.TierPro
 	out := "license_request.json"
 
 	for i := 0; i < len(args)-1; i++ {

@@ -1,101 +1,54 @@
 # KHEPRA MCP Server
 
-[![Release](https://img.shields.io/badge/Release-v2.0.0-blue?style=for-the-badge)](https://github.com/nouchix/PQC-Khepra-MCP/releases)
-[![Downloads](https://img.shields.io/badge/Downloads-424%2B_Verified-blue?style=for-the-badge&logo=docker)](https://github.com/nouchix/PQC-Khepra-MCP/pkgs/container/pqc-khepra-mcp)
 [![smithery badge](https://smithery.ai/badge/skone/pqc-khepra-mcp)](https://smithery.ai/servers/skone/pqc-khepra-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
 [![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
-[![License](https://img.shields.io/badge/License-AGPL_3.0-green?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-Community%20%2F%20Commercial-green?style=for-the-badge)](https://nouchix.com)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
 
-**Open-source post-quantum cryptographic MCP kernel & compliance discovery server.**
+**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. 76 tools. v2.0.0.**
 
-Powered by **ML-DSA-65 (FIPS 204)** and **Kyber-1024 (FIPS 203)** cryptography, featuring the **World's First DoD PQC STIG** built in.
+Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
+The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
 
 > **[PQC-01-STIG-V1R1 — Full Whitepaper →](docs/PQC-01-STIG-V1R1.md)**  
-> 17 controls covering CNSA 2.0, FIPS 203/204/205, and MCP security advisories.  
-> The world's first open-source DoD-style Post-Quantum Cryptography STIG for AI agents and MCP servers.
+> 17 controls covering CNSA 2.0, FIPS 203/204/205, and the NSA's May 2026 MCP security advisory.  
+> The world's first DoD-style Post-Quantum Cryptography STIG, including the first PQC controls for agentic AI and MCP deployments.
 
-## 🛡️ The Cryptographic Governance Layer
-
-> **"A VPN for AI agents + Flock Camera for AI Agents + Wall/Dogleash for AI Agents."**
-
-We aren't just sending prompts; we are anchoring agent thoughts to a quantum-secure DAG. KHEPRA provides a hardened compliance engine that prevents rogue agentic actions while proving compliance on-the-fly.
-
-## Open-Source Reference Implementation & Commercial Upgrade Path
-
-> [!NOTE]
-> **v2.0.0 Architecture Clarification**:
-> - **`PQC-Khepra-MCP` (This Public Repository)**: This is our **Open-Source Reference Implementation**, provided as a national security contribution to the community. It is licensed under **AGPL-3.0**, which legally requires enterprise and DoD adopters who integrate KHEPRA into closed systems to open-source their internal code, unless they purchase a commercial exception.
-> - **`Khepra Trust OS` (Commercial Closed-Source)**: For enterprise, defense, and CMMC-regulated customers requiring production-grade capabilities, Khepra Trust OS acts as the logical commercial upgrade path. It fully wraps this open-source kernel while introducing advanced AI Governance, Runtime Security, Privileged Enforcement (Actuation), and the proprietary AI Evidence Object (AEO) fabric.
+> **Live hosted endpoint:** `https://mcp.souhimbou.ai/sse` — zero install, connect in 30 seconds.  
+> Self-host for sovereign/air-gap: [Docker](#option-a-docker-recommended) or [binary](#option-b-compiled-binary).
 
 ---
+
 
 ## Tiers
 
-| Tier | Price | License Key | Tools | Egress |
-|------|-------|-------------|-------|--------|
-| **Community** | Free | ✅ Required (Free) | `pqc_stig` + 12 core tools | Zero (sovereign mode) |
-| **Pro** | $19/mo | ✅ Required | 30 tools (Reporting, ACP, NHI) | Zero |
-| **Enterprise / Sovereign** | Custom | ✅ Required | All 80 tools | **Requires upgrade to Khepra Trust OS** |
+| Tier | Price | License Key | Tools | Continuous Compliance Scanning | Egress |
+|------|-------|-------------|-------|---------------------------------|--------|
+| **Community** | Free | ❌ Not required | `pqc_stig` + 12 core tools | — | Zero (sovereign mode) |
+| **Pro** | $19/mo | ✅ Required | Compliance reporting, ACP, NHI inventory | ✅ | Zero |
+| **Enterprise** | $499/mo | ✅ Required | All 76 tools | ✅ | Zero |
+| **Sovereign** | Custom — [Contact Sales](https://khepra.nouchix.com) | ✅ Required | All 76 tools + air-gap/offline licensing + HSM | ✅ | Zero |
 
-> [!NOTE]
-> **Commercial Upgrade**: The Enterprise and Sovereign tiers (including the full 80-tool suite, Bolt Edge Node execution, and Hub & Fleet architecture) are exclusively available via the **Khepra Trust OS** private repository. Please [contact sales](https://khepra.nouchix.com/) for access.
-
----
-
-## Tool Matrix
-
-### Community Tier (Free)
-*Focus: Basic discovery and PQC compliance scanning.*
-- `pqc_stig`
-- `linux_hardening_check`
-- `khepra_query_stig`
-- `nist_map`
-- `dark_crypto_contribute`
-- *(+ 8 other foundational tools)*
-
-### Pro Tier ($19/mo)
-*Focus: Individual developer productivity and reporting.*
-- **All Community tools**
-- `ert_scan`
-- `godfather_report`
-- `sbom_generate`
-- `scan_shadow_ai`
-- `nhi_inventory`
-- `acp_status`
-- *(+ ~17 additional tools)*
-
-### Enterprise & Sovereign (via Khepra Trust OS)
-*Focus: Distributed orchestration, active defense, and CMMC compliance.*
-- **All Community & Pro tools**
-- `khepra_edge_exec` (Bolt Edge Node remote execution)
-- `khepra_bolt_scan` (Remote threat scanning)
-- `cmmc_assess`
-- `dag_attestation`
-- `kasa_crypto_agent`
-- `kasa_forensics`
-- *(All 80 tools + Hub & Fleet Architecture)*
+> **Community tier is free.** Run `pqc_stig` to assess your project's quantum readiness against  
+> **PQC-01-STIG-V1R1** — the World's First DoD-style Post-Quantum Cryptography STIG — no license key needed.
+>
+> **Continuous compliance scanning (autopilot) is included in every paid tier** — it's core to the product, not an upsell.
 
 ---
 
 ## What It Does
 
-> [!IMPORTANT]
-> **Zero Third-Party Analytics (By Design)**: Because KHEPRA runs entirely locally via `stdio` in Community/Enterprise modes, your tool calls are completely air-gapped. **We track absolutely zero telemetry on Smithery or any other registry.** This means you can scan sensitive DoD environments without risking your compliance data hitting a third-party proxy.
-
-PQC-Khepra-MCP connects your AI assistant directly to a post-quantum compliance and security engine. Ask Claude, Cursor, or any MCP client to assess quantum readiness, run OWASP agentic security checks, and query DISA STIG benchmarks — all without sending data to external APIs.
+KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. Ask Claude or any MCP client to scan a system, map findings to STIG/NIST/CMMC controls, and generate an executive-ready risk report — all without sending data to external APIs.
 
 **Key capabilities:**
-- Post-quantum cryptographic attestation on tool calls (ML-DSA-65 / FIPS 204)
+- 36,195 STIG/CCI/NIST 800-53/800-171/CMMC mappings (offline, bundled)
+- Post-quantum cryptographic attestation on every tool call (ML-DSA-65 / FIPS 204)
 - **World's First DoD PQC STIG** — 17 controls covering CNSA 2.0 / FIPS 203/204/205 + agentic AI / MCP ([PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md))
-- OWASP Agentic Top 10 vulnerability assessment (`owasp_agent_assess`)
-- Shadow AI asset discovery & port scanner (`scan_shadow_ai`)
-- Live DISA STIG Viewer API v2 integration (`stig_live_query`)
-- Practical Linux Hardening checks (`linux_hardening_check`) based on *The Practical Linux Hardening Guide*
+- Godfather Report: dollar-denominated business impact per finding (FAIR model)
 - Air-gap and SCIF compatible — sovereign/ironbank modes make zero egress calls
 - Flat annual licensing — no per-token or per-query charges
 - Runs on your metal: on-prem, DoD, IC, classified environments
@@ -267,7 +220,7 @@ Config file location:
 }
 ```
 
-#### Sovereign / Pharaoh tier (with license key)
+#### Pro / Enterprise / Sovereign tier (with license key)
 
 ```json
 {
@@ -547,7 +500,7 @@ Expected output: a JSON-RPC response listing all available tools. If you see `"t
 
 ## MCP Tools
 
-### Community Tier (Requires Free Key)
+### Community Tier (Free — No License Key)
 
 #### `pqc_stig` — World's First DoD PQC STIG ⭐
 Assesses a source code directory against **PQC-01-STIG-V1R1**: 12 controls covering CNSA 2.0 algorithm approval, ML-DSA-65 key strength, ML-KEM-768 encapsulation, hybrid cryptography, key storage, constant-time implementation, and certificate chain requirements.
@@ -569,7 +522,7 @@ Contribute anonymized cryptographic algorithm telemetry to the SouHimBou AI Dark
 
 ---
 
-### Sovereign / Pharaoh Tier
+### Pro / Enterprise / Sovereign Tier
 
 #### `ert_scan`
 Enterprise Risk & Threat scan across STIG, NIST 800-53, NIST 800-171, CMMC, and FedRAMP. Returns Godfather Report with dollar-denominated business impact.
@@ -627,7 +580,7 @@ Set via `KHEPRA_MODE` environment variable. Unknown values are rejected at start
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `KHEPRA_LICENSE_KEY` | Yes (All tiers) | — | License key. Get your free Community key at [nouchix.com](https://nouchix.com) |
+| `KHEPRA_LICENSE_KEY` | Pro/Enterprise/Sovereign only | — | License key. Community tier runs without one. Get at [nouchix.com](https://nouchix.com) |
 | `KHEPRA_MODE` | No | `sovereign` | Deployment mode: `sovereign`, `ironbank`, `hybrid`, `edge` |
 | `KHEPRA_MANIFEST_PATH` | No | `manifest.json` | Path to signed tool manifest file |
 | `KHEPRA_HOME` | No | `/var/lib/khepra` | Data and compliance DB directory |
@@ -675,17 +628,18 @@ docker load < khepra-mcp.tar.gz
 
 ## Licensing
 
-**Flat annual licensing — no per-token or per-query charges.**
+**No per-token or per-query charges on any paid tier.**
 
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
-| Community | Free | Required (Free) | `pqc_stig` + 12 core tools |
-| Pro | $19/mo | Required | 30 tools (Reporting, ACP, NHI, autopilot) |
-| Enterprise / Sovereign | Custom | Required | All 80 tools (Requires KTOS upgrade) |
+| Community | Free | Not required | `pqc_stig` + 12 core tools |
+| Pro | $19/mo | Required | Compliance reporting, ACP, NHI inventory, autopilot |
+| Enterprise | $499/mo | Required | All 76 tools, autopilot |
+| Sovereign | Custom — Contact Sales | Required | All 76 tools + air-gap/offline licensing + HSM, autopilot |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
-- Pro: self-serve billing
-- Enterprise / Sovereign: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+- Pro/Enterprise: self-serve billing
+- Sovereign: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
 
 ---
 
@@ -763,8 +717,6 @@ Running continuously on constrained edge hardware since **May 12, 2026** to prov
 
 ## Find Us — MCP Registry Listings
 
-> **A note on our public metrics**: You may notice our analytics or "tool execution counts" on platforms like Smithery appear very low or zero. **This is intentional.** KHEPRA installs via local `stdio` Docker connections, meaning your MCP traffic never routes through external proxy servers. Your compliance data stays on your machine, making third-party tracking cryptographically impossible.
-
 PQC-Khepra-MCP is listed on every major MCP discovery platform:
 
 | Platform | Link | Notes |
@@ -787,6 +739,3 @@ Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executi
 - **Phone**: (518) 304-4450
 
 Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
-
-
-

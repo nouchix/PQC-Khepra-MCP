@@ -93,9 +93,8 @@ func EnrollDevice(organization, email, stripeSessionID string, licMgr *license.M
 	// If we received a valid license, updated the local manager
 	// This ensures the local state reflects the server's truth
 	if enrollmentResp.Tier != "" {
-		// Note: We cast string tier to EgyptianTier type if packages match,
-		// otherwise we rely on the caller or the manager's string parsing.
-		// specific implementation depends on LicenseManager's API.
+		// Note: license.LicenseTier is a plain string alias, so the server's
+		// tier string is used directly — no cast/parsing needed.
 		// The enrollment server's tier assignment is authoritative; no local
 		// override or secondary verification is performed post-enrollment.
 		fmt.Printf("[KHEPRA] Enrollment successful. Tier: %s\n", enrollmentResp.Tier)

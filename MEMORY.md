@@ -1,59 +1,66 @@
 # PQC-Khepra-MCP — MEMORY.md
-> Last Updated: 2026-06-29 — Connective Tissue Build Spec added (July 15 Presight target)
+> Last Updated: 2026-07-13 — Tier system unified to Community/Pro/Enterprise/Sovereign; Egyptian tier system deleted
 > Maintainer: Souhimbou Doh Kone (SecRed Knowledge Inc. / NouchiX)
 
 ---
 
 ## What This Server Does
 
-**PQC-Khepra-MCP** is the open-source Model Context Protocol (MCP) server kernel carrying post-quantum cryptographic primitives (`pkg/adinkra`), the DoD PQC STIG (`pqc_stig`), OWASP Agentic Top 10 assessment, DISA STIG Viewer API queries, and basic AI discovery tooling.
+**PQC-Khepra-MCP** is the Model Context Protocol (MCP) server layer of the AdinKhepra ASAF (Automated Security & Attestation Framework). It intercepts AI agent tool calls and routes them through:
+
+1. **CMMC/STIG compliance scanning** (36,195 cross-framework mappings)
+2. **PQC attestation** (ML-DSA-65 / NIST FIPS 204 signing)
+3. **SouHimBou AI Flight Recorder** (tamper-evident agent action logging)
+4. **License-gated feature dispatch** (community → pro → enterprise → sovereign → master[internal])
+
+Patent Pending: **USPTO #73565085**
 
 ---
 
-## Repository Boundary & Architecture Rule
+## Current State (June 15, 2026)
 
-- **Public Kernel (`PQC-Khepra-MCP`)**: Released under Apache License 2.0. Contains open-source PQC algorithms, public STIG benchmarks, base MCP tools, and Railway-style open infrastructure primitives (CLI, Agentpacks).
-- **Private Landing Zone (`khepra-trust-os`)**: Private monorepo carrying proprietary commercial planes (AEO proof fabric, Agent Passports, Privileged Enforcement Daemon interposition, CMMC SSP generator, Autonomous Data Loop Engine, and commercial key management).
-- **One-Way Dependency**: `khepra-trust-os` imports this repository as a Go module. This repository **never** imports private code.
-
----
-
-## Autonomous Agent Governance Data Loop Platform
-
-```
-Agent Intent ──> Agentpack / Blueprint ──> ASAF Governance Evaluation ──> Actuation ──> PQC Proof (AEO) ──> Data Loop Learning
-```
-
-KHEPRA combines open infrastructure deployment primitives (`agentpack.yaml`) with the **ASAF Privileged Enforcement Engine** and **Proof Plane**, capturing the operational feedback loop around autonomous agent decisions.
-
----
-
-## Build & Infrastructure
-- **Go**: 1.23+
+### Build & Infrastructure
+- **Go**: 1.23+ with `saas` build tag for full feature set
+- **gRPC**: `v1.81.0` in vendor (CVE-2025-22869 mitigated; upgrading to v1.81.1)
 - **Docker images**: `ghcr.io/nouchix/pqc-khepra-mcp:latest`
 - **FIPS builds**: `Dockerfile.fips` with `GOEXPERIMENT=boringcrypto`
 - **IronBank**: `Dockerfile.ironbank` for DoD IL4/IL5 environments
 
-### 85 Active Tools Inventory across 8 Security Suites
-- **AI Security & Governance (6 tools)**: `owasp_agent_assess`, `agent_scan`, `scan_shadow_ai`, `attest_ai_policy`, `agent_record`, `compliance_model_check`.
-- **PQC Cryptography & STIG (8 tools)**: `pqc_stig`, `pqc_sign`, `pqc_verify`, `pqc_keygen`, `stig_check`, `khepra_query_stig`, `stig_live_query`, `linux_hardening_check`.
-- **Compliance & Framework Mapping (10 tools)**: `nist_map`, `cmmc_assess`, `khepra_export_attestation`, `khepra_export_poam`, `khepra_get_compliance_score`, `godfather_report`, `godfather_approve`, `asaf_lint`, `attest_export`, `flight_export`.
-- **Supply Chain & Threat Intel (10 tools)**: `sbom_generate`, `threat_model`, `khepra_query_threat_intel`, `threat_lookup`, `dark_crypto_contribute`, `ert_scan`, `ert_readiness`, `ert_architect`, `ert_crypto`, `ert_godfather`.
-- **Non-Human Identity & Access (8 tools)**: `acp_status`, `acp_issue`, `acp_revoke`, `nhi_inventory`, `nhi_orphans`, `nhi_excessive`, `nhi_expired`, `nhi_revoke`.
-- **Recon & Attack Surface (10 tools)**: `enumerate_host`, `fingerprint_device`, `port_scan`, `vuln_scan`, `secret_scan`, `container_scan`, `compliance_scan`, `packet_analyze`, `attack_graph`, `discover_assets`.
-- **Quantum Optimization & Brain (14 tools)**: `kasa_start`, `kasa_status`, `kasa_task`, `kasa_scan`, `kasa_forensics`, `kasa_crypto_agent`, `ea_evolve`, `ea_threat_score`, `ea_risk_summary`, `quantum_optimize`, `phantom_stealth`, `identity_shroud`, `identity_epiphany`, `drbc_backup/restore`.
-- **Runtime Defense & Forensics (19 tools)**: `drift_detect`, `ir_incident`, `ir_add_ioc`, `flight_record`, `ouroboros_waf_eye/stig_eye/vuln_eye/fim_eye`, `forensic_snapshot`, `fim_baseline`, `audit_dag_integrity`, `playbook_execute`, `dag_write/query/audit/attestation`.
+### License Tiers — PQC-Khepra-MCP Server (2026-07-13 — canonical, supersedes prior conflicting tables)
 
-### License Tiers (from `pkg/license/mcp_gate.go`)
-| Tier | Commercial Name | Price | Features & Tool Scope |
-|------|----------------|-------|----------------------|
-| Community | `Community` | $0 | 30+ Core Tools (`pqc_stig`, `nist_map`, `owasp_agent_assess`, `agent_record`, `linux_hardening_check`, `stig_live_query`) |
-| Sovereign | `Sovereign` | $299/mo | + `scan_shadow_ai` (subnet CIDR), `attest_ai_policy`, `khepra_get_compliance_score`, `acp_issue`, `nhi_inventory` |
-| Pharaoh | `Pharaoh` | $2,999/mo | + `cmmc_assess`, `nhi_revoke`, `ert_scan`, FIPS 140-3 paths, air-gapped SCIF deployments |
+Renamed/repriced from the old Community/Pilot("Sovereign")/Enterprise("Pharaoh") model —
+the "Egyptian tier" node-quota system (`egyptian_tiers.go`, Khepri/Ra/Atum/Osiris) has been
+deleted; `pkg/license/license_tiers.go` and `pkg/license/mcp_gate.go` now share one canonical
+tier taxonomy (`community`/`pro`/`enterprise`/`sovereign`, plus internal-only `master`).
+**Continuous compliance scanning (autopilot) is included in every paid tier.**
 
-### Dependency Boundary
-- **Public Open-Source Kernel Repository**: `PQC-Khepra-MCP` contains PQC primitives, STIG data, and 85 active tools.
-- **One-Way Rule**: This repo NEVER imports `khepra-trust-os` (the private commercial landing zone).
+| Tier | Product | Stripe Price ID | Price | Features |
+|------|---------|----------------|-------|----------|
+| Community | — (free) | — | $0 | `ert_scan`, `stig_check`, `nist_map` (rate-limited) |
+| Pro | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | ⚠️ **NOT YET CREATED** — see below | $19/mo | Compliance reporting, ACP, NHI inventory, autopilot |
+| Enterprise | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | ⚠️ **NOT YET CREATED** — see below | $499/mo | All 76 tools, autopilot |
+| Sovereign | PQC-Khepra-MCP Server `prod_UqvQtvapGfRbcP` | No self-serve checkout — Contact Sales | Custom | All 76 tools + air-gap/offline licensing + HSM, autopilot |
+
+**Open action item**: the old `STRIPE_PRICE_MCP_SOVEREIGN` ($2,999/mo, `price_1TrDa4DqGyad2D3V7QqGxnjK`)
+was a flat self-serve price for what's now the Sovereign tier — Sovereign is now custom/contact-sales,
+so this price should be archived (not deleted — existing subscribers may still reference it) rather
+than reused. Two **new** Stripe Price objects need to be created for Pro ($19/mo) and Enterprise
+($499/mo) under `prod_UqvQtvapGfRbcP`, then wired into `pkg/apiserver/stripe_billing.go`'s
+`PriceMapping` under namespaced keys (e.g. `mcp_pro`, `mcp_enterprise`) — **not** the bare
+`pro`/`enterprise` keys, since `enterprise` is already taken by the SouHimBou AI product's own
+$499/mo tier (`price_1TiVvyDqGyad2D3V4mszc5v5`, different Stripe product) and reusing it would
+route MCP checkouts to the wrong product/price.
+
+### MCP Tools Registered
+| Tool | Tier Required | Handler |
+|------|-------------|---------|
+| `ert_scan` | Community | `pkg/mcp/tools/ert_scan_tool.go` |
+| `stig_check` | Community | `pkg/mcp/tools/pqc_stig_tool.go` |
+| `nist_map` | Community | `pkg/mcp/tools/nist_map_tool.go` |
+| `cmmc_assess` | Enterprise | `pkg/mcp/tools/cmmc_assess_tool.go` |
+| `godfather_report` | Pro | `pkg/mcp/tools/godfather_tool.go` |
+| `attest_export` | Pro | `pkg/mcp/tools/attest_export_tool.go` |
+| `agent_record` | Community | `pkg/mcp/tools/agent_record_tool.go` |
 
 ### SouHimBou AI Tiers (souhimbou.ai — `prod_UhvNflskmq9PoV`)
 | Tier | Stripe Price ID | Price | MCP Tool Access |
