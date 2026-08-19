@@ -379,7 +379,7 @@ function renderDAG(){
   sim.on("tick",()=>{link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y).attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);node.attr("transform",d=>"translate("+d.x+","+d.y+")")});
 }
 function addNode(label,type,badges){
-  const h="0x"+Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("").toUpperCase();
+  const h="0x"+Array.from({length:16},()=>(crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)).join("").toUpperCase();
   const t=new Date().toLocaleTimeString("en-US",{hour12:false});
   nc++;sc++;document.getElementById("s-n").textContent=nc;document.getElementById("s-s").textContent=sc;
   dnodes.push({label,type,hash:h});
@@ -833,12 +833,12 @@ async function exportAttestation(){
   const sig=()=>{
     // Use real DAG node hash if available, else generate deterministic stand-in
     const realHashes=dnodes.filter(n=>n.hash&&n.hash.length>8).map(n=>n.hash);
-    const base=realHashes.length>0?realHashes[Math.floor(Math.random()*realHashes.length)]:null;
-    return "ML-DSA-65:"+(base||Array.from({length:32},()=>Math.floor(Math.random()*16).toString(16)).join("").toUpperCase());
+    const base=realHashes.length>0?realHashes[(crypto.getRandomValues(new Uint32Array(1))[0] % realHashes.length)]:null;
+    return "ML-DSA-65:"+(base||Array.from({length:32},()=>(crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)).join("").toUpperCase());
   };
   const hash=()=>{
-    if(dnodes.length>0){const n=dnodes[Math.floor(Math.random()*dnodes.length)];if(n&&n.hash)return n.hash;}
-    return "0x"+Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("").toUpperCase();
+    if(dnodes.length>0){const n=dnodes[(crypto.getRandomValues(new Uint32Array(1))[0] % dnodes.length)];if(n&&n.hash)return n.hash;}
+    return "0x"+Array.from({length:16},()=>(crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)).join("").toUpperCase();
   };
   const cat1=FX.filter(f=>f.sev==="CAT I");
   const cat2=FX.filter(f=>f.sev==="CAT II");
@@ -1306,7 +1306,7 @@ async function loadDAGNodes(){
       nodes.slice(-30).forEach(n=>{
         const label=n.label||n.id||"node";
         const type=n.node_type||n.type||"flight";
-        const hash=n.hash||n.id||"0x"+(Math.random().toString(16).slice(2));
+        const hash=n.hash||n.id||"0x"+(Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b=>b.toString(16).padStart(2,'0')).join(''));
         dnodes.push({label,type,hash});
         nc++;sc++;
         document.getElementById("s-n").textContent=nc;

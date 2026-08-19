@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package supabase — MCPStore
 //

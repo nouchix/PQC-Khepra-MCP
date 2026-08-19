@@ -724,7 +724,11 @@ func (c *STIGConnector) logAudit(eventType, identity string, details map[string]
 	}
 	c.auditMu.Unlock()
 
-	log.Printf("[STIGConnector] %q | identity=%q | %v", khlog.SanitizeForLog(eventType), khlog.SanitizeForLog(identity), details)
+	safeDetails := make(map[string]string, len(details))
+	for k, v := range details {
+		safeDetails[khlog.SanitizeForLog(k)] = khlog.SanitizeForLog(v)
+	}
+	log.Printf("[STIGConnector] %q | identity=%q | %v", khlog.SanitizeForLog(eventType), khlog.SanitizeForLog(identity), safeDetails)
 }
 
 // ─── HTTP Handler (Zone 2 → Zone 1 interface on port 8443) ──────────────────────

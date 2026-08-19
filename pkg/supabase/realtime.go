@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package supabase — Realtime subscription helper
 //

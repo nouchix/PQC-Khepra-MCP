@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -154,11 +155,13 @@ func (fs *FleetScanner) runScan(ctx context.Context, summary *FleetScanSummary, 
 	// Collect enrolled assets matching the filter
 	assets := fs.registry.ListAssets(enclaveID, "")
 	if len(assets) == 0 {
-		fs.logger.Printf("[FLEET-SCAN] no assets in enclave=%q — aborting", enclaveID)
+		safeEnclave := strings.ReplaceAll(strings.ReplaceAll(enclaveID, "\n", ""), "\r", "")
+		fs.logger.Printf("[FLEET-SCAN] no assets in enclave=%q — aborting", safeEnclave)
 		return
 	}
 	summary.TotalAssets = len(assets)
-	fs.logger.Printf("[FLEET-SCAN] starting run=%s assets=%d profile=%s", summary.RunID, len(assets), stigProfile)
+	safeProfile := strings.ReplaceAll(strings.ReplaceAll(stigProfile, "\n", ""), "\r", "")
+	fs.logger.Printf("[FLEET-SCAN] starting run=%s assets=%d profile=%s", summary.RunID, len(assets), safeProfile)
 
 	// Build ConnectionProfiles from assets ([]*fleet.Asset)
 	profiles, assetMap := fs.buildProfiles(assets, credStore)

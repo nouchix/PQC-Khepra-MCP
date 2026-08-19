@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package apiserver — PQC Auth Middleware (Gin adapter)
 //
