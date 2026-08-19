@@ -22,6 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 KEEP_PATHS=(
   "pkg/mcp"
   "pkg/crypto"
+  "pkg/attestenvelope"
   "pkg/types"
   "cmd/khepra-mcp"
   "cmd/manifest-gen"
@@ -36,9 +37,10 @@ PRUNE_INSIDE=(
   "pkg/mcp/tools"
   "pkg/mcp/scanner"
   "pkg/mcp/legacy"
+  "pkg/mcp/scanner_adapter.go"
 )
 # Private import prefixes that must NOT survive in the extraction:
-FORBIDDEN_IMPORT_RE='PQC-Khepra-MCP/pkg/(dag|attest|audit|license|flight|logging|lorentz|adinkra|stig|stigs|nhi|ert|vuln|souhimbou|sca|ea|acp|telemetry|sekhem|scanners|scanner|phantom|packet|nkyinkyim|ising|ir|intel|graph|gateway|forensics|fingerprint|fim|evidence|enumerate|drbc|compliance|agi|billing|kms|pki|config|arsenal|agent|agi|api|apiserver|asaf|connectors|dns|emass|grpc|ironbank|maat|middleware|mobile|net|network|nhi|ouroboros|poam|rbac|remote|risk|sbom|scada|scorpion|security|seshat|sonar|supabase|webui|zscan)'
+FORBIDDEN_IMPORT_RE='PQC-Khepra-MCP/pkg/(dag|attest|audit|license|flight|logging|lorentz|adinkra|stig|stigs|nhi|ert|vuln|souhimbou|sca|ea|acp|telemetry|sekhem|scanners|scanner|phantom|packet|nkyinkyim|ising|ir|intel|graph|gateway|forensics|fingerprint|fim|evidence|enumerate|drbc|compliance|agi|billing|kms|pki|config|arsenal|agent|agi|api|apiserver|asaf|connectors|dns|emass|grpc|ironbank|maat|middleware|mobile|net|network|nhi|ouroboros|poam|rbac|remote|risk|sbom|scada|scorpion|security|seshat|sonar|supabase|webui|zscan)(?:/|\")'
 
 MODE="extract"
 if [ "${1:-}" = "--verify" ]; then MODE="verify"; shift; fi
@@ -90,11 +92,18 @@ extract() {
   for p in "${PRUNE_INSIDE[@]}"; do rm -rf "${DEST:?}/$p"; done
   cp "$ROOT/docs/public-kernel/LICENSE-APACHE-2.0.proposed" "$DEST/LICENSE"
   cp "$ROOT/docs/public-kernel/DCO.txt" "$DEST/DCO.txt"
+  # Rewrite module path to public kernel
+  ( cd "$DEST" && \
+    find . -name "*.go" -exec sed -i '' 's|github.com/nouchix/PQC-Khepra-MCP|github.com/nouchix/khepra-kernel|g' {} + && \
+    go mod edit -module github.com/nouchix/khepra-kernel && \
+    rm -f go.sum && \
+    export PATH=/Applications/Whitebox/PQC-Khepra-MCP/go/bin:$PATH && \
+    go mod tidy \
+  )
+
   ( cd "$DEST" && git init -q && git add -A && \
     git commit -qm "Initial import: KHEPRA MCP kernel (fresh history)" )
   echo "extracted to $DEST — now run: $0 --verify $DEST"
-  echo "NOTE: go.mod still names the private module path; rename module + trim"
-  echo "      go.sum as part of the condition-3 spike before publication."
 }
 
 case "$MODE" in

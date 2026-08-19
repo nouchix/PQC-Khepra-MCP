@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Database, Shield, Award, Globe, Zap, CheckCircle, Lock } from 'lucide-react';
+import { Database, Shield, Award, Globe, Zap, CheckCircle, Lock, Download } from 'lucide-react';
 
 export const TrustAnchors = () => {
   const apiFeatures = [
@@ -11,6 +11,12 @@ export const TrustAnchors = () => {
   ];
 
   const trustIndicators = [
+    {
+      icon: Download,
+      title: 'Proven Market Traction',
+      description: 'Over 424+ verified downloads of the PQC-Khepra-MCP public kernel container on GitHub Package Registry.',
+    },
+
     {
       icon: Shield,
       title: 'SDVOSB — Service-Disabled Veteran',

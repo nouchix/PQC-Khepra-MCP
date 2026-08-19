@@ -1,4 +1,3 @@
-//go:build saas
 
 // =============================================================================
 // KHEPRA PROTOCOL - Autopilot HTTP Handlers
