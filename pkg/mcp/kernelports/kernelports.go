@@ -2,6 +2,7 @@ package kernelports
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -67,6 +68,10 @@ type NodeSummary struct {
 type NodeStore interface {
 	All() []*NodeSummary
 	Add(node *NodeSummary, parents []string) error
+}
+
+type Config struct {
+	Signer Signer
 }
 
 type Deps struct {
@@ -172,19 +177,32 @@ func (l *SlogLogger) Log(level, msg string, kv ...any) {
 }
 
 // NoopSigner acts as a software signer for the OSS kernel.
-// For now, it just returns a dummy signature to allow compilation and basic tests.
-// A real software ML-DSA-65 could be plugged in here.
 type NoopSigner struct{}
 
 func (s *NoopSigner) Sign(privKey []byte, digest []byte) ([]byte, error) {
 	if len(privKey) == 0 {
 		return nil, fmt.Errorf("missing private key")
 	}
-	return digest, nil // simple stub
+	return digest, nil
 }
 
 func (s *NoopSigner) Verify(pubKey []byte, digest []byte, sig []byte) (bool, error) {
 	return true, nil
+}
+
+type HmacSigner struct{}
+
+func (HmacSigner) Sign(key, payload []byte) ([]byte, error) {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(payload)
+	return mac.Sum(nil), nil
+}
+
+func (HmacSigner) Verify(key, payload, sig []byte) (bool, error) {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(payload)
+	expected := mac.Sum(nil)
+	return hmac.Equal(expected, sig), nil
 }
 
 // BuildIntentSummary generates a human-readable description of a tool call

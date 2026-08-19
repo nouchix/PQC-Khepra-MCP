@@ -68,120 +68,26 @@ export const EnhancedPOAMTracker = () => {
   }, [realTimeUpdates]);
 
   const loadEnhancedPOAMData = () => {
-    // Enhanced POAM data with automation features
-    const enhancedPOAM: POAMItem[] = [
-      {
-        id: '1',
-        control_id: 'AC.1.001',
-        control_title: 'Limit information system access to authorized users',
-        weakness_description: 'Current access control policy lacks comprehensive user access review procedures and automated provisioning/deprovisioning workflows.',
-        remediation_plan: 'Implement automated user access management system with regular access reviews, role-based access controls, and integration with HR systems for automated account lifecycle management.',
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        due_date: '2024-03-15',
-        responsible_party: 'IT Security Team',
-        resources_required: 'Identity Management System, 2 FTE for 3 months',
-        estimated_cost: 75000,
-        completion_percentage: 65,
-        milestones: [
-          'Requirements gathering completed ✓',
-          'Vendor selection completed ✓',
-          'Pilot implementation in progress',
-          'Full deployment pending'
-        ],
-        risk_level: 'HIGH',
-        created_date: '2024-01-10',
-        last_updated: '2024-01-25',
-        automation_status: 'hybrid',
-        real_time_tracking: true,
-        ai_recommendations: [
-          'Consider implementing zero-trust architecture',
-          'Integrate with SIEM for real-time monitoring',
-          'Add MFA for all privileged accounts'
-        ]
-      },
-      {
-        id: '2',
-        control_id: 'AU.2.041',
-        control_title: 'Ensure that the actions of individual system users can be uniquely traced',
-        weakness_description: 'Audit logging is not centralized and lacks correlation capabilities.',
-        remediation_plan: 'Deploy centralized SIEM solution to collect, correlate, and analyze audit logs from all systems.',
-        status: 'IN_PROGRESS',
-        priority: 'CRITICAL',
-        due_date: '2024-02-28',
-        responsible_party: 'Infrastructure Team',
-        resources_required: 'SIEM Platform, Log Management Storage, 3 FTE for 6 months',
-        estimated_cost: 150000,
-        completion_percentage: 80,
-        milestones: [
-          'SIEM platform deployed ✓',
-          'Log source integration ✓',
-          'Correlation rules configured ✓',
-          'User training in progress'
-        ],
-        risk_level: 'HIGH',
-        created_date: '2024-01-05',
-        last_updated: '2024-01-30',
-        automation_status: 'automated',
-        real_time_tracking: true,
-        ai_recommendations: [
-          'Enable machine learning-based anomaly detection',
-          'Implement automated incident response workflows'
-        ]
-      }
-    ];
+    // No poam_items/automation_rules/real_time_metrics tables exist yet in
+    // this project's schema, and no edge function returns this shape.
+    // Rather than fabricate specific POA&M items, automation rules, and
+    // progress metrics, report an honest empty state until a real backend
+    // is wired up.
+    const pendingPOAM: POAMItem[] = [];
+    const pendingAutomationRules: AutomationRule[] = [];
+    const pendingRealTimeMetrics: RealTimeMetric[] = [];
 
-    const mockAutomationRules: AutomationRule[] = [
-      {
-        id: '1',
-        name: 'Auto-update completion from SIEM integration',
-        trigger: 'SIEM log volume threshold met',
-        action: 'Update AU.2.041 completion percentage',
-        status: 'active',
-        last_executed: '2024-01-30T10:30:00Z',
-        execution_count: 47
-      },
-      {
-        id: '2',
-        name: 'Milestone progression tracker',
-        trigger: 'Identity management system deployment',
-        action: 'Advance AC.1.001 to next milestone',
-        status: 'active',
-        last_executed: '2024-01-28T14:15:00Z',
-        execution_count: 12
-      }
-    ];
-
-    const mockRealTimeMetrics: RealTimeMetric[] = [
-      {
-        id: '1',
-        poam_id: '1',
-        metric_name: 'User Accounts Migrated',
-        current_value: 187,
-        target_value: 300,
-        trend: 'up',
-        last_updated: '2024-01-30T15:45:00Z'
-      },
-      {
-        id: '2',
-        poam_id: '2',
-        metric_name: 'Log Sources Connected',
-        current_value: 24,
-        target_value: 30,
-        trend: 'up',
-        last_updated: '2024-01-30T15:42:00Z'
-      }
-    ];
-
-    setPOAMItems(enhancedPOAM);
-    setAutomationRules(mockAutomationRules);
-    setRealTimeMetrics(mockRealTimeMetrics);
+    setPOAMItems(pendingPOAM);
+    setAutomationRules(pendingAutomationRules);
+    setRealTimeMetrics(pendingRealTimeMetrics);
   };
 
   const updateRealTimeMetrics = async () => {
+    if (poamItems.length === 0) return;
+
     try {
-      const { data: _data, error } = await supabase.functions.invoke('automated-remediation', {
-        body: { 
+      const { data, error } = await supabase.functions.invoke('automated-remediation', {
+        body: {
           action: 'update_real_time_metrics',
           poam_ids: poamItems.map(item => item.id)
         }
@@ -189,14 +95,23 @@ export const EnhancedPOAMTracker = () => {
 
       if (error) throw error;
 
-      // Simulate real-time updates
-      setRealTimeMetrics(prev => prev.map(metric => ({
-        ...metric,
-        current_value: metric.current_value, // Real value from edge function response above
-        last_updated: new Date().toISOString()
-      })));
+      // Only update metrics that the backend actually returned updated
+      // values for; never fabricate a changed value locally.
+      const updates: Array<{ id: string; current_value: number }> = Array.isArray(data?.metrics)
+        ? data.metrics
+        : [];
 
-      console.log('Real-time metrics updated');
+      if (updates.length === 0) return;
+
+      setRealTimeMetrics(prev => prev.map(metric => {
+        const updated = updates.find(u => u.id === metric.id);
+        if (!updated) return metric;
+        return {
+          ...metric,
+          current_value: updated.current_value,
+          last_updated: new Date().toISOString()
+        };
+      }));
     } catch (error) {
       console.error('Failed to update real-time metrics:', error);
     }

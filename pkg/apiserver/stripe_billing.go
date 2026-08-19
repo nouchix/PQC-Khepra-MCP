@@ -13,9 +13,13 @@
 package apiserver
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,53 +37,77 @@ type StripeConfig struct {
 // Last updated: 2026-07-09 — deconflicted SouHimBou AI vs PQC-Khepra-MCP products.
 //
 // Product ownership:
-//   prod_UhvNflskmq9PoV  → SouHimBou.AI Flight Recorder  (STRIPE_PRODUCT_SOC)
-//   prod_UqvQtvapGfRbcP  → PQC-Khepra-MCP Server          (STRIPE_PRODUCT_MCP)
+//
+//	prod_UhvNflskmq9PoV  → SouHimBou.AI Flight Recorder  (STRIPE_PRODUCT_SOC)
+//	prod_UqvQtvapGfRbcP  → PQC-Khepra-MCP Server          (STRIPE_PRODUCT_MCP)
 var PriceMapping = map[string]string{
 	// SouHimBou AI hosted tiers (souhimbou.ai)
-	"certify":      os.Getenv("STRIPE_PRICE_CERTIFY"),          // $99      one-time
-	"starter":      os.Getenv("STRIPE_PRICE_STARTER"),          // $299/mo  recurring → TierPilot
-	"enterprise":   os.Getenv("STRIPE_PRICE_ENTERPRISE_SOC"),   // $499/mo  recurring → TierEnterprise
-	"professional": os.Getenv("STRIPE_PRICE_PROFESSIONAL"),     // $999/mo  recurring → TierEnterprise
+	"certify":      os.Getenv("STRIPE_PRICE_CERTIFY"),        // $99      one-time
+	"starter":      os.Getenv("STRIPE_PRICE_STARTER"),        // $299/mo  recurring → TierPilot
+	"enterprise":   os.Getenv("STRIPE_PRICE_ENTERPRISE_SOC"), // $499/mo  recurring → TierEnterprise
+	"professional": os.Getenv("STRIPE_PRICE_PROFESSIONAL"),   // $999/mo  recurring → TierEnterprise
 	// PQC-Khepra-MCP Server standalone (air-gapped self-hosted)
-	"sovereign":    os.Getenv("STRIPE_PRICE_MCP_SOVEREIGN"),    // $2,999/mo recurring → TierMaster
+	"sovereign": os.Getenv("STRIPE_PRICE_MCP_SOVEREIGN"), // $2,999/mo recurring → TierMaster
 	// Professional Services (consulting, one-time)
-	"diagnostic":   os.Getenv("STRIPE_PRICE_DIAGNOSTIC"),       // $1,500   one-time
-	"advisory":     os.Getenv("STRIPE_PRICE_ADVISORY"),         // $5,000   one-time
-	"sprint":       os.Getenv("STRIPE_PRICE_SPRINT"),           // $15,000  one-time
+	"diagnostic": os.Getenv("STRIPE_PRICE_DIAGNOSTIC"), // $1,500   one-time
+	"advisory":   os.Getenv("STRIPE_PRICE_ADVISORY"),   // $5,000   one-time
+	"sprint":     os.Getenv("STRIPE_PRICE_SPRINT"),     // $15,000  one-time
+}
+
+// recurringTiers lists which PriceMapping keys are monthly subscriptions vs.
+// one-time charges. Kept in sync with PriceMapping above.
+var recurringTiers = map[string]bool{
+	"starter":      true,
+	"enterprise":   true,
+	"professional": true,
+	"sovereign":    true,
+}
+
+// tierAmountCents mirrors PriceMapping's dollar amounts, in cents, for local
+// display/tracking only — the actual charge is always driven by the Stripe
+// price ID in the real Checkout Session, never by this map.
+var tierAmountCents = map[string]int{
+	"certify":      9900,
+	"starter":      29900,
+	"enterprise":   49900,
+	"professional": 99900,
+	"sovereign":    299900,
+	"diagnostic":   150000,
+	"advisory":     500000,
+	"sprint":       1500000,
 }
 
 // CheckoutSession represents a pending or completed checkout
 type CheckoutSession struct {
-	ID               string    `json:"id"`
-	Tier             string    `json:"tier"`
-	Email            string    `json:"email"`
-	OrganizationID   string    `json:"organization_id,omitempty"`
-	StripeSessionID  string    `json:"stripe_session_id,omitempty"`
-	Status           string    `json:"status"` // "pending", "completed", "cancelled", "expired"
-	Amount           int       `json:"amount"` // cents
-	Currency         string    `json:"currency"`
-	Recurring        bool      `json:"recurring"`
-	CreatedAt        time.Time `json:"created_at"`
-	CompletedAt      *time.Time `json:"completed_at,omitempty"`
+	ID              string     `json:"id"`
+	Tier            string     `json:"tier"`
+	Email           string     `json:"email"`
+	OrganizationID  string     `json:"organization_id,omitempty"`
+	StripeSessionID string     `json:"stripe_session_id,omitempty"`
+	Status          string     `json:"status"` // "pending", "completed", "cancelled", "expired"
+	Amount          int        `json:"amount"` // cents
+	Currency        string     `json:"currency"`
+	Recurring       bool       `json:"recurring"`
+	CreatedAt       time.Time  `json:"created_at"`
+	CompletedAt     *time.Time `json:"completed_at,omitempty"`
 }
 
 // SubscriptionState tracks active subscriptions
 type SubscriptionState struct {
 	mu            sync.RWMutex
-	sessions      map[string]*CheckoutSession  // sessionID → session
+	sessions      map[string]*CheckoutSession    // sessionID → session
 	subscriptions map[string]*ActiveSubscription // stripeSubID → sub
 }
 
 // ActiveSubscription tracks a live Stripe subscription
 type ActiveSubscription struct {
-	StripeSubID    string    `json:"stripe_sub_id"`
-	OrganizationID string    `json:"organization_id"`
-	Tier           string    `json:"tier"`
-	Email          string    `json:"email"`
-	Status         string    `json:"status"` // "active", "past_due", "cancelled"
+	StripeSubID      string    `json:"stripe_sub_id"`
+	OrganizationID   string    `json:"organization_id"`
+	Tier             string    `json:"tier"`
+	Email            string    `json:"email"`
+	Status           string    `json:"status"` // "active", "past_due", "cancelled"
 	CurrentPeriodEnd time.Time `json:"current_period_end"`
-	CreatedAt      time.Time `json:"created_at"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 var stripeState = &SubscriptionState{
@@ -132,18 +160,7 @@ func (s *Server) handleCreateCheckout(c *gin.Context) {
 	}
 
 	sessionID := generateID("cs")
-	now := time.Now()
-
-	amount := map[string]int{
-		"certify":      9900,     // $99.00
-		"starter":      29900,    // $299.00
-		"enterprise":   49900,    // $499.00
-		"professional": 99900,    // $999.00
-		"sovereign":    299900,   // $2,999.00
-		"diagnostic":   150000,   // $1,500.00
-		"advisory":     500000,   // $5,000.00
-		"sprint":       1500000,  // $15,000.00
-	}
+	recurring := recurringTiers[req.Tier]
 
 	session := &CheckoutSession{
 		ID:             sessionID,
@@ -151,13 +168,13 @@ func (s *Server) handleCreateCheckout(c *gin.Context) {
 		Email:          req.Email,
 		OrganizationID: req.OrganizationID,
 		Status:         "pending",
-		Amount:         amount[req.Tier],
+		Amount:         tierAmountCents[req.Tier],
 		Currency:       "usd",
-		Recurring:      req.Tier == "starter" || req.Tier == "enterprise" || req.Tier == "professional" || req.Tier == "sovereign",
+		Recurring:      recurring,
 		CreatedAt:      now,
 	}
 
-	checkoutURL, stripeSessionID, err := createStripeCheckoutSession(secretKey, priceID, sessionID, req.SuccessURL, req.CancelURL, session.Recurring)
+	checkoutURL, stripeSessionID, err := createStripeCheckoutSession(secretKey, priceID, sessionID, req.SuccessURL, req.CancelURL, recurring)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":   "stripe_session_create_failed",
@@ -189,10 +206,10 @@ func (s *Server) handleCreateCheckout(c *gin.Context) {
 // application/x-www-form-urlencoded POST per Stripe's documented API.
 func createStripeCheckoutSession(secretKey, priceID, internalSessionID, successURL, cancelURL string, recurring bool) (checkoutURL, stripeSessionID string, err error) {
 	if successURL == "" {
-		successURL = "https://app.nouchix.com/billing/success?session_id={CHECKOUT_SESSION_ID}"
+		successURL = "https://mcp.souhimbou.ai/billing/success?session_id={CHECKOUT_SESSION_ID}"
 	}
 	if cancelURL == "" {
-		cancelURL = "https://app.nouchix.com/billing/cancelled"
+		cancelURL = "https://mcp.souhimbou.ai/billing/cancelled"
 	}
 
 	mode := "payment"
@@ -357,4 +374,3 @@ func (s *Server) handleGetSubscriptionStatus(c *gin.Context) {
 		"total":         len(subs),
 	})
 }
-

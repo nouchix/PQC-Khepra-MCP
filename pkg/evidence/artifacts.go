@@ -54,7 +54,20 @@ func generateAll(pkg *C3PAOPackage, sig func() string, h func() string) []artifa
 		{Name: "10-personnel-training.md", Content: genPersonnelTraining(pkg, h, sig)},
 		{Name: "11-incident-response.md", Content: genIR(pkg, sig)},
 		{Name: "12-dag-viewer.html", Content: genDAGViewer(pkg, sig)},
+		{Name: "13-oscal-assessment-results.json", Content: mustJSON(buildAssessmentResults(pkg))},
+		{Name: "14-oscal-component-definition.json", Content: mustJSON(buildComponentDefinition(pkg.Generated))},
 	}
+}
+
+// mustJSON marshals an OSCAL document to indented JSON. Marshalling the OSCAL
+// structs cannot fail (no unsupported types), so any error is surfaced inline
+// as a JSON error object rather than aborting the evidence build.
+func mustJSON(v any) []byte {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return []byte(fmt.Sprintf("{\"error\":%q}", err.Error()))
+	}
+	return b
 }
 
 // ─── 00 README ────────────────────────────────────────────────────────────────
