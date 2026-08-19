@@ -258,8 +258,11 @@ func growSlice(b []byte, n int) []byte {
 	//
 	// Instead use the append-make pattern with a nil slice to ensure that
 	// we allocate buffers rounded up to the closest size class.
+	if n < 0 || len(b) > maxInt-n {
+		panic(ErrTooLarge)
+	}
 	c := len(b) + n // ensure enough space for n elements
-	if c < 2*cap(b) {
+	if cap(b) <= maxInt/2 && c < 2*cap(b) {
 		// The growth rate has historically always been 2x. In the future,
 		// we could rely purely on append to determine the growth rate.
 		c = 2 * cap(b)
