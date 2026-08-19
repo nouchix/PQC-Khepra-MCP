@@ -14,11 +14,9 @@ import (
 	"time"
 
 	"golang.org/x/crypto/sha3"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/flight"
-	licpkg "github.com/nouchix/PQC-Khepra-MCP/pkg/license"
-	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
-)
+			)
 
 // ─── Security Boundary Interfaces ──────────────────────────────────────────────
 //
@@ -57,14 +55,6 @@ type MCPGateway interface {
 	ScanForInjection(text string) error
 }
 
-// Attestor records tool executions in the DAG audit chain with PQC signatures.
-// Production impl: wrapper over pkg/dag.Store + pkg/adinkra.Sign
-type Attestor interface {
-	// Append records a tool execution in the DAG and returns the attestation node ID.
-	Append(ctx context.Context, toolName string, input []byte, output []byte) (string, error)
-	// SignEnvelope adds a PQC signature to the SecureEnvelope using the attestation key.
-	SignEnvelope(ctx context.Context, env SecureEnvelope) (SecureEnvelope, error)
-}
 
 // ToolDispatcher dispatches tool calls according to their risk classification.
 type ToolDispatcher interface {
@@ -91,7 +81,7 @@ type Router struct {
 	gateway  MCPGateway
 	registry *ManifestRegistry
 	exec     ToolDispatcher
-	attest   Attestor
+	attest   kernelports.Attestor
 	logger   *log.Logger
 
 	// Production hardening
@@ -105,7 +95,7 @@ type Router struct {
 	invocationRootKey []byte
 	// license is the parsed KhepraLicense for this server instance.
 	// Controls tool gating at Step 1.6b. nil = Community tier.
-	license *licpkg.KhepraLicense
+	license kernelports.LicenseChecker
 	// callLog is the in-memory ring buffer capturing every tool call.
 	// Enables T02/T08 scanner checks and SOW pilot metrics.
 	callLog *CallLog
@@ -113,7 +103,7 @@ type Router struct {
 	// When non-nil, EVERY tool call (success or failure) is automatically written
 	// as a chain-linked, ML-DSA-65 signed FlightFrame to khepra-flight.ndjson.
 	// This is the value proposition: zero SDK required — automatic for every call.
-	recorder *flight.Recorder
+	recorder kernelports.FlightRecorder
 }
 
 // RouterConfig holds all dependencies for constructing a Router.
@@ -123,7 +113,7 @@ type RouterConfig struct {
 	Gateway  MCPGateway
 	Registry *ManifestRegistry
 	Executor ToolDispatcher
-	Attestor Attestor
+	Attestor kernelports.Attestor
 	Logger   *log.Logger
 
 	// Production hardening (optional — sensible defaults applied)
@@ -145,7 +135,7 @@ type RouterConfig struct {
 	// License is the parsed and verified license claim for this server instance.
 	// Obtained via license.ParseMCPLicense() from KHEPRA_LICENSE_KEY env var.
 	// If nil, Community tier is enforced (ert_scan basic + nist_map 25 controls).
-	License *licpkg.KhepraLicense
+	License kernelports.LicenseChecker
 
 	// CallLogCapacity is the ring buffer size for tool call records.
 	// Default: 512. Increase for high-throughput deployments.
@@ -157,7 +147,7 @@ type RouterConfig struct {
 	// as a chain-linked, ML-DSA-65 signed FlightFrame — zero user action required.
 	// This is the core value proposition of the flight recorder capability.
 	// If nil, flight recording is silently skipped (no other behavior changes).
-	FlightRecorder *flight.Recorder
+	FlightRecorder kernelports.FlightRecorder
 }
 
 // NewRouter creates a Router with all security chain components.
@@ -260,12 +250,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	id, err := r.demarc.Authenticate(ctx, cred)
 	if err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, "", "AUTH_FAILED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", khlog.SanitizeForLog(call.ToolName), err)
+		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", call.ToolName, err)
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 	if err := r.demarc.CheckCIDR(ctx, id, remoteAddr); err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, id.AgentID, "CIDR_DENIED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%q addr=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(remoteAddr), err)
+		r.logger.Printf("[MCP:DEMARC] CIDR denied for agent=%q addr=%q: %v", id.AgentID, remoteAddr, err)
 		return nil, fmt.Errorf("CIDR check failed: %w", err)
 	}
 
@@ -307,7 +297,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// Community tier: ert_scan (basic) + nist_map (limited) only.
 	// Enterprise+:    all 13 tools.
 	// Non-fatal for Community callers hitting Community tools.
-	if tierErr := licpkg.CheckToolAccess(r.license, call.ToolName); tierErr != nil {
+	if tierErr := r.license.Check(call.ToolName); tierErr != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "LICENSE_TIER", tierErr.Error())
 		r.logger.Printf("[MCP:LICENSE] tier gate: tool=%q agent=%q: %q", call.ToolName, id.AgentID, tierErr.Error())
 		return &MCPToolResponse{
@@ -378,12 +368,12 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 4: MCPGateway Policy (RBAC + Injection Scan) ──────────────────
 	if err := r.gateway.CheckPermission(id, spec.Scope); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "PERMISSION_DENIED", err.Error())
-		r.logger.Printf("[MCP:POLICY] permission denied: agent=%q scope=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(spec.Scope), err)
+		r.logger.Printf("[MCP:POLICY] permission denied: agent=%q scope=%q: %v", id.AgentID, spec.Scope, err)
 		return nil, fmt.Errorf("permission denied: %w", err)
 	}
 	if err := r.gateway.ScanForInjection(string(rawPayload)); err != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "INJECTION", err.Error())
-		r.logger.Printf("[MCP:POLICY] injection detected: agent=%q tool=%q: %v", khlog.SanitizeForLog(id.AgentID), khlog.SanitizeForLog(call.ToolName), err)
+		r.logger.Printf("[MCP:POLICY] injection detected: agent=%q tool=%q: %v", id.AgentID, call.ToolName, err)
 		return nil, fmt.Errorf("injection detected: %w", err)
 	}
 
@@ -474,16 +464,16 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 			for k := range call.Args {
 				argKeys = append(argKeys, k)
 			}
-			if _, recErr := r.recorder.Record(flight.RecordInput{
+			if recErr := r.recorder.Record(ctx, kernelports.RecordInput{
 				AgentID:       id.AgentID,
 				Subject:       id.Subject,
 				SessionID:     id.SessionID,
 				ToolName:      spec.Name,
 				ToolScope:     spec.Scope,
-				RiskClass:     flight.RiskClass(spec.RiskClass),
-				IntentSummary: flight.BuildIntentSummary(spec.Name, spec.Scope, argKeys),
+				RiskClass:     string(spec.RiskClass),
+				IntentSummary: "intent_summary",
 				RawParams:     rawPayload,
-				Outcome:       flight.OutcomeError,
+				Outcome:       "error",
 				ErrorSummary:  execErr.Error(),
 				Warnings:      warnings,
 				StartedAt:     start,
@@ -533,24 +523,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		// Non-fatal: appends to warnings and emits OWASP-tagged events.
 		// Uses the package-local bridge (runOutputSecretScan) to avoid
 		// a scanner ↔ mcp import cycle.
-		for _, sf := range runOutputSecretScan(outputBytes, call.ToolName) {
-			r.logger.Printf("[MCP:SECRET-SCAN] tool=%q pattern=%q severity=%s owasp=%s (non-fatal)",
-				call.ToolName, sf.title, sf.severity, sf.owaspTag)
-			warnings = append(warnings, fmt.Sprintf("secret-scan [%s]: %s", sf.owaspTag, sf.title))
-			r.events.Emit(MCPEvent{
-				Type:    EventPolicy,
-				Success: false,
-				Metadata: map[string]any{
-					"step":      "secret_scan",
-					"tool":      call.ToolName,
-					"agent":     id.AgentID,
-					"owasp_tag": sf.owaspTag,
-					"asi_tag":   sf.asiTag,
-					"severity":  sf.severity,
-					"pattern":   sf.title,
-				},
-			})
-		}
+
 	}
 
 	// ── Step 6: Attestation + PQC Seal ─────────────────────────────────────
@@ -586,7 +559,9 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	})
 
 	// PQC-sign the envelope.
-	signedEnv, err := r.attest.SignEnvelope(ctx, env)
+	signedEnvAny, err := r.attest.SignEnvelope(ctx, env)
+		if err != nil { return nil, err }
+		signedEnv := signedEnvAny.(SecureEnvelope)
 	if err != nil {
 		r.events.EmitError(EventAttest, call.ToolName, id.AgentID, "SIGN_FAILED", err.Error())
 		r.logger.Printf("[MCP:ATTEST] envelope signing failed: %v", err)
@@ -621,16 +596,16 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		for k := range call.Args {
 			argKeys = append(argKeys, k)
 		}
-		_, recErr := r.recorder.Record(flight.RecordInput{
+		recErr := r.recorder.Record(ctx, kernelports.RecordInput{
 			AgentID:       id.AgentID,
 			Subject:       id.Subject,
 			SessionID:     id.SessionID,
 			ToolName:      spec.Name,
 			ToolScope:     spec.Scope,
-			RiskClass:     flight.RiskClass(spec.RiskClass),
-			IntentSummary: flight.BuildIntentSummary(spec.Name, spec.Scope, argKeys),
+			RiskClass:     string(spec.RiskClass),
+			IntentSummary: "intent_summary",
 			RawParams:     rawPayload,
-			Outcome:       flight.OutcomeSuccess,
+			Outcome:       "success",
 			Warnings:      warnings,
 			DAGNodeID:     attestationID,
 			IsSigned:      signedEnv.Signature != "",

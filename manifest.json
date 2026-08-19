@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
-  "revision": "build-1783825404",
-  "generated_at": "2026-07-12T03:03:24Z",
+  "revision": "build-1786852379",
+  "generated_at": "2026-08-16T03:52:59Z",
   "hash_algorithm": "SHA-256",
   "public_key_id": "9ef5ea773e0a35b5",
   "tools": [
@@ -15,7 +15,8 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "pro"
     },
     {
       "name": "acp_issue",
@@ -28,6 +29,7 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": true,
+      "tier": "pro",
       "args_schema": {
         "properties": {
           "agent_id": {
@@ -66,6 +68,7 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": true,
+      "tier": "pro",
       "args_schema": {
         "properties": {
           "credential_id": {
@@ -89,7 +92,8 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "pro"
     },
     {
       "name": "nhi_orphans",
@@ -101,7 +105,8 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "pro"
     },
     {
       "name": "nhi_excessive",
@@ -114,6 +119,7 @@
       "timeout_ms": 5000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "pro",
       "args_schema": {
         "properties": {
           "max_scopes": {
@@ -138,7 +144,8 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "pro"
     },
     {
       "name": "nhi_revoke",
@@ -151,6 +158,7 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": true,
+      "tier": "pro",
       "args_schema": {
         "properties": {
           "nhi_id": {
@@ -175,6 +183,7 @@
       "timeout_ms": 90000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "framework": {
@@ -182,7 +191,7 @@
             "type": "string"
           },
           "image_ref": {
-            "description": "Container image to scan (overrides project_path)",
+            "description": "Container image to scan",
             "type": "string"
           },
           "lanes": {
@@ -202,7 +211,7 @@
     },
     {
       "name": "ert_readiness",
-      "description": "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap. Air-gap safe.",
+      "description": "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap.",
       "risk_class": "read_only",
       "scope": "ert:compliance",
       "schema_version": "1.0.0",
@@ -211,6 +220,7 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -223,7 +233,7 @@
     },
     {
       "name": "ert_architect",
-      "description": "Package B: Live supply chain risk — Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping. Requires syft+grype in PATH.",
+      "description": "Package B: Live supply chain risk — Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping.",
       "risk_class": "read_only",
       "scope": "ert:supply-chain",
       "schema_version": "1.0.0",
@@ -232,6 +242,7 @@
       "timeout_ms": 300000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -253,6 +264,7 @@
       "timeout_ms": 180000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -274,6 +286,7 @@
       "timeout_ms": 300000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -283,155 +296,6 @@
         },
         "type": "object"
       }
-    },
-    {
-      "name": "dag_attestation",
-      "description": "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
-      "risk_class": "read_only",
-      "scope": "dag:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "9524d2458d5911f9e40ca2990b9624adc9813695c8cadc0bef6fcf25bd7ab871",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false
-    },
-    {
-      "name": "godfather_report",
-      "description": "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
-      "risk_class": "read_only",
-      "scope": "compliance:report",
-      "schema_version": "1.0.0",
-      "schema_hash": "204967014a373a01309d8f67b475d1befa91d32cbbf1664d1d6fc4541465e9e0",
-      "allowed_backend": "in-process",
-      "timeout_ms": 30000,
-      "network_allowed": false,
-      "destructive": false,
-      "args_schema": {
-        "properties": {
-          "approval_required": {
-            "description": "Stage report for human review before delivery (default: false)",
-            "type": "boolean"
-          },
-          "engagement_id": {
-            "description": "Optional engagement/ticket ID for traceability",
-            "type": "string"
-          },
-          "framework": {
-            "description": "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
-            "type": "string"
-          },
-          "scope": {
-            "description": "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      }
-    },
-    {
-      "name": "godfather_approve",
-      "description": "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
-      "risk_class": "read_only",
-      "scope": "compliance:report",
-      "schema_version": "1.0.0",
-      "schema_hash": "b5d6439e8bb1db66a872a6c4bf9da5cdbb9e7efe0567993b2103677d99107371",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "args_schema": {
-        "properties": {
-          "staged_token": {
-            "description": "Token returned by godfather_report when approval_required=true",
-            "type": "string"
-          }
-        },
-        "required": [
-          "staged_token"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "nist_map",
-      "description": "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
-      "risk_class": "read_only",
-      "scope": "compliance:read",
-      "schema_version": "1.0.0",
-      "schema_hash": "63a0a8f837896e84384160a2bdc4bb825371253423763019451506fa819b9557",
-      "allowed_backend": "in-process",
-      "timeout_ms": 5000,
-      "network_allowed": false,
-      "destructive": false,
-      "args_schema": {
-        "properties": {
-          "framework": {
-            "description": "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
-            "type": "string"
-          },
-          "query": {
-            "description": "Search query (e.g. 'multi-factor authentication', 'encryption at rest')",
-            "type": "string"
-          },
-          "top_k": {
-            "description": "Max results to return (default: 10, max: 50)",
-            "type": "number"
-          }
-        },
-        "required": [
-          "query"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "khepra_watch",
-      "description": "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes. Satisfies CMMC AC.2.006, CM.2.061, SI.2.217.",
-      "risk_class": "read_only",
-      "scope": "compliance:monitor",
-      "schema_version": "1.0.0",
-      "schema_hash": "b1fa86ecfd4a13e3ce2492a53c878ed52a623e07e8466524da8da7311ead4006",
-      "allowed_backend": "in-process",
-      "timeout_ms": 10000,
-      "network_allowed": false,
-      "destructive": false,
-      "args_schema": {
-        "properties": {
-          "action": {
-            "description": "Action: register | status | unregister",
-            "type": "string"
-          },
-          "framework": {
-            "description": "Compliance framework for triggered scans",
-            "type": "string"
-          },
-          "path": {
-            "description": "Filesystem path to watch",
-            "type": "string"
-          },
-          "watch_id": {
-            "description": "Watch ID (for status/unregister)",
-            "type": "string"
-          }
-        },
-        "required": [
-          "action"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "name": "discover_assets",
-      "description": "Step 01 — Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
-      "risk_class": "read_only",
-      "scope": "asset:discover",
-      "schema_version": "1.0.0",
-      "schema_hash": "e340878acf84ed5d0ab328df1dade4ec0bf637d9a1c90bb0ade091f7e4f19c74",
-      "allowed_backend": "in-process",
-      "timeout_ms": 60000,
-      "network_allowed": false,
-      "destructive": false
     },
     {
       "name": "stig_check",
@@ -444,6 +308,7 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "framework": {
@@ -465,6 +330,7 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "community",
       "args_schema": {
         "properties": {
           "profile": {
@@ -490,6 +356,7 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "level": {
@@ -501,48 +368,113 @@
       }
     },
     {
-      "name": "agent_record",
-      "description": "Record an agent action in the SouHimBou AI Flight Recorder. In sovereign mode, records to PQC-signed DAG audit log. Required for AI flight recorder compliance evidence.",
+      "name": "nist_map",
+      "description": "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed.",
       "risk_class": "read_only",
-      "scope": "audit:write",
+      "scope": "compliance:read",
       "schema_version": "1.0.0",
-      "schema_hash": "48867265e7c92b0b9bcc8644edd78d1ec621bbfa8864745b543422c2c0c480cc",
+      "schema_hash": "63a0a8f837896e84384160a2bdc4bb825371253423763019451506fa819b9557",
       "allowed_backend": "in-process",
-      "timeout_ms": 15000,
+      "timeout_ms": 5000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "community",
       "args_schema": {
         "properties": {
-          "action": {
-            "description": "Agent action to record",
+          "framework": {
+            "description": "Filter by framework: NIST-800-53, NIST-800-171, CMMC-L2, STIG (default: all)",
             "type": "string"
           },
-          "agent_id": {
-            "description": "Agent identifier",
+          "query": {
+            "description": "Search query (e.g. 'multi-factor authentication')",
             "type": "string"
           },
-          "metadata": {
-            "description": "Additional metadata",
-            "type": "object"
+          "top_k": {
+            "description": "Max results to return (default: 10, max: 50)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "dag_attestation",
+      "description": "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain.",
+      "risk_class": "read_only",
+      "scope": "dag:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "9524d2458d5911f9e40ca2990b9624adc9813695c8cadc0bef6fcf25bd7ab871",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "godfather_report",
+      "description": "Generate an executive compliance report covering CMMC/STIG/NIST frameworks. When approval_required=true, returns a staged token — the full report is held until a human calls godfather_approve (30-min TTL).",
+      "risk_class": "read_only",
+      "scope": "compliance:report",
+      "schema_version": "1.0.0",
+      "schema_hash": "204967014a373a01309d8f67b475d1befa91d32cbbf1664d1d6fc4541465e9e0",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "pro",
+      "args_schema": {
+        "properties": {
+          "approval_required": {
+            "description": "Stage report for human review before delivery (default: false)",
+            "type": "boolean"
           },
-          "session_id": {
-            "description": "Session identifier",
+          "engagement_id": {
+            "description": "Optional engagement/ticket ID for traceability",
             "type": "string"
           },
-          "tool_name": {
-            "description": "Tool that was invoked",
+          "framework": {
+            "description": "Compliance framework: CMMC-L2, NIST-800-171, NIST-800-53 (default: CMMC-L2)",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Control family scope: all, AC, AU, CM, IA, SC, SI (default: all)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "godfather_approve",
+      "description": "Deliver a staged executive compliance report. Requires the staged_token returned by godfather_report. Single-use — token is consumed on delivery.",
+      "risk_class": "read_only",
+      "scope": "compliance:report",
+      "schema_version": "1.0.0",
+      "schema_hash": "b5d6439e8bb1db66a872a6c4bf9da5cdbb9e7efe0567993b2103677d99107371",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "pro",
+      "args_schema": {
+        "properties": {
+          "staged_token": {
+            "description": "Token returned by godfather_report when approval_required=true",
             "type": "string"
           }
         },
         "required": [
-          "action"
+          "staged_token"
         ],
         "type": "object"
       }
     },
     {
       "name": "khepra_export_attestation",
-      "description": "Export PQC-signed attestation package covering all active compliance frameworks. No network required. C3PAO-ready evidence artifact — ML-DSA-65 signed, DAG-anchored, NIST SP 800-171A compliant.",
+      "description": "Export PQC-signed attestation package covering all active compliance frameworks. C3PAO-ready evidence artifact — ML-DSA-65 signed, DAG-anchored.",
       "risk_class": "read_only",
       "scope": "compliance:attest",
       "schema_version": "1.0.0",
@@ -551,6 +483,7 @@
       "timeout_ms": 120000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "pro",
       "args_schema": {
         "properties": {
           "project_path": {
@@ -563,7 +496,7 @@
     },
     {
       "name": "khepra_export_poam",
-      "description": "Export a DFARS 252.204-7012 POA\u0026M (Plan of Action \u0026 Milestones) from the current DAG state. Maps open findings to remediation timelines. Required for CMMC conditional certification.",
+      "description": "Export a DFARS 252.204-7012 POA\u0026M (Plan of Action \u0026 Milestones) from the current DAG state. Maps open findings to remediation timelines.",
       "risk_class": "read_only",
       "scope": "compliance:poam",
       "schema_version": "1.0.0",
@@ -571,11 +504,12 @@
       "allowed_backend": "in-process",
       "timeout_ms": 30000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "pro"
     },
     {
       "name": "khepra_query_stig",
-      "description": "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls, and CMMC practices by ID or keyword.",
+      "description": "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls by ID or keyword.",
       "risk_class": "read_only",
       "scope": "compliance:read",
       "schema_version": "1.0.0",
@@ -584,6 +518,7 @@
       "timeout_ms": 5000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "control_id": {
@@ -616,11 +551,12 @@
       "allowed_backend": "in-process",
       "timeout_ms": 5000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "enterprise"
     },
     {
       "name": "khepra_query_threat_intel",
-      "description": "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT\u0026CK mappings, and CNSA 2.0 quantum impact.",
+      "description": "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT\u0026CK mappings.",
       "risk_class": "read_only",
       "scope": "threat:read",
       "schema_version": "1.0.0",
@@ -629,6 +565,7 @@
       "timeout_ms": 10000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "cve_id": {
@@ -665,11 +602,103 @@
       "allowed_backend": "in-process",
       "timeout_ms": 10000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "khepra_watch",
+      "description": "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes.",
+      "risk_class": "read_only",
+      "scope": "compliance:monitor",
+      "schema_version": "1.0.0",
+      "schema_hash": "b1fa86ecfd4a13e3ce2492a53c878ed52a623e07e8466524da8da7311ead4006",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Action: register | status | unregister",
+            "type": "string"
+          },
+          "framework": {
+            "description": "Compliance framework for triggered scans",
+            "type": "string"
+          },
+          "path": {
+            "description": "Filesystem path to watch",
+            "type": "string"
+          },
+          "watch_id": {
+            "description": "Watch ID (for status/unregister)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "discover_assets",
+      "description": "Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles.",
+      "risk_class": "read_only",
+      "scope": "asset:discover",
+      "schema_version": "1.0.0",
+      "schema_hash": "e340878acf84ed5d0ab328df1dade4ec0bf637d9a1c90bb0ade091f7e4f19c74",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "agent_record",
+      "description": "Record an agent action in the SouHimBou AI Flight Recorder. Records to PQC-signed DAG audit log.",
+      "risk_class": "read_only",
+      "scope": "audit:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "48867265e7c92b0b9bcc8644edd78d1ec621bbfa8864745b543422c2c0c480cc",
+      "allowed_backend": "in-process",
+      "timeout_ms": 15000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Agent action to record",
+            "type": "string"
+          },
+          "agent_id": {
+            "description": "Agent identifier",
+            "type": "string"
+          },
+          "metadata": {
+            "description": "Additional metadata",
+            "type": "object"
+          },
+          "session_id": {
+            "description": "Session identifier",
+            "type": "string"
+          },
+          "tool_name": {
+            "description": "Tool that was invoked",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      }
     },
     {
       "name": "flight_export",
-      "description": "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls, verifies tamper chain, computes SOW pilot KPIs.",
+      "description": "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls.",
       "risk_class": "read_only",
       "scope": "audit:read",
       "schema_version": "1.0.0",
@@ -677,11 +706,12 @@
       "allowed_backend": "in-process",
       "timeout_ms": 30000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "enterprise"
     },
     {
       "name": "owasp_agent_assess",
-      "description": "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence packet. 100% offline.",
+      "description": "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence.",
       "risk_class": "read_only",
       "scope": "security:assess",
       "schema_version": "1.0.0",
@@ -690,6 +720,7 @@
       "timeout_ms": 30000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "profile": {
@@ -702,7 +733,7 @@
     },
     {
       "name": "dark_crypto_contribute",
-      "description": "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. No sensitive data leaves the machine. Returns global quantum exposure rank.",
+      "description": "Privacy-preserving contribution of anonymized cryptographic inventory to the Global Quantum Exposure Network. Returns aggregate quantum risk ranking.",
       "risk_class": "read_only",
       "scope": "community:contribute",
       "schema_version": "1.0.0",
@@ -710,11 +741,12 @@
       "allowed_backend": "in-process",
       "timeout_ms": 30000,
       "network_allowed": false,
-      "destructive": false
+      "destructive": false,
+      "tier": "enterprise"
     },
     {
       "name": "sbom_generate",
-      "description": "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations. Falls back to go.mod/requirements.txt walk when syft is not in PATH.",
+      "description": "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations.",
       "risk_class": "read_only",
       "scope": "sbom:generate",
       "schema_version": "1.0.0",
@@ -723,6 +755,7 @@
       "timeout_ms": 180000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "community",
       "args_schema": {
         "properties": {
           "format": {
@@ -739,7 +772,7 @@
     },
     {
       "name": "threat_model",
-      "description": "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT\u0026CK mappings. Detects project technology profile and produces a context-aware threat catalog. 100% offline.",
+      "description": "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT\u0026CK mappings. 100% offline.",
       "risk_class": "read_only",
       "scope": "threat:model",
       "schema_version": "1.0.0",
@@ -748,6 +781,7 @@
       "timeout_ms": 60000,
       "network_allowed": false,
       "destructive": false,
+      "tier": "enterprise",
       "args_schema": {
         "properties": {
           "framework": {
@@ -759,6 +793,1051 @@
             "type": "string"
           }
         },
+        "type": "object"
+      }
+    },
+    {
+      "name": "kasa_start",
+      "description": "Start the KASA autonomous security agent. Launches: vulnerability hunting hourly, internal pentest daily (NIST 800-53 CA-8), CMMC compliance audit daily. Every action is DAG-attested.",
+      "risk_class": "destructive",
+      "scope": "kasa:control",
+      "schema_version": "1.0.0",
+      "schema_hash": "c7df27c9945dfc26b616c6b132b9b20ab7341904e581cd8da50cf8b8dc2fa6cc",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise"
+    },
+    {
+      "name": "kasa_status",
+      "description": "Check current status of the KASA autonomous agent: uptime, active tasks, threat score, and EA kernel generation.",
+      "risk_class": "read_only",
+      "scope": "kasa:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "dd5a2e99dd41449c054ad0f2a309a828be85e0b8c0b6587f51ec0a59e649ebb4",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "kasa_task",
+      "description": "Inject a security directive into the KASA task queue, bound to an Adinkra symbol (Eban=defense, Sankofa=forensics, OwoForoAdobe=vigilance, Dwennimmen=remediation). Executed within KASA's next cognitive cycle (≤5s).",
+      "risk_class": "read_only",
+      "scope": "kasa:control",
+      "schema_version": "1.0.0",
+      "schema_hash": "aa280de8503b325988d220b0b73ac61f36ff0b7f72cfaa851afa1c64156854a9",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "description": {
+            "description": "Task directive for KASA to execute",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Adinkra symbol binding (default: Eban)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "kasa_scan",
+      "description": "Run KASA's port/service scanner against a target, with AI threat analysis. Maps to MITRE ATT\u0026CK T1046. Every finding is DAG-attested with ML-DSA-65.",
+      "risk_class": "read_only",
+      "scope": "kasa:scan",
+      "schema_version": "1.0.0",
+      "schema_hash": "39bb99749b25fabdb7d5b2888389a5f148f5c8eea198c86ae556e16a52e96732",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Scan target (default: 127.0.0.1)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "khepra_edge_exec",
+      "description": "Execute a command securely on a remote KHEPRA Sentinel node via Bolt protocol. Requires explicit edge node authorization.",
+      "risk_class": "destructive",
+      "scope": "edge:exec",
+      "schema_version": "1.0.0",
+      "schema_hash": "8722c772294a7f4358b0272bb8bd1cd99b5942c93f0dc2ab0ae574095132eacb",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "agent_id": {
+            "description": "Sentinel edge node identifier",
+            "type": "string"
+          },
+          "command": {
+            "description": "Command or playbook to execute",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "command"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "kasa_forensics",
+      "description": "Trigger an immediate KASA forensic snapshot — processes, network connections, open ports, file hashes — compared against the last snapshot for anomaly detection. DAG-attested under symbol Sankofa.",
+      "risk_class": "read_only",
+      "scope": "kasa:forensics",
+      "schema_version": "1.0.0",
+      "schema_hash": "cb3c2f802720527b2263d50a98bcd6ed99e15dd4c7c3e30cbb59198797962ebc",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "kasa_crypto_agent",
+      "description": "Run the KASA Crypto Agent: detects tampering via entropy/structural feature analysis, computes a threat level, and auto-quarantines components above the Critical threshold with PQC-sealed forensic snapshots.",
+      "risk_class": "read_only",
+      "scope": "kasa:crypto",
+      "schema_version": "1.0.0",
+      "schema_hash": "085f1a549315793a06eb3f6298cefa021d1005ecb588d03e65957fb85ccf7a09",
+      "allowed_backend": "in-process",
+      "timeout_ms": 15000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "component_id": {
+            "description": "Component identifier to check for tampering (default: PQC-Khepra-MCP)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ea_evolve",
+      "description": "Run Evolutionary Algorithm threat evolution. Optimizes for: NIST 800-171 control coverage, PQC readiness, threat posture. Returns the fittest genome with Adinkra symbol binding.",
+      "risk_class": "read_only",
+      "scope": "kasa:evolve",
+      "schema_version": "1.0.0",
+      "schema_hash": "76b6b79bd14d54d59f094716cf3449cb1cdb108db4bfa8e59d91c8cac92f1beb",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "generations": {
+            "description": "Number of EA generations (default: 10)",
+            "type": "number"
+          },
+          "population_size": {
+            "description": "Population size (default: 50)",
+            "type": "number"
+          },
+          "target": {
+            "description": "Target to evolve against (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ea_threat_score",
+      "description": "Calculate a composite threat score for a target using the EA kernel. Returns CVSS-band score, confidence interval, and contributing factors.",
+      "risk_class": "read_only",
+      "scope": "kasa:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "ea1deae4db438f500d33a4f1b6ea8c91ea7b46a61f651cd1bd740450c9d5917e",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Target to score (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "ea_risk_summary",
+      "description": "Synthesize EA-driven risk summary: vulnerability exposure, compliance gap, PQC migration cost, blast radius. Same engine as Godfather Report.",
+      "risk_class": "read_only",
+      "scope": "kasa:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "1d09ead7cc31f065fe5c62502eef8f6b7700e4dcd6a12d79f6972d4841880eba",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Target to summarize (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "quantum_optimize",
+      "description": "Run Ising model quantum-inspired optimization for attack surface analysis. Simulates quantum annealing to find optimal defense configuration.",
+      "risk_class": "read_only",
+      "scope": "kasa:quantum",
+      "schema_version": "1.0.0",
+      "schema_hash": "4b8274671ba0c7c17a928d1c879ade03c91d2b94182d5cc67b949bcd2dbe07d4",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Target system to optimize (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "threat_lookup",
+      "description": "Look up a CVE, IP, or domain against embedded CISA KEV + MITRE ATT\u0026CK databases. Returns CVE details, CVSS/EPSS scores, ATT\u0026CK TTP mapping.",
+      "risk_class": "read_only",
+      "scope": "threat:lookup",
+      "schema_version": "1.0.0",
+      "schema_hash": "08b4d755a9604224e7c5b5cf9c0826fc5caaa7a9ace8998f22e95411c1cf707f",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "query": {
+            "description": "CVE ID, IP address, domain, or keyword to look up",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "drift_detect",
+      "description": "Detect configuration drift between current state and a signed baseline. Uses the KHEPRA DriftEngine with Adinkra symbol binding.",
+      "risk_class": "read_only",
+      "scope": "compliance:drift",
+      "schema_version": "1.0.0",
+      "schema_hash": "acaf9cd8e6850c5c023eca1d507e59990b40a088693ce5d5da62c9b16e805505",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "ir_incident",
+      "description": "Create a new incident in the KHEPRA IR Manager. Every incident is ML-DSA-65 signed at creation and DAG-attested.",
+      "risk_class": "destructive",
+      "scope": "ir:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "f952bb22badf6a0836ba09e50175fdc8ea0bedd0007f8cb4d01b2a72c2608ffa",
+      "allowed_backend": "in-process",
+      "timeout_ms": 15000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "description": {
+            "description": "Incident description",
+            "type": "string"
+          },
+          "severity": {
+            "description": "Severity: critical | high | medium | low",
+            "type": "string"
+          },
+          "title": {
+            "description": "Incident title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "severity"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ir_add_ioc",
+      "description": "Add an Indicator of Compromise to an existing incident. The IOC is ML-DSA-65 signed and DAG-recorded.",
+      "risk_class": "destructive",
+      "scope": "ir:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "f719e9b36e74986ea997b00720acc262c9123690435e7df73064ee8f05f9c9fd",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "incident_id": {
+            "description": "Incident ID to attach IOC to",
+            "type": "string"
+          },
+          "ioc_type": {
+            "description": "IOC type: ip | domain | hash | url | email",
+            "type": "string"
+          },
+          "value": {
+            "description": "IOC value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "incident_id",
+          "ioc_type",
+          "value"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "flight_record",
+      "description": "Record an agent tool call to the SouHimBou AI Flight Recorder with cryptographic attestation. Creates a cryptographically verifiable audit trail.",
+      "risk_class": "read_only",
+      "scope": "audit:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "5963b963f5a2c287055063308845c6e0ffb8146e0462fba76ea0f151b8e0684f",
+      "allowed_backend": "in-process",
+      "timeout_ms": 15000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "outcome": {
+            "description": "Outcome: success | failure | partial",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Scope/context of the call",
+            "type": "string"
+          },
+          "tool_name": {
+            "description": "Name of the tool that was called",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "ouroboros_waf_eye",
+      "description": "Ouroboros WAF Eye — real-time web application firewall status from the Mitochondrial API Server. Returns blocked requests, threat patterns, and active rules.",
+      "risk_class": "read_only",
+      "scope": "ouroboros:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "fa0e9d0f1150c80afac15a7fb1ede894e3d9c7060d14d38ff0ae9f18ad3bb1fe",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "ouroboros_stig_eye",
+      "description": "Ouroboros STIG Eye — continuous STIG compliance monitoring status. Returns current compliance posture and drift alerts.",
+      "risk_class": "read_only",
+      "scope": "ouroboros:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "ccc13d9609e327365dcf030ccf1710f1b96ea5c81b4611c57506a128566110b9",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "ouroboros_vuln_eye",
+      "description": "Ouroboros Vuln Eye — continuous vulnerability scanning status. Returns active CVEs, EPSS scores, and remediation priority.",
+      "risk_class": "read_only",
+      "scope": "ouroboros:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "8a5178c7e75caf08b0bc815109630fe728e193d1a1e43abaefba185f5a75d562",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "ouroboros_fim_eye",
+      "description": "Ouroboros FIM Eye — file integrity monitoring status. Returns hash baseline comparison and drift alerts.",
+      "risk_class": "read_only",
+      "scope": "ouroboros:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "611cb6c5f15eea92a2cece2b8334b5d7aac6fb02f00a3c3b36936085a41ecb92",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "forensic_snapshot",
+      "description": "Collect a DFIR-grade forensic snapshot: processes, network connections, loaded modules, environment variables. ML-DSA-65 signed, DAG-attested.",
+      "risk_class": "read_only",
+      "scope": "forensics:collect",
+      "schema_version": "1.0.0",
+      "schema_hash": "9bdf7bb0f71fde3d25cb77d8a095d81d21a4003668bf8d65fd313a9310fd3435",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "fim_baseline",
+      "description": "Create a file integrity monitoring baseline. Monitors critical paths using SHA-256 hash baselines. Baseline is DAG-attested.",
+      "risk_class": "read_only",
+      "scope": "fim:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "b5a6eeb3a93ea29686a53bbee84e30df2c3aae07edec83579b89435557d1f201",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "path": {
+            "description": "Directory path to baseline",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "audit_dag_integrity",
+      "description": "Full integrity audit of the KASA DAG. Verifies: node count, parent linkage, PQC metadata completeness, and signature chain.",
+      "risk_class": "read_only",
+      "scope": "dag:audit",
+      "schema_version": "1.0.0",
+      "schema_hash": "7e0ffc37ddea8dd9159c67fdd0b1353403f40314d021cb4b082d0066cfd25847",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "enumerate_host",
+      "description": "Enumerate host information: OS, kernel, network interfaces, running services, users, installed packages. MITRE ATT\u0026CK T1082.",
+      "risk_class": "read_only",
+      "scope": "recon:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "fb0e390413f3d5c9e31ed5d9da7b5679f44626bad88ed0cc7d2e3ea8bd10e78e",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Target host (default: localhost)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "fingerprint_device",
+      "description": "Fingerprint a network device: OS detection, service banners, protocol analysis. MITRE ATT\u0026CK T1046.",
+      "risk_class": "read_only",
+      "scope": "recon:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "0b8a53c35611db22bad7d184be3d92ba2c5892eb7975c0df37a5b85996eb2f25",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target": {
+            "description": "Target IP or hostname",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "port_scan",
+      "description": "TCP port scan with service banner grabbing. Identifies open ports and running services. MITRE ATT\u0026CK T1046.",
+      "risk_class": "destructive",
+      "scope": "recon:scan",
+      "schema_version": "1.0.0",
+      "schema_hash": "4ea5c49b8fcdb9c07b90d8bac322e18f7e6cad248e357edab34265b7f391d867",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "ports": {
+            "description": "Port range (default: 1-1024)",
+            "type": "string"
+          },
+          "target": {
+            "description": "Target IP or hostname",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "vuln_scan",
+      "description": "Scan project for known vulnerabilities in dependencies (Go, NPM, Python). Returns CVE IDs, CVSS scores, affected packages, and fix versions.",
+      "risk_class": "read_only",
+      "scope": "scan:vuln",
+      "schema_version": "1.0.0",
+      "schema_hash": "b89631a7ee8c3b97823bf2cb5b254a3ae96b9b2e66219d7180435eddef430f5e",
+      "allowed_backend": "in-process",
+      "timeout_ms": 180000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target_dir": {
+            "description": "Directory to scan (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "secret_scan",
+      "description": "Scan for hardcoded secrets using entropy analysis + pattern matching. Detects: AWS keys, GitHub tokens, private keys, JWT secrets, database passwords.",
+      "risk_class": "read_only",
+      "scope": "scan:secrets",
+      "schema_version": "1.0.0",
+      "schema_hash": "cb5d8ba82be372adac329bf5e9b15e24cf8f972a0c4d894368bfb17e9e47f57e",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target_dir": {
+            "description": "Directory to scan (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "container_scan",
+      "description": "Analyze Dockerfile and container manifests for security misconfigurations and base image vulnerabilities.",
+      "risk_class": "read_only",
+      "scope": "scan:container",
+      "schema_version": "1.0.0",
+      "schema_hash": "73803f31d96dd5626a5bbcdb150a54019c2b895be19af71caa8bdc5ac94579c8",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "target_dir": {
+            "description": "Directory containing Dockerfile (default: current directory)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "compliance_scan",
+      "description": "Run built-in compliance checks against CIS, STIG, and NIST baselines. Returns pass/fail per control with remediation guidance.",
+      "risk_class": "read_only",
+      "scope": "scan:compliance",
+      "schema_version": "1.0.0",
+      "schema_hash": "60e1eb1d88bed686e438c903c4edbbc0ace8869e7cb389da6cecad8c9c9cd7d9",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "framework": {
+            "description": "Framework: CIS | STIG | NIST | ALL (default: ALL)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "packet_analyze",
+      "description": "Analyze a PCAP capture file. Extracts: protocol distribution, suspicious connections, DNS queries, HTTP methods, potential C2 patterns.",
+      "risk_class": "read_only",
+      "scope": "scan:network",
+      "schema_version": "1.0.0",
+      "schema_hash": "8612a5e4b5bf44851c78afb0867d08766e02ea24431044e80b1a75cb8930dc12",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "capture_file": {
+            "description": "Path to PCAP capture file",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capture_file"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "attack_graph",
+      "description": "Generate an attack graph from current NHI inventory. Models lateral movement paths, privilege escalation vectors, and blast radius.",
+      "risk_class": "read_only",
+      "scope": "threat:attack",
+      "schema_version": "1.0.0",
+      "schema_hash": "ac915f442983dd413956dafe419b6b0740dc982d2abb776b27691a13fc9cc8b1",
+      "allowed_backend": "in-process",
+      "timeout_ms": 60000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "pqc_sign",
+      "description": "Sign arbitrary data with ML-DSA-65. Returns base64-encoded signature and public key ID. Air-gap safe.",
+      "risk_class": "read_only",
+      "scope": "pqc:sign",
+      "schema_version": "1.0.0",
+      "schema_hash": "79e9daf58ae956fbcfe5510a29ba578de0007aa67c1ba2ba7c188e8ca04616f0",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "data": {
+            "description": "Data to sign (string or base64)",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Adinkra symbol to bind (default: Eban)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "pqc_verify",
+      "description": "Verify an ML-DSA-65 signature against data. Returns verification result and signer metadata.",
+      "risk_class": "read_only",
+      "scope": "pqc:verify",
+      "schema_version": "1.0.0",
+      "schema_hash": "017c3d7a8820a6a09d05244736775c45844268b422afe611ad01736954523f15",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community",
+      "args_schema": {
+        "properties": {
+          "data": {
+            "description": "Original data that was signed",
+            "type": "string"
+          },
+          "signature": {
+            "description": "Base64-encoded signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "signature"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "pqc_keygen",
+      "description": "Generate a new ML-DSA-65 keypair for agent identity. Returns public key (base64) and key ID. Private key is stored securely.",
+      "risk_class": "read_only",
+      "scope": "pqc:keygen",
+      "schema_version": "1.0.0",
+      "schema_hash": "8208384f5c2b037ad0e38db2316ec60929f52eaf8b6fe27d107450dacc9c2456",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "community"
+    },
+    {
+      "name": "dag_write",
+      "description": "Write a manually-specified attested node to the shared KASA DAG. Use for arbitrary compliance events, human approvals, and audit points.",
+      "risk_class": "destructive",
+      "scope": "dag:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "ce78a3b089241dccd74d211fbbd2db30fb85c11707b5574f763da3a9e378cfd6",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Action name for the DAG node",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Adinkra symbol (default: Sankofa)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "dag_query",
+      "description": "Query the KASA DAG for nodes matching criteria. Returns matched nodes with signatures and provenance.",
+      "risk_class": "read_only",
+      "scope": "dag:read",
+      "schema_version": "1.0.0",
+      "schema_hash": "5d503a32f05588425276e8aa1172abe85edc17f26a2a31d3d0bd605777bb5f17",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "action": {
+            "description": "Filter by action name",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max results (default: 20)",
+            "type": "number"
+          },
+          "symbol": {
+            "description": "Filter by Adinkra symbol",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "dag_audit",
+      "description": "Perform a full integrity audit of the KASA DAG. Verifies node count, parent linkage, PQC metadata completeness.",
+      "risk_class": "read_only",
+      "scope": "dag:audit",
+      "schema_version": "1.0.0",
+      "schema_hash": "4a2e9bb6a476c70c2c69a2e99b29419ff8b804fecdc0dfc67e1a1d3b4cb3af26",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise"
+    },
+    {
+      "name": "phantom_stealth",
+      "description": "Engage network security posture hardening mode. Reduces attack surface exposure through traffic obfuscation and endpoint protection.",
+      "risk_class": "destructive",
+      "scope": "opsec:stealth",
+      "schema_version": "1.0.0",
+      "schema_hash": "9f2ea002c87103cb200665de39e876fe45d6cdd36040db44e5931cb54897844f",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "device_id": {
+            "description": "Device identifier",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Security profile (default: Eban)",
+            "type": "string"
+          },
+          "target_city": {
+            "description": "Deployment region",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "name": "identity_shroud",
+      "description": "Encode a credential or token using post-quantum obfuscation for secure transport.",
+      "risk_class": "read_only",
+      "scope": "opsec:shroud",
+      "schema_version": "1.0.0",
+      "schema_hash": "250c89ead9e87481d42e78536bb8dd28e53316e2f35d1b093cc507f89f6eb57b",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "strand": {
+            "description": "Credential to encode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strand"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "identity_epiphany",
+      "description": "Decode a PQC-obfuscated credential back to its original form.",
+      "risk_class": "read_only",
+      "scope": "opsec:reveal",
+      "schema_version": "1.0.0",
+      "schema_hash": "1c832cfd86e292e9d6488e29154e40ec36938180c7c39db47484bbc76e5d6ae7",
+      "allowed_backend": "in-process",
+      "timeout_ms": 10000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "verse": {
+            "description": "Encoded credential to decode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verse"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "drbc_backup",
+      "description": "Create a DRBC genesis backup of the KHEPRA project. AES-256-GCM encrypted, ML-DSA-65 signed.",
+      "risk_class": "destructive",
+      "scope": "drbc:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "70a3ef5cab00a2690424e5e537e6e33a17066acccf87565bac237a27850f0416",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "password": {
+            "description": "Encryption password for the backup",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "drbc_restore",
+      "description": "Restore the KHEPRA project from a DRBC genesis backup. Requires the same password used during backup.",
+      "risk_class": "destructive",
+      "scope": "drbc:write",
+      "schema_version": "1.0.0",
+      "schema_hash": "a060e6eae479bff87151547094c8914b31caf026147099be427a873331814ff4",
+      "allowed_backend": "in-process",
+      "timeout_ms": 120000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "password": {
+            "description": "Decryption password",
+            "type": "string"
+          },
+          "target_dir": {
+            "description": "Target directory for restore",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "target_dir"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "playbook_execute",
+      "description": "Execute a SouHimBou SOAR playbook from the agent channel. Defaults to staging environment unless 'production' is explicitly specified.",
+      "risk_class": "destructive",
+      "scope": "soar:execute",
+      "schema_version": "1.0.0",
+      "schema_hash": "6f1f5ad34ee0b1fe8f71285e164eba7a29955517346cbcad84a9e2fae8be13c7",
+      "allowed_backend": "in-process",
+      "timeout_ms": 30000,
+      "network_allowed": false,
+      "destructive": true,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "environment": {
+            "description": "Execution environment: 'staging' (default) or 'production'. Production requires explicit opt-in.",
+            "type": "string"
+          },
+          "playbook_name": {
+            "description": "Name of the built-in or disk-loaded SOAR playbook (e.g. 'quarantine-agent', 'rate-limit-agent', 'evidence-capture')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "asaf_lint",
+      "description": "Lint an ASAF Policy Declaration Language (APDL) snippet. Validates @symbol, @framework, control block, and maps: clause presence.",
+      "risk_class": "read_only",
+      "scope": "compliance:lint",
+      "schema_version": "1.0.0",
+      "schema_hash": "321537b1bbf30bff223f0021f4c67bfebb4feb3a5f5fc4db9d1d1cc26fbdedb4",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "policy_snippet": {
+            "description": "The ASAF APDL policy string to lint (must include @symbol, @framework, control block, and maps: clause)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_snippet"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "compliance_model_check",
+      "description": "Verify if an LLM model is approved for the current KHEPRA deployment tier. Enforces sovereign (no commercial LLMs), hybrid, and edge tier policies from AGENTS.md.",
+      "risk_class": "read_only",
+      "scope": "compliance:model",
+      "schema_version": "1.0.0",
+      "schema_hash": "92b4bf2c2728d9e9590ee798d892fbd28571329798bd01d95ee6c832c5defcfe",
+      "allowed_backend": "in-process",
+      "timeout_ms": 5000,
+      "network_allowed": false,
+      "destructive": false,
+      "tier": "enterprise",
+      "args_schema": {
+        "properties": {
+          "model_name": {
+            "description": "LLM identifier (e.g. 'llama3.1:8b', 'claude-sonnet-4-5', 'gpt-4o')",
+            "type": "string"
+          },
+          "tier": {
+            "description": "Deployment tier to check against: 'sovereign', 'hybrid', or 'edge' (default: 'hybrid')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_name"
+        ],
         "type": "object"
       }
     }
