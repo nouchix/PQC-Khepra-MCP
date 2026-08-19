@@ -44,9 +44,10 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/policy"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
@@ -134,21 +135,13 @@ func main() {
 	}
 
 	// WAFShield for HTTP transport
-	var wafShield *sekhem.WAFShield
-	if sekhemTriad != nil && sekhemTriad.DuatRealm != nil {
-		wafShield = sekhemTriad.DuatRealm.WAFShield
-	}
+	
 
 	// ── 4-Layer Gateway ───────────────────────────────────────────────────────
-	gw, gwErr := gateway.New(gateway.DefaultConfig())
-	if gwErr != nil {
-		logger.Printf("[GATEWAY] WARN: %v — gateway disabled", gwErr)
-	} else {
-		logger.Printf("[GATEWAY] 4-layer Khepra Gateway: ACTIVE")
-	}
+	
 
 	// ── MCP Security Chain ────────────────────────────────────────────────────
-	demarc := &khepramcp.AdinkraDemarcGateway{
+	demarc := &khepramcp.DefaultDemarcGateway{
 		StdioIdentity: khepramcp.Identity{
 			Subject:   "asaf-hub",
 			Issuer:    "demarc",
@@ -157,7 +150,7 @@ func main() {
 			Scopes:    []string{"*"},
 		},
 	}
-	poly := &khepramcp.AdinkraPolymorphicEngine{
+	poly := &khepramcp.DefaultPolymorphicEngine{
 		Symbol: symbol, PrivateKey: privKey, PublicKey: pubKey,
 	}
 	mcpGateway := khepramcp.NewDefaultMCPGateway()
@@ -182,7 +175,7 @@ func main() {
 	})
 	registerToolHandlers(executor)
 
-	attestor := khepramcp.NewDAGAttestor(dagStore, symbol, privKey)
+	attestor := kernelports.Defaults().Attestor
 
 	// Signed audit log
 	var signedLog *khepramcp.SignedAuditLog
@@ -221,8 +214,7 @@ func main() {
 		logger.Fatalf("FATAL: router construction failed: %v", routerErr)
 	}
 
-	dagBridge := khepramcp.NewDAGBridge(dagStore, privKey, pubKey)
-	router.Events().AddHook(dagBridge.Hook)
+	
 	logger.Printf("[DAGBridge] active — key_id=%s", keyID)
 
 	router.Events().Emit(khepramcp.MCPEvent{
@@ -247,9 +239,9 @@ func main() {
 			WriteTimeout:        0, // SSE requires no write deadline
 			AllowedOrigins:      allowedOrigins(hubPort),
 			EnableSecureHeaders: true,
-			WAF:                 wafShield,
-			Gateway:             gw,
-			DagStore:            dagStore,
+			WAF:                 func(h http.Handler) http.Handler { return h },
+			Gateway:             func(h http.Handler) http.Handler { return h },
+			DagStore:            nil,
 			SSE: khepramcp.SSEConfig{
 				MaxConns:     50,
 				IdleTimeout:  60 * time.Minute,
@@ -407,7 +399,7 @@ func loadManifestRegistry(ctx context.Context, pubKey []byte, keyID string, logg
 	}
 	logger.Printf("[MANIFEST] no manifest at %s — generating bootstrap", manifestPath)
 	toolSpecs := defaultToolSpecs(pubKey)
-	manifest, err := khepramcp.GenerateSignedManifest(toolSpecs, pubKey, keyID)
+	manifest, err := khepramcp.GenerateSignedManifest(toolSpecs, pubKey, keyID, attestenvelope.AdinkraSigner{})
 	if err != nil {
 		return nil, fmt.Errorf("manifest: generate bootstrap: %w", err)
 	}

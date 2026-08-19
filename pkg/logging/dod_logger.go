@@ -184,17 +184,17 @@ func formatDAGEntry(level slog.Level, msg string, args ...any) string {
 	for i := 0; i+1 < len(args); i += 2 {
 		key := args[i].(string)
 		val := args[i+1]
-		pairs = append(pairs, key+"="+formatValue(val))
+		pairs = append(pairs, SanitizeForLog(key)+"="+formatValue(val))
 	}
 
-	return timestamp + "|" + levelStr + "|" + msg + "|" + strings.Join(pairs, " ")
+	return timestamp + "|" + levelStr + "|" + SanitizeForLog(msg) + "|" + strings.Join(pairs, " ")
 }
 
 // formatValue converts a value to string for DAG entry
 func formatValue(v any) string {
 	switch val := v.(type) {
 	case string:
-		return val
+		return SanitizeForLog(val)
 	case int, int64, uint, uint64, float64:
 		return slog.AnyValue(val).String()
 	default:

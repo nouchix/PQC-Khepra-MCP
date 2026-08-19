@@ -21,16 +21,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 )
 
 // ─── DEMARC Gateway Implementation ─────────────────────────────────────────────
 
-// AdinkraDemarcGateway authenticates callers using PQC credentials.
+// DefaultDemarcGateway authenticates callers using PQC credentials.
 // For stdio transport, a pre-authenticated identity is used (single-tenant subprocess model).
 // For HTTP transport, it validates Dilithium-signed bearer tokens.
-type AdinkraDemarcGateway struct {
+type DefaultDemarcGateway struct {
 	// StdioIdentity is the pre-authenticated identity for stdio sessions.
 	// This is set at server startup from the environment/config.
 	StdioIdentity Identity
@@ -43,7 +42,7 @@ type AdinkraDemarcGateway struct {
 // Authenticate resolves a credential into an Identity.
 // For stdio: the credential is the pre-authenticated identity token.
 // For HTTP: would validate a PQC-signed JWT (future).
-func (g *AdinkraDemarcGateway) Authenticate(_ context.Context, cred any) (Identity, error) {
+func (g *DefaultDemarcGateway) Authenticate(_ context.Context, cred any) (Identity, error) {
 	// Stdio: pre-authenticated
 	if cred == nil || cred == "stdio" {
 		if g.StdioIdentity.AgentID == "" {
@@ -77,7 +76,7 @@ func (g *AdinkraDemarcGateway) Authenticate(_ context.Context, cred any) (Identi
 }
 
 // CheckCIDR validates the caller's remote address.
-func (g *AdinkraDemarcGateway) CheckCIDR(_ context.Context, _ Identity, remoteAddr string) error {
+func (g *DefaultDemarcGateway) CheckCIDR(_ context.Context, _ Identity, remoteAddr string) error {
 	// Stdio transport: always "local"
 	if remoteAddr == "local" || remoteAddr == "" {
 		return nil
@@ -96,9 +95,10 @@ func (g *AdinkraDemarcGateway) CheckCIDR(_ context.Context, _ Identity, remoteAd
 
 // ─── Polymorphic Engine Implementation ─────────────────────────────────────────
 
-// AdinkraPolymorphicEngine wraps/verifies requests and responses using PQC signatures.
+// DefaultPolymorphicEngine wraps/verifies requests and responses using PQC signatures.
 // Uses the Merkaba White Box for envelope sealing and adinkra for signing.
-type AdinkraPolymorphicEngine struct {
+type DefaultPolymorphicEngine struct {
+	Signer kernelports.Signer
 	// Symbol is the Adinkra symbol used for Spectral Fingerprint derivation.
 	Symbol string
 
@@ -110,12 +110,12 @@ type AdinkraPolymorphicEngine struct {
 }
 
 // WrapRequest seals the raw request payload with agent provenance metadata.
-func (p *AdinkraPolymorphicEngine) WrapRequest(payload []byte, agentID string) ([]byte, error) {
+func (p *DefaultPolymorphicEngine) WrapRequest(payload []byte, agentID string) ([]byte, error) {
 	envelope := map[string]any{
 		"payload":   payload,
 		"agent_id":  agentID,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"spectral":  hex.EncodeToString(adinkra.GetSpectralFingerprint(p.Symbol)[:8]),
+		"spectral":  hex.EncodeToString([]byte(p.Symbol))[:8],
 	}
 
 	wrapped, err := json.Marshal(envelope)
@@ -126,7 +126,7 @@ func (p *AdinkraPolymorphicEngine) WrapRequest(payload []byte, agentID string) (
 	// Sign the wrapped payload
 	if len(p.PrivateKey) > 0 {
 		h := sha256.Sum256(wrapped)
-		sig, err := adinkra.Sign(p.PrivateKey, h[:])
+		sig, err := p.Signer.Sign(p.PrivateKey, h[:])
 		if err != nil {
 			return nil, fmt.Errorf("poly: sign failed: %w", err)
 		}
@@ -138,7 +138,7 @@ func (p *AdinkraPolymorphicEngine) WrapRequest(payload []byte, agentID string) (
 }
 
 // VerifyRequest validates a wrapped request's integrity.
-func (p *AdinkraPolymorphicEngine) VerifyRequest(wrapped []byte) error {
+func (p *DefaultPolymorphicEngine) VerifyRequest(wrapped []byte) error {
 	var envelope map[string]any
 	if err := json.Unmarshal(wrapped, &envelope); err != nil {
 		return fmt.Errorf("poly: invalid envelope: %w", err)
@@ -156,7 +156,7 @@ func (p *AdinkraPolymorphicEngine) VerifyRequest(wrapped []byte) error {
 }
 
 // WrapResponse seals a tool result in a SecureEnvelope with PQC signature.
-func (p *AdinkraPolymorphicEngine) WrapResponse(result any, requestID string) (SecureEnvelope, error) {
+func (p *DefaultPolymorphicEngine) WrapResponse(result any, requestID string) (SecureEnvelope, error) {
 	env := SecureEnvelope{
 		RequestID: requestID,
 		Result:    result,
@@ -171,19 +171,19 @@ func (p *AdinkraPolymorphicEngine) WrapResponse(result any, requestID string) (S
 
 	if len(p.PrivateKey) > 0 {
 		h := sha256.Sum256(resultBytes)
-		sig, err := adinkra.Sign(p.PrivateKey, h[:])
+		sig, err := p.Signer.Sign(p.PrivateKey, h[:])
 		if err != nil {
 			return env, fmt.Errorf("poly: sign result failed: %w", err)
 		}
 		env.Signature = hex.EncodeToString(sig)
-		env.Provenance = fmt.Sprintf("spectral:%s", hex.EncodeToString(adinkra.GetSpectralFingerprint(p.Symbol)[:8]))
+		env.Provenance = fmt.Sprintf("spectral:%s", hex.EncodeToString([]byte(p.Symbol))[:8])
 	}
 
 	return env, nil
 }
 
 // VerifyResponse validates a SecureEnvelope's integrity.
-func (p *AdinkraPolymorphicEngine) VerifyResponse(envelope SecureEnvelope) error {
+func (p *DefaultPolymorphicEngine) VerifyResponse(envelope SecureEnvelope) error {
 	if envelope.RequestID == "" {
 		return fmt.Errorf("poly: missing request_id in envelope")
 	}
@@ -246,94 +246,3 @@ func (g *DefaultMCPGateway) ScanForInjection(text string) error {
 	return nil
 }
 
-// ─── Attestor Implementation (DAG + PQC) ───────────────────────────────────────
-
-// DAGAttestor records tool executions in the DAG audit chain with PQC signatures.
-type DAGAttestor struct {
-	// Store is the DAG storage backend (in-memory or persistent).
-	Store dag.Store
-
-	// Symbol is the Adinkra symbol for provenance tracking.
-	Symbol string
-
-	// PrivateKey is the ML-DSA signing key for attestation sealing.
-	PrivateKey []byte
-
-	// lastNodeID tracks the most recent node for chaining.
-	lastNodeID string
-}
-
-// NewDAGAttestor creates an attestor backed by the given DAG store.
-func NewDAGAttestor(store dag.Store, symbol string, privKey []byte) *DAGAttestor {
-	return &DAGAttestor{
-		Store:      store,
-		Symbol:     symbol,
-		PrivateKey: privKey,
-	}
-}
-
-// Append records a tool execution in the DAG and returns the attestation node ID.
-func (a *DAGAttestor) Append(ctx context.Context, toolName string, input []byte, output []byte) (string, error) {
-	// Build DAG node
-	inputHash := sha256.Sum256(input)
-	outputHash := sha256.Sum256(output)
-
-	// Chain to previous node if it exists.
-	// IMPORTANT: parents must be set on the node BEFORE calling Sign() or
-	// ComputeHash(), because the content hash includes the parent list.
-	// Setting parents after hashing causes a mismatch in dag.Add().
-	var parents []string
-	if a.lastNodeID != "" {
-		parents = append(parents, a.lastNodeID)
-	}
-
-	node := &dag.Node{
-		Action:  fmt.Sprintf("mcp:tool:%s", toolName),
-		Symbol:  a.Symbol,
-		Time:    time.Now().UTC().Format(time.RFC3339),
-		Parents: parents, // set here so ComputeHash() includes them
-		PQC: map[string]string{
-			"input_hash":  hex.EncodeToString(inputHash[:]),
-			"output_hash": hex.EncodeToString(outputHash[:]),
-			"engine":      "ML-DSA-65",
-		},
-	}
-
-	// Sign: ID is computed inside Sign() — parents already set above.
-	if len(a.PrivateKey) > 0 {
-		if err := node.Sign(a.PrivateKey); err != nil {
-			return "", fmt.Errorf("attestor: sign failed: %w", err)
-		}
-	} else {
-		node.ID = node.ComputeHash()
-		node.Hash = node.ID
-	}
-
-	// Add to DAG — pass nil parents since they're already on the node.
-	if err := a.Store.Add(node, nil); err != nil {
-		return "", fmt.Errorf("attestor: DAG append failed: %w", err)
-	}
-
-	a.lastNodeID = node.ID
-	return node.ID, nil
-}
-
-// SignEnvelope adds a PQC signature to the SecureEnvelope using the attestation key.
-func (a *DAGAttestor) SignEnvelope(_ context.Context, env SecureEnvelope) (SecureEnvelope, error) {
-	if len(a.PrivateKey) == 0 {
-		return env, nil // No signing key configured
-	}
-
-	// Create canonical representation for signing
-	canonical := fmt.Sprintf("%s|%s|%s|%s",
-		env.RequestID, env.ToolName, env.AttestationID, env.CreatedAt.Format(time.RFC3339))
-	h := sha256.Sum256([]byte(canonical))
-
-	sig, err := adinkra.Sign(a.PrivateKey, h[:])
-	if err != nil {
-		return env, fmt.Errorf("attestor: sign envelope failed: %w", err)
-	}
-
-	env.Signature = hex.EncodeToString(sig)
-	return env, nil
-}

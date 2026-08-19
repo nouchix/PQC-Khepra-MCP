@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package apiserver — NL Tool Executor
 //

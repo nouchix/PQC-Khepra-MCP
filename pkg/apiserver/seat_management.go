@@ -1,4 +1,3 @@
-//go:build saas
 
 // =============================================================================
 // KHEPRA PROTOCOL - Seat Management for Autopilot Tier

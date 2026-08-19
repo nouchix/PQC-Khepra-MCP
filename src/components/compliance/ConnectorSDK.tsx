@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useConnectorLearning } from '@/hooks/useConnectorLearning';
 import { writeDAGNode } from '@/services/ConnectorDAG';
-import { Plug, CheckCircle, XCircle, Clock, AlertTriangle, Settings, Key, Globe, Database, Shield, Zap, Plus, TestTube, FileText, Github, Brain, Loader2 } from 'lucide-react';
+import { Plug, CheckCircle, XCircle, Clock, AlertTriangle, Settings, Key, Globe, Database, Shield, Zap, Plus, TestTube, FileText, Brain, Loader2 } from 'lucide-react';
 
 interface Connector {
   id: string;
@@ -832,7 +832,7 @@ describe('CustomConnector', () => {
                     Full Documentation
                   </Button>
                   <Button variant="outline">
-                    <Github className="h-4 w-4 mr-2" />
+                    <Globe className="h-4 w-4 mr-2" />
                     Example Repository
                   </Button>
                   <Button variant="outline">

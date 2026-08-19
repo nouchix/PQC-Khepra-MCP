@@ -15,7 +15,8 @@ and everything speculative is private by default.
 | Path | Why public |
 |---|---|
 | `pkg/mcp/` **root only** (router, executor, manifest, sandbox, validation, transport, observability, security profiles, scope taxonomy, invocation tokens, signed audit log, call log) | The kernel itself |
-| `pkg/crypto/` | PQC primitives (ML-DSA/ML-KEM wrappers) the kernel signs/verifies with |
+| `pkg/crypto/
+pkg/attestenvelope/` | PQC primitives (ML-DSA/ML-KEM wrappers) the kernel signs/verifies with |
 | `pkg/types/`, minimal subset of `pkg/util/` | Shared types the kernel compiles against (trim to what `pkg/mcp` actually imports) |
 | `cmd/khepra-mcp/` | The server binary (after decoupling — see §3) |
 | `cmd/manifest-gen/`, `gen_manifest.go`, `manifest.json` schema docs | Tool-manifest authoring for third parties |
