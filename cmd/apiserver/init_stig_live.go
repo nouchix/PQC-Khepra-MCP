@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package main — init_stig_live.go
 // Startup hook: live STIG enrichment + changelog-based cache invalidation.

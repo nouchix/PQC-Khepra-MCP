@@ -1,41 +1,164 @@
 {
   "name": "pqc-khepra-mcp",
-  "displayName": "PQC-Khepra MCP — CMMC Autopilot & AI Flight Recorder",
+  "displayName": "PQC-Khepra MCP \u2014 CMMC Autopilot & AI Flight Recorder",
   "description": "Post-quantum secure MCP server for CMMC compliance scanning, STIG validation, NIST 800-53 cross-mapping, and AI agent observability. Built on KHEPRA Protocol (USPTO #73565085). 36,195 cross-framework compliance mappings. ML-DSA-65 signed attestation packages. FIPS 140-3 compatible.",
   "repository": "https://github.com/nouchix/PQC-Khepra-MCP",
   "homepage": "https://adinkhepra.com",
   "version": "1.0.0",
   "license": "PROPRIETARY",
-  "categories": ["security", "compliance", "devops"],
-  "tags": ["cmmc", "nist", "stig", "pqc", "post-quantum", "fips", "dod", "attestation", "compliance", "ai-security"],
+  "categories": [
+    "security",
+    "compliance",
+    "devops"
+  ],
+  "tags": [
+    "cmmc",
+    "nist",
+    "stig",
+    "pqc",
+    "post-quantum",
+    "fips",
+    "dod",
+    "attestation",
+    "compliance",
+    "ai-security"
+  ],
   "tools": [
     {
+      "name": "acp_status",
+      "description": "List active ACP credentials and their expiry status"
+    },
+    {
+      "name": "acp_issue",
+      "description": "Issue a new PQC credential via the Agent Control Plane"
+    },
+    {
+      "name": "acp_revoke",
+      "description": "Revoke an active ACP credential"
+    },
+    {
+      "name": "nhi_inventory",
+      "description": "List all non-human identities (service accounts, API keys, certificates)"
+    },
+    {
+      "name": "nhi_orphans",
+      "description": "Identify orphaned non-human identities with no active owner"
+    },
+    {
+      "name": "nhi_excessive",
+      "description": "Identify NHIs with overly broad permissions"
+    },
+    {
+      "name": "nhi_expired",
+      "description": "List expired or soon-to-expire non-human identities"
+    },
+    {
+      "name": "nhi_revoke",
+      "description": "Revoke a non-human identity credential"
+    },
+    {
       "name": "ert_scan",
-      "description": "Enterprise Risk & Threat scan. Runs full STIG/CMMC/NIST 800-171 compliance scan and returns findings with cross-framework mappings."
+      "description": "Run ERT security scan (SBOM, CVE, secrets, STIG, PQC inventory) in Docker sandbox"
     },
     {
-      "name": "stig_check",
-      "description": "Check a system path or configuration against RHEL-09-STIG controls."
+      "name": "ert_readiness",
+      "description": "Package A: NIST 800-171 Rev2 compliance assessment + live SCA risk factor. Returns alignment score (0-100), control gaps, and prioritized remediation roadmap. Air-gap safe."
     },
     {
-      "name": "nist_map",
-      "description": "Map CCI identifiers or STIG findings to NIST 800-53 Rev 5 controls across 36,195 pre-computed mappings."
+      "name": "ert_architect",
+      "description": "Package B: Live supply chain risk \u2014 Syft SBOM + Grype CVE + CISA KEV/EPSS/MITRE enrichment. Returns findings with NIST 800-171 control mapping. Requires syft+grype in PATH."
     },
     {
-      "name": "cmmc_assess",
-      "description": "Assess a system or artifact against CMMC Level 1, 2, or 3 practices."
+      "name": "ert_crypto",
+      "description": "Package C: PQC readiness attestation \u2014 source-level crypto primitive scan, SBOM crypto library inventory, weak primitive detection (MD5/SHA1/DES/RC4), CNSA 2.0 quantum risk context."
+    },
+    {
+      "name": "ert_godfather",
+      "description": "Package D: EA KernelRouter causal risk attestation. Runs STIG, PQC, SBOM, Network agents in parallel, produces board-level causal chain with CVSS-band dollar impact and DAG-signed evidence node."
+    },
+    {
+      "name": "dag_attestation",
+      "description": "Export the PQC-signed DAG audit trail for the current session. Returns all DAG nodes with ML-DSA-65 signatures, timestamps, and Adinkra symbol chain."
     },
     {
       "name": "godfather_report",
-      "description": "Generate a dollar-denominated executive Godfather Report from prior scan results. Shows financial impact per finding."
+      "description": "Generate a complete CMMC/STIG/NIST compliance report. When approval_required=true, returns a staged token \u2014 the full report is held until a human calls godfather_approve (30-min TTL)."
     },
     {
-      "name": "attest_export",
-      "description": "Export a PQC-signed (ML-DSA-65 / NIST FIPS 204) attestation package for C3PAO intake or audit evidence."
+      "name": "godfather_approve",
+      "description": "Deliver a staged Godfather Report. Requires the staged_token returned by godfather_report. Single-use \u2014 token is consumed on delivery."
+    },
+    {
+      "name": "nist_map",
+      "description": "Offline semantic search across NIST 800-53 Rev5, NIST 800-171 Rev2, CMMC 2.0, and STIG CCI mappings. BM25 ranked results. Zero token cost, air-gap safe. 36,000+ controls indexed."
+    },
+    {
+      "name": "khepra_watch",
+      "description": "Register a filesystem path for continuous STIG-triggered scanning. Fires ert_scan on file changes. Satisfies CMMC AC.2.006, CM.2.061, SI.2.217."
+    },
+    {
+      "name": "discover_assets",
+      "description": "Step 01 \u2014 Inventory environment: OS, runtimes, containers, CI/CD, AI agents, crypto libs, MCP configs. Recommends CMMC level and applicable STIG profiles."
+    },
+    {
+      "name": "stig_check",
+      "description": "Check a system path or configuration against STIG controls. Default: RHEL-09-STIG-V1R3. Returns CAT I/II/III findings with remediation guidance and compliance score."
+    },
+    {
+      "name": "pqc_stig",
+      "description": "World's First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence."
+    },
+    {
+      "name": "cmmc_assess",
+      "description": "CMMC Level 1/2/3 assessment via KHEPRA compliance database (36,195 STIG\u2192CCI\u2192NIST\u2192CMMC mappings). Returns satisfaction score, gaps, C3PAO readiness flag, and PQC status."
     },
     {
       "name": "agent_record",
-      "description": "Send AI agent actions to SouHimBou AI Flight Recorder for tamper-evident capture and PQC-signed storage."
+      "description": "Record an agent action in the SouHimBou AI Flight Recorder. In sovereign mode, records to PQC-signed DAG audit log. Required for AI flight recorder compliance evidence."
+    },
+    {
+      "name": "khepra_export_attestation",
+      "description": "Export PQC-signed attestation package covering all active compliance frameworks. No network required. C3PAO-ready evidence artifact \u2014 ML-DSA-65 signed, DAG-anchored, NIST SP 800-171A compliant."
+    },
+    {
+      "name": "khepra_export_poam",
+      "description": "Export a DFARS 252.204-7012 POA&M (Plan of Action & Milestones) from the current DAG state. Maps open findings to remediation timelines. Required for CMMC conditional certification."
+    },
+    {
+      "name": "khepra_query_stig",
+      "description": "Query the embedded STIG/CCI/NIST control database (36,195 mappings). Look up STIG rules, CCI items, NIST 800-53 controls, and CMMC practices by ID or keyword."
+    },
+    {
+      "name": "khepra_get_compliance_score",
+      "description": "Fast compliance score without full scan. Returns current CMMC/NIST/STIG satisfaction percentages from cached DAG state."
+    },
+    {
+      "name": "khepra_query_threat_intel",
+      "description": "Query embedded CISA KEV + CVE threat intelligence from offline database. Returns relevant CVEs, EPSS scores, MITRE ATT&CK mappings, and CNSA 2.0 quantum impact."
+    },
+    {
+      "name": "khepra_get_dag_chain",
+      "description": "Export the PQC-signed DAG chain for the current session. Returns all DAG nodes with ML-DSA-65 signatures and Adinkra symbol provenance."
+    },
+    {
+      "name": "flight_export",
+      "description": "Export a CMMC-aligned evidence packet from the SouHimBou AI flight log. Maps agent actions to NIST 800-171 / CMMC 2.0 controls, verifies tamper chain, computes SOW pilot KPIs."
+    },
+    {
+      "name": "owasp_agent_assess",
+      "description": "Assess this MCP server deployment against OWASP Agentic Top 10 (ASI01-ASI10). Returns scored findings, active controls, gaps, and ML-DSA-65 signed evidence packet. 100% offline."
+    },
+    {
+      "name": "dark_crypto_contribute",
+      "description": "Privacy-preserving contribution of anonymized crypto inventory to the Dark Crypto Intelligence Network. No sensitive data leaves the machine. Returns global quantum exposure rank."
+    },
+    {
+      "name": "sbom_generate",
+      "description": "Generate a CycloneDX / SPDX SBOM with PQC readiness annotations. Falls back to go.mod/requirements.txt walk when syft is not in PATH."
+    },
+    {
+      "name": "threat_model",
+      "description": "Generate a STRIDE threat model with NIST 800-53 + MITRE ATT&CK mappings. Detects project technology profile and produces a context-aware threat catalog. 100% offline."
     }
   ],
   "installation": {
@@ -47,7 +170,12 @@
       "mcpServers": {
         "pqc-khepra": {
           "command": "docker",
-          "args": ["run", "-i", "--rm", "ghcr.io/nouchix/pqc-khepra-mcp:latest"],
+          "args": [
+            "run",
+            "-i",
+            "--rm",
+            "ghcr.io/nouchix/pqc-khepra-mcp:latest"
+          ],
           "env": {
             "KHEPRA_MODE": "community"
           }
@@ -56,7 +184,9 @@
     }
   },
   "requirements": {
-    "runtime": ["docker"],
+    "runtime": [
+      "docker"
+    ],
     "environment": [
       {
         "key": "KHEPRA_MODE",
@@ -71,8 +201,8 @@
       },
       {
         "key": "KHEPRA_LICENSE_KEY",
-        "description": "License key for AdinKhepra ASAF (Pilot/Program/Enterprise tiers)",
-        "required": false
+        "description": "Free or Premium license key. Get your free key at https://nouchix.com",
+        "required": true
       }
     ]
   },
@@ -84,10 +214,14 @@
   },
   "security": {
     "patentPending": "USPTO #73565085",
-    "pqcAlgorithms": ["ML-DSA-65 (NIST FIPS 204)", "Kyber-1024 (NIST FIPS 203)", "ECDSA P-384"],
+    "pqcAlgorithms": [
+      "ML-DSA-65 (NIST FIPS 204)",
+      "Kyber-1024 (NIST FIPS 203)",
+      "ECDSA P-384"
+    ],
     "fips": "140-3 compatible (Linux builds with GOEXPERIMENT=boringcrypto)",
     "attestation": "CycloneDX SBOM + cosign keyless (Sigstore)",
     "codeqlAlerts": 0,
-    "grpcVersion": "v1.81.0 (CVE-2025-22869 mitigated via golang.org/x/net ≥ v0.38.0)"
+    "grpcVersion": "v1.81.0 (CVE-2025-22869 mitigated via golang.org/x/net \u2265 v0.38.0)"
   }
 }

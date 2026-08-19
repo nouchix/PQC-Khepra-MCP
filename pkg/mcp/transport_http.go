@@ -39,9 +39,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 )
 
 // SSEConfig configures Server-Sent Events connection behaviour.
@@ -89,20 +87,20 @@ type HTTPTransportConfig struct {
 	// When non-nil, it is applied as the innermost middleware layer:
 	//   secureHeaders → cors → Gateway → WAF (ingress scan → handler → egress scrub)
 	// When nil, the WAF layer is skipped (not recommended for production).
-	WAF *sekhem.WAFShield
+	WAF func(http.Handler) http.Handler
 
 	// DagStore is the persistent DAG store (pkg/dag).
 	// When non-nil, the /api/v1/dag/history and /api/v1/dag/stats endpoints are
 	// activated, serving the full attested node chain for the dag-viewer and
 	// C3PAO evidence export. When nil, those routes return 503.
-	DagStore dag.Store
+	DagStore kernelports.NodeStore
 
 	// Gateway is the 4-layer Khepra Secure Gateway (Firewall → Auth → Anomaly → RateLimit).
 	// When non-nil, it is applied OUTSIDE the SEKHEM WAF layer:
 	//   secureHeaders → cors → Gateway → SEKHEM WAF → mux
 	// Ordering rationale: cheap IP/auth rejections happen before expensive WAF content scanning.
 	// When nil, the gateway layer is skipped — only SEKHEM WAF applies.
-	Gateway *gateway.Gateway
+	Gateway func(http.Handler) http.Handler
 
 	// SSE controls Server-Sent Events behaviour.
 	SSE SSEConfig
@@ -117,7 +115,7 @@ type httpTransport struct {
 	httpServer  *http.Server
 	sseConns    atomic.Int32 // active SSE connections
 	sseEventSeq atomic.Int64 // monotonic SSE event-id counter
-	dagStore    dag.Store    // Master DAG — serves /api/v1/dag/history
+	dagStore    kernelports.NodeStore    // Master DAG — serves /api/v1/dag/history
 	sessions    sync.Map     // sessionID(string) → chan []byte (MCP SSE protocol)
 }
 
@@ -216,14 +214,13 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	//   before expensive regex content scanning. WAF runs only on gateway-cleared traffic.
 	var handler http.Handler = mux
 	if t.config.WAF != nil {
-		handler = sekhem.HTTPMiddleware(t.config.WAF)(handler)
-		t.logger.Printf("[MCP:HTTP] ④ SEKHEM WAF bilateral: ACTIVE (%d rules)",
-			len(t.config.WAF.Rules()))
+		handler = t.config.WAF(handler)
+		t.logger.Printf("[MCP:HTTP] ④ SEKHEM WAF bilateral: ACTIVE")
 	} else {
 		t.logger.Printf("[MCP:HTTP] ④ SEKHEM WAF bilateral: DISABLED")
 	}
 	if t.config.Gateway != nil {
-		handler = gateway.Middleware(t.config.Gateway)(handler)
+		handler = t.config.Gateway(handler)
 		t.logger.Printf("[MCP:HTTP] ③ Khepra Gateway 4-layer: ACTIVE (Firewall+Auth+Anomaly+RateLimit)")
 	} else {
 		t.logger.Printf("[MCP:HTTP] ③ Khepra Gateway 4-layer: DISABLED")
@@ -988,7 +985,7 @@ func (t *httpTransport) handleDAGHistory(w http.ResponseWriter, r *http.Request)
 	})
 
 	type historyResponse struct {
-		Nodes []*dag.Node `json:"nodes"`
+		Nodes []*kernelports.NodeSummary `json:"nodes"`
 		Count int         `json:"count"`
 	}
 	resp := historyResponse{
@@ -1022,17 +1019,17 @@ func (t *httpTransport) handleDAGStats(w http.ResponseWriter, r *http.Request) {
 	nodes := t.dagStore.All()
 	count := len(nodes)
 
-	var firstTime, lastTime string
+	var firstTime, lastTime int64
 	for _, n := range nodes {
-		if firstTime == "" || n.Time < firstTime {
+		if firstTime == 0 || n.Time < firstTime {
 			firstTime = n.Time
 		}
-		if lastTime == "" || n.Time > lastTime {
+		if lastTime == 0 || n.Time > lastTime {
 			lastTime = n.Time
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"node_count":%d,"first_node_time":%q,"last_node_time":%q,"dag_store":"active"}`,
+	fmt.Fprintf(w, `{"node_count":%d,"first_node_time":%d,"last_node_time":%d,"dag_store":"active"}`,
 		count, firstTime, lastTime)
 }

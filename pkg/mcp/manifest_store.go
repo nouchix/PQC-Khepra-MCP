@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 )
 
 // ─── File-Based Manifest Store ─────────────────────────────────────────────────
@@ -58,6 +58,7 @@ func (s *EmbeddedManifestStore) LoadSignedManifest(_ context.Context) (*SignedTo
 
 // AdinkraManifestVerifier uses ML-DSA-65 (Dilithium-3) to verify manifest signatures.
 type AdinkraManifestVerifier struct {
+	Signer kernelports.Signer
 	// PublicKey is the PQC verification key for manifest signing.
 	PublicKey []byte
 }
@@ -79,7 +80,7 @@ func (v *AdinkraManifestVerifier) Verify(manifest *SignedToolManifest) error {
 	}
 
 	// Verify using adinkra PQC
-	valid, err := adinkra.Verify(v.PublicKey, h[:], sigBytes)
+	valid, err := v.Signer.Verify(v.PublicKey, h[:], sigBytes)
 	if err != nil {
 		return fmt.Errorf("manifest verifier: verification error: %w", err)
 	}
@@ -130,7 +131,7 @@ func canonicalManifestPayload(m *SignedToolManifest) []byte {
 
 // GenerateSignedManifest creates a new signed manifest from tool specs.
 // This is used by the build process to generate the initial manifest.json.
-func GenerateSignedManifest(tools []ToolSpec, privKey []byte, keyID string) (*SignedToolManifest, error) {
+func GenerateSignedManifest(tools []ToolSpec, privKey []byte, keyID string, signer kernelports.Signer) (*SignedToolManifest, error) {
 	manifest := &SignedToolManifest{
 		Version:       "1.0.0",
 		Revision:      fmt.Sprintf("build-%d", currentTimestamp()),
@@ -144,7 +145,7 @@ func GenerateSignedManifest(tools []ToolSpec, privKey []byte, keyID string) (*Si
 	payload := canonicalManifestPayload(manifest)
 	h := sha256.Sum256(payload)
 
-	sig, err := adinkra.Sign(privKey, h[:])
+	sig, err := signer.Sign(privKey, h[:])
 	if err != nil {
 		return nil, fmt.Errorf("manifest sign: %w", err)
 	}

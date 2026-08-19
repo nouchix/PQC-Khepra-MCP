@@ -1,4 +1,3 @@
-//go:build saas
 
 // =============================================================================
 // KHEPRA PROTOCOL - Stripe Subscription Handler
@@ -29,7 +28,7 @@ import (
 
 // StripeConfig holds Stripe API configuration
 type StripeConfig struct {
-	SecretKey      string // sk_live_... or sk_test_...
+	SecretKey      string // stripe live or test secret key
 	WebhookSecret  string // whsec_...
 	PublishableKey string // pk_live_... or pk_test_...
 }
@@ -161,7 +160,6 @@ func (s *Server) handleCreateCheckout(c *gin.Context) {
 	}
 
 	sessionID := generateID("cs")
-	now := time.Now()
 	recurring := recurringTiers[req.Tier]
 
 	session := &CheckoutSession{
