@@ -363,7 +363,7 @@ func adbCopyTree(deviceCwd, subdir string) error {
 // including the go tool built for android.
 // A lock file ensures this only happens once, even with concurrent exec
 // wrappers.
-func adbCopyGoroot() error {
+func adbCopyGoroot() (retErr error) {
 	goTool, err := goTool()
 	if err != nil {
 		return err
@@ -382,7 +382,11 @@ func adbCopyGoroot() error {
 	if err != nil {
 		return err
 	}
-	defer stat.Close()
+	defer func() {
+		if cerr := stat.Close(); retErr == nil && cerr != nil {
+			retErr = cerr
+		}
+	}()
 	// Serialize check and copying.
 	if err := syscall.Flock(int(stat.Fd()), syscall.LOCK_EX); err != nil {
 		return err
