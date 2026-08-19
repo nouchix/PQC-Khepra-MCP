@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { DataSourcesWizard } from './DataSourcesWizard';
 
 interface ComplianceScoreCardProps {
@@ -99,27 +100,38 @@ export const STIGFirstComplianceDashboard: React.FC = () => {
     }
 
     toast({
-      title: "Loading STIG Rules",
-      description: "Connecting to OpenText/OpenControls DISA STIG API (JSON format)...",
+      title: "Checking STIG Rules",
+      description: "Querying the STIG rules database...",
     });
 
     try {
-      // TODO: Replace with actual OpenControls API integration
-      // const openControlsAPI = new OpenControlsService();
-      // const stigRules = await openControlsAPI.fetchSTIGRules(['windows-server-2022', 'rhel-8', 'ubuntu-20.04']);
+      // TODO: Replace with actual OpenControls API integration to import new
+      // rule sets. For now, honestly report how many STIG rules are already
+      // available in the real stig_rules table rather than fabricating a
+      // fixed "1,247 rules synchronized" count.
+      const { count, error } = await supabase
+        .from('stig_rules')
+        .select('*', { count: 'exact', head: true });
 
-      // Simulate STIG rule loading for now
-      setTimeout(() => {
+      if (error) throw error;
+
+      if (count && count > 0) {
         toast({
-          title: "STIG Rules Synchronized",
-          description: "Successfully loaded 1,247 DISA STIG rules from OpenControls API. Ready for compliance scanning.",
+          title: "STIG Rules Available",
+          description: `Found ${count} DISA STIG rules already loaded in the database.`,
         });
-      }, 3000);
+      } else {
+        toast({
+          title: "No STIG Rules Loaded",
+          description: "No STIG rules are loaded yet. Automated import from the OpenControls API is not yet implemented.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Failed to load STIG rules:', error);
       toast({
         title: "Rule Loading Failed",
-        description: "Failed to fetch STIG rules from OpenControls API. Please verify API connectivity.",
+        description: "Failed to query the STIG rules database. Please verify connectivity.",
         variant: "destructive"
       });
     }

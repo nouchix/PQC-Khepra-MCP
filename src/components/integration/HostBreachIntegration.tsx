@@ -49,59 +49,19 @@ export const HostBreachIntegration = () => {
   }, []);
 
   const initializeFeeds = () => {
-    // Mock HostBreach OSINT feeds
-    const mockFeeds: OSINTFeed[] = [
-      {
-        id: '1',
-        name: 'HostBreach Threat Intel',
-        type: 'THREAT_INTEL',
-        status: 'ACTIVE',
-        lastSync: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-        indicatorCount: 2847,
-        apiEndpoint: 'https://api.hostbreach.com/v1/threat-intel',
-        syncInterval: 15
-      },
-      {
-        id: '2',
-        name: 'HostBreach IOCs',
-        type: 'IOC',
-        status: 'ACTIVE',
-        lastSync: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        indicatorCount: 1523,
-        apiEndpoint: 'https://api.hostbreach.com/v1/indicators',
-        syncInterval: 5
-      },
-      {
-        id: '3',
-        name: 'HostBreach Vulnerability Feed',
-        type: 'VULNERABILITY',
-        status: 'ACTIVE',
-        lastSync: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        indicatorCount: 453,
-        apiEndpoint: 'https://api.hostbreach.com/v1/vulnerabilities',
-        syncInterval: 60
-      },
-      {
-        id: '4',
-        name: 'HostBreach Security Advisories',
-        type: 'ADVISORY',
-        status: 'INACTIVE',
-        lastSync: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        indicatorCount: 89,
-        apiEndpoint: 'https://api.hostbreach.com/v1/advisories',
-        syncInterval: 1440
-      }
-    ];
-    
-    setFeeds(mockFeeds);
+    // Awaiting telemetry for real intelligence feeds
+    const pendingFeeds: OSINTFeed[] = [];
+
+    setFeeds(pendingFeeds);
   };
 
   const loadMetrics = () => {
+    // Awaiting telemetry for actual metrics
     setMetrics({
-      totalFeeds: 4,
-      activeFeeds: 3,
-      indicatorsToday: 127,
-      threatsBlocked: 23,
+      totalFeeds: 0,
+      activeFeeds: 0,
+      indicatorsToday: 0,
+      threatsBlocked: 0,
       lastUpdate: new Date().toISOString()
     });
   };

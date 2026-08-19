@@ -18,9 +18,10 @@
 // KHEPRA_LICENSE_PATH (file-based, for air-gap / SCIF delivery).
 //
 // NOTE on types: this file defines ParsedLicense for file-based validation.
-// The node-quota / EgyptianTier License struct lives in egyptian_tiers.go.
+// The node-quota License struct lives in license_tiers.go.
 // The sovereign device-bound KhepraLicense lives in sovereign.go.
-// TierCommunity is declared as an untyped string const in sovereign.go — use that.
+// TierCommunity and TierSovereign are declared as untyped string consts in
+// sovereign.go — use those, not local redeclarations.
 package license
 
 import (
@@ -47,20 +48,22 @@ var embeddedPublicKey []byte
 // ---------------------------------------------------------------------------
 // Tier constants for file-based (.adinkhepra) validation.
 //
-// TierCommunity is intentionally NOT redeclared here — sovereign.go already
-// declares it as an untyped string constant ("community").
+// TierCommunity and TierSovereign are intentionally NOT redeclared here —
+// sovereign.go already declares them as untyped string constants
+// ("community", "sovereign"). TierPharaoh is a legacy tier value specific to
+// this file-based validation path only; it predates and is unrelated to the
+// current Community/Pro/Enterprise/Sovereign pricing ladder.
 // ---------------------------------------------------------------------------
 
 const (
-	// TierSovereign grants NHI inventory, ERT crypto, and STIG automation.
-	TierSovereign = "sovereign"
 	// TierPharaoh grants all features including priority support and SLA.
+	// Legacy .adinkhepra file tier — not part of the current pricing ladder.
 	TierPharaoh = "pharaoh"
 )
 
 // ---------------------------------------------------------------------------
 // ParsedLicense — result of validating a .adinkhepra file.
-// For EgyptianTier node-quota licensing, see egyptian_tiers.go.
+// For node-quota licensing, see license_tiers.go.
 // For sovereign device-bound licenses,  see sovereign.go / KhepraLicense.
 // ---------------------------------------------------------------------------
 

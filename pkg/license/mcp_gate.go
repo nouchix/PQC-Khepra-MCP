@@ -1,10 +1,11 @@
 // Package license — mcp_gate.go: MCP tool gating layer over the sovereign license stack.
 //
-// Three public tiers:
+// Four public tiers:
 //
-//	TierCommunity  (free, Apache 2.0 OSS)   — crypto discovery + Dark Crypto + local audit
-//	TierPilot      (Sovereign, $2,999/mo)    — compliance reporting, ACP, NHI inventory
-//	TierEnterprise (Pharaoh, custom pricing) — STIG/CMMC/NHI-full/ert-full/PQC STIG
+//	TierCommunity  (Community, free)          — crypto discovery + Dark Crypto + local audit
+//	TierPro        (Pro, $19/mo)               — compliance reporting, ACP, NHI inventory, autopilot
+//	TierEnterprise (Enterprise, $499/mo)       — STIG/CMMC/NHI-full/ert-full/PQC STIG, autopilot
+//	TierSovereign  (Sovereign, custom — contact sales) — air-gap/offline licensing, HSM, autopilot
 //
 // Tools NOT in mcpToolTier are accessible at Community tier with no license key.
 // A nil license → Community tier (non-fatal — server starts and runs core tools).
@@ -12,8 +13,9 @@
 // Display names map internal constants to customer-facing names:
 //
 //	"community"  → "Community"
-//	"pilot"      → "Sovereign"
-//	"enterprise" → "Pharaoh"
+//	"pro"        → "Pro"
+//	"enterprise" → "Enterprise"
+//	"sovereign"  → "Sovereign"
 //	"master"     → "NouchiX Internal"
 package license
 
@@ -30,8 +32,9 @@ import (
 // TierDisplayNames maps internal tier constants to customer-facing names.
 var TierDisplayNames = map[string]string{
 	TierCommunity:  "Community",
-	TierPilot:      "Sovereign",
-	TierEnterprise: "Pharaoh",
+	TierPro:        "Pro",
+	TierEnterprise: "Enterprise",
+	TierSovereign:  "Sovereign",
 	TierMaster:     "NouchiX Internal",
 }
 
@@ -73,13 +76,13 @@ func (e *ErrMCPTierInsufficient) Error() string {
 //	agent_record, dag_attestation, khepra_get_dag_chain,
 //	flight_export, dark_crypto_contribute
 //
-// ── Sovereign tier tools (TierPilot key) ──────────────────────────────────────
+// ── Pro tier tools (TierPro key) ──────────────────────────────────────────────
 //
 //	khepra_get_compliance_score, khepra_export_attestation, khepra_export_poam,
 //	godfather_report, godfather_approve, ert_godfather, khepra_watch,
 //	acp_issue, acp_revoke, acp_status, nhi_inventory
 //
-// ── Pharaoh tier tools (TierEnterprise key) ──────────────────────────────────
+// ── Enterprise tier tools (TierEnterprise key) ────────────────────────────────
 //
 //	nhi_revoke, nhi_orphans, nhi_excessive, nhi_expired,
 //	ert_scan, ert_readiness, ert_architect, stig_check, cmmc_assess
@@ -98,9 +101,10 @@ var mcpToolTier = map[string]string{
 	"dark_crypto_contribute":    TierCommunity,
 	"pqc_stig":                  TierCommunity, // World's First DoD PQC STIG — free for all, drives adoption
 
-	// ── Sovereign / Pilot ─────────────────────────────────────────────────────
+	// ── Pro ───────────────────────────────────────────────────────────────────
 	// Compliance reporting, evidence packaging, human approval gates,
 	// ACP credential management, and NHI inventory.
+<<<<<<< HEAD
 	"khepra_get_compliance_score": TierPilot,
 	"khepra_export_attestation":   TierPilot,
 	"khepra_export_poam":          TierPilot,
@@ -114,10 +118,23 @@ var mcpToolTier = map[string]string{
 	"nhi_inventory":               TierPilot,
 	"scan_shadow_ai":              TierPilot,
 	"attest_ai_policy":            TierPilot,
+=======
+	"khepra_get_compliance_score": TierPro,
+	"khepra_export_attestation":   TierPro,
+	"khepra_export_poam":          TierPro,
+	"godfather_report":            TierPro,
+	"godfather_approve":           TierPro,
+	"ert_godfather":               TierPro,
+	"khepra_watch":                TierPro,
+	"acp_issue":                   TierPro,
+	"acp_revoke":                  TierPro,
+	"acp_status":                  TierPro,
+	"nhi_inventory":               TierPro,
+>>>>>>> origin/main
 
-	// ── Pharaoh / Enterprise ──────────────────────────────────────────────────
+	// ── Enterprise ────────────────────────────────────────────────────────────
 	// Full NHI lifecycle, deep scanning, STIG/CMMC full assessments,
-	// Docker-sandboxed code execution, air-gap licensing.
+	// Docker-sandboxed code execution.
 	"nhi_revoke":    TierEnterprise,
 	"nhi_orphans":   TierEnterprise,
 	"nhi_excessive": TierEnterprise,
@@ -128,14 +145,17 @@ var mcpToolTier = map[string]string{
 	"stig_check":    TierEnterprise,
 	"cmmc_assess":   TierEnterprise,
 	// pqc_stig is Community tier — see above
+	// Sovereign inherits every Enterprise-gated tool (tierAtLeast), plus
+	// air-gap/offline licensing — see pkg/license/manager.go.
 }
 
 // tierRank maps tier strings to numeric rank for AtLeast comparison.
 var tierRank = map[string]int{
 	TierCommunity:  0,
-	TierPilot:      1,
+	TierPro:        1,
 	TierEnterprise: 2,
-	TierMaster:     3,
+	TierSovereign:  3,
+	TierMaster:     4,
 }
 
 // tierAtLeast returns true if have >= required in the tier hierarchy.
@@ -178,8 +198,8 @@ func RequiredTier(toolName string) string {
 // ─── Per-Tool Behavior Helpers ────────────────────────────────────────────────
 
 // NistMapLimit returns the maximum BM25 result count for the tier.
-//   - Community:  25  (sufficient for Dark Crypto intelligence lookups)
-//   - Sovereign+: 616 (full NIST 800-53 / 800-171 index)
+//   - Community: 25  (sufficient for Dark Crypto intelligence lookups)
+//   - Pro+:      616 (full NIST 800-53 / 800-171 index)
 func NistMapLimit(lic *KhepraLicense) int {
 	if lic == nil || lic.Tier == TierCommunity {
 		return 25
@@ -189,23 +209,33 @@ func NistMapLimit(lic *KhepraLicense) int {
 
 // ERTFullScan returns true if the tier permits all ERT scan lanes (secrets, sbom, pqc).
 // Community: crypto-only lane (ert_crypto tool).
-// Sovereign: sast + sca + pqc lanes.
-// Enterprise: all lanes including Docker-sandboxed ert_scan.
+// Pro: sast + sca + pqc lanes.
+// Enterprise+: all lanes including Docker-sandboxed ert_scan.
 func ERTFullScan(lic *KhepraLicense) bool {
 	if lic == nil {
 		return false
 	}
-	return tierAtLeast(lic.Tier, TierPilot)
+	return tierAtLeast(lic.Tier, TierPro)
 }
 
 // SignedAuditLogEnabled returns true if cloud relay (SouHimBou AI) is permitted.
 // Community builds use local-only DAG (air-gap mode, zero cloud dependency).
-// Sovereign+ can set SOUHIMBOU_ENDPOINT for cloud relay.
+// Pro+ can set SOUHIMBOU_ENDPOINT for cloud relay.
 func SignedAuditLogEnabled(lic *KhepraLicense) bool {
 	if lic == nil {
 		return false
 	}
-	return tierAtLeast(lic.Tier, TierPilot)
+	return tierAtLeast(lic.Tier, TierPro)
+}
+
+// AutopilotEnabled returns true if the tier includes continuous CMMC compliance
+// scanning ("autopilot"). This is a core value prop, not an upsell — every
+// paid tier (Pro, Enterprise, Sovereign) gets it. Community does not.
+func AutopilotEnabled(lic *KhepraLicense) bool {
+	if lic == nil {
+		return false
+	}
+	return tierAtLeast(lic.Tier, TierPro)
 }
 
 // DarkCryptoContributeEnabled always returns true.

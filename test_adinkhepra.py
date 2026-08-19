@@ -188,6 +188,15 @@ class TestTelemetryServer(unittest.TestCase):
         result = adinkhepra.start_telemetry_server()
 
         self.assertIsNone(result)
+
+    @patch('os.path.exists')
+    def test_start_telemetry_server_missing_dir_sovereign_aborts(self, mock_exists):
+        """Missing dir in sovereign mode (the default) must fail closed."""
+        mock_exists.return_value = False
+
+        with patch.dict(os.environ, {"KHEPRA_MODE": "sovereign"}):
+            with self.assertRaises(SystemExit):
+                adinkhepra.start_telemetry_server()
     
     @patch('adinkhepra.wait_for_port')
     @patch('subprocess.Popen')
@@ -215,9 +224,10 @@ class TestTelemetryServer(unittest.TestCase):
         mock_wait.return_value = False
         mock_proc = MagicMock()
         mock_popen.return_value = mock_proc
-        
-        result = adinkhepra.start_telemetry_server()
-        
+
+        with patch.dict(os.environ, {"KHEPRA_MODE": "hybrid"}):
+            result = adinkhepra.start_telemetry_server()
+
         self.assertIsNone(result)
         mock_proc.terminate.assert_called_once()
 
