@@ -259,6 +259,9 @@ func (tr *Reader) readGNUSparsePAXHeaders(hdr *Header) (sparseDatas, error) {
 
 // mergePAX merges paxHdrs into hdr for all relevant fields of Header.
 func mergePAX(hdr *Header, paxHdrs map[string]string) (err error) {
+	const maxInt = int64(^uint(0) >> 1)
+	const minInt = -maxInt - 1
+
 	for k, v := range paxHdrs {
 		if v == "" {
 			continue // Keep the original USTAR value
@@ -275,10 +278,22 @@ func mergePAX(hdr *Header, paxHdrs map[string]string) (err error) {
 			hdr.Gname = v
 		case paxUid:
 			id64, err = strconv.ParseInt(v, 10, 64)
-			hdr.Uid = int(id64) // Integer overflow possible
+			if err == nil {
+				if id64 < minInt || id64 > maxInt {
+					err = ErrHeader
+				} else {
+					hdr.Uid = int(id64)
+				}
+			}
 		case paxGid:
 			id64, err = strconv.ParseInt(v, 10, 64)
-			hdr.Gid = int(id64) // Integer overflow possible
+			if err == nil {
+				if id64 < minInt || id64 > maxInt {
+					err = ErrHeader
+				} else {
+					hdr.Gid = int(id64)
+				}
+			}
 		case paxAtime:
 			hdr.AccessTime, err = parsePAXTime(v)
 		case paxMtime:
