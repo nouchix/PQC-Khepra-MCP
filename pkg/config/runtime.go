@@ -32,9 +32,14 @@ type RuntimeConfig struct {
 	// Empty in edge/hybrid mode (in-memory DAG is used).
 	DAGPath string
 
-	// LicensePath is the path to the offline license file.
-	// Used in sovereign/ironbank mode. Ignored in SaaS mode (Supabase validates licenses).
+	// LicensePath is the path to the offline license file (.adinkhepra).
+	// Used in sovereign/ironbank mode for air-gap / SCIF delivery.
+	// Prefer LicenseKey when not in a classified environment.
 	LicensePath string
+
+	// LicenseKey is the API-key format license (kphr_{tier}_{base64url-payload}).
+	// Read from KHEPRA_LICENSE_KEY. Takes priority over LicensePath.
+	LicenseKey string
 
 	// IsAirGapped is true when no external network calls are permitted.
 	IsAirGapped bool
@@ -73,6 +78,7 @@ func LoadRuntime() RuntimeConfig {
 		IsAirGapped: isAirGapped,
 		IsSaaS:      isSaaS,
 		LicensePath: runtimeLicensePath(),
+		LicenseKey:  os.Getenv("KHEPRA_LICENSE_KEY"),
 	}
 
 	if isAirGapped {

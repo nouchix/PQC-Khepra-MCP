@@ -56,9 +56,13 @@ type ErrMCPTierInsufficient struct {
 }
 
 func (e *ErrMCPTierInsufficient) Error() string {
+	upgradeURL := os.Getenv("KHEPRA_UPGRADE_URL")
+	if upgradeURL == "" {
+		upgradeURL = "https://souhimbou.ai"
+	}
 	return fmt.Sprintf(
-		"license: tool %q requires %s tier (current: %s) — upgrade at khepra.nouchix.com",
-		e.Tool, RequiredTierDisplayName(e.Required), RequiredTierDisplayName(e.Have),
+		"license: tool %q requires %s tier (current: %s) — upgrade at %s",
+		e.Tool, RequiredTierDisplayName(e.Required), RequiredTierDisplayName(e.Have), upgradeURL,
 	)
 }
 
@@ -100,6 +104,21 @@ var mcpToolTier = map[string]string{
 	// ── Pro ───────────────────────────────────────────────────────────────────
 	// Compliance reporting, evidence packaging, human approval gates,
 	// ACP credential management, and NHI inventory.
+<<<<<<< HEAD
+	"khepra_get_compliance_score": TierPilot,
+	"khepra_export_attestation":   TierPilot,
+	"khepra_export_poam":          TierPilot,
+	"godfather_report":            TierPilot,
+	"godfather_approve":           TierPilot,
+	"ert_godfather":               TierPilot,
+	"khepra_watch":                TierPilot,
+	"acp_issue":                   TierPilot,
+	"acp_revoke":                  TierPilot,
+	"acp_status":                  TierPilot,
+	"nhi_inventory":               TierPilot,
+	"scan_shadow_ai":              TierPilot,
+	"attest_ai_policy":            TierPilot,
+=======
 	"khepra_get_compliance_score": TierPro,
 	"khepra_export_attestation":   TierPro,
 	"khepra_export_poam":          TierPro,
@@ -111,6 +130,7 @@ var mcpToolTier = map[string]string{
 	"acp_revoke":                  TierPro,
 	"acp_status":                  TierPro,
 	"nhi_inventory":               TierPro,
+>>>>>>> origin/main
 
 	// ── Enterprise ────────────────────────────────────────────────────────────
 	// Full NHI lifecycle, deep scanning, STIG/CMMC full assessments,
@@ -244,13 +264,24 @@ func ParseMCPLicense() (*KhepraLicense, error) {
 		return nil, ErrNoLicenseKey
 	}
 
-	// KHEPRA_LICENSE_KEY accepts either raw JSON or the Sacred Runes encoding
-	// produced by EncodeLicenseDisplay (see sacred_license.go). Valid JSON
-	// always starts with '{'; anything else is treated as Sacred-encoded.
-	// This is a format choice only — verification below is identical either way.
+	// KHEPRA_LICENSE_KEY accepts API key format (kphr_{tier}_{base64url}),
+	// raw JSON, or Sacred Runes encoding.
 	var lic KhepraLicense
 	trimmed := strings.TrimSpace(raw)
-	if strings.HasPrefix(trimmed, "{") {
+	if strings.HasPrefix(trimmed, "kphr_") {
+		parsed, err := ValidateAPIKey(trimmed)
+		if err != nil {
+			return nil, fmt.Errorf("license: KHEPRA_LICENSE_KEY api key validation failed: %w", err)
+		}
+		lic = KhepraLicense{
+			LicenseID: parsed.LicenseKey,
+			Tenant:    parsed.CustomerID,
+			Tier:      parsed.Tier,
+			IssuedAt:  parsed.IssuedAt,
+			ExpiresAt: parsed.ExpiresAt,
+		}
+		return &lic, nil
+	} else if strings.HasPrefix(trimmed, "{") {
 		if err := json.Unmarshal([]byte(trimmed), &lic); err != nil {
 			return nil, fmt.Errorf("license: KHEPRA_LICENSE_KEY parse failed: %w", err)
 		}
@@ -271,4 +302,8 @@ func ParseMCPLicense() (*KhepraLicense, error) {
 	}
 
 	return &lic, nil
+}
+
+func (l *KhepraLicense) Check(toolName string) error {
+	return CheckToolAccess(l, toolName)
 }

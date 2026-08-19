@@ -187,6 +187,10 @@ type pqcResponseWriter struct {
 
 func (p *pqcResponseWriter) WriteHeader(status int) {
 	p.status = status
+	// #412 XSS mitigation: prevent browsers from MIME-sniffing passthrough content
+	if p.ResponseWriter.Header().Get("X-Content-Type-Options") == "" {
+		p.ResponseWriter.Header().Set("X-Content-Type-Options", "nosniff")
+	}
 	p.ResponseWriter.WriteHeader(status)
 }
 

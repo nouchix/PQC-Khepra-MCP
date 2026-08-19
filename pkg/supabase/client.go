@@ -1,4 +1,4 @@
-//go:build saas
+
 
 // Package supabase provides a lightweight Go client for Supabase REST API,
 // enabling Go-based agents (KASA/DEMARC) to persist DAG nodes, scan results,

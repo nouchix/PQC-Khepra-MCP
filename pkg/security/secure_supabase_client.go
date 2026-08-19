@@ -1,4 +1,3 @@
-//go:build saas
 
 // Package security - Secure Supabase Client with Automatic PQC Encryption
 //

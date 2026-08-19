@@ -1,4 +1,3 @@
-//go:build saas
 
 // =============================================================================
 // KHEPRA PROTOCOL - Integration Tests for Autopilot, PDF, Certify, Seats
