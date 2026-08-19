@@ -38,10 +38,47 @@ We aren't just sending prompts; we are anchoring agent thoughts to a quantum-sec
 
 | Tier | Price | License Key | Tools | Egress |
 |------|-------|-------------|-------|--------|
-| **Community** | Free | ❌ Not required | `pqc_stig` + 12 core tools | Zero (sovereign mode) |
-| **Pro** | $19/mo | ✅ Required | Compliance reporting, ACP, NHI inventory | Zero |
-| **Enterprise** | $499/mo | ✅ Required | All 76 tools | Zero |
-| **Sovereign** | Custom — [Contact Sales](https://khepra.nouchix.com/) | ✅ Required | All 76 tools + air-gap/offline licensing + HSM | Zero |
+| **Community** | Free | ✅ Required (Free) | `pqc_stig` + 12 core tools | Zero (sovereign mode) |
+| **Pro** | $19/mo | ✅ Required | 30 tools (Reporting, ACP, NHI) | Zero |
+| **Enterprise / Sovereign** | Custom | ✅ Required | All 80 tools | **Requires upgrade to Khepra Trust OS** |
+
+> [!NOTE]
+> **Commercial Upgrade**: The Enterprise and Sovereign tiers (including the full 80-tool suite, Bolt Edge Node execution, and Hub & Fleet architecture) are exclusively available via the **Khepra Trust OS** private repository. Please [contact sales](https://khepra.nouchix.com/) for access.
+
+---
+
+## Tool Matrix
+
+### Community Tier (Free)
+*Focus: Basic discovery and PQC compliance scanning.*
+- `pqc_stig`
+- `linux_hardening_check`
+- `khepra_query_stig`
+- `nist_map`
+- `dark_crypto_contribute`
+- *(+ 8 other foundational tools)*
+
+### Pro Tier ($19/mo)
+*Focus: Individual developer productivity and reporting.*
+- **All Community tools**
+- `ert_scan`
+- `godfather_report`
+- `sbom_generate`
+- `scan_shadow_ai`
+- `nhi_inventory`
+- `acp_status`
+- *(+ ~17 additional tools)*
+
+### Enterprise & Sovereign (via Khepra Trust OS)
+*Focus: Distributed orchestration, active defense, and CMMC compliance.*
+- **All Community & Pro tools**
+- `khepra_edge_exec` (Bolt Edge Node remote execution)
+- `khepra_bolt_scan` (Remote threat scanning)
+- `cmmc_assess`
+- `dag_attestation`
+- `kasa_crypto_agent`
+- `kasa_forensics`
+- *(All 80 tools + Hub & Fleet Architecture)*
 
 ---
 
@@ -642,14 +679,13 @@ docker load < khepra-mcp.tar.gz
 
 | Tier | Cost | License Key | Tools |
 |------|------|-------------|-------|
-| Community | Free | Not required | `pqc_stig` + 12 core tools |
-| Pro | $19/mo | Required | Compliance reporting, ACP, NHI inventory, autopilot |
-| Enterprise | $499/mo | Required | All 76 tools, autopilot |
-| Sovereign | Custom — Contact Sales | Required | All 76 tools + air-gap/offline licensing + HSM, autopilot |
+| Community | Free | Required (Free) | `pqc_stig` + 12 core tools |
+| Pro | $19/mo | Required | 30 tools (Reporting, ACP, NHI, autopilot) |
+| Enterprise / Sovereign | Custom | Required | All 80 tools (Requires KTOS upgrade) |
 
 - Community tier is permanently free — contribute to open-source PQC adoption
-- Pro/Enterprise: self-serve billing
-- Sovereign: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
+- Pro: self-serve billing
+- Enterprise / Sovereign: contact [contact@nouchix.com](mailto:contact@nouchix.com) or visit [nouchix.com](https://nouchix.com)
 
 ---
 
