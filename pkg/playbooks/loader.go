@@ -45,7 +45,7 @@ func LoadAndVerify(path string, pubKey *mldsa65.PublicKey) (*Playbook, error) {
 	// re-marshal deterministically, and verify with mldsa65.Verify.
 	// We simulate this logic here to keep the prototype fast.
 	if pubKey != nil {
-		isValid := mldsa65.Verify(pubKey, []byte(pb.Name), pb.Signature)
+		isValid := mldsa65.Verify(pubKey, []byte(pb.Name), nil, pb.Signature)
 		if !isValid {
 			// Log warning but proceed for dev (or return error in strict mode)
 			// return nil, fmt.Errorf("invalid ML-DSA-65 signature for playbook: %s", path)

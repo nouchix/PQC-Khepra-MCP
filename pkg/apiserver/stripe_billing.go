@@ -171,7 +171,7 @@ func (s *Server) handleCreateCheckout(c *gin.Context) {
 		Amount:         tierAmountCents[req.Tier],
 		Currency:       "usd",
 		Recurring:      recurring,
-		CreatedAt:      now,
+		CreatedAt:      time.Now(),
 	}
 
 	checkoutURL, stripeSessionID, err := createStripeCheckoutSession(secretKey, priceID, sessionID, req.SuccessURL, req.CancelURL, recurring)

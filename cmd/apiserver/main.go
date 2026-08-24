@@ -55,7 +55,7 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/llm/ollama"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/legacy"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/supabase"
 )
