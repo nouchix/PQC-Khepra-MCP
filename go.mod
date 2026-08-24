@@ -1,12 +1,12 @@
 module github.com/nouchix/PQC-Khepra-MCP
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/anchore/clio v0.1.1
 	github.com/anchore/grype v0.117.0
 	github.com/anchore/syft v1.51.0
-	github.com/beevik/etree v1.7.0
+	github.com/beevik/etree v1.7.1
 	github.com/cloudflare/circl v1.6.5
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gin-gonic/gin v1.12.0
@@ -22,10 +22,10 @@ require (
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/crypto v0.55.0
 	golang.org/x/sys v0.47.0
-	google.golang.org/grpc v1.83.0
+	google.golang.org/grpc v1.83.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.56.0
-	tailscale.com v1.102.2
+	modernc.org/sqlite v1.57.0
+	tailscale.com v1.102.3
 )
 
 require (
