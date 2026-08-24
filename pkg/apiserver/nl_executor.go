@@ -18,7 +18,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/legacy"
 )
 
 // serverToolExecutor dispatches MCP tool calls directly through the server's

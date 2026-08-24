@@ -572,3 +572,22 @@ func (f *LiveFetcher) do(ctx context.Context, method, path string, body []byte) 
 	}
 	return respBody, nil
 }
+
+// InvalidateChangedCaches deletes the cached STIG files for any STIG that has
+// a new DISA release since the provided date (YYYY-MM-DD).
+func (f *LiveFetcher) InvalidateChangedCaches(ctx context.Context, since string) ([]string, error) {
+	changes, err := f.Changelog(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	var invalidated []string
+	for _, ch := range changes {
+		path := f.cachePath(ch.Slug)
+		if _, err := os.Stat(path); err == nil {
+			if err := os.Remove(path); err == nil {
+				invalidated = append(invalidated, ch.Slug)
+			}
+		}
+	}
+	return invalidated, nil
+}

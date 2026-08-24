@@ -17,7 +17,7 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/auth"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/legacy"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
 
@@ -350,7 +350,7 @@ func (s *Server) setupRoutes() {
 	// POST /api/v1/scan/agent        — trigger (public — no auth for demo funnel)
 	// GET  /api/v1/scan/agent/stream — SSE progress stream (public)
 	// GET  /api/v1/scan/agent/:id    — full report retrieval (authenticated)
-	s.setupAgentScanRoutes(pubV1, v1)
+	// s.setupAgentScanRoutes(pubV1, v1)
 
 	// WebSocket endpoints (auth via query param or first message)
 	var upgrader = websocket.Upgrader{
