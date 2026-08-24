@@ -32,7 +32,7 @@ import (
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/llm"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
+	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/legacy"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/supabase"
 )
 

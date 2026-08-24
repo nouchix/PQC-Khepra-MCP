@@ -104,21 +104,6 @@ var mcpToolTier = map[string]string{
 	// ── Pro ───────────────────────────────────────────────────────────────────
 	// Compliance reporting, evidence packaging, human approval gates,
 	// ACP credential management, and NHI inventory.
-<<<<<<< HEAD
-	"khepra_get_compliance_score": TierPilot,
-	"khepra_export_attestation":   TierPilot,
-	"khepra_export_poam":          TierPilot,
-	"godfather_report":            TierPilot,
-	"godfather_approve":           TierPilot,
-	"ert_godfather":               TierPilot,
-	"khepra_watch":                TierPilot,
-	"acp_issue":                   TierPilot,
-	"acp_revoke":                  TierPilot,
-	"acp_status":                  TierPilot,
-	"nhi_inventory":               TierPilot,
-	"scan_shadow_ai":              TierPilot,
-	"attest_ai_policy":            TierPilot,
-=======
 	"khepra_get_compliance_score": TierPro,
 	"khepra_export_attestation":   TierPro,
 	"khepra_export_poam":          TierPro,
@@ -130,7 +115,8 @@ var mcpToolTier = map[string]string{
 	"acp_revoke":                  TierPro,
 	"acp_status":                  TierPro,
 	"nhi_inventory":               TierPro,
->>>>>>> origin/main
+	"scan_shadow_ai":              TierPro,
+	"attest_ai_policy":            TierPro,
 
 	// ── Enterprise ────────────────────────────────────────────────────────────
 	// Full NHI lifecycle, deep scanning, STIG/CMMC full assessments,
