@@ -81,25 +81,25 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: hadolint â€” Dockerfile (main)
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
           failure-threshold: error
 
       - name: hadolint â€” Dockerfile.ironbank
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile.ironbank
           failure-threshold: error
 
       - name: hadolint â€” Dockerfile.fips
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile.fips
           failure-threshold: error
 
       - name: hadolint â€” Dockerfile.mcp
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile.mcp
           failure-threshold: warning
