@@ -41,40 +41,49 @@ type StripeConfig struct {
 //	prod_UhvNflskmq9PoV  → SouHimBou.AI Flight Recorder  (STRIPE_PRODUCT_SOC)
 //	prod_UqvQtvapGfRbcP  → PQC-Khepra-MCP Server          (STRIPE_PRODUCT_MCP)
 var PriceMapping = map[string]string{
-	// SouHimBou AI hosted tiers (souhimbou.ai)
-	"certify":      os.Getenv("STRIPE_PRICE_CERTIFY"),        // $99      one-time
-	"starter":      os.Getenv("STRIPE_PRICE_STARTER"),        // $299/mo  recurring → TierPilot
-	"enterprise":   os.Getenv("STRIPE_PRICE_ENTERPRISE_SOC"), // $499/mo  recurring → TierEnterprise
-	"professional": os.Getenv("STRIPE_PRICE_PROFESSIONAL"),   // $999/mo  recurring → TierEnterprise
-	// PQC-Khepra-MCP Server standalone (air-gapped self-hosted)
-	"sovereign": os.Getenv("STRIPE_PRICE_MCP_SOVEREIGN"), // $2,999/mo recurring → TierMaster
-	// Professional Services (consulting, one-time)
-	"diagnostic": os.Getenv("STRIPE_PRICE_DIAGNOSTIC"), // $1,500   one-time
-	"advisory":   os.Getenv("STRIPE_PRICE_ADVISORY"),   // $5,000   one-time
-	"sprint":     os.Getenv("STRIPE_PRICE_SPRINT"),     // $15,000  one-time
+	// B2B Single Audit Readiness Export ($499 one-time)
+	"certify":             os.Getenv("STRIPE_PRICE_CERTIFY"),        // $499      one-time (single audit export)
+	"audit_export_single": os.Getenv("STRIPE_PRICE_CERTIFY"),        // $499      one-time
+	// Commercial B2B Platform Subscriptions
+	"starter":             os.Getenv("STRIPE_PRICE_STARTER"),        // $3,500/mo ($42,000/yr ARR) → TierPilot
+	"b2b_platform":        os.Getenv("STRIPE_PRICE_STARTER"),        // $3,500/mo ($42,000/yr ARR)
+	"enterprise":          os.Getenv("STRIPE_PRICE_ENTERPRISE_SOC"), // $499/mo   recurring → TierEnterprise
+	"professional":        os.Getenv("STRIPE_PRICE_PROFESSIONAL"),   // $999/mo   recurring → TierEnterprise
+	// Sovereign & DoD B2G Air-Gapped Enclaves
+	"sovereign":           os.Getenv("STRIPE_PRICE_MCP_SOVEREIGN"), // $12,500/mo ($150,000/yr ARR) → TierMaster
+	"sekhem_federal":      os.Getenv("STRIPE_PRICE_MCP_SOVEREIGN"), // $12,500/mo ($150,000/yr ARR)
+	// Professional Services (advisory, one-time)
+	"diagnostic":          os.Getenv("STRIPE_PRICE_DIAGNOSTIC"),    // $1,500   one-time
+	"advisory":            os.Getenv("STRIPE_PRICE_ADVISORY"),      // $5,000   one-time
+	"sprint":              os.Getenv("STRIPE_PRICE_SPRINT"),        // $15,000  one-time
 }
 
 // recurringTiers lists which PriceMapping keys are monthly subscriptions vs.
 // one-time charges. Kept in sync with PriceMapping above.
 var recurringTiers = map[string]bool{
-	"starter":      true,
-	"enterprise":   true,
-	"professional": true,
-	"sovereign":    true,
+	"starter":        true,
+	"b2b_platform":   true,
+	"enterprise":     true,
+	"professional":   true,
+	"sovereign":      true,
+	"sekhem_federal": true,
 }
 
 // tierAmountCents mirrors PriceMapping's dollar amounts, in cents, for local
 // display/tracking only — the actual charge is always driven by the Stripe
 // price ID in the real Checkout Session, never by this map.
 var tierAmountCents = map[string]int{
-	"certify":      9900,
-	"starter":      29900,
-	"enterprise":   49900,
-	"professional": 99900,
-	"sovereign":    299900,
-	"diagnostic":   150000,
-	"advisory":     500000,
-	"sprint":       1500000,
+	"certify":             49900,
+	"audit_export_single": 49900,
+	"starter":             350000,
+	"b2b_platform":        350000,
+	"enterprise":          49900,
+	"professional":        99900,
+	"sovereign":           1250000,
+	"sekhem_federal":      1250000,
+	"diagnostic":          150000,
+	"advisory":            500000,
+	"sprint":              1500000,
 }
 
 // CheckoutSession represents a pending or completed checkout
