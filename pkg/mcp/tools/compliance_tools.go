@@ -53,6 +53,9 @@ type STIGFinding struct {
 // HandleSTIGCheck is the MCP handler for stig_check.
 // Runs RHEL-09-STIG V1R3 checks and returns structured findings.
 func HandleSTIGCheck(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("stig_check"); gate != nil {
+		return gate, nil, nil
+	}
 	framework, _ := call.Args["framework"].(string)
 	if framework == "" {
 		framework = stig.FrameworkRHEL09STIG
@@ -187,6 +190,9 @@ type CMMCGap struct {
 // HandleCMMCAssess is the MCP handler for cmmc_assess.
 // Performs a CMMC Level 1, 2, or 3 practice assessment using the STIG compliance database.
 func HandleCMMCAssess(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("cmmc_assess"); gate != nil {
+		return gate, nil, nil
+	}
 	levelArg, _ := call.Args["level"].(string)
 	if levelArg == "" {
 		levelArg = "2"

@@ -27,9 +27,12 @@ func TestDefaults(t *testing.T) {
 		t.Fatalf("SignEnvelope modified envelope")
 	}
 
-	// Test OpenLicense
-	if err := deps.License.Check("test_tool"); err != nil {
-		t.Fatalf("Check failed: %v", err)
+	// Test License gating: community tool allowed for free, enterprise tool blocked
+	if err := deps.License.Check("pqc_stig"); err != nil {
+		t.Fatalf("Community tool pqc_stig check failed: %v", err)
+	}
+	if err := deps.License.Check("cmmc_assess"); err == nil {
+		t.Fatalf("Expected cmmc_assess to be gated for free users")
 	}
 
 	// Test NoopFlightRecorder
