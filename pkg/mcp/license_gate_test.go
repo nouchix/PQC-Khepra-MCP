@@ -471,3 +471,63 @@ func TestLicense_GateFiresBeforeExecution(t *testing.T) {
 		t.Fatal("SECURITY VIOLATION: tool executor was called despite tier gate blocking it")
 	}
 }
+
+// ─── Missing Mocks ────────────────────────────────────────────────────────────
+
+func testIdentity() Identity {
+	return Identity{
+		AgentID: "agent-1",
+	}
+}
+
+type mockDemarc struct {
+	identity Identity
+}
+
+func (m *mockDemarc) Authenticate(ctx context.Context, cred any) (Identity, error) {
+	return m.identity, nil
+}
+
+func (m *mockDemarc) CheckCIDR(ctx context.Context, id Identity, remoteAddr string) error {
+	return nil
+}
+
+type mockPoly struct{}
+
+func (m *mockPoly) WrapRequest(payload []byte, agentID string) ([]byte, error) {
+	return payload, nil
+}
+
+func (m *mockPoly) VerifyRequest(wrapped []byte) error { return nil }
+
+func (m *mockPoly) WrapResponse(result any, requestID string) (SecureEnvelope, error) {
+	return SecureEnvelope{}, nil
+}
+
+func (m *mockPoly) VerifyResponse(envelope SecureEnvelope) error { return nil }
+
+type mockGateway struct{}
+
+func (m *mockGateway) CheckPermission(id Identity, scope string) error { return nil }
+func (m *mockGateway) ScanForInjection(text string) error              { return nil }
+
+type mockAttestor struct {
+	nodeID string
+}
+
+func (m *mockAttestor) Append(ctx context.Context, toolName string, input []byte, output []byte) (string, error) {
+	return "test-hash", nil
+}
+
+func (m *mockAttestor) SignEnvelope(ctx context.Context, env any) (any, error) {
+	return env, nil
+}
+
+func testRegistry(t *testing.T, tools ...ToolSpec) *ManifestRegistry {
+	t.Helper()
+	reg := NewRegistry()
+	for _, tool := range tools {
+		reg.RegisterInternal(tool)
+	}
+	return reg
+}

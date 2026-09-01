@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 )
 
@@ -70,10 +71,6 @@ type NodeStore interface {
 	Add(node *NodeSummary, parents []string) error
 }
 
-type Config struct {
-	Signer Signer
-}
-
 type Deps struct {
 	Attestor Attestor
 	License  LicenseChecker
@@ -83,9 +80,10 @@ type Deps struct {
 }
 
 func Defaults() Deps {
+	key := os.Getenv("KHEPRA_LICENSE_KEY")
 	return Deps{
 		Attestor: &NoopAttestor{},
-		License:  &OpenLicense{},
+		License:  &CommercialLicense{Key: key},
 		Flight:   &NoopFlightRecorder{},
 		Logger:   &SlogLogger{},
 		Signer:   &NoopSigner{},
@@ -116,47 +114,43 @@ type CommercialLicense struct {
 }
 
 func (l *CommercialLicense) Check(toolName string) error {
-	if l.Key == "" || l.Key == "<your-api-key-here>" {
-		return fmt.Errorf("A free license key is required to run PQC-Khepra-MCP. Get yours instantly at https://nouchix.com/free-key")
-	}
-
 	communityTools := map[string]bool{
 		"pqc_stig": true, "discover_assets": true, "nist_map": true, "threat_lookup": true,
 		"ouroboros_waf_eye": true, "ouroboros_vuln_eye": true, "ouroboros_fim_eye": true,
 		"enumerate_host": true, "pqc_sign": true, "pqc_verify": true, "pqc_keygen": true,
-		"sbom_generate": true, "kasa_status": true,
+		"agent_record": true, "kasa_status": true, "dag_query": true, "fingerprint_device": true,
+		"khepra_query_stig": true, "khepra_query_threat_intel": true, "khepra_get_dag_chain": true,
 	}
 
 	proTools := map[string]bool{
-		"godfather_report": true, "godfather_approve": true, "khepra_export_attestation": true, "khepra_export_poam": true,
-		"acp_status": true, "acp_issue": true, "acp_revoke": true,
-		"nhi_inventory": true, "nhi_orphans": true, "nhi_excessive": true, "nhi_expired": true, "nhi_revoke": true,
+		"khepra_get_compliance_score": true, "nhi_inventory": true, "acp_status": true,
+		"scan_shadow_ai": true, "attest_ai_policy": true, "ert_crypto": true,
+		"godfather_report": true, "godfather_approve": true, "khepra_export_attestation": true,
+		"flight_export": true, "attest_export": true, "forensic_snapshot": true,
+		"fim_baseline": true, "ir_incident": true, "ir_add_ioc": true, "attack_graph": true,
+		"drbc_backup": true, "drbc_restore": true, "audit_dag_integrity": true,
+		"ea_evolve": true, "ea_risk_summary": true, "drift_detect": true, "sbom_generate": true,
+		"khepra_watch": true,
 	}
 
-	// 1. If it's a Community Tool, allow FREE-, PRO-, or ENT- keys (and new kphr_ formats)
+	// 1. Community tools are always FREE (no key required)
 	if communityTools[toolName] {
-		if len(l.Key) >= 5 && l.Key[:5] == "FREE-" { return nil }
-		if len(l.Key) >= 4 && l.Key[:4] == "PRO-" { return nil }
-		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
-		if len(l.Key) >= 9 && l.Key[:9] == "kphr_com_" { return nil }
-		if len(l.Key) >= 9 && l.Key[:9] == "kphr_sov_" { return nil }
-		if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
-		return fmt.Errorf("Invalid KHEPRA_LICENSE_KEY. Get your FREE- key at https://nouchix.com/free-key")
+		return nil
 	}
 
-	// 2. If it's a Pro/Sovereign Tool, allow PRO-/ENT- or kphr_sov_/kphr_pha_ keys
+	// 2. If Pro/Sovereign Tool, check for valid PRO-/ENT- or kphr_sov_/kphr_pha_ key
 	if proTools[toolName] {
 		if len(l.Key) >= 4 && l.Key[:4] == "PRO-" { return nil }
 		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
 		if len(l.Key) >= 9 && l.Key[:9] == "kphr_sov_" { return nil }
 		if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
-		return fmt.Errorf("Pro license required to run `%s`.\n\n[Upgrade Instantly via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)", toolName)
+		return fmt.Errorf("Pro/Sovereign license ($99/mo) required to run `%s`.\n\n🔒 Unlock instantly: [Upgrade via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)\nOr set KHEPRA_LICENSE_KEY=kphr_sov_... in your environment.", toolName)
 	}
 
-	// 3. Otherwise, it's an Enterprise/Pharaoh tool. Only allow ENT- or kphr_pha_ keys
+	// 3. Enterprise / Sovereign tools require ENT- or kphr_pha_ keys
 	if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
 	if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
-	return fmt.Errorf("Enterprise license required to run `%s`.\n\n[Contact Sales to Upgrade](https://nouchix.com/sales)", toolName)
+	return fmt.Errorf("Enterprise license ($499/mo) required to run `%s`.\n\n🔒 Unlock full 110-control CMMC/STIG gap analysis & POAM export: [Contact Sales / Upgrade](https://souhimbou.ai/pricing)\nOr set KHEPRA_LICENSE_KEY=kphr_pha_... in your environment.", toolName)
 }
 
 type NoopFlightRecorder struct{}

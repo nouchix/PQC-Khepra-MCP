@@ -421,6 +421,9 @@ type ComplianceScoreResult struct {
 }
 
 func HandleKhepraGetComplianceScore(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
+	if gate := GateForTool("khepra_get_compliance_score"); gate != nil {
+		return gate, nil, nil
+	}
 	framework, _ := call.Args["framework"].(string)
 	if framework == "" {
 		framework = stig.FrameworkCMMC
