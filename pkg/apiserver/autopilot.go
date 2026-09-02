@@ -300,8 +300,8 @@ func (ae *AutopilotEngine) runComplianceScan(scanID string) (string, []Finding, 
 	commandCenter.mu.Unlock()
 
 	// Hash the current state for drift comparison
-	stateHash := sha256.Sum256([]byte(fmt.Sprintf("%s|%d|%s",
-		scanID, now.UnixNano(), ae.config.Framework)))
+	stateHash := sha256.Sum256(fmt.Appendf(nil, "%s|%d|%s",
+		scanID, now.UnixNano(), ae.config.Framework))
 
 	// Mark scan complete
 	endTime := time.Now()

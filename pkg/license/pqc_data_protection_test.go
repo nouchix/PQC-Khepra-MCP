@@ -591,7 +591,7 @@ func BenchmarkProtectData(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := ProtectData(testData, "license", ContextAtRest, keys, nil, time.Time{})
 		if err != nil {
 			b.Fatalf("Protect failed: %v", err)
@@ -610,7 +610,7 @@ func BenchmarkUnprotectData(b *testing.B) {
 	protected, _ := ProtectData(testData, "license", ContextAtRest, keys, nil, time.Time{})
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := UnprotectData(protected, keys, nil)
 		if err != nil {
 			b.Fatalf("Unprotect failed: %v", err)
