@@ -134,7 +134,7 @@ func (s *Server) handleCMMCScorecard(c *gin.Context) {
 }
 
 // generateL3Scorecard evaluates the 24 NIST 800-172 enhanced practices.
-func (s *Server) generateL3Scorecard(report *stig.ComprehensiveReport, mapper *compliance.ComplianceMapper) *Level3Scorecard {
+func (s *Server) generateL3Scorecard(report *stig.ComprehensiveReport, _ *compliance.ComplianceMapper) *Level3Scorecard {
 	l3 := &Level3Scorecard{
 		TotalPractices: 24,
 		Practices:      make(map[string]string),

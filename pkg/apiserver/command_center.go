@@ -565,9 +565,9 @@ func HandleVerifyAttestation(w http.ResponseWriter, r *http.Request) {
 	// Perform real cryptographic verification if package keys are available
 	verified := false
 	if len(pkgSigningPubKey) > 0 && attestation.Signature != "" {
-		dataBytes := []byte(fmt.Sprintf("%s|%s|%s|%s|%s",
+		dataBytes := fmt.Appendf(nil, "%s|%s|%s|%s|%s",
 			attestation.ID, attestation.Type, attestation.DataHash,
-			attestation.Timestamp.Format(time.RFC3339), attestation.ChainPrevious))
+			attestation.Timestamp.Format(time.RFC3339), attestation.ChainPrevious)
 		dataHash := sha256.Sum256(dataBytes)
 		sigBytes, err := hex.DecodeString(attestation.Signature)
 		if err == nil && len(sigBytes) > 0 {
@@ -615,8 +615,8 @@ func HandleExportEvidence(w http.ResponseWriter, r *http.Request) {
 	exportID := generateID("exp")
 	now := time.Now()
 
-	exportHash := sha256.Sum256([]byte(fmt.Sprintf("%s|%s|%s|%s",
-		exportID, req.Format, req.Framework, now.Format(time.RFC3339))))
+	exportHash := sha256.Sum256(fmt.Appendf(nil, "%s|%s|%s|%s",
+		exportID, req.Format, req.Framework, now.Format(time.RFC3339)))
 
 	w.Header().Set(HeaderContentType, ContentTypeJSON)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -713,7 +713,7 @@ func generateID(prefix string) string {
 	now := time.Now()
 	randBytes := make([]byte, 8)
 	_, _ = rand.Read(randBytes)
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s_%d_%d_%x", prefix, now.UnixNano(), now.Nanosecond(), randBytes)))
+	hash := sha256.Sum256(fmt.Appendf(nil, "%s_%d_%d_%x", prefix, now.UnixNano(), now.Nanosecond(), randBytes))
 	return fmt.Sprintf("%s_%s", prefix, hex.EncodeToString(hash[:])[:12])
 }
 

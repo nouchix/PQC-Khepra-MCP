@@ -354,7 +354,7 @@ func BenchmarkSignLicense(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := SignLicense(license, authority, nil)
 		if err != nil {
 			b.Fatalf("Sign failed: %v", err)
@@ -379,7 +379,7 @@ func BenchmarkVerifyLicense(b *testing.B) {
 	shuBreath, _ := SignLicense(license, authority, nil)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := VerifyLicense(shuBreath, authority.PublicKey)
 		if err != nil {
 			b.Fatalf("Verify failed: %v", err)

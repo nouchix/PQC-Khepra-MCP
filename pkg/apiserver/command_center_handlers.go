@@ -373,8 +373,8 @@ func (s *Server) handleCCVerifyAttestation(c *gin.Context) {
 	}
 
 	// Perform actual cryptographic verification using ML-DSA-65
-	dataBytes := []byte(fmt.Sprintf("%s|%s|%s|%s|%s",
-		attestation.ID, attestation.Type, attestation.DataHash, attestation.Timestamp.Format(time.RFC3339), attestation.ChainPrevious))
+	dataBytes := fmt.Appendf(nil, "%s|%s|%s|%s|%s",
+		attestation.ID, attestation.Type, attestation.DataHash, attestation.Timestamp.Format(time.RFC3339), attestation.ChainPrevious)
 	dataHash := sha256.Sum256(dataBytes)
 
 	sigBytes, sigErr := hex.DecodeString(attestation.Signature)

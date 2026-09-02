@@ -386,7 +386,7 @@ func BenchmarkProtectSupabaseRecord(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := ProtectSupabaseRecord(testData, "user_profile", keys, time.Time{})
 		if err != nil {
 			b.Fatalf("Protect failed: %v", err)
@@ -405,7 +405,7 @@ func BenchmarkUnprotectSupabaseRecord(b *testing.B) {
 	row, _ := ProtectSupabaseRecord(testData, "user_profile", keys, time.Time{})
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := UnprotectSupabaseRecord(row, keys)
 		if err != nil {
 			b.Fatalf("Unprotect failed: %v", err)
