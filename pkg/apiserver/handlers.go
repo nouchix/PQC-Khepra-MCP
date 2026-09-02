@@ -408,7 +408,7 @@ func (s *Server) handleGenerateERT(c *gin.Context) {
 	}
 
 	// 4. Generate Real Dilithium3 Signature (TRL10)
-	msg := []byte(fmt.Sprintf("%s:%s:%s", tokenID, req.EventType, dagNodeID))
+	msg := fmt.Appendf(nil, "%s:%s:%s", tokenID, req.EventType, dagNodeID)
 	sig, err := adinkra.Sign(s.sigPrivKey, msg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{

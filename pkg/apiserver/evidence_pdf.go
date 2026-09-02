@@ -299,9 +299,10 @@ func (p *pdfWriter) buildFindingsPage(r *EvidenceReport) string {
 		}
 
 		statusMark := "PASS"
-		if f.Status == "fail" {
+		switch f.Status {
+		case "fail":
 			statusMark = "FAIL"
-		} else if f.Status == "not_applicable" {
+		case "not_applicable":
 			statusMark = "N/A"
 		}
 
