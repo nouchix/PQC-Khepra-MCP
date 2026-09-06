@@ -525,9 +525,15 @@ func (m *mockAttestor) SignEnvelope(ctx context.Context, env any) (any, error) {
 
 func testRegistry(t *testing.T, tools ...ToolSpec) *ManifestRegistry {
 	t.Helper()
-	reg := NewRegistry()
+	byName := make(map[string]ToolSpec, len(tools))
 	for _, tool := range tools {
-		reg.RegisterInternal(tool)
+		byName[tool.Name] = tool
 	}
-	return reg
+	return &ManifestRegistry{
+		manifest: &SignedToolManifest{
+			Version: "1.0.0",
+			Tools:   tools,
+		},
+		byName: byName,
+	}
 }
