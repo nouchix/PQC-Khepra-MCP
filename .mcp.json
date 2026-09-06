@@ -2,10 +2,13 @@
   "_comment": "KHEPRA MCP Client Config — SOVEREIGN / AIR-GAP MODE with Cloudflare MCP Integration.",
   "mcpServers": {
     "pqc-khepra-mcp": {
-      "command": "bash",
+      "command": "uvx.exe",
       "args": [
-        "-c",
-        "cd /Applications/Whitebox/PQC-Khepra-MCP && GOWORK=off exec go run ./cmd/khepra-mcp"
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\n      \"command\": \"bash\",\n      \"args\": [\n        \"-c\",\n        \"cd /Applications/Whitebox/PQC-Khepra-MCP && GOWORK=off exec go run ./cmd/khepra-mcp\"\n      ],\n      \"env\": {\n        \"KHEPRA_MODE\": \"sovereign\",\n        \"KHEPRA_NETWORK_POLICY\": \"lan\",\n        \"KHEPRA_SERVICE_SECRET\": \"${KHEPRA_SERVICE_SECRET}\",\n        \"MCP_PQC_ENABLED\": \"true\"\n      }\n    }",
+        "--name",
+        "pqc-khepra-mcp"
       ],
       "env": {
         "KHEPRA_MODE": "sovereign",
@@ -15,19 +18,59 @@
       }
     },
     "cloudflare": {
-      "url": "https://mcp.cloudflare.com/mcp"
+      "command": "uvx.exe",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\"command\":\"npx\",\"args\":[\"-y\",\"@mcpower/mcp-remote\",\"https://mcp.cloudflare.com/mcp\",\"--server-name\",\"cloudflare\"]}",
+        "--name",
+        "cloudflare"
+      ],
+      "__bak_configs": "{\n      \"url\": \"https://mcp.cloudflare.com/mcp\"\n    }"
     },
     "cloudflare-docs": {
-      "url": "https://docs.mcp.cloudflare.com/mcp"
+      "command": "uvx.exe",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\"command\":\"npx\",\"args\":[\"-y\",\"@mcpower/mcp-remote\",\"https://docs.mcp.cloudflare.com/mcp\",\"--server-name\",\"cloudflare-docs\"]}",
+        "--name",
+        "cloudflare-docs"
+      ],
+      "__bak_configs": "{\n      \"url\": \"https://docs.mcp.cloudflare.com/mcp\"\n    }"
     },
     "cloudflare-bindings": {
-      "url": "https://bindings.mcp.cloudflare.com/mcp"
+      "command": "uvx.exe",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\"command\":\"npx\",\"args\":[\"-y\",\"@mcpower/mcp-remote\",\"https://bindings.mcp.cloudflare.com/mcp\",\"--server-name\",\"cloudflare-bindings\"]}",
+        "--name",
+        "cloudflare-bindings"
+      ],
+      "__bak_configs": "{\n      \"url\": \"https://bindings.mcp.cloudflare.com/mcp\"\n    }"
     },
     "cloudflare-builds": {
-      "url": "https://builds.mcp.cloudflare.com/mcp"
+      "command": "uvx.exe",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\"command\":\"npx\",\"args\":[\"-y\",\"@mcpower/mcp-remote\",\"https://builds.mcp.cloudflare.com/mcp\",\"--server-name\",\"cloudflare-builds\"]}",
+        "--name",
+        "cloudflare-builds"
+      ],
+      "__bak_configs": "{\n      \"url\": \"https://builds.mcp.cloudflare.com/mcp\"\n    }"
     },
     "cloudflare-observability": {
-      "url": "https://observability.mcp.cloudflare.com/mcp"
+      "command": "uvx.exe",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\"command\":\"npx\",\"args\":[\"-y\",\"@mcpower/mcp-remote\",\"https://observability.mcp.cloudflare.com/mcp\",\"--server-name\",\"cloudflare-observability\"]}",
+        "--name",
+        "cloudflare-observability"
+      ],
+      "__bak_configs": "{\n      \"url\": \"https://observability.mcp.cloudflare.com/mcp\"\n    }"
     }
   }
 }
