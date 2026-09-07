@@ -227,6 +227,17 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 		return errors.New("sovereign: license is nil")
 	}
 
+	// ── Step 0: Compiled-in revocation denylist (offline, non-bypassable) ────
+	// Runs BEFORE signature verification. A disclosed license carries a
+	// genuine signature, so checking the signature first would waste work and,
+	// more importantly, invites a future refactor that treats "signature valid"
+	// as sufficient. Revocation outranks authenticity: we are rejecting this
+	// credential precisely because it is authentic and in the wrong hands.
+	// See revoked.go for why this cannot depend on the network.
+	if err := CheckRevocationDenylist(lic.LicenseID); err != nil {
+		return fmt.Errorf("sovereign: %w", err)
+	}
+
 	// ── Step 1: ML-DSA-65 Signature Verification (always offline) ──────────
 	payload, err := lic.Bytes()
 	if err != nil {
@@ -267,15 +278,56 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 		return fmt.Errorf("sovereign: license expired at %s", lic.ExpiresAt.Format(time.RFC3339))
 	}
 
-	// ── Step 4: Revocation via IPFS CRL (fail-open) ──────────────────────────
+	// ── Step 4: Self-declared revocation epoch (offline) ─────────────────────
+	// RevocationEpoch has always been documented as "> 0 = revoked" but was
+	// never enforced, so a license could be marked revoked by the issuer and
+	// still verify. Enforced here; requires no network.
+	if lic.RevocationEpoch > 0 {
+		return fmt.Errorf("sovereign: license %s revoked at %s",
+			lic.LicenseID, time.Unix(lic.RevocationEpoch, 0).UTC().Format(time.RFC3339))
+	}
+
+	// ── Step 5: Revocation via IPFS CRL ──────────────────────────────────────
+	// Fail-open is retained ONLY for tiers that cannot escalate privilege. A
+	// tier that can mint or revoke other licenses must never be granted on an
+	// unverified revocation status: that is the exact failure mode that made
+	// the 2026-09-06 disclosure unrevokable. For those tiers, an unreachable
+	// CRL is a hard failure.
 	if lic.RevCRLHash != "" {
 		if err := checkRevocationList(lic.LicenseID, lic.RevCRLHash); err != nil {
+			if licenseCanEscalate(lic) {
+				return fmt.Errorf("sovereign: CRL unreachable and license tier %q can issue/revoke "+
+					"licenses — refusing to grant on unverified revocation status: %w", lic.Tier, err)
+			}
 			fmt.Printf("[SOVEREIGN] WARN: CRL check failed (offline?): %v\n", err)
-			// Fail-open: operational continuity takes priority for licensed deployments
+			// Fail-open: operational continuity takes priority for non-escalating tiers.
 		}
+	} else if licenseCanEscalate(lic) {
+		// An empty CRL hash means the IPFS path can never revoke this license
+		// (checkRevocationList returns nil immediately on an empty CID). That
+		// is tolerable for a scoped tier and unacceptable for one that can
+		// mint credentials.
+		return fmt.Errorf("sovereign: license %s has tier %q with escalating capabilities but no "+
+			"revocation CRL hash — unrevokable licenses of this tier are not accepted", lic.LicenseID, lic.Tier)
 	}
 
 	return nil
+}
+
+// licenseCanEscalate reports whether a license can mint or revoke other
+// licenses. Such a license is a root of trust, so its revocation status must be
+// positively confirmed rather than assumed.
+func licenseCanEscalate(lic *KhepraLicense) bool {
+	if strings.EqualFold(strings.TrimSpace(lic.Tier), "master") {
+		return true
+	}
+	for _, c := range lic.Capabilities {
+		switch strings.ToLower(strings.TrimSpace(c)) {
+		case "license_issue", "license_revoke":
+			return true
+		}
+	}
+	return false
 }
 
 // ─── Device ID Generation ─────────────────────────────────────────────────────
