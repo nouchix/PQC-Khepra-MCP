@@ -333,6 +333,13 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("ouroboros_fim_eye", tools.HandleOuroborosFIMEye)
 	executor.RegisterFunc("forensic_snapshot", tools.HandleForensicsCollect)
 	executor.RegisterFunc("fim_baseline", tools.HandleFIMBaseline)
+
+	// ── PQC-WAF Brokered MCP Gateway (SEKHEM) ──────────────────────────────
+	// All outbound calls to external MCPs (Stripe, Cloudflare, etc.) route
+	// through these two tools. Do NOT add external MCPs directly to .mcp.json.
+	// See pkg/mcp/tools/gateway_proxy_tools.go for the allowlist and WAF rules.
+	executor.RegisterFunc("stripe_call", tools.HandleStripeCall)
+	executor.RegisterFunc("mcp_gateway", tools.HandleMCPGateway)
 }
 
 func main() {
