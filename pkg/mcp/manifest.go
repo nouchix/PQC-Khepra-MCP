@@ -108,6 +108,33 @@ func validateToolSpec(t ToolSpec) error {
 	return nil
 }
 
+// RegisterBrokered adds tools discovered from an upstream MCP server.
+//
+// These are NOT covered by the manifest's ML-DSA-65 signature — the upstream
+// is a third party and does not sign its tool list. Their integrity comes
+// from pkg/mcp/upstream's trust-on-first-use pin, sealed on disk under the
+// machine's Kyber-1024 key. Every spec passes the same structural checks as
+// native tools, must carry Meta["brokered"]=true, and may not shadow a
+// native tool name. ValidatePinnedSchema works unchanged because the
+// broker sets SchemaHash to its TOFU hash.
+func (r *ManifestRegistry) RegisterBrokered(specs []ToolSpec) error {
+	for _, t := range specs {
+		if err := validateToolSpec(t); err != nil {
+			return fmt.Errorf("mcp/manifest: brokered tool %q: %w", t.Name, err)
+		}
+		if b, _ := t.Meta["brokered"].(bool); !b {
+			return fmt.Errorf("mcp/manifest: %q lacks Meta.brokered — only pkg/mcp/upstream may register here", t.Name)
+		}
+		if existing, exists := r.byName[t.Name]; exists {
+			if eb, _ := existing.Meta["brokered"].(bool); !eb {
+				return fmt.Errorf("mcp/manifest: brokered tool %q would shadow a native manifest tool — refused", t.Name)
+			}
+		}
+		r.byName[t.Name] = t
+	}
+	return nil
+}
+
 // ─── Registry Queries ──────────────────────────────────────────────────────────
 
 // GetTool returns a registered tool spec by name.

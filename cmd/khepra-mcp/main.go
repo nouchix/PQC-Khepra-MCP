@@ -5,10 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
@@ -16,7 +18,146 @@ import (
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/upstream"
 )
+
+// ─── Upstream broker (Mitochondrial egress) ───────────────────────────────────
+//
+// KHEPRA_UPSTREAM_MCP="uptimerobot=https://mcp.uptimerobot.com/mcp,github=https://…"
+// Each upstream's tools are re-exposed as <alias>__<tool> and run through the
+// full Router chain. Egress is refused under KHEPRA_MODE=sovereign|ironbank
+// unless KHEPRA_UPSTREAM_ALLOW_SOVEREIGN=1, because those profiles publicly
+// promise zero egress.
+
+type upstreamEntry struct{ alias, url string }
+
+func parseUpstreams(spec string) ([]upstreamEntry, error) {
+	var out []upstreamEntry
+	for _, part := range strings.Split(spec, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		alias, u, ok := strings.Cut(part, "=")
+		if !ok {
+			return nil, fmt.Errorf("KHEPRA_UPSTREAM_MCP entry %q must be alias=url", part)
+		}
+		out = append(out, upstreamEntry{alias: strings.TrimSpace(alias), url: strings.TrimSpace(u)})
+	}
+	return out, nil
+}
+
+// egressPermitted is the profile gate. Sovereign/Iron Bank builds ship with a
+// documented zero-egress posture (see owasp_agent_assess + TRUST_CENTER.md);
+// brokering an external MCP server there must be an explicit operator act.
+func egressPermitted() (bool, string) {
+	mode := strings.ToLower(os.Getenv("KHEPRA_MODE"))
+	if mode == "sovereign" || mode == "ironbank" {
+		if os.Getenv("KHEPRA_UPSTREAM_ALLOW_SOVEREIGN") == "1" {
+			return true, "KHEPRA_MODE=" + mode + " with explicit KHEPRA_UPSTREAM_ALLOW_SOVEREIGN=1 override"
+		}
+		return false, "KHEPRA_MODE=" + mode + " forbids egress (set KHEPRA_UPSTREAM_ALLOW_SOVEREIGN=1 to override — this changes the deployment's attested posture)"
+	}
+	return true, "KHEPRA_MODE=" + firstNonEmpty(mode, "default")
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
+}
+
+func newBroker(e upstreamEntry, store *upstream.Store, interactive bool, logger *log.Logger) (*upstream.Broker, error) {
+	return upstream.New(upstream.Config{
+		URL:         e.url,
+		Alias:       e.alias,
+		Store:       store,
+		Interactive: interactive,
+		OAuth: upstream.OAuthConfig{
+			ClientName:  "KHEPRA MCP Broker",
+			OpenBrowser: interactive,
+			Scope:       os.Getenv("KHEPRA_UPSTREAM_SCOPE"),
+		},
+		Logger: logger,
+	})
+}
+
+// wireUpstreams connects every configured upstream and registers its tools.
+// A failing upstream is logged and skipped; native tools keep serving.
+func wireUpstreams(ctx context.Context, registry *khepramcp.ManifestRegistry, executor *khepramcp.Executor, logger *log.Logger) {
+	spec := os.Getenv("KHEPRA_UPSTREAM_MCP")
+	if spec == "" {
+		return
+	}
+	ok, why := egressPermitted()
+	if !ok {
+		logger.Printf("[UPSTREAM] DISABLED — %s", why)
+		return
+	}
+	entries, err := parseUpstreams(spec)
+	if err != nil {
+		logger.Printf("[UPSTREAM] config error: %v", err)
+		return
+	}
+	store, err := upstream.OpenStore(upstream.DefaultDir())
+	if err != nil {
+		logger.Printf("[UPSTREAM] sealed store unavailable: %v", err)
+		return
+	}
+	interactive := os.Getenv("KHEPRA_UPSTREAM_INTERACTIVE") == "1"
+	logger.Printf("[UPSTREAM] egress permitted (%s); %d upstream(s); sealed store %s", why, len(entries), store.Dir())
+	for _, e := range entries {
+		b, err := newBroker(e, store, interactive, logger)
+		if err != nil {
+			logger.Printf("[UPSTREAM:%s] %v", e.alias, err)
+			continue
+		}
+		if err := b.Connect(ctx); err != nil {
+			logger.Printf("[UPSTREAM:%s] connect failed: %v", e.alias, err)
+			continue
+		}
+		if err := registry.RegisterBrokered(b.Specs()); err != nil {
+			logger.Printf("[UPSTREAM:%s] registry refused: %v", e.alias, err)
+			continue
+		}
+		b.RegisterHandlers(executor)
+		for _, s := range b.Specs() {
+			logger.Printf("[UPSTREAM:%s]   %-48s %s", e.alias, s.Name, s.RiskClass)
+		}
+	}
+}
+
+// runLogin performs the one-time interactive consent for an upstream and
+// exits. Meant to be run from a terminal, not by an MCP client.
+func runLogin(ctx context.Context, alias, url string, logger *log.Logger) {
+	if alias == "" {
+		alias = "upstream"
+	}
+	store, err := upstream.OpenStore(upstream.DefaultDir())
+	if err != nil {
+		logger.Fatalf("sealed store: %v", err)
+	}
+	b, err := newBroker(upstreamEntry{alias: alias, url: url}, store, true, logger)
+	if err != nil {
+		logger.Fatalf("%v", err)
+	}
+	if err := b.Login(ctx); err != nil {
+		logger.Fatalf("login failed: %v", err)
+	}
+	// Prove it end-to-end: connect, pin, and print the tool table.
+	if err := b.Connect(ctx); err != nil {
+		logger.Fatalf("authorized, but tool discovery failed: %v", err)
+	}
+	fmt.Printf("\nAuthorized %s → %s\nSealed under %s\n\n%-48s %s\n", alias, url, store.Dir(), "TOOL", "RISK")
+	for _, s := range b.Specs() {
+		fmt.Printf("%-48s %s\n", s.Name, s.RiskClass)
+	}
+	if len(b.Refused) > 0 {
+		fmt.Printf("\nREFUSED (pin mismatch): %s\n", strings.Join(b.Refused, ", "))
+	}
+	fmt.Printf("\nNow set: KHEPRA_UPSTREAM_MCP=%s=%s\n", alias, url)
+}
 
 type stdioConfirmGate struct{ logger *log.Logger }
 
@@ -198,6 +339,26 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	loginURL := flag.String("login", "", "authorize an upstream MCP server (OAuth 2.1 + PKCE) and exit")
+	loginAlias := flag.String("alias", "", "tool namespace for -login (default: upstream)")
+	logoutURL := flag.String("logout", "", "forget sealed credentials and pins for an upstream and exit")
+	flag.Parse()
+	if *loginURL != "" {
+		runLogin(ctx, *loginAlias, *loginURL, logger)
+		return
+	}
+	if *logoutURL != "" {
+		store, err := upstream.OpenStore(upstream.DefaultDir())
+		if err != nil {
+			logger.Fatalf("sealed store: %v", err)
+		}
+		if err := store.Forget(*logoutURL); err != nil {
+			logger.Fatalf("logout: %v", err)
+		}
+		logger.Printf("forgot %s", *logoutURL)
+		return
+	}
+
 	logger.Printf("━━━ KHEPRA MCP OSS KERNEL ━━━")
 	symbol := os.Getenv("KHEPRA_SYMBOL")
 	if symbol == "" {
@@ -252,6 +413,8 @@ func main() {
 		Logger:  logger,
 	})
 	registerToolHandlers(executor)
+	wireUpstreams(ctx, mcpRegistry, executor, logger)
+	logger.Printf("[MANIFEST] %d tools after upstream brokering", mcpRegistry.ToolCount())
 
 	attestor := kernelports.Defaults().Attestor
 	invRootKey := khepramcp.DeriveRootKey(privKey)
