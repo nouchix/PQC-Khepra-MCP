@@ -1,9 +1,9 @@
 package attestenvelope
 
 import (
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"encoding/json"
 	"fmt"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 )
@@ -42,11 +42,14 @@ func Sign(digest []byte, privKey []byte, signer kernelports.Signer) ([]byte, err
 	return signer.Sign(privKey, digest)
 }
 
-
+// AdinkraSigner implements kernelports.Signer over ML-DSA (adinkra).
+// Parameter order MUST match the interface — Sign(privKey, digest) — every
+// caller passes positionally. The previous (data, privateKey) ordering
+// silently used the 32-byte digest as the signing key.
 type AdinkraSigner struct{}
 
-func (s AdinkraSigner) Sign(data []byte, privateKey []byte) ([]byte, error) {
-	return adinkra.Sign(privateKey, data)
+func (s AdinkraSigner) Sign(privateKey []byte, digest []byte) ([]byte, error) {
+	return adinkra.Sign(privateKey, digest)
 }
 
 func (s AdinkraSigner) Verify(publicKey []byte, data []byte, signature []byte) (bool, error) {
