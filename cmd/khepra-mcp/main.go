@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
@@ -394,10 +395,14 @@ func main() {
 		},
 	}
 
+	// Signer was never set here (since f86e1df6), so WrapRequest nil-panicked
+	// on every tool call — native or brokered. Wire the real ML-DSA signer
+	// against the key generated above rather than kernelports' NoopSigner.
 	poly := &khepramcp.DefaultPolymorphicEngine{
 		Symbol:     symbol,
 		PrivateKey: privKey,
 		PublicKey:  pubKey,
+		Signer:     attestenvelope.AdinkraSigner{},
 	}
 
 	mcpGateway := khepramcp.NewDefaultMCPGateway()
