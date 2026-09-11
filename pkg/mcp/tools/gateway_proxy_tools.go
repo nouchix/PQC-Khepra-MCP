@@ -1,4 +1,4 @@
-﻿// Package tools — gateway_proxy_tools.go
+// Package tools — gateway_proxy_tools.go
 //
 // PQC-WAF Brokered MCP Gateway.
 //
@@ -180,29 +180,14 @@ func HandleMCPGateway(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 func callUpstreamMCP(
 	ctx context.Context,
 	upstreamKey, toolName string,
-	params, headers map[string]any,
+	params map[string]any,
+	headers map[string]string,
 ) (any, string, error) {
 	upstreamURL, ok := sekhemAllowlist[upstreamKey]
 	if !ok {
 		return nil, "", fmt.Errorf("SEKHEM: %q not in allowlist", upstreamKey)
 	}
 
-	// Convert headers map[string]any -> map[string]string
-	hdrs := map[string]string{}
-	for k, v := range headers {
-		if s, ok := v.(string); ok {
-			hdrs[k] = s
-		}
-	}
-	return callUpstreamMCPTyped(ctx, upstreamKey, upstreamURL, toolName, params, hdrs)
-}
-
-func callUpstreamMCPTyped(
-	ctx context.Context,
-	upstreamKey, upstreamURL, toolName string,
-	params map[string]any,
-	headers map[string]string,
-) (any, string, error) {
 	store := getKASAStore()
 
 	// Pre-call DAG node
@@ -213,7 +198,7 @@ func callUpstreamMCPTyped(
 		PQC:    map[string]string{"upstream": upstreamKey, "tool": toolName},
 	}
 	if store != nil {
-		_ = store.Append(preNode)
+		_ = store.Add(&preNode, []string{})
 	}
 
 	// Build JSON-RPC body
@@ -267,6 +252,10 @@ func callUpstreamMCPTyped(
 	}
 
 	// Post-call DAG node
+	parents := []string{}
+	if preNode.ID != "" {
+		parents = []string{preNode.ID}
+	}
 	postNode := dag.Node{
 		Action: "mcp_gateway_response",
 		Symbol: "Nkyinkyim",
@@ -281,8 +270,8 @@ func callUpstreamMCPTyped(
 	}
 	dagID := ""
 	if store != nil {
-		_ = store.Append(postNode)
-		dagID = postNode.Hash
+		_ = store.Add(&postNode, parents)
+		dagID = postNode.ID
 	}
 
 	return parsed, dagID, nil
