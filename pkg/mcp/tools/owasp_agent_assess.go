@@ -28,10 +28,10 @@ type ASISeverity string
 
 const (
 	ASISeverityCritical ASISeverity = "CRITICAL" // Unmitigated, active risk
-	ASISeverityHigh     ASISeverity = "HIGH"      // Partial mitigation
-	ASISeverityMedium   ASISeverity = "MEDIUM"    // Mostly mitigated
-	ASISeverityLow      ASISeverity = "LOW"       // Effectively mitigated
-	ASISeverityInfo     ASISeverity = "INFO"      // Informational
+	ASISeverityHigh     ASISeverity = "HIGH"     // Partial mitigation
+	ASISeverityMedium   ASISeverity = "MEDIUM"   // Mostly mitigated
+	ASISeverityLow      ASISeverity = "LOW"      // Effectively mitigated
+	ASISeverityInfo     ASISeverity = "INFO"     // Informational
 )
 
 // ASIStatus reflects the mitigation state.
@@ -45,15 +45,15 @@ const (
 
 // ASIFinding is a single OWASP Agentic Top 10 risk assessment.
 type ASIFinding struct {
-	ID          string      `json:"id"`           // e.g. "ASI01"
-	Title       string      `json:"title"`        // e.g. "Agent Goal Hijack"
+	ID          string      `json:"id"`    // e.g. "ASI01"
+	Title       string      `json:"title"` // e.g. "Agent Goal Hijack"
 	Status      ASIStatus   `json:"status"`
 	Severity    ASISeverity `json:"severity"`
-	Score       int         `json:"score"`        // 0-100, higher = better mitigation
+	Score       int         `json:"score"` // 0-100, higher = better mitigation
 	Description string      `json:"description"`
-	Finding     string      `json:"finding"`      // What KHEPRA found
-	Controls    []string    `json:"controls"`     // Active KHEPRA mitigations
-	Gaps        []string    `json:"gaps"`         // What's missing
+	Finding     string      `json:"finding"`  // What KHEPRA found
+	Controls    []string    `json:"controls"` // Active KHEPRA mitigations
+	Gaps        []string    `json:"gaps"`     // What's missing
 	Remediation string      `json:"remediation"`
 	OWASPRef    string      `json:"owasp_ref"`
 }
@@ -72,7 +72,7 @@ type OWASPAgentAssessResult struct {
 	Mitigated          int          `json:"mitigated"`
 	Partial            int          `json:"partial"`
 	Unmitigated        int          `json:"unmitigated"`
-	CompositeScore     int          `json:"composite_score"`     // ASI-weighted 0-100
+	CompositeScore     int          `json:"composite_score"`              // ASI-weighted 0-100
 	MCPSecurityScore   *MCPSecScore `json:"mcp_security_score,omitempty"` // OWASP-MCP-01..10 scanner
 	ReadyForProduction bool         `json:"ready_for_production"`
 	DAGNodeID          string       `json:"dag_node_id"`
@@ -226,14 +226,26 @@ type envProbe struct {
 	networkPolicyLAN     bool
 	khepraDataDir        string
 	licenseKey           string
+	upstreamBroker       bool // KHEPRA_UPSTREAM_MCP set: OAuth tokens held, outbound TLS egress
+	upstreamCount        int
 }
 
 func probeEnvironment() envProbe {
 	env := envProbe{}
 
-	// Transport — KHEPRA uses stdio-only (air-gap policy)
+	// Transport — stdio inbound. If the Mitochondrial broker is configured
+	// (KHEPRA_UPSTREAM_MCP), the process also holds OAuth 2.1 bearer tokens and
+	// makes outbound TLS calls to third-party MCP servers. Report that; a
+	// self-assessment that still says "zero remote attack surface" would be
+	// exactly the drift a flight recorder exists to catch.
 	env.transportPolicy = "stdio-only"
 	env.networkPolicyLAN = true
+	if up := os.Getenv("KHEPRA_UPSTREAM_MCP"); up != "" {
+		env.transportPolicy = "stdio+brokered-egress"
+		env.networkPolicyLAN = false
+		env.upstreamBroker = true
+		env.upstreamCount = len(strings.Split(up, ","))
+	}
 
 	// Supabase
 	supaURL := os.Getenv("SUPABASE_URL")
@@ -357,9 +369,30 @@ func checkASI03IdentityPrivilege(env envProbe) ASIFinding {
 		"ML-DSA-65: fresh ephemeral signing key per server session (destroyed on shutdown)",
 		"Identity: MCPIdentity carries agent_id, session_id, scopes on every call",
 	}
-	gaps := []string{
-		"No OAuth 2.1 / PKCE (stdio-only transport; not applicable for air-gap)",
-		"No CIMD / DCR client registration (planned for remote HTTP transport)",
+	var gaps []string
+	finding := "ACP provides per-agent PQC-signed credentials with TTL and scope. No inbound OAuth (stdio transport)."
+	remediation := "For remote HTTP inbound deployments, implement OAuth 2.1 + PKCE + CIMD client registration. Enable ACP TTL enforcement with automatic expiry."
+	if env.upstreamBroker {
+		// Outbound OAuth 2.1 is live: the process is a public client holding
+		// bearer + refresh tokens for third-party MCP servers.
+		controls = append(controls,
+			"Upstream broker: OAuth 2.1 authorization-code + PKCE S256, RFC 7591 dynamic client registration, RFC 8707 resource indicator",
+			"Upstream broker: tokens sealed at rest — Kyber-1024 KEM → HKDF-SHA256 → AES-256-GCM, 0600 files, 0700 dir (fail-closed on POSIX)",
+			"Upstream broker: tool schemas pinned trust-on-first-use; changed schema/description refused (tool-rug defense)",
+			"Upstream broker: unknown-verb tools default to RiskDestructive → _confirm gate",
+		)
+		gaps = append(gaps,
+			fmt.Sprintf("Process holds live third-party bearer tokens for %d upstream(s); a same-UID foothold can read the sealed store's KEM key", env.upstreamCount),
+			"Brokered tool pins are TOFU, not upstream-signed — first connect is trusted",
+			"No inbound OAuth (stdio); inbound identity is still the pre-authenticated stdio identity",
+		)
+		finding = fmt.Sprintf("Inbound identity via ACP/stdio. Outbound: %d brokered upstream MCP server(s) under OAuth 2.1+PKCE with PQC-sealed token store. This deployment is NOT zero-egress.", env.upstreamCount)
+		remediation = "Keep KHEPRA_MODE=sovereign|ironbank builds broker-free (egress gate). Consider OS keychain / HSM for the KEM key. Review TOFU pins after first connect."
+	} else {
+		gaps = append(gaps,
+			"No inbound OAuth 2.1 / PKCE (stdio-only transport)",
+			"No CIMD / DCR client registration for inbound HTTP (planned)",
+		)
 	}
 	score := 82
 	if env.acpRegistered {
@@ -375,10 +408,10 @@ func checkASI03IdentityPrivilege(env envProbe) ASIFinding {
 		Severity:    ASISeverityMedium,
 		Score:       score,
 		Description: "Attackers exploit trust and delegation chains to escalate access or hijack credentials.",
-		Finding:     "ACP provides per-agent PQC-signed credentials with TTL and scope. OAuth 2.1 is not applicable for current stdio/air-gap transport; planned for remote HTTP mode.",
+		Finding:     finding,
 		Controls:    controls,
 		Gaps:        gaps,
-		Remediation: "For remote HTTP deployments, implement OAuth 2.1 + PKCE + CIMD client registration. Enable ACP TTL enforcement with automatic expiry.",
+		Remediation: remediation,
 		OWASPRef:    "https://owasp.org/www-project-top-10-for-large-language-model-applications/ (ASI03)",
 	}
 }
@@ -426,9 +459,13 @@ func checkASI04SupplyChain(env envProbe) ASIFinding {
 func checkASI05UnexpectedRCE(env envProbe) ASIFinding {
 	controls := []string{
 		"ert_scan: Docker backend — generated code runs in isolated container, not host",
-		"network_allowed=false: all in-process tools cannot make network calls",
-		"stdio-only: no HTTP endpoint exposed, zero remote attack surface",
+		"network_allowed=false: all native in-process tools cannot make network calls",
 		"manifest: allowed_backend per tool — in-process tools cannot exec shell",
+	}
+	if env.upstreamBroker {
+		controls = append(controls, "brokered tools: network_allowed=true, outbound TLS only to configured upstreams; results pass the Router output filter")
+	} else {
+		controls = append(controls, "stdio-only: no HTTP endpoint exposed, zero remote attack surface")
 	}
 	gaps := []string{
 		"Human approval not required before ert_scan execution (relies on Docker isolation)",
@@ -506,10 +543,14 @@ func checkASI06MemoryPoisoning(env envProbe) ASIFinding {
 // ACP credentials provide authenticated agent identity.
 func checkASI07InterAgentComms(env envProbe) ASIFinding {
 	controls := []string{
-		"stdio-only: no network interface — zero inter-agent network attack surface",
 		"PQC signing: ML-DSA-65 signs all DAG nodes — spoofed agents cannot forge signatures",
 		"ACP: agent credentials are cryptographically bound to agent identity",
 		"MCPIdentity: agent_id + session_id propagated on every tool call",
+	}
+	if env.upstreamBroker {
+		controls = append(controls, "brokered egress: TLS to upstream MCP servers with OAuth 2.1 bearer; no inbound network interface")
+	} else {
+		controls = append(controls, "stdio-only: no network interface — zero inter-agent network attack surface")
 	}
 	gaps := []string{
 		"No mTLS enforcement for multi-agent orchestration scenarios",
