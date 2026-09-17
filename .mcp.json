@@ -1,9 +1,15 @@
-﻿{
+{
   "_comment": "KHEPRA MCP Client Config — SOVEREIGN MODE. Single entry point: local khepra-mcp binary. ALL external MCPs (Stripe, Cloudflare, etc.) are brokered through the stripe_call and mcp_gateway tools inside khepra-mcp. Do NOT add external MCPs here directly — they bypass the PQC-WAF and SEKHEM allowlist. See pkg/mcp/tools/gateway_proxy_tools.go.",
   "mcpServers": {
     "pqc-khepra-mcp": {
-      "command": "C:\\Users\\intel\\blackbox\\PQC-Khepra-MCP\\khepra-mcp.exe",
-      "args": [],
+      "command": "uvx.exe",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\n      \"command\": \"C:\\\\Users\\\\intel\\\\blackbox\\\\PQC-Khepra-MCP\\\\bin\\\\khepra-mcp.exe\",\n      \"args\": [],\n      \"env\": {\n        \"KHEPRA_MODE\": \"sovereign\",\n        \"KHEPRA_NETWORK_POLICY\": \"lan\",\n        \"KHEPRA_SERVICE_SECRET\": \"${KHEPRA_SERVICE_SECRET}\",\n        \"MCP_PQC_ENABLED\": \"true\",\n        \"STRIPE_SECRET_KEY\": \"${STRIPE_SECRET_KEY}\",\n        \"CLOUDFLARE_AGENT_TOKEN\": \"${CLOUDFLARE_AGENT_TOKEN}\"\n      }\n    }",
+        "--name",
+        "pqc-khepra-mcp"
+      ],
       "env": {
         "KHEPRA_MODE": "sovereign",
         "KHEPRA_NETWORK_POLICY": "lan",
