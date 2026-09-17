@@ -63,7 +63,7 @@ func (h *FleetHandlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/fleet/assets/import", h.handleImport)
 	mux.HandleFunc("/api/v1/fleet/assets/discover", h.handleDiscover)
 	mux.HandleFunc("/api/v1/fleet/assets/test", h.handleTestPreEnroll) // pre-enrollment test (no asset ID)
-	mux.HandleFunc("/api/v1/fleet/scan", h.handleScan)
+	// /api/v1/fleet/scan is registered by FleetScanHandlers in handlers_scan.go
 	mux.HandleFunc("/api/v1/fleet/boundary/attest", h.handleAttest)
 	mux.HandleFunc("/api/v1/fleet/boundary/declaration", h.handleDeclaration)
 	mux.HandleFunc("/api/v1/fleet/sprs", h.handleSPRS)
