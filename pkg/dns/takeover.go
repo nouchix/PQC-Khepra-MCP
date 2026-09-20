@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var validSubdomainPattern = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
 // takeoverSignature fingerprints a cloud provider whose dangling CNAMEs are
 // commonly abused for subdomain takeover: the CNAME suffix that identifies
@@ -165,8 +169,16 @@ func matchSignature(cname string) *takeoverSignature {
 // (safeDialContext) is the actual SSRF barrier — it validates the resolved
 // address immediately before connecting.
 func fetchBody(ctx context.Context, client *http.Client, host string) string {
+	host = strings.TrimSpace(host)
+	if !validSubdomainPattern.MatchString(host) {
+		return ""
+	}
 	for _, scheme := range []string{"https://", "http://"} {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, scheme+host+"/", nil)
+		u, err := url.Parse(scheme + host + "/")
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") {
+			continue
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 		if err != nil {
 			continue
 		}

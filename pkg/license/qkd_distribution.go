@@ -459,7 +459,9 @@ func secureEraseFile(path string) error {
 	}
 	info, err := f.Stat()
 	if err != nil {
-		f.Close()
+		if cerr := f.Close(); cerr != nil {
+			return fmt.Errorf("stat failed: %w, close error: %v", err, cerr)
+		}
 		return err
 	}
 	zeros := make([]byte, info.Size())

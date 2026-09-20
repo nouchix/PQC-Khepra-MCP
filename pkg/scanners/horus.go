@@ -492,9 +492,9 @@ func scanDockerfile(path string) []string {
 	// filepath.Clean prevents .. traversal; the HasPrefix check ensures the
 	// final path stays within the originally requested directory.
 	dockerfilePath = filepath.Clean(dockerfilePath)
-	cleanedBase := filepath.Clean(path) + string(os.PathSeparator)
-	if !strings.HasPrefix(dockerfilePath+string(os.PathSeparator), cleanedBase) &&
-		dockerfilePath != filepath.Clean(path) {
+	cleanBase := filepath.Clean(path)
+	rel, err := filepath.Rel(cleanBase, dockerfilePath)
+	if err != nil || strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
 		// Path escaped the directory — return no issues silently
 		return issues
 	}
