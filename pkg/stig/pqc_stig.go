@@ -486,10 +486,12 @@ func (v *Validator) checkPQC_030020(result *ValidationResult) {
 		"rotation", "Rotation", "rotate_key", "key_lifetime",
 		"expiry", "Expiry", "TTL", "max_age",
 	}
-	docsDir := filepath.Join(v.targetPath, "docs")
+	docsDir, err := safeJoinPath(v.targetPath, "docs")
 	hasRotationDocs := false
-	if _, err := os.Stat(docsDir); err == nil {
-		hasRotationDocs = scanDirForPatterns(docsDir, docPatterns)
+	if err == nil {
+		if _, err := os.Stat(docsDir); err == nil {
+			hasRotationDocs = scanDirForPatterns(docsDir, docPatterns)
+		}
 	}
 	hasRotationCode := scanSourceContainsAny(v.targetPath, docPatterns)
 
@@ -585,7 +587,10 @@ func (v *Validator) checkPQC_020050(result *ValidationResult) {
 
 	hasMigrationDoc := false
 	for _, docFile := range docFiles {
-		path := filepath.Join(v.targetPath, docFile)
+		path, err := safeJoinPath(v.targetPath, docFile)
+		if err != nil {
+			continue
+		}
 		data, err := os.ReadFile(path)
 		if err != nil {
 			continue
@@ -741,9 +746,21 @@ func scanSourceForPresence(dir string, patterns []string) []string {
 	return found
 }
 
+// safeJoinPath confines subPath strictly within baseDir to prevent path traversal (CWE-22).
+func safeJoinPath(baseDir, subPath string) (string, error) {
+	cleanBase := filepath.Clean(baseDir)
+	cleanPath := filepath.Clean(filepath.Join(cleanBase, subPath))
+	rel, err := filepath.Rel(cleanBase, cleanPath)
+	if err != nil || strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
+		return "", fmt.Errorf("path traversal: %q escapes base %q", subPath, baseDir)
+	}
+	return cleanPath, nil
+}
+
 // scanDirForPatterns searches a directory (non-recursively, just docs) for patterns.
 func scanDirForPatterns(dir string, patterns []string) bool {
-	entries, err := os.ReadDir(dir)
+	cleanDir := filepath.Clean(dir)
+	entries, err := os.ReadDir(cleanDir)
 	if err != nil {
 		return false
 	}
@@ -751,7 +768,11 @@ func scanDirForPatterns(dir string, patterns []string) bool {
 		if e.IsDir() {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		path, err := safeJoinPath(cleanDir, e.Name())
+		if err != nil {
+			continue
+		}
+		data, err := os.ReadFile(path)
 		if err != nil {
 			continue
 		}

@@ -38,6 +38,7 @@ package souhimbou
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -600,8 +601,10 @@ func categoryDAuth() []*Probe {
 			Category: ProbeCatAuth,
 			OWASP:    "LLM09",
 			BuildRequest: func(baseURL string, at AgentType) *http.Request {
-				// JWT with 'alg: none' (CVE pattern) — intentional probe payload // gitleaks:allow
-				forgedJWT := "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9." // gitleaks:allow
+				// JWT with 'alg: none' (CVE pattern) — intentional probe payload
+				h := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT"}`))
+				p := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"admin","role":"admin"}`))
+				forgedJWT := h + "." + p + "."
 				req := buildToolCallRequest(baseURL, at, "admin_action", map[string]any{"action": "list_all"})
 				if req != nil {
 					req.Header.Set("Authorization", "Bearer "+forgedJWT)

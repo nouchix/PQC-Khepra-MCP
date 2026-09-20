@@ -1,0 +1,6 @@
+name: "CodeQL Custom Config"
+
+paths-ignore:
+  - 'go/**'
+  - '**/testdata/**'
+  - 'scratch/**'

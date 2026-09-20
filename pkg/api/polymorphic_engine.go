@@ -195,6 +195,12 @@ func (p *pqcResponseWriter) WriteHeader(status int) {
 }
 
 func (p *pqcResponseWriter) Write(b []byte) (int, error) {
+	if p.ResponseWriter.Header().Get("Content-Type") == "" {
+		p.ResponseWriter.Header().Set("Content-Type", "application/json")
+	}
+	if p.ResponseWriter.Header().Get("X-Content-Type-Options") == "" {
+		p.ResponseWriter.Header().Set("X-Content-Type-Options", "nosniff")
+	}
 	p.buf = append(p.buf, b...)
 	return p.ResponseWriter.Write(b)
 }

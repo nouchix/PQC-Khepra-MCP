@@ -2,7 +2,6 @@ package enumerate
 
 import (
 	"bufio"
-	"crypto/tls"
 	"fmt"
 	"net"
 	"os"
@@ -810,15 +809,6 @@ func performOSFingerprinting() (audit.OSFingerprint, error) {
 		return fp, err
 	}
 	defer conn.Close()
-
-	// #558: InsecureSkipVerify is intentional here — this is a loopback self-connection
-	// used only for OS TCP fingerprinting. No remote host certificate is being trusted.
-	// The connection result is immediately discarded; only handshake metadata matters.
-	//nolint:gosec // G402: self-connection only, no remote trust implied
-	// lgtm[go/disabled-tls-certificate-check]
-	tlsCfg := &tls.Config{InsecureSkipVerify: true} //nolint:gosec
-	tlsConn := tls.Client(conn, tlsCfg)
-	_ = tlsConn
 
 	// OS detection falls back to runtime.GOOS heuristic; deep TCP fingerprinting
 	// (TTL, window size, options) is not performed without raw socket access.

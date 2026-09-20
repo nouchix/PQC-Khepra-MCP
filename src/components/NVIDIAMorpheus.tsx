@@ -173,7 +173,7 @@ export const NVIDIAMorpheus = () => {
             disabled={loading}
             className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/40"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </CardTitle>
       </CardHeader>

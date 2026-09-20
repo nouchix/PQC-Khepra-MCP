@@ -94,7 +94,6 @@ func decompressProject(r io.Reader, targetDir string) error {
 	defer gr.Close()
 
 	tr := tar.NewReader(gr)
-	cleanBase := filepath.Clean(targetDir) + string(os.PathSeparator)
 
 	for {
 		header, err := tr.Next()
@@ -106,12 +105,12 @@ func decompressProject(r io.Reader, targetDir string) error {
 		}
 
 		// #428 Zip Slip: reject paths that escape the target directory.
-		target := filepath.Join(targetDir, header.Name)
-		if !strings.HasPrefix(filepath.Clean(target)+string(os.PathSeparator), cleanBase) &&
-			filepath.Clean(target) != filepath.Clean(targetDir) {
+		cleanTarget := filepath.Clean(filepath.Join(targetDir, header.Name))
+		rel, err := filepath.Rel(filepath.Clean(targetDir), cleanTarget)
+		if err != nil || strings.HasPrefix(rel, "..") || !filepath.IsLocal(header.Name) {
 			return fmt.Errorf("zip slip: illegal archive path %q", header.Name)
 		}
-		if err := extractEntry(tr, header, target); err != nil {
+		if err := extractEntry(tr, header, cleanTarget); err != nil {
 			return err
 		}
 	}

@@ -20,7 +20,8 @@ interface CulturalIntelligenceMetrics {
 }
 
 export const CulturalThreatIntelligence = () => {
-  const { threats, loading } = useThreatIntelligence();
+  const { threats } = useThreatIntelligence();
+  const [loading, setLoading] = useState<boolean>(false);
   const [symbolicAnalysis, setSymbolicAnalysis] = useState<SymbolicThreatAnalysis[]>([]);
   const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<CulturalIntelligenceMetrics>({
@@ -39,6 +40,7 @@ export const CulturalThreatIntelligence = () => {
   }, [threats]);
 
   const performCulturalAnalysis = async () => {
+    setLoading(true);
     try {
       // Perform symbolic pattern analysis
       const analysis = CulturalThreatTaxonomy.analyzeSymbolicPatterns(threats);
@@ -70,6 +72,8 @@ export const CulturalThreatIntelligence = () => {
         description: "Failed to perform cultural threat analysis",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -190,7 +194,7 @@ export const CulturalThreatIntelligence = () => {
               onClick={performCulturalAnalysis}
               disabled={loading}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Analysis
             </Button>
           </div>
