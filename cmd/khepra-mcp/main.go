@@ -250,6 +250,24 @@ func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 			SchemaVersion: "1.0.0", SchemaHash: hashFn("nhi_revoke"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
 			MaxPrivilege: "admin", ArgsSchema: noArgs},
+		{Name: "audit_plugin4shell", Description: "Audit local AI coding agent plugins and extensions for Plugin4Shell (unpinned Git refs, TOCTOU payload tampering, zero-click RCE vectors)",
+			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:read",
+			SchemaVersion: "1.0.0", SchemaHash: hashFn("audit_plugin4shell"),
+			AllowedBackend: "in-process", TimeoutMs: 30000,
+			MaxPrivilege: "read-only", ArgsSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"search_roots": map[string]any{
+						"type":        "array",
+						"items":       map[string]any{"type": "string"},
+						"description": "directories to scan for AI agent plugins",
+					},
+					"auto_pin": map[string]any{
+						"type":        "boolean",
+						"description": "automatically calculate and pin cryptographic SHA-256 integrity hashes to unpinned manifests",
+					},
+				},
+			}},
 	}
 }
 
@@ -340,6 +358,7 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// See pkg/mcp/tools/gateway_proxy_tools.go for the allowlist and WAF rules.
 	executor.RegisterFunc("stripe_call", tools.HandleStripeCall)
 	executor.RegisterFunc("mcp_gateway", tools.HandleMCPGateway)
+	executor.RegisterFunc("audit_plugin4shell", tools.HandleAuditPlugin4Shell)
 }
 
 func main() {
