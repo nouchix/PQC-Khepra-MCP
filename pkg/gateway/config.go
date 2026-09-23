@@ -90,6 +90,9 @@ type AuthConfig struct {
 
 	// License Server Integration
 	LicenseServerURL      string `json:"license_server_url"`
+
+	// AllowAnonymous enables public community access with baseline identity and rate tracking
+	AllowAnonymous        bool   `json:"allow_anonymous"`
 }
 
 // AnomalyConfig - Layer 3 ML-based detection

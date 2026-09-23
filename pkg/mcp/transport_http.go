@@ -104,6 +104,11 @@ type HTTPTransportConfig struct {
 
 	// SSE controls Server-Sent Events behaviour.
 	SSE SSEConfig
+
+	// SIEMHandler is the encapsulated ELK SIEM & SOC webhook handler.
+	// When non-nil, it mounts at /api/v1/siem/webhook within the full
+	// Secure Gateway + SEKHEM WAF bilateral protection chain.
+	SIEMHandler http.Handler
 }
 
 // httpTransport implements the HTTP/SSE transport for the MCP server.
@@ -194,6 +199,11 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 
 	// GET /api/v1/dag/stats — lightweight DAG metrics (node count, timestamps)
 	mux.HandleFunc("/api/v1/dag/stats", t.handleDAGStats)
+
+	// POST /api/v1/siem/webhook — encapsulated ELK SIEM & SOC webhook receiver
+	if t.config.SIEMHandler != nil {
+		mux.Handle("/api/v1/siem/webhook", t.config.SIEMHandler)
+	}
 
 	// ── Bilateral security middleware chain (outer → inner = first-called → last-called) ──
 	//
@@ -554,6 +564,7 @@ func (t *httpTransport) handleInitialize(req JSONRPCRequest) JSONRPCResponse {
 			Name:    HardenedServerName,
 			Version: HardenedServerVersion,
 		},
+		Instructions: SovereignKhepraInstructions,
 	}
 	return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mustMarshal(result)}
 }
