@@ -257,7 +257,7 @@ func (fw *FirewallLayer) collectInputs(r *http.Request) []string {
 	// Headers that commonly carry user input
 	dangerousHeaders := []string{
 		"User-Agent", "Referer", "Cookie", "X-Forwarded-For",
-		"X-Custom-Header", "Content-Type",
+		"X-Custom-Header",
 	}
 	for _, h := range dangerousHeaders {
 		if v := r.Header.Get(h); v != "" {
@@ -315,7 +315,7 @@ func (fw *FirewallLayer) initWAFPatterns() {
 	// RCE patterns
 	fw.rcePatterns = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)(\||;|&&|\$\(|` + "`" + `)`),
-		regexp.MustCompile(`(?i)\b(nc|netcat|wget|curl|bash|sh|cmd|powershell)\b`),
+		regexp.MustCompile(`(?i)\b(nc|netcat|wget|bash|sh|cmd|powershell)\b`),
 		regexp.MustCompile(`(?i)\b(exec|system|passthru|shell_exec|popen)\s*\(`),
 		regexp.MustCompile(`(?i)\$\{.*\}`), // Template injection
 		regexp.MustCompile(`(?i)%\{.*\}`),  // Log4j style

@@ -104,6 +104,26 @@ func (auth *AuthLayer) Authenticate(r *http.Request) (*Identity, error) {
 		return auth.finalizeIdentity(r, identity, "Enrollment-Token")
 	}
 
+	// Priority 5: Community / Anonymous Fallback (if permitted)
+	if auth.config.AllowAnonymous {
+		ip := r.RemoteAddr
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			ip = strings.Split(xff, ",")[0]
+		}
+		cleanIP := strings.TrimSpace(ip)
+		if idx := strings.LastIndex(cleanIP, ":"); idx != -1 && !strings.Contains(cleanIP, "]") {
+			cleanIP = cleanIP[:idx]
+		}
+		anonIdentity := &Identity{
+			ID:           "community-" + cleanIP,
+			Type:         "community",
+			Organization: "Public Community",
+			TrustScore:   0.5,
+			Permissions:  []string{"mcp:read", "mcp:call"},
+		}
+		return auth.finalizeIdentity(r, anonIdentity, "community")
+	}
+
 	return nil, errors.New("no valid authentication provided")
 }
 

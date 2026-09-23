@@ -382,15 +382,33 @@ func (c *ControlLayer) logToStdout(event *AuditEvent) {
 		status = "BLOCKED"
 	}
 
-	log.Printf("[AUDIT] %q %q %q %q %d %q %.2fms anomaly=%.2f",
-		event.RequestID[:8],
+	reqID := event.RequestID
+	if len(reqID) > 8 {
+		reqID = reqID[:8]
+	}
+	identID := event.IdentityID
+	if len(identID) > 8 {
+		identID = identID[:8]
+	}
+	if identID == "" {
+		identID = "none"
+	}
+
+	reason := ""
+	if event.Blocked && event.BlockReason != "" {
+		reason = " reason=" + event.BlockReason
+	}
+
+	log.Printf("[AUDIT] %q %q %q %q %d %q %.2fms anomaly=%.2f%s",
+		reqID,
 		event.Method,
 		event.Path,
 		status,
 		event.StatusCode,
-		event.IdentityID[:8],
+		identID,
 		float64(event.Duration)/float64(time.Millisecond),
-		event.AnomalyScore)
+		event.AnomalyScore,
+		reason)
 }
 
 // logToFile logs event to file (JSON format)
