@@ -8,23 +8,18 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/gateway"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/upstream"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
 
 // ─── Upstream broker (Mitochondrial egress) ───────────────────────────────────
@@ -255,24 +250,6 @@ func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 			SchemaVersion: "1.0.0", SchemaHash: hashFn("nhi_revoke"),
 			AllowedBackend: "in-process", TimeoutMs: 10000,
 			MaxPrivilege: "admin", ArgsSchema: noArgs},
-		{Name: "audit_plugin4shell", Description: "Audit local AI coding agent plugins and extensions for Plugin4Shell (unpinned Git refs, TOCTOU payload tampering, zero-click RCE vectors)",
-			RiskClass: khepramcp.RiskReadOnly, Scope: "compliance:read",
-			SchemaVersion: "1.0.0", SchemaHash: hashFn("audit_plugin4shell"),
-			AllowedBackend: "in-process", TimeoutMs: 30000,
-			MaxPrivilege: "read-only", ArgsSchema: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"search_roots": map[string]any{
-						"type":        "array",
-						"items":       map[string]any{"type": "string"},
-						"description": "directories to scan for AI agent plugins",
-					},
-					"auto_pin": map[string]any{
-						"type":        "boolean",
-						"description": "automatically calculate and pin cryptographic SHA-256 integrity hashes to unpinned manifests",
-					},
-				},
-			}},
 	}
 }
 
@@ -320,9 +297,6 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("discover_assets", tools.HandleDiscoverAssets)
 	executor.RegisterFunc("stig_check", tools.HandleSTIGCheck)
 	executor.RegisterFunc("pqc_stig", tools.HandlePQCSTIG)
-	executor.RegisterFunc("pqc_keygen", tools.HandlePQCKeygen) // was implemented but never wired
-	executor.RegisterFunc("pqc_sign", tools.HandlePQCSign)     // was implemented but never wired
-	executor.RegisterFunc("pqc_verify", tools.HandlePQCVerify) // was implemented but never wired
 	executor.RegisterFunc("cmmc_assess", tools.HandleCMMCAssess)
 	executor.RegisterFunc("agent_record", tools.HandleAgentRecord)
 	executor.RegisterFunc("attest_export", tools.HandleAttestExport)
@@ -366,7 +340,6 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// See pkg/mcp/tools/gateway_proxy_tools.go for the allowlist and WAF rules.
 	executor.RegisterFunc("stripe_call", tools.HandleStripeCall)
 	executor.RegisterFunc("mcp_gateway", tools.HandleMCPGateway)
-	executor.RegisterFunc("audit_plugin4shell", tools.HandleAuditPlugin4Shell)
 }
 
 func main() {
@@ -474,98 +447,17 @@ func main() {
 		logger.Fatalf("Router error: %v", err)
 	}
 
-	mode := khepramcp.TransportStdio
-	port := os.Getenv("KHEPRA_HTTP_PORT")
-	var httpCfg khepramcp.HTTPTransportConfig
-	if port != "" || os.Getenv("KHEPRA_TRANSPORT") == "http" {
-		mode = khepramcp.TransportHTTP
-		if port == "" {
-			port = "8080"
-		}
-		if !strings.HasPrefix(port, ":") {
-			port = ":" + port
-		}
-		var origins []string
-		if cors := os.Getenv("KHEPRA_CORS_ORIGINS"); cors != "" {
-			for _, o := range strings.Split(cors, ",") {
-				if o = strings.TrimSpace(o); o != "" {
-					origins = append(origins, o)
-				}
-			}
-		}
-		// Initialize SEKHEM WAF (bilateral L7 rule engine + egress secret scrubbing)
-		wafShield, err := sekhem.NewWAFShield(sekhem.WAFShieldConfig{})
-		var wafMiddleware func(http.Handler) http.Handler
-		if err != nil {
-			logger.Printf("[SEKHEM-WAF] WARN: failed to initialize WAF: %v", err)
-		} else {
-			wafMiddleware = sekhem.HTTPMiddleware(wafShield)
-		}
-
-		// Initialize Khepra Secure Gateway (4-layer: Firewall, Auth, Anomaly, RateLimit)
-		gwCfg := gateway.DefaultConfig()
-		gwCfg.Firewall.RequireHTTPS = false // Terminated at Cloudflare / Caddy proxy
-		gwCfg.Auth.AllowAnonymous = true    // Permit public MCP requests with community tracking
-		gw, err := gateway.New(gwCfg)
-		var gwMiddleware func(http.Handler) http.Handler
-		if err != nil {
-			logger.Printf("[GATEWAY] WARN: failed to initialize Gateway: %v", err)
-		} else {
-			gwMiddleware = gateway.Middleware(gw)
-		}
-
-		httpCfg = khepramcp.HTTPTransportConfig{
-			ListenAddr:          port,
-			AllowedOrigins:      origins,
-			EnableSecureHeaders: true,
-			WAF:                 wafMiddleware,
-			Gateway:             gwMiddleware,
-			DagStore:            &dagStoreAdapter{d: dag.GlobalDAG()},
-		}
-		logger.Printf("KHEPRA MCP Server listening on HTTP/SSE %s...", port)
-	} else {
-		logger.Printf("KHEPRA MCP Server listening on stdio...")
-	}
-
 	srv, err := khepramcp.NewHardenedServer(khepramcp.HardenedServerConfig{
-		Mode:       mode,
-		Router:     router,
-		Logger:     logger,
-		HTTPConfig: httpCfg,
+		Mode:   khepramcp.TransportStdio,
+		Router: router,
+		Logger: logger,
 	})
 	if err != nil {
 		logger.Fatalf("Server error: %v", err)
 	}
 
+	logger.Printf("KHEPRA MCP Server listening on stdio...")
 	if err := srv.Run(ctx); err != nil && err != context.Canceled {
 		logger.Fatalf("Serve error: %v", err)
 	}
 }
-
-type dagStoreAdapter struct {
-	d *dag.PersistentMemory
-}
-
-func (a *dagStoreAdapter) All() []*kernelports.NodeSummary {
-	nodes := a.d.All()
-	out := make([]*kernelports.NodeSummary, 0, len(nodes))
-	for _, n := range nodes {
-		t, _ := time.Parse(time.RFC3339, n.Time)
-		out = append(out, &kernelports.NodeSummary{
-			ID:   n.ID,
-			Time: t.Unix(),
-			Tool: n.Action,
-		})
-	}
-	return out
-}
-
-func (a *dagStoreAdapter) Add(node *kernelports.NodeSummary, parents []string) error {
-	n := &dag.Node{
-		ID:     node.ID,
-		Action: node.Tool,
-		Time:   time.Unix(node.Time, 0).Format(time.RFC3339),
-	}
-	return a.d.Add(n, parents)
-}
-
