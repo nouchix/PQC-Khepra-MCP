@@ -154,7 +154,7 @@ export const DOCAArgus = () => {
             disabled={loading}
             className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/40"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </CardTitle>
       </CardHeader>

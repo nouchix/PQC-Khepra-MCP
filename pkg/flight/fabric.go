@@ -688,6 +688,12 @@ func (c *fabricResponseWriter) WriteHeader(status int) {
 }
 
 func (c *fabricResponseWriter) Write(b []byte) (int, error) {
+	if c.ResponseWriter.Header().Get("Content-Type") == "" {
+		c.ResponseWriter.Header().Set("Content-Type", "application/json")
+	}
+	if c.ResponseWriter.Header().Get("X-Content-Type-Options") == "" {
+		c.ResponseWriter.Header().Set("X-Content-Type-Options", "nosniff")
+	}
 	c.body.Write(b)
 	return c.ResponseWriter.Write(b)
 }

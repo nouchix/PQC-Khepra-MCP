@@ -249,9 +249,9 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	// ── Step 1: DEMARC Boundary ─────────────────────────────────────────────
 	id, err := r.demarc.Authenticate(ctx, cred)
 	if err != nil {
-		r.events.EmitError(EventAuth, call.ToolName, "", "AUTH_FAILED", err.Error())
-		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: %v", call.ToolName, err)
-		return nil, fmt.Errorf("authentication failed: %w", err)
+		r.events.EmitError(EventAuth, call.ToolName, "", "AUTH_FAILED", "authentication failed")
+		r.logger.Printf("[MCP:DEMARC] auth failed for tool=%q: access denied", call.ToolName)
+		return nil, errors.New("authentication failed")
 	}
 	if err := r.demarc.CheckCIDR(ctx, id, remoteAddr); err != nil {
 		r.events.EmitError(EventAuth, call.ToolName, id.AgentID, "CIDR_DENIED", err.Error())

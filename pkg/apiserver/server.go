@@ -548,8 +548,8 @@ func (s *Server) checkOrganizationAccess(apiKey string, requestedOrgID string) (
 	// TRL10 PRODUCTION RBAC:
 	// Verify that the license is bound to the requested organization
 	if status.Organization != requestedOrgID && status.Organization != "GLOBAL_ADMIN" {
-		log.Printf("[RBAC] Access denied: API key %s (Org: %s) attempted to access Org: %s",
-			apiKey, status.Organization, requestedOrgID)
+		log.Printf("[RBAC] Access denied: Client (Org: %s) attempted to access Org: %s",
+			status.Organization, requestedOrgID)
 		return false, nil
 	}
 

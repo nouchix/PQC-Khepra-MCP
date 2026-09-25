@@ -1,11 +1,11 @@
 package adinkra
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+
+	"golang.org/x/crypto/sha3"
 )
 
 // =============================================================================
@@ -283,30 +283,21 @@ func (m *Merkaba) inverseOperator(val uint64, color int) uint64 {
 // =============================================================================
 
 type ChaosEngine struct {
-	stream cipher.Stream
+	shake sha3.ShakeHash
 }
 
 func NewChaosEngine(entropy uint64) *ChaosEngine {
-	h := sha256.New()
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, entropy)
-	h.Write(b)
-	h.Write([]byte("ADINKHEPRA_CHAOS_INIT"))
-	digest := h.Sum(nil)
-
-	key := digest[:32]
-	iv := digest[16:] // Use part of digest for IV
-	if len(iv) > aes.BlockSize {
-		iv = iv[:aes.BlockSize]
-	}
-
-	block, _ := aes.NewCipher(key)
-	return &ChaosEngine{stream: cipher.NewCTR(block, iv)}
+	shake := sha3.NewShake256()
+	shake.Write(b)
+	shake.Write([]byte("ADINKHEPRA_CHAOS_INIT"))
+	return &ChaosEngine{shake: shake}
 }
 
 func (c *ChaosEngine) Uint64() uint64 {
 	out := make([]byte, 8)
-	c.stream.XORKeyStream(out, out)
+	_, _ = c.shake.Read(out)
 	return binary.BigEndian.Uint64(out)
 }
 
@@ -322,6 +313,5 @@ func (c *ChaosEngine) Int63() int64 {
 }
 
 func (c *ChaosEngine) Read(p []byte) (n int, err error) {
-	c.stream.XORKeyStream(p, p)
-	return len(p), nil
+	return c.shake.Read(p)
 }

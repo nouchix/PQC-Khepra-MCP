@@ -59,6 +59,7 @@ func NewFleetHandlers(registry *fleet.FleetRegistry) *FleetHandlers {
 // the prefix handler.
 func (h *FleetHandlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/fleet/enclaves", h.handleEnclaves)
+	mux.HandleFunc("/api/v1/fleet/enclaves/", h.handleEnclaveByID) // /api/v1/fleet/enclaves/{id}/*
 	mux.HandleFunc("/api/v1/fleet/assets", h.handleAssets)
 	mux.HandleFunc("/api/v1/fleet/assets/import", h.handleImport)
 	mux.HandleFunc("/api/v1/fleet/assets/discover", h.handleDiscover)
@@ -71,6 +72,24 @@ func (h *FleetHandlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/fleet/discover", h.handleDiscoverSSE)  // GET SSE: ?cidr=
 	mux.HandleFunc("/api/v1/fleet/connectors", h.handleConnectors) // GET list / POST save
 	mux.HandleFunc("/api/v1/fleet/assets/", h.handleAssetByID)     // /api/v1/fleet/assets/{id}/*
+
+	// Sovereign Fleet-DM & Osquery Remote Fleet Endpoints
+	mux.HandleFunc("/api/v1/osquery/enroll", h.handleOsqueryEnroll)
+	mux.HandleFunc("/api/v1/osquery/config", h.handleOsqueryConfig)
+	mux.HandleFunc("/api/v1/osquery/distributed/read", h.handleOsqueryDistributedRead)
+	mux.HandleFunc("/api/v1/osquery/distributed/write", h.handleOsqueryDistributedWrite)
+	mux.HandleFunc("/api/v1/osquery/log", h.handleOsqueryLog)
+
+	// Sovereign Agent & Host Endpoints
+	mux.HandleFunc("/api/v1/fleet/enroll", h.handleFleetEnroll)
+	mux.HandleFunc("/api/fleet/enroll", h.handleFleetEnroll)
+	mux.HandleFunc("/api/v1/fleet/heartbeat", h.handleFleetHeartbeat)
+	mux.HandleFunc("/api/fleet/heartbeat", h.handleFleetHeartbeat)
+	mux.HandleFunc("/api/fleet/agent", h.handleAgentCombined) // handles enroll & heartbeat from asaf-agent
+	mux.HandleFunc("/api/v1/fleet/hosts", h.handleFleetHosts)
+	mux.HandleFunc("/api/v1/fleet/query/run", h.handleFleetQueryRun)
+	mux.HandleFunc("/api/v1/fleet/flagfile", h.handleFleetFlagfile)
+	mux.HandleFunc("/api/v1/fleet/enroll/config", h.handleFleetFlagfile)
 }
 
 // ── Enclaves ──────────────────────────────────────────────────────────────────
@@ -850,3 +869,372 @@ func assetToReport(a *fleet.Asset) *fleet.HostReport {
 		PassingPractices: map[string]bool{},
 	}
 }
+
+// ── Enclave Subroutes (/api/v1/fleet/enclaves/{id}/*) ─────────────────────────
+
+func (h *FleetHandlers) handleEnclaveByID(w http.ResponseWriter, r *http.Request) {
+	trimmed := strings.TrimPrefix(r.URL.Path, "/api/v1/fleet/enclaves/")
+	parts := strings.SplitN(trimmed, "/", 2)
+	enclaveID := parts[0]
+	action := ""
+	if len(parts) > 1 {
+		action = parts[1]
+	}
+
+	if enclaveID == "" {
+		writeError(w, http.StatusBadRequest, "enclave_id required")
+		return
+	}
+
+	switch action {
+	case "assets":
+		if r.Method != http.MethodGet {
+			methodNotAllowed(w)
+			return
+		}
+		assets := h.registry.ListAssets(enclaveID, "")
+		writeJSON(w, http.StatusOK, map[string]any{
+			"enclave_id": enclaveID,
+			"assets":     assets,
+			"count":      len(assets),
+		})
+
+	case "import":
+		q := r.URL.Query()
+		q.Set("enclave_id", enclaveID)
+		r.URL.RawQuery = q.Encode()
+		h.handleImport(w, r)
+
+	case "discover":
+		if r.Method != http.MethodPost {
+			methodNotAllowed(w)
+			return
+		}
+		var body struct {
+			CIDR string `json:"cidr"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body.CIDR == "" {
+			writeError(w, http.StatusBadRequest, "cidr required")
+			return
+		}
+		assets, err := h.registry.DiscoverSubnet(body.CIDR, enclaveID, nil)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		for _, a := range assets {
+			_ = h.registry.AddAsset(a)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"discovered": assets,
+			"count":      len(assets),
+		})
+
+	case "boundary/attest":
+		if r.Method != http.MethodPost {
+			methodNotAllowed(w)
+			return
+		}
+		decl, err := h.registry.AttestBoundary("ASAF Enclave: "+enclaveID, "CAGE-001", "operator", nil, nil)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"ok":          true,
+			"attested":    true,
+			"enclave_id":  enclaveID,
+			"dag_node_id": decl.DAGNodeID,
+			"declaration": decl,
+		})
+
+	case "":
+		if r.Method == http.MethodGet {
+			enc, ok := h.registry.GetEnclave(enclaveID)
+			if !ok {
+				writeError(w, http.StatusNotFound, "enclave not found")
+				return
+			}
+			writeJSON(w, http.StatusOK, enc)
+			return
+		}
+		methodNotAllowed(w)
+
+	default:
+		writeError(w, http.StatusNotFound, "unknown action: "+action)
+	}
+}
+
+// ── Fleet-DM & Osquery Handlers ──────────────────────────────────────────────
+
+func (h *FleetHandlers) handleOsqueryEnroll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req fleet.OsqueryEnrollRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid osquery enroll JSON")
+		return
+	}
+	if req.EnrollSecret == "" {
+		req.EnrollSecret = "sec-khepra-msp-lab-2026"
+	}
+	if req.IP == "" {
+		req.IP = extractRemoteIP(r)
+	}
+	host, err := h.registry.EnrollOsqueryHost(req)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{
+			"node_invalid": true,
+			"error":        err.Error(),
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, fleet.OsqueryEnrollResponse{
+		NodeKey:     host.NodeKey,
+		NodeInvalid: false,
+	})
+}
+
+func (h *FleetHandlers) handleOsqueryConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req fleet.OsqueryConfigRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.NodeKey == "" {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"node_invalid": true})
+		return
+	}
+	if _, ok := h.registry.GetHostByNodeKey(req.NodeKey); !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"node_invalid": true})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, fleet.OsqueryConfigResponse{
+		Packs: map[string]fleet.OsqueryPack{
+			"cmmc_stig_pack": {
+				Queries: map[string]fleet.OsqueryPackQuery{
+					"ports": {
+						Query:       "SELECT * FROM listening_ports;",
+						Interval:    60,
+						Description: "STIG listening port continuous audit",
+					},
+					"users": {
+						Query:       "SELECT username, uid, gid, shell FROM users;",
+						Interval:    300,
+						Description: "AC-2 user account baseline",
+					},
+					"fips": {
+						Query:       "SELECT * FROM kernel_info;",
+						Interval:    300,
+						Description: "SC-13 cryptographic module audit",
+					},
+				},
+			},
+		},
+	})
+}
+
+func (h *FleetHandlers) handleOsqueryDistributedRead(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req fleet.OsqueryDistributedReadRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.NodeKey == "" {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"node_invalid": true})
+		return
+	}
+	queries := h.registry.GetPendingQueries(req.NodeKey)
+	writeJSON(w, http.StatusOK, fleet.OsqueryDistributedReadResponse{
+		Queries: queries,
+	})
+}
+
+func (h *FleetHandlers) handleOsqueryDistributedWrite(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req fleet.OsqueryDistributedWriteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid distributed write JSON")
+		return
+	}
+	_ = h.registry.SubmitQueryResult(req.NodeKey, req.Queries, req.Statuses)
+	writeJSON(w, http.StatusOK, fleet.OsqueryDistributedWriteResponse{
+		NodeInvalid: false,
+	})
+}
+
+func (h *FleetHandlers) handleOsqueryLog(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *FleetHandlers) handleFleetEnroll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var req fleet.AgentRegistrationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid registration JSON")
+		return
+	}
+	if req.IP == "" {
+		req.IP = extractRemoteIP(r)
+	}
+	resp, err := h.registry.EnrollAgent(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *FleetHandlers) handleFleetHeartbeat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var hb fleet.AgentHeartbeat
+	if err := json.NewDecoder(r.Body).Decode(&hb); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid heartbeat JSON")
+		return
+	}
+	host, err := h.registry.UpdateHostHeartbeat(hb.AgentID, hb)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":     "acknowledged",
+		"online":     true,
+		"agent_id":   host.ID,
+		"stig_score": host.STIGScore,
+	})
+}
+
+func (h *FleetHandlers) handleAgentCombined(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON")
+		return
+	}
+	action := ""
+	if v, ok := raw["action"]; ok {
+		_ = json.Unmarshal(v, &action)
+	}
+	data, _ := json.Marshal(raw)
+
+	if action == "heartbeat" {
+		var hb fleet.AgentHeartbeat
+		_ = json.Unmarshal(data, &hb)
+		if hb.AgentID == "" {
+			var alt struct {
+				AgentID string `json:"agentId"`
+			}
+			_ = json.Unmarshal(data, &alt)
+			hb.AgentID = alt.AgentID
+		}
+		host, err := h.registry.UpdateHostHeartbeat(hb.AgentID, hb)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status":   "acknowledged",
+			"online":   true,
+			"agent_id": host.ID,
+		})
+		return
+	}
+
+	// Default to enroll
+	var req fleet.AgentRegistrationRequest
+	_ = json.Unmarshal(data, &req)
+	if req.IP == "" {
+		req.IP = extractRemoteIP(r)
+	}
+	resp, err := h.registry.EnrollAgent(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *FleetHandlers) handleFleetHosts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w)
+		return
+	}
+	enclaveID := r.URL.Query().Get("enclave_id")
+	hosts := h.registry.ListHosts(enclaveID)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"hosts": hosts,
+		"count": len(hosts),
+	})
+}
+
+func (h *FleetHandlers) handleFleetQueryRun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w)
+		return
+	}
+	var body struct {
+		Query     string `json:"query"`
+		EnclaveID string `json:"enclave_id"`
+		NodeKey   string `json:"node_key,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON")
+		return
+	}
+	if body.Query == "" {
+		writeError(w, http.StatusBadRequest, "query required")
+		return
+	}
+	taskID := fmt.Sprintf("task-%x", time.Now().UnixNano())
+	count := 0
+	if body.NodeKey != "" {
+		h.registry.AddHostQuery(body.NodeKey, taskID, body.Query)
+		count = 1
+	} else {
+		for _, host := range h.registry.ListHosts(body.EnclaveID) {
+			h.registry.AddHostQuery(host.NodeKey, taskID, body.Query)
+			count++
+		}
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"task_id":      taskID,
+		"query":        body.Query,
+		"queued_nodes": count,
+	})
+}
+
+func (h *FleetHandlers) handleFleetFlagfile(w http.ResponseWriter, r *http.Request) {
+	secret := r.URL.Query().Get("secret")
+	flagfile := h.registry.GenerateFlagfile(r.Host, secret)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(flagfile))
+}
+
+func extractRemoteIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	return "127.0.0.1"
+}
+

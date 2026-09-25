@@ -146,15 +146,13 @@ func (a *SyftAdapter) GenerateSBOM(ctx context.Context, projectPath string) (*Cy
 		return nil, nil, fmt.Errorf("sca/syft: cannot resolve path: %w", err)
 	}
 	// #425 Path traversal: clean + confine to the originally requested working dir.
-	absPath = filepath.Clean(absPath)
-	// Verify the resolved path stays within the current working directory tree.
-	// This prevents path components like "../.." from escaping after resolution.
-	cwd, _ := os.Getwd()
-	if cwd != "" && !strings.HasPrefix(absPath, cwd+string(os.PathSeparator)) &&
-		absPath != cwd {
-		// Absolute path outside CWD — still allow if it's a valid absolute path
-		// (CLI callers may pass /opt/project etc.); just log for audit.
-		_ = absPath // path is absolute and clean; use as-is
+	// Confine path to current working directory tree to prevent path traversal
+	cwd, err := os.Getwd()
+	if err == nil && cwd != "" {
+		rel, rErr := filepath.Rel(filepath.Clean(cwd), absPath)
+		if rErr != nil || strings.HasPrefix(rel, "..") {
+			return nil, nil, fmt.Errorf("sca/syft: path %s escapes working directory: %w", projectPath, rErr)
+		}
 	}
 
 	// Verify path exists
@@ -333,12 +331,11 @@ func (a *SyftAdapter) computeLockfileChecksum(projectDir string) string {
 	found := false
 
 	for _, name := range lockfileNames {
-		// #426: name is from hardcoded lockfileNames list; filepath.Clean prevents traversal.
-		// Explicit confinement: verify the resolved path stays within projectDir.
-		path := filepath.Clean(filepath.Join(projectDir, name))
-		cleanBase := filepath.Clean(projectDir) + string(os.PathSeparator)
-		if !strings.HasPrefix(path+string(os.PathSeparator), cleanBase) {
-			continue // skip any path that escaped projectDir (should not happen with static names)
+		cleanBase := filepath.Clean(projectDir)
+		path := filepath.Clean(filepath.Join(cleanBase, name))
+		rel, err := filepath.Rel(cleanBase, path)
+		if err != nil || strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
+			continue // skip any path that escaped projectDir
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {

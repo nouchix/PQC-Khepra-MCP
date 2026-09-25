@@ -33,10 +33,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
+
+var validHostnameRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -438,7 +442,26 @@ func checkSecurityHeaders(host string) ([]ScanFinding, float64, bool) {
 	// #698 SSRF guard: reject private/loopback/link-local IPs and cloud metadata hosts.
 	// Only public FQDNs are permitted. This prevents an attacker from directing
 	// the scanner at internal infrastructure or cloud IMDS endpoints.
-	if err := validatePublicHost(host); err != nil {
+	u, err := url.Parse("https://" + host)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return []ScanFinding{{
+			ID:       "F-SSRF-BLOCKED",
+			Severity: "info",
+			Title:    fmt.Sprintf("Target host %q is not a valid URL: %v", host, err),
+			Control:  "CWE-918 · OWASP API8:2023",
+		}}, 0, false
+	}
+	hostname := u.Hostname()
+	if !validHostnameRegex.MatchString(hostname) {
+		return []ScanFinding{{
+			ID:       "F-SSRF-BLOCKED",
+			Severity: "info",
+			Title:    fmt.Sprintf("Target host %q is not a valid public FQDN", host),
+			Control:  "CWE-918 · OWASP API8:2023",
+		}}, 0, false
+	}
+
+	if err := validatePublicHost(hostname); err != nil {
 		return []ScanFinding{{
 			ID:       "F-SSRF-BLOCKED",
 			Severity: "info",
@@ -449,12 +472,15 @@ func checkSecurityHeaders(host string) ([]ScanFinding, float64, bool) {
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			DialContext: safeOnboardingDialContext,
+		},
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse // follow one redirect only
 		},
 	}
 
-	resp, err := client.Head("https://" + host)
+	resp, err := client.Head(u.String())
 	if err != nil {
 		// Host unreachable over HTTPS — API8:2023 Security Misconfiguration
 		findings = append(findings, ScanFinding{
@@ -708,3 +734,25 @@ func validatePublicHost(host string) error {
 	}
 	return nil
 }
+
+// safeOnboardingDialContext validates resolved IP addresses immediately prior to connecting,
+// ensuring no DNS rebinding or TOCTOU attack can target private/loopback/IMDS addresses.
+func safeOnboardingDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	h, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, h)
+	if err != nil {
+		return nil, err
+	}
+	for _, ip := range ips {
+		if ip.IP.IsPrivate() || ip.IP.IsLoopback() || ip.IP.IsLinkLocalUnicast() ||
+			ip.IP.IsLinkLocalMulticast() || ip.IP.IsUnspecified() {
+			return nil, fmt.Errorf("refusing to dial non-public address %s for host %s", ip.IP, h)
+		}
+	}
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
+}
+

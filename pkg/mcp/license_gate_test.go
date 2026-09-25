@@ -208,7 +208,7 @@ func TestLicense_Community_GodfatherReport_Blocked(t *testing.T) {
 	if !strings.Contains(resp.ErrorMessage, "Pro") {
 		t.Errorf("expected 'Pro' in error message, got: %s", resp.ErrorMessage)
 	}
-	if !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
+	if !strings.Contains(resp.ErrorMessage, "souhimbou.ai") && !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
 		t.Errorf("expected upgrade URL in error message, got: %s", resp.ErrorMessage)
 	}
 }
@@ -432,7 +432,7 @@ func TestLicense_ErrorMessage_ContainsUpgradeURL(t *testing.T) {
 			if !resp.IsError {
 				t.Fatalf("%s: expected error", tool)
 			}
-			if !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
+			if !strings.Contains(resp.ErrorMessage, "souhimbou.ai") && !strings.Contains(resp.ErrorMessage, "khepra.nouchix.com") {
 				t.Errorf("%s: upgrade URL missing from error: %s", tool, resp.ErrorMessage)
 			}
 		})

@@ -553,8 +553,7 @@ DAG_signature,${sig()}
 
   // ── 03 Traceability Matrix ─────────────────────────────────────────────────
   ti("[4/13] Generating 03-traceability-matrix.csv...");
-  const tmat=FX.map((f,i)=>`${f.id},${f.ctrl},${f.nist},${f.cci},FINDING-${String(i+1).padStart(3,"0")},FAIL,${f.sev},${f.poam?"POA&M-eligible":"NON-POA&M"},04-findings.json,${hash()}`).join("
-");
+  const tmat=FX.map((f,i)=>`${f.id},${f.ctrl},${f.nist},${f.cci},FINDING-${String(i+1).padStart(3,"0")},FAIL,${f.sev},${f.poam?"POA&M-eligible":"NON-POA&M"},04-findings.json,${hash()}`).join("\n");
   folder.file("03-traceability-matrix.csv",
 `control_id,cmmc_practice,nist_800_171,cci,finding_id,status,severity,poam_eligible,evidence_file,dag_node_hash
 ${tmat}
@@ -827,8 +826,7 @@ const sim=d3.forceSimulation(nodes).force("link",d3.forceLink(links).id(d=>d.id)
 const link=svg.append("g").selectAll("line").data(links).enter().append("line").attr("class","link");
 const node=svg.append("g").selectAll("g").data(nodes).enter().append("g").attr("class",d=>"node "+d.type);
 node.append("circle").attr("r",10).attr("fill",d=>(cm[d.type]||cm.default)+"22").attr("stroke",d=>cm[d.type]||cm.default);
-node.append("title").text(d=>d.label+"
-"+d.hash);
+node.append("title").text(d=>d.label+"\n"+d.hash);
 sim.on("tick",()=>{link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y).attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);node.attr("transform",d=>"translate("+d.x+","+d.y+")")});
 </script></body></html>`);
   await dl(200);

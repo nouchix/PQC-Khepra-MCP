@@ -257,11 +257,12 @@ const (
 // ─── Server Capabilities ───────────────────────────────────────────────────────
 
 // InitializeResult is the top-level response for the MCP `initialize` method.
-// Per MCP spec: protocolVersion + capabilities + serverInfo (nested).
+// Per MCP spec: protocolVersion + capabilities + serverInfo (nested) + instructions.
 type InitializeResult struct {
 	ProtocolVersion string       `json:"protocolVersion"`
 	Capabilities    Capabilities `json:"capabilities"`
 	ServerInfo      ServerInfo   `json:"serverInfo"`
+	Instructions    string       `json:"instructions,omitempty"`
 }
 
 // ServerInfo identifies the MCP server (nested inside InitializeResult).

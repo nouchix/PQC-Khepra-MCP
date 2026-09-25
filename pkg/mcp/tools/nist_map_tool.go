@@ -157,20 +157,23 @@ func (idx *ControlIndex) Search(query string, topK int, frameworkFilter string) 
 		return results[i].score > results[j].score
 	})
 
-	// Take topK
+	if topK <= 0 {
+		return nil
+	}
+	if topK > 50 {
+		topK = 50
+	}
 	if topK > len(results) {
 		topK = len(results)
 	}
-	// #413 topK is bounded to max 50 (line ~269) and then further capped to len(results)
-	// (lines above). The allocation size is guaranteed safe.
-	out := make([]SearchResult, topK) //nolint:gosec
+	out := make([]SearchResult, 0, topK)
 	for i := 0; i < topK; i++ {
-		out[i] = SearchResult{
+		out = append(out, SearchResult{
 			Control:  results[i].rec,
 			Score:    math.Round(results[i].score*1000) / 1000,
 			Rank:     i + 1,
 			Snippets: extractSnippets(results[i].rec, queryTokens),
-		}
+		})
 	}
 	return out
 }
