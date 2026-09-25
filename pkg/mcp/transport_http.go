@@ -166,6 +166,12 @@ func (t *httpTransport) Serve(ctx context.Context) error {
 	// Serves the tool manifest so Smithery can skip live scanning.
 	mux.HandleFunc("/.well-known/mcp/server-card.json", t.handleServerCard)
 
+	// Vulnerability Disclosure & Security Policy (RFC 9116)
+	mux.HandleFunc("/.well-known/security.txt", t.handleSecurityTxt)
+	mux.HandleFunc("/security.txt", t.handleSecurityTxt)
+	mux.HandleFunc("/.well-known/pgp-key.txt", t.handlePGPKey)
+	mux.HandleFunc("/pgp-key.txt", t.handlePGPKey)
+
 	// Health check routes — Traefik + monitoring
 	mux.HandleFunc("/health", t.handleHealth)
 
@@ -663,6 +669,22 @@ func (t *httpTransport) handleServerCard(w http.ResponseWriter, _ *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "public, max-age=3600") // 1h cache for Smithery
 	json.NewEncoder(w).Encode(card) //nolint:errcheck
+}
+
+// handleSecurityTxt serves /.well-known/security.txt (RFC 9116).
+func (t *httpTransport) handleSecurityTxt(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(NouchiXSecurityTxt))
+}
+
+// handlePGPKey serves /.well-known/pgp-key.txt with the ASCII-armored public PGP key.
+func (t *httpTransport) handlePGPKey(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(NouchiXPGPPublicKey))
 }
 
 
