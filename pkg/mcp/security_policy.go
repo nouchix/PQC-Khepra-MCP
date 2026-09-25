@@ -1,0 +1,91 @@
+package mcp
+
+// NouchiXPGPPublicKey is the 4096-bit RSA PGP public key for the NouchiX Security Team.
+// Fingerprint: E9A9 2822 E8B8 4976 E6D5 98C2 1DA1 AF41 D77A 0922
+const NouchiXPGPPublicKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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
+Yg==
+=mfFn
+-----END PGP PUBLIC KEY BLOCK-----
+`
+
+// NouchiXSecurityTxt defines the RFC 9116 vulnerability disclosure and security policy.
+const NouchiXSecurityTxt = `Contact: mailto:security@nouchix.com
+Expires: 2028-09-24T00:00:00.000Z
+Encryption: https://mcp.souhimbou.ai/.well-known/pgp-key.txt
+Encryption: https://souhimbou.ai/.well-known/pgp-key.txt
+Encryption: https://keys.openpgp.org/vks/v1/by-fingerprint/E9A92822E8B84976E6D598C21DA1AF41D77A0922
+Acknowledgments: https://souhimbou.ai/security
+Preferred-Languages: en
+Policy: https://souhimbou.ai/security
+Canonical: https://mcp.souhimbou.ai/.well-known/security.txt
+Canonical: https://souhimbou.ai/.well-known/security.txt
+
+# NouchiX Security Team
+# Vulnerability Disclosure & Security Inquiries
+# Entity: SecRed Knowledge Inc. (d/b/a NouchiX) | nouchix.com
+# Fingerprint: E9A9 2822 E8B8 4976 E6D5 98C2 1DA1 AF41 D77A 0922
+# Response SLA: We acknowledge reports within 2 business days.
+# Scope & Restrictions: Please do not send classified, CUI, or export-controlled data to this address.
+`
