@@ -116,20 +116,6 @@ export const ContainerOrchestration = () => {
           <div className="flex items-center space-x-2">
             <Container className="h-5 w-5" />
             <span>Container Orchestration</span>
-          </div>
-          <Button
-            size="sm"
-            onClick={fetchContainerData}
-            disabled={loading}
-            className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/40"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {clusters.map((cluster) => (
             <div key={cluster.name} className="p-3 bg-slate-800/40 rounded-lg border border-slate-600/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-white">{cluster.name}</span>

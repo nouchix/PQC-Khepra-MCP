@@ -377,7 +377,7 @@ func NewProcessSandbox(cfg SandboxConfig) *ProcessSandbox {
 func (ps *ProcessSandbox) Run(ctx context.Context, spec ToolSpec, call MCPToolCall) (any, []string, error) {
 	cfg := SandboxConfigFromSpec(spec)
 
-	ctx, cancel := context.WithTimeout(ctx, cfg.Timeout)
+	_, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
 
 	warnings := []string{

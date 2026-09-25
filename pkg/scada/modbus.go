@@ -84,6 +84,36 @@ func WriteCoil(host string, port int, unitID byte, coilAddr uint16, value bool) 
 	return err
 }
 
+// WriteHoldingRegister writes a single 16-bit holding register (FC06).
+func WriteHoldingRegister(host string, port int, unitID byte, regAddr, value uint16) error {
+	pdu := []byte{
+		0x06,
+		byte(regAddr >> 8), byte(regAddr),
+		byte(value >> 8), byte(value),
+	}
+	_, err := mbapRoundTrip(host, port, unitID, pdu)
+	return err
+}
+
+// WriteMultipleHoldingRegisters writes multiple 16-bit holding registers (FC16).
+func WriteMultipleHoldingRegisters(host string, port int, unitID byte, startAddr uint16, values []uint16) error {
+	quantity := uint16(len(values))
+	byteCount := byte(quantity * 2)
+	pdu := make([]byte, 6+int(byteCount))
+	pdu[0] = 0x10
+	pdu[1] = byte(startAddr >> 8)
+	pdu[2] = byte(startAddr)
+	pdu[3] = byte(quantity >> 8)
+	pdu[4] = byte(quantity)
+	pdu[5] = byteCount
+	for i, v := range values {
+		pdu[6+i*2] = byte(v >> 8)
+		pdu[6+i*2+1] = byte(v)
+	}
+	_, err := mbapRoundTrip(host, port, unitID, pdu)
+	return err
+}
+
 // mbapRoundTrip sends a PDU wrapped in an MBAP header and returns the response PDU.
 // The caller gets bytes starting at the Function Code byte.
 func mbapRoundTrip(host string, port int, unitID byte, pdu []byte) ([]byte, error) {

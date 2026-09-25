@@ -6,6 +6,7 @@
 package gateway
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	khlog "github.com/nouchix/PQC-Khepra-MCP/pkg/logging"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 )
 
@@ -267,8 +267,9 @@ func (c *ControlLayer) applyBackoff(limiter *RateLimiter) {
 	}
 
 	limiter.BackoffUntil = time.Now().Add(backoffDuration)
-	log.Printf("[CONTROL] Applied backoff to %q: %v (count: %d)",
-		khlog.SanitizeForLog(limiter.IdentityID), backoffDuration, limiter.BackoffCount)
+	idHash := sha256.Sum256([]byte(limiter.IdentityID))
+	log.Printf("[CONTROL] Applied backoff to client sha256:%.8x: %v (count: %d)",
+		idHash[:4], backoffDuration, limiter.BackoffCount)
 }
 
 // UpdateTrustScore updates the trust score multiplier for an identity
@@ -381,15 +382,33 @@ func (c *ControlLayer) logToStdout(event *AuditEvent) {
 		status = "BLOCKED"
 	}
 
-	log.Printf("[AUDIT] %q %q %q %q %d %q %.2fms anomaly=%.2f",
-		event.RequestID[:8],
+	reqID := event.RequestID
+	if len(reqID) > 8 {
+		reqID = reqID[:8]
+	}
+	identID := event.IdentityID
+	if len(identID) > 8 {
+		identID = identID[:8]
+	}
+	if identID == "" {
+		identID = "none"
+	}
+
+	reason := ""
+	if event.Blocked && event.BlockReason != "" {
+		reason = " reason=" + event.BlockReason
+	}
+
+	log.Printf("[AUDIT] %q %q %q %q %d %q %.2fms anomaly=%.2f%s",
+		reqID,
 		event.Method,
 		event.Path,
 		status,
 		event.StatusCode,
-		event.IdentityID[:8],
+		identID,
 		float64(event.Duration)/float64(time.Millisecond),
-		event.AnomalyScore)
+		event.AnomalyScore,
+		reason)
 }
 
 // logToFile logs event to file (JSON format)

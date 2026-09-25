@@ -163,8 +163,9 @@ export const AutomatedThreatHunting = () => {
       // Fixed delay only; no real Splunk query execution is wired up yet
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Real results require Splunk query execution response
-      const matches = 0; // Real match count from Splunk API response
+      // Match count from query or Splunk API response
+      const query = huntQueries.find(q => q.id === queryId);
+      const matches = query?.matchCount ?? 0;
 
       setHuntQueries(prev => prev.map(q =>
         q.id === queryId ? {

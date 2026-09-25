@@ -144,13 +144,13 @@ func (l *CommercialLicense) Check(toolName string) error {
 		if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
 		if len(l.Key) >= 9 && l.Key[:9] == "kphr_sov_" { return nil }
 		if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
-		return fmt.Errorf("Pro/Sovereign license ($99/mo) required to run `%s`.\n\n🔒 Unlock instantly: [Upgrade via Stripe Checkout](https://buy.stripe.com/test_upgrade_link)\nOr set KHEPRA_LICENSE_KEY=kphr_sov_... in your environment.", toolName)
+		return fmt.Errorf("Pro/Sovereign license ($99/mo) required to run `%s`.\n\n🔒 Unlock instantly: [Upgrade via Stripe Checkout](https://buy.stripe.com/7sY6oH2bM8Fc5x90F59ws03)\nOr set KHEPRA_LICENSE_KEY=kphr_sov_... in your environment.", toolName)
 	}
 
 	// 3. Enterprise / Sovereign tools require ENT- or kphr_pha_ keys
 	if len(l.Key) >= 4 && l.Key[:4] == "ENT-" { return nil }
 	if len(l.Key) >= 9 && l.Key[:9] == "kphr_pha_" { return nil }
-	return fmt.Errorf("Enterprise license ($499/mo) required to run `%s`.\n\n🔒 Unlock full 110-control CMMC/STIG gap analysis & POAM export: [Contact Sales / Upgrade](https://souhimbou.ai/pricing)\nOr set KHEPRA_LICENSE_KEY=kphr_pha_... in your environment.", toolName)
+	return fmt.Errorf("Enterprise license ($499/mo) required to run `%s`.\n\n🔒 Unlock full 110-control CMMC/STIG gap analysis & POAM export: [Upgrade via Stripe Checkout](https://buy.stripe.com/7sY6oH2bM8Fc5x90F59ws03)\nOr set KHEPRA_LICENSE_KEY=kphr_pha_... in your environment.", toolName)
 }
 
 type NoopFlightRecorder struct{}
