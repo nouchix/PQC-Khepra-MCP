@@ -1,4 +1,4 @@
-// ASAF Stargate Hub — The Unification Binary
+﻿// ASAF Stargate Hub — The Unification Binary
 //
 // "Take the skin and muscles of the CMMC Graph UI and bolt it on the skeleton
 //  and nervous system of the PQC-Khepra-MCP Server."
@@ -39,21 +39,21 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/agi"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/fleet"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/policy"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/scanner"
 	stargate "github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/stargate"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/scanner"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/config"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/asaf/policy"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/sekhem"
 )
 
 const (
-	version        = "1.5.0"
+	version     = "1.5.0"
 	defaultHubPort = "8443"
 	defaultMCPPort = "8444"
 )
@@ -96,12 +96,12 @@ func main() {
 	keyID := hex.EncodeToString(keyHash[:8])
 	logger.Printf("[PQC] ML-DSA-65 | symbol=%s | key_id=%s", symbol, keyID)
 
-	// ── License (SB-04 Fixed: graceful fallback to Community/Sovereign) ───────
+	// ── License ───────────────────────────────────────────────────────────────
 	licenseClaim, licErr := license.ParseMCPLicense()
 	if errors.Is(licErr, license.ErrNoLicenseKey) {
 		logger.Printf("[LICENSE] Community tier — set KHEPRA_LICENSE_KEY for Enterprise")
 	} else if licErr != nil {
-		logger.Printf("[LICENSE] WARN: license parse (%v) — operating in sovereign/community mode", licErr)
+		logger.Fatalf("FATAL: license validation failed: %v", licErr)
 	} else {
 		logger.Printf("[LICENSE] %s | tenant=%q | expires=%s",
 			licenseClaim.Tier, licenseClaim.Tenant,
@@ -134,6 +134,12 @@ func main() {
 		}
 	}
 
+	// WAFShield for HTTP transport
+	
+
+	// ── 4-Layer Gateway ───────────────────────────────────────────────────────
+	
+
 	// ── MCP Security Chain ────────────────────────────────────────────────────
 	demarc := &khepramcp.DefaultDemarcGateway{
 		StdioIdentity: khepramcp.Identity{
@@ -145,15 +151,12 @@ func main() {
 		},
 	}
 	poly := &khepramcp.DefaultPolymorphicEngine{
-		Symbol:     symbol,
-		PrivateKey: privKey,
-		PublicKey:  pubKey,
-		Signer:     attestenvelope.AdinkraSigner{},
+		Symbol: symbol, PrivateKey: privKey, PublicKey: pubKey,
 	}
 	mcpGateway := khepramcp.NewDefaultMCPGateway()
 
-	// Manifest Registry
-	mcpRegistry, regErr := loadManifestRegistry(ctx, privKey, keyID, logger)
+	// Manifest Registry — use existing loadManifestRegistry pattern from khepra-mcp
+	mcpRegistry, regErr := loadManifestRegistry(ctx, pubKey, keyID, logger)
 	if regErr != nil {
 		logger.Fatalf("FATAL: manifest registry failed: %v", regErr)
 	}
@@ -211,6 +214,7 @@ func main() {
 		logger.Fatalf("FATAL: router construction failed: %v", routerErr)
 	}
 
+	
 	logger.Printf("[DAGBridge] active — key_id=%s", keyID)
 
 	router.Events().Emit(khepramcp.MCPEvent{
@@ -266,10 +270,9 @@ func main() {
 	if fleetErr != nil {
 		logger.Fatalf("FATAL: fleet registry init failed: %v", fleetErr)
 	}
-	logger.Printf("[FLEET] %d assets | %d enclaves | %d remote hosts",
+	logger.Printf("[FLEET] %d assets | %d enclaves",
 		len(fleetRegistry.ListAssets("", "")),
-		len(fleetRegistry.ListEnclaves()),
-		len(fleetRegistry.ListHosts("")))
+		len(fleetRegistry.ListEnclaves()))
 
 	// ── Fleet Scanner (BulkScanner ↔ FleetRegistry bridge) ───────────────────
 	fleetScanner := scanner.NewFleetScanner(fleetRegistry, dagStore, privKey, logger)
@@ -282,7 +285,7 @@ func main() {
 	mux.HandleFunc("/asaf-config.js", makeConfigHandler(khepraMode, orgName, frameworks, mcpPort))
 	setupStargateUI(mux, logger)
 
-	// Fleet Manager & Sovereign Fleet-DM REST API
+	// Fleet Manager REST API
 	stargate.NewFleetHandlers(fleetRegistry).Register(mux)
 
 	// Fleet Scanner (trigger + SSE progress + last results)
@@ -309,8 +312,7 @@ func main() {
 	// Health (Hub-level — MCP has its own at :8444/health)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status":"ok","version":%q,"mcp_port":%q,"mode":%q,"hosts":%d}`,
-			version, mcpPort, khepraMode, len(fleetRegistry.ListHosts("")))
+		fmt.Fprintf(w, `{"status":"ok","version":%q,"mcp_port":%q}`, version, mcpPort)
 	})
 
 	// ── Middleware ────────────────────────────────────────────────────────────
@@ -347,7 +349,6 @@ func main() {
 	logger.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	logger.Printf("  [Stargate]  http://localhost:%s/              ← CISO UI", hubPort)
 	logger.Printf("  [Fleet]     http://localhost:%s/api/v1/fleet/*", hubPort)
-	logger.Printf("  [Osquery]   http://localhost:%s/api/v1/osquery/*", hubPort)
 	logger.Printf("  [KASA]      http://localhost:%s/api/v1/kasa/*", hubPort)
 	logger.Printf("  [Imhotep]   http://localhost:%s/api/v1/imhotep/*", hubPort)
 	logger.Printf("  [Blackhole] http://localhost:%s/enroll        ← reporter VPN", hubPort)
@@ -373,6 +374,10 @@ func main() {
 
 // ── hubConfirmGate ────────────────────────────────────────────────────────────
 
+// hubConfirmGate implements mcp.ConfirmationGate.
+// In the Hub context, tool execution confirmations go through the Imhotep UI,
+// not inline. All MCP tool calls are auto-confirmed; risky operations (sysctl,
+// PAM, SELinux) must be dispatched as ChangeRequests through Imhotep.
 type hubConfirmGate struct{ logger *log.Logger }
 
 func (g *hubConfirmGate) Confirm(ctx context.Context, spec khepramcp.ToolSpec, call khepramcp.MCPToolCall) error {
@@ -382,7 +387,9 @@ func (g *hubConfirmGate) Confirm(ctx context.Context, spec khepramcp.ToolSpec, c
 
 // ── Manifest Registry ──────────────────────────────────────────────────────────
 
-func loadManifestRegistry(ctx context.Context, privKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
+// loadManifestRegistry loads the signed tool manifest from disk or generates a bootstrap.
+// Mirrors cmd/khepra-mcp/main.go loadManifestRegistry.
+func loadManifestRegistry(ctx context.Context, pubKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
 	manifestPath := getEnv("KHEPRA_MANIFEST_PATH", "manifest.json")
 	if _, err := os.Stat(manifestPath); err == nil {
 		logger.Printf("[MANIFEST] loading from %s", manifestPath)
@@ -391,8 +398,8 @@ func loadManifestRegistry(ctx context.Context, privKey []byte, keyID string, log
 		return khepramcp.LoadRegistry(ctx, store, verifier)
 	}
 	logger.Printf("[MANIFEST] no manifest at %s — generating bootstrap", manifestPath)
-	toolSpecs := defaultToolSpecs(privKey)
-	manifest, err := khepramcp.GenerateSignedManifest(toolSpecs, privKey, keyID, attestenvelope.AdinkraSigner{})
+	toolSpecs := defaultToolSpecs(pubKey)
+	manifest, err := khepramcp.GenerateSignedManifest(toolSpecs, pubKey, keyID, attestenvelope.AdinkraSigner{})
 	if err != nil {
 		return nil, fmt.Errorf("manifest: generate bootstrap: %w", err)
 	}
@@ -401,13 +408,15 @@ func loadManifestRegistry(ctx context.Context, privKey []byte, keyID string, log
 	return khepramcp.LoadRegistry(ctx, store, verifier)
 }
 
-func defaultToolSpecs(privKey []byte) []khepramcp.ToolSpec {
+func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 	hashFn := func(name string) string {
 		h := sha256.Sum256([]byte(name + ":v1"))
 		return hex.EncodeToString(h[:])
 	}
-	_ = privKey
+	_ = pubKey
 	noArgs := map[string]any{"type": "object", "properties": map[string]any{}}
+	// Return a minimal spec set — the full list lives in cmd/khepra-mcp/main.go.
+	// Tools registered via registerToolHandlers below are the operative set.
 	return []khepramcp.ToolSpec{
 		{Name: "ert_scan", Description: "Enterprise Risk & Threat scanner",
 			RiskClass: khepramcp.RiskReadOnly, Scope: "ert:read",
@@ -429,6 +438,8 @@ func defaultToolSpecs(privKey []byte) []khepramcp.ToolSpec {
 
 // ── registerToolHandlers ───────────────────────────────────────────────────────
 
+// registerToolHandlers wires all in-process tool handlers into the executor.
+// Mirrors cmd/khepra-mcp/main.go registerToolHandlers exactly.
 func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("acp_status", tools.HandleACPStatus)
 	executor.RegisterFunc("acp_issue", tools.HandleACPIssue)
@@ -570,7 +581,6 @@ const devHTML = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <div class="routes">
 <span>Hub :8443</span><br>
 Fleet API → /api/v1/fleet/*<br>
-Osquery → /api/v1/osquery/*<br>
 KASA → /api/v1/kasa/*<br>
 Imhotep → /api/v1/imhotep/*<br>
 Blackhole → /enroll • /heartbeat<br>

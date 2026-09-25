@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Phantom Network</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e8e8e8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e94560, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-title {
+            font-size: 1rem;
+            color: #e94560;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .status-row:last-child { border-bottom: none; }
+        .status-label { color: #888; font-size: 0.85rem; }
+        .status-value { font-weight: 600; font-size: 0.9rem; }
+        .status-value.healthy { color: #4ade80; }
+        .status-value.address { color: #60a5fa; font-family: monospace; font-size: 0.75rem; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-primary {
+            background: linear-gradient(135deg, #e94560, #f39c12);
+            color: white;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e8e8e8;
+        }
+        .sign-input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .sign-input::placeholder { color: #666; }
+        .signature-result {
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            word-break: break-all;
+            max-height: 150px;
+            overflow-y: auto;
+            color: #4ade80;
+            display: none;
+        }
+        .loading { text-align: center; color: #888; padding: 20px; }
+        .compliance-tag {
+            display: inline-block;
+            background: rgba(233,69,96,0.2);
+            color: #e94560;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+        .counter-surv {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .cs-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .cs-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+        }
+        .cs-dot.off { background: #ef4444; }
+        .error { color: #ef4444; padding: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌑 Phantom Network</h1>
+        <p class="subtitle">Adinkhepra-PQC Secure Node</p>
+
+        <div id="status-card" class="card">
+            <div class="card-title">📡 Node Status</div>
+            <div id="status-content" class="loading">Connecting...</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🔐 Sign Message</div>
+            <textarea id="message" class="sign-input" placeholder="Enter message to sign with Dilithium3..."></textarea>
+            <button id="sign-btn" class="btn btn-primary" onclick="signMessage()">Sign with PQC</button>
+            <div id="signature-result" class="signature-result"></div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="refreshStatus()">🔄 Refresh Status</button>
+        <button class="btn btn-secondary" onclick="rotateAddress()">🔄 Rotate Address</button>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+
+        async function fetchStatus() {
+            try {
+                const [health, status, address] = await Promise.all([
+                    fetch(`${API}/health`).then(r => r.json()),
+                    fetch(`${API}/api/v1/status`).then(r => r.json()),
+                    fetch(`${API}/api/v1/address`).then(r => r.json())
+                ]);
+
+                const cs = status.counter_surveillance || {};
+                const csItems = Object.entries(cs).map(([k, v]) =>
+                    `<div class="cs-item"><span class="cs-dot ${v ? '' : 'off'}"></span>${k.replace(/_/g, ' ')}</div>`
+                ).join('');
+
+                const compliance = (status.compliance_mapping || []).map(c =>
+                    `<span class="compliance-tag">${c}</span>`
+                ).join('');
+
+                document.getElementById('status-content').innerHTML = `
+                    <div class="status-row">
+                        <span class="status-label">Status</span>
+                        <span class="status-value healthy">${health.status.toUpperCase()}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Symbol</span>
+                        <span class="status-value">${status.symbol}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Mode</span>
+                        <span class="status-value">${status.mode}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Signing</span>
+                        <span class="status-value">${status.signing}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Encryption</span>
+                        <span class="status-value">${status.encryption}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Lattice Rotation</span>
+                        <span class="status-value">${status.lattice_rotation_interval}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Key ID</span>
+                        <span class="status-value" style="font-family:monospace">${status.public_key_id}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Phantom IPv6</span>
+                        <span class="status-value address">${address.ipv6}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Uptime</span>
+                        <span class="status-value">${status.uptime}</span>
+                    </div>
+                    <div class="status-row" style="flex-direction:column">
+                        <span class="status-label" style="margin-bottom:8px">Compliance</span>
+                        <div>${compliance}</div>
+                    </div>
+                    <div class="status-row" style="flex-direction:column">
+                        <span class="status-label" style="margin-bottom:8px">Counter-Surveillance</span>
+                        <div class="counter-surv">${csItems}</div>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('status-content').innerHTML =
+                    `<div class="error">Connection failed: ${e.message}</div>`;
+            }
+        }
+
+        async function signMessage() {
+            const msg = document.getElementById('message').value;
+            if (!msg) { alert('Enter a message to sign'); return; }
+
+            const btn = document.getElementById('sign-btn');
+            const result = document.getElementById('signature-result');
+            btn.disabled = true;
+            btn.textContent = 'Signing...';
+
+            try {
+                const res = await fetch(`${API}/api/v1/sign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+                const data = await res.json();
+                result.style.display = 'block';
+                result.innerHTML = `<strong>Hash:</strong> ${data.message_hash}<br><br><strong>Signature:</strong><br>${data.signature}`;
+            } catch (e) {
+                result.style.display = 'block';
+                result.innerHTML = `<span style="color:#ef4444">Error: ${e.message}</span>`;
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Sign with PQC';
+        }
+
+        function refreshStatus() { fetchStatus(); }
+        function rotateAddress() {
+            alert('Address rotation is automatic every 5 minutes based on Spectral Fingerprint.');
+        }
+
+        // Initial load
+        fetchStatus();
+        // Auto-refresh every 30 seconds
+        setInterval(fetchStatus, 30000);
+    </script>
+</body>
+</html>
