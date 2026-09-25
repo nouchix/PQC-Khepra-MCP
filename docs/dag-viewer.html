@@ -526,40 +526,29 @@ function nodeVal(n) {
   return n.val || 6;
 }
 
-// ── HTML Sanitizer ───────────────────────────────────────────
-function escapeHTML(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 // ── Stats Bar ────────────────────────────────────────────────
 const m = RAW.meta;
 document.getElementById('stats-bar').innerHTML =
-  `<span>${escapeHTML(m.tool_calls)}</span> tools &nbsp;·&nbsp;` +
-  `<span>${escapeHTML(m.findings)}</span> findings &nbsp;·&nbsp;` +
-  `<span>${escapeHTML(m.attestations)}</span> sigs`;
+  `<span>${m.tool_calls}</span> tools &nbsp;·&nbsp;` +
+  `<span>${m.findings}</span> findings &nbsp;·&nbsp;` +
+  `<span>${m.attestations}</span> sigs`;
 
 // ── Tooltip ──────────────────────────────────────────────────
 function tooltipHtml(n) {
   const col = nodeColor(n);
-  const type = n.type === 'finding' ? `FINDING · ${escapeHTML(n.severity)}` : escapeHTML(n.type.toUpperCase());
+  const type = n.type === 'finding' ? `FINDING · ${n.severity}` : n.type.toUpperCase();
   let extra = '';
   if (n.type === 'finding')
-    extra = `<br><span style="color:#6b8aaa">impact </span><span style="color:#e5a54b">${escapeHTML(n.impact)}</span>`
-          + `<br><span style="color:#6b8aaa">roi    </span><span style="color:#22c55e">${escapeHTML(n.roi)}</span>`;
+    extra = `<br><span style="color:#6b8aaa">impact </span><span style="color:#e5a54b">${n.impact}</span>`
+          + `<br><span style="color:#6b8aaa">roi    </span><span style="color:#22c55e">${n.roi}</span>`;
   if (n.type === 'attest')
-    extra = `<br><span style="color:#6b8aaa">sig </span><span style="color:#06b6d4;font-size:9px">${escapeHTML(n.sig?.slice(0,18))}…</span>`;
+    extra = `<br><span style="color:#6b8aaa">sig </span><span style="color:#06b6d4;font-size:9px">${n.sig?.slice(0,18)}…</span>`;
   if (n.type === 'control')
-    extra = `<br><span style="color:#6b8aaa">${escapeHTML(n.framework)}</span>`;
+    extra = `<br><span style="color:#6b8aaa">${n.framework}</span>`;
   return `<div style="border-left:2px solid ${col};padding-left:8px;font-family:'JetBrains Mono',monospace">`
-    + `<div style="color:${col};font-weight:700;font-size:12px">${escapeHTML(n.label)}</div>`
+    + `<div style="color:${col};font-weight:700;font-size:12px">${n.label}</div>`
     + `<div style="color:#6b8aaa;font-size:8px;letter-spacing:1px;margin:2px 0">${type}</div>`
-    + `<div style="color:#e0eaf5;font-size:11px">${escapeHTML(n.desc || '')}</div>`
+    + `<div style="color:#e0eaf5;font-size:11px">${n.desc || ''}</div>`
     + extra + '</div>';
 }
 
@@ -571,28 +560,28 @@ function showDetail(n) {
   const sevClass = {CAT_I:'b-cat1',CAT_II:'b-cat2',CAT_III:'b-cat3'}[n.severity] || '';
 
   let html = `<div class="dl"><div class="dt">Type</div><div class="dd">
-    <span class="badge ${bClass}">${escapeHTML(n.type.toUpperCase())}</span>
-    ${n.severity ? `&nbsp;<span class="badge ${sevClass}">${escapeHTML(n.severity)}</span>` : ''}
+    <span class="badge ${bClass}">${n.type.toUpperCase()}</span>
+    ${n.severity ? `&nbsp;<span class="badge ${sevClass}">${n.severity}</span>` : ''}
   </div></div>`;
 
-  html += `<div class="dl"><div class="dt">ID / Label</div><div class="dd" style="color:${col}">${escapeHTML(n.label)}</div></div>`;
-  html += `<div class="dl"><div class="dt">Description</div><div class="dd">${escapeHTML(n.desc||'—')}</div></div>`;
-  if (n.ts) html += `<div class="dl"><div class="dt">Timestamp</div><div class="dd">2026-06-15 ${escapeHTML(n.ts)} UTC</div></div>`;
+  html += `<div class="dl"><div class="dt">ID / Label</div><div class="dd" style="color:${col}">${n.label}</div></div>`;
+  html += `<div class="dl"><div class="dt">Description</div><div class="dd">${n.desc||'—'}</div></div>`;
+  if (n.ts) html += `<div class="dl"><div class="dt">Timestamp</div><div class="dd">2026-06-15 ${n.ts} UTC</div></div>`;
 
   if (n.type === 'finding') {
     html += `<div class="dl"><div class="dt">Business Impact (FAIR)</div>
-      <div class="dd"><span class="impact-value">${escapeHTML(n.impact)}</span></div></div>
-      <div class="dl"><div class="dt">Remediation Cost</div><div class="dd" style="color:#22c55e">${escapeHTML(n.remediation_cost)}</div></div>
-      <div class="dl"><div class="dt">ROI</div><div class="dd"><span class="roi-value">${escapeHTML(n.roi)}</span></div></div>`;
+      <div class="dd"><span class="impact-value">${n.impact}</span></div></div>
+      <div class="dl"><div class="dt">Remediation Cost</div><div class="dd" style="color:#22c55e">${n.remediation_cost}</div></div>
+      <div class="dl"><div class="dt">ROI</div><div class="dd"><span class="roi-value">${n.roi}</span></div></div>`;
   }
   if (n.type === 'control') {
-    html += `<div class="dl"><div class="dt">Framework</div><div class="dd" style="color:#06b6d4">${escapeHTML(n.framework)}</div></div>`;
+    html += `<div class="dl"><div class="dt">Framework</div><div class="dd" style="color:#06b6d4">${n.framework}</div></div>`;
   }
   if (n.type === 'attest' && n.sig) {
-    html += `<div class="dl"><div class="dt">ML-DSA-65 Signature</div><div class="dd"><div class="sig-box">${escapeHTML(n.sig)}</div></div></div>`;
+    html += `<div class="dl"><div class="dt">ML-DSA-65 Signature</div><div class="dd"><div class="sig-box">${n.sig}</div></div></div>`;
   }
   if (n.type === 'tool' && n.tool_args) {
-    const args = escapeHTML(JSON.stringify(n.tool_args, null, 2)).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;');
+    const args = JSON.stringify(n.tool_args, null, 2).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;');
     html += `<div class="dl"><div class="dt">Tool Arguments</div><div class="dd" style="font-size:10px;color:#6b8aaa">${args}</div></div>`;
   }
 
@@ -613,7 +602,7 @@ function showDetail(n) {
       if(other) html += `<div class="linked-node">
         <div class="linked-dot" style="background:${nodeColor(other)}"></div>
         <span style="color:#6b8aaa">${dir}</span>
-        <span style="color:${nodeColor(other)}">${escapeHTML(other.label)}</span>
+        <span style="color:${nodeColor(other)}">${other.label}</span>
       </div>`;
     });
     html += '</div>';
@@ -706,10 +695,10 @@ function switchTab(tab, btn) {
   if (tab==='table') {
     const rows = RAW.nodes.map(n =>
       `<tr style="border-bottom:1px solid rgba(26,159,232,.12)">
-        <td style="padding:7px 12px;color:${nodeColor(n)};font-family:'JetBrains Mono',monospace;font-size:11px">${escapeHTML(n.label)}</td>
-        <td style="padding:7px 12px;color:#6b8aaa;font-size:9px;letter-spacing:1px">${escapeHTML(n.type.toUpperCase())}</td>
-        <td style="padding:7px 12px;font-size:11px;color:#e0eaf5">${escapeHTML(n.desc||'')}</td>
-        <td style="padding:7px 12px;font-size:11px;color:#e5a54b;font-family:'JetBrains Mono',monospace">${escapeHTML(n.impact||n.framework||(n.type==='attest'?'✓ signed':'—'))}</td>
+        <td style="padding:7px 12px;color:${nodeColor(n)};font-family:'JetBrains Mono',monospace;font-size:11px">${n.label}</td>
+        <td style="padding:7px 12px;color:#6b8aaa;font-size:9px;letter-spacing:1px">${n.type.toUpperCase()}</td>
+        <td style="padding:7px 12px;font-size:11px;color:#e0eaf5">${n.desc||''}</td>
+        <td style="padding:7px 12px;font-size:11px;color:#e5a54b;font-family:'JetBrains Mono',monospace">${n.impact||n.framework||(n.type==='attest'?'✓ signed':'—')}</td>
       </tr>`).join('');
     el.innerHTML = `<div style="overflow:auto;height:100%;padding:12px">
       <table style="width:100%;border-collapse:collapse">
@@ -721,7 +710,7 @@ function switchTab(tab, btn) {
         </tr></thead><tbody>${rows}</tbody>
       </table></div>`;
   } else {
-    el.innerHTML = `<pre style="padding:20px;font-size:10px;color:#6b8aaa;overflow:auto;height:100%;white-space:pre-wrap;font-family:'JetBrains Mono',monospace">${escapeHTML(JSON.stringify(RAW,null,2))}</pre>`;
+    el.innerHTML = `<pre style="padding:20px;font-size:10px;color:#6b8aaa;overflow:auto;height:100%;white-space:pre-wrap;font-family:'JetBrains Mono',monospace">${JSON.stringify(RAW,null,2)}</pre>`;
   }
 }
 
@@ -765,9 +754,9 @@ function setLiveIndicator() {
 
 function refreshStatsBar() {
   document.getElementById('stats-bar').innerHTML =
-    `<span>${escapeHTML(RAW.meta.tool_calls)}</span> tools &nbsp;·&nbsp;` +
-    `<span>${escapeHTML(RAW.meta.findings)}</span> findings &nbsp;·&nbsp;` +
-    `<span>${escapeHTML(RAW.meta.attestations)}</span> sigs`;
+    `<span>${RAW.meta.tool_calls}</span> tools &nbsp;·&nbsp;` +
+    `<span>${RAW.meta.findings}</span> findings &nbsp;·&nbsp;` +
+    `<span>${RAW.meta.attestations}</span> sigs`;
 }
 
 function ingestLiveEvent(ev) {
