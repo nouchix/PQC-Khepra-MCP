@@ -189,8 +189,11 @@ func (g *Gateway) initRequestContext(r *http.Request, start time.Time) *RequestC
 }
 
 func (g *Gateway) runSecurityChecks(w http.ResponseWriter, r *http.Request, reqCtx *RequestContext) bool {
-	// Bypass health checks and discovery metadata so orchestration/probes succeed cleanly
-	if r.URL.Path == "/health" || r.URL.Path == "/mcp/v1/health" || r.URL.Path == "/.well-known/mcp/server-card.json" {
+	// Bypass health checks, discovery metadata, and security disclosure policies so orchestration/probes succeed cleanly
+	if r.URL.Path == "/health" || r.URL.Path == "/mcp/v1/health" ||
+		r.URL.Path == "/.well-known/mcp/server-card.json" ||
+		r.URL.Path == "/.well-known/security.txt" || r.URL.Path == "/security.txt" ||
+		r.URL.Path == "/.well-known/pgp-key.txt" || r.URL.Path == "/pgp-key.txt" {
 		return false
 	}
 
