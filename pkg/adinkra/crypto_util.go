@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"io"
 
 	"golang.org/x/crypto/argon2"
@@ -41,6 +42,23 @@ func NewSeededReader(seed []byte) *SeededReader {
 
 func (r *SeededReader) Read(p []byte) (n int, err error) {
 	return r.stream.Read(p)
+}
+
+// ChaosEngine is an open-source deterministic PRNG implementing io.Reader via HKDF-SHA256
+type ChaosEngine struct {
+	stream io.Reader
+}
+
+func NewChaosEngine(seed uint64) *ChaosEngine {
+	var seedBytes [8]byte
+	binary.BigEndian.PutUint64(seedBytes[:], seed)
+	return &ChaosEngine{
+		stream: hkdf.New(sha256.New, seedBytes[:], nil, []byte("KHEPRA-CHAOS-DETERMINISTIC-RNG")),
+	}
+}
+
+func (c *ChaosEngine) Read(p []byte) (n int, err error) {
+	return c.stream.Read(p)
 }
 
 // EncryptAESGCM performs standard AES-256-GCM encryption.
