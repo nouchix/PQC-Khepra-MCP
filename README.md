@@ -710,8 +710,16 @@ Running continuously on constrained edge hardware since **May 12, 2026** to prov
 | **UAlbany AI Plus Symposium 2026** — *"KHEPRA Protocol: Quantum-Resilient Agentic AI Security Using Cultural Cryptography"* | March 7, 2026 | NSA CAE-CDE Institution · 200+ audience |
 | **SUNY Albany Cybersecurity Showcase** — First PQC key ceremony on STM32-class device (SCADA Pod) | May 12–13, 2026 | Live demo · SCADA architecture poster |
 
-> USPTO Provisional Patent **#73565085** — pending.  
+> USPTO Provisional Patent Application **No. 63/942,886** — pending.  
 > 🔒 Iron Bank containers in DISA vetting process.
+
+---
+
+## Open-Core Architecture Notice
+
+`PQC-Khepra-MCP` is an open-source Model Context Protocol server providing Post-Quantum Cryptographic primitives (ML-DSA-65, ML-KEM-768) and compliance tooling.
+
+Proprietary runtime governance engines—including the KHEPRA Trust Operating System (KTOS), the ASAF Policy Declaration Language (APDL) Compiler, the Evolutionary Algorithm Lattice Auto-Tuning Kernel, the SEKHEM Polymorphic WAF Gateway, and the Full-Stealth Sovereign Mesh—are components of Khepra Enterprise and are licensed under commercial terms.
 
 ---
 
@@ -739,3 +747,4 @@ Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executi
 - **Phone**: (518) 304-4450
 
 Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
+
