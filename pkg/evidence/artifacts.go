@@ -76,7 +76,7 @@ func genREADME(pkg *C3PAOPackage, cat1, cat2, cat3 []Finding, sig func() string)
 	return []byte(fmt.Sprintf(`# KHEPRA C3PAO Evidence Package
 # Package ID: %s
 # Generated: %s
-# Tool: KHEPRA ERT v2.0 — NouchiX / SecRed Knowledge Inc. | USPTO #73565085
+# Tool: KHEPRA ERT v2.0 — NouchiX / SecRed Knowledge Inc. | U.S. App. No. 63/942,886
 # Algorithm: ML-DSA-65 / FIPS 204 (Cloudflare CIRCL)
 # SDVOSB | adinkhepra.com
 

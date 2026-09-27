@@ -13,7 +13,7 @@
 3. **SouHimBou AI Flight Recorder** (tamper-evident agent action logging)
 4. **License-gated feature dispatch** (community → pro → enterprise → sovereign → master[internal])
 
-Patent Pending: **USPTO #73565085**
+Patent Pending: **U.S. App. No. 63/942,886**
 
 ---
 

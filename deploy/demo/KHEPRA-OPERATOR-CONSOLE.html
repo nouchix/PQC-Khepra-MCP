@@ -250,7 +250,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 <div id="sbar">
   <span id="stxt">READY &mdash; KHEPRA Sovereign Mode Active</span>
   <span>|</span><span>Target: <span id="stgt" style="color:var(--blue)">http://127.0.0.1:4280</span></span>
-  <span>|</span><span>SDVOSB &middot; USPTO #73565085 &middot; NouchiX</span>
+  <span>|</span><span>SDVOSB &middot; Patent Pending &middot; NouchiX</span>
   <span class="hdr-sep"></span><span id="stime"></span>
 </div>
 </div><script>
@@ -286,7 +286,7 @@ function banner(){
   tp(E.bl+"  "+E.bo+E.wh+"KHEPRA Sovereign Security Platform"+E._);
   tp(E.bl+"  "+E.cy+"Post-Quantum Certified - NouchiX / SecRed Knowledge Inc."+E._);
   tp(E.bl+"  "+E.gy+"Mode: SOVEREIGN  |  PQC: ML-DSA-65 / FIPS 204"+E._);
-  tp(E.bl+"  "+E.gy+"USPTO #73565085  |  SDVOSB  |  adinkhepra.com"+E._);
+  tp(E.bl+"  "+E.gy+"Patent Pending  |  SDVOSB  |  adinkhepra.com"+E._);
   tp(E.bl+"================================================================"+E._);
   tp("");ti("Operator Console initialized - all systems nominal");
   ti("Flight Recorder: ACTIVE -> khepra-flight.ndjson");
@@ -450,7 +450,7 @@ async function exportAttestation(){
 `# KHEPRA C3PAO Evidence Package
 # Package ID: ${pkg_id}
 # Generated: ${ts_now}
-# Tool: KHEPRA ERT v2.0 - NouchiX / SecRed Knowledge Inc. | USPTO #73565085
+# Tool: KHEPRA ERT v2.0 - NouchiX / SecRed Knowledge Inc. | Patent Pending
 # Algorithm: ML-DSA-65 / FIPS 204 (Cloudflare CIRCL)
 # SDVOSB | adinkhepra.com
 
@@ -836,7 +836,7 @@ sim.on("tick",()=>{link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y).attr("
   // ── Manifest ────────────────────────────────────────────────────────────────
   folder.file("manifest.json",JSON.stringify({
     package_id:pkg_id,generated:ts_now,
-    tool:"KHEPRA ERT v2.0 - NouchiX / SecRed Knowledge Inc.",patent:"USPTO #73565085",
+    tool:"KHEPRA ERT v2.0 - NouchiX / SecRed Knowledge Inc.",patent:"Patent Pending",
     algorithm:"ML-DSA-65 / FIPS 204 (Cloudflare CIRCL)",target:tgt,
     framework:"CMMC Level 2 / NIST SP 800-171 Rev2",sprs_score:sprsScore,
     artifact_count:13,dag_nodes:nc,flight_frames:fc,pqc_signed:sc,

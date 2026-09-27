@@ -1,7 +1,7 @@
 # PQC-Khepra-MCP — Product Brief
 **SecRed Knowledge Inc. (NouchiX) · Confidential**
 **Version:** Current as of June 30, 2026 · Commit `e125d81`
-**Patent:** USPTO #73565085 (provisional) — KHEPRA Protocol
+**Patent:** U.S. App. No. 63/942,886 (provisional) — KHEPRA Protocol
 **IP:** SOUHIMBOU DOH KONE LLC, exclusively licensed to SecRed Knowledge Inc.
 
 ---
@@ -286,7 +286,7 @@ Combine a partner's existing customer relationships in a regulated vertical with
    manipulation and exfiltration risk.
    KHEPRA's 27-probe adversarial scanner catches it before auditors do.
 
-5. PATENT-PENDING IP — USPTO #73565085
+5. PATENT-PENDING IP — U.S. App. No. 63/942,886
    This is not replicable. KHEPRA Protocol is the moat.
    Early partners can secure preferential licensing terms.
 
@@ -577,7 +577,7 @@ Every scanner finding references this DB for CMMC + NIST control IDs
 | Scanner layers | **6** (Network → Sonar → Horus → Probes → KASA → ERT) |
 | PQC primitives | ML-DSA-65 + ML-KEM-768 (FIPS 204/203) |
 | DAG node signing | ML-DSA-65 on every write |
-| Patent | USPTO #73565085 (provisional) |
+| Patent | U.S. App. No. 63/942,886 (provisional) |
 | Build formats | Binary · Docker · Go SDK · White-label · Installer · REST API |
 | Recent commits | `e125d81` (delivery), `ed9f6a6` (scanner), `a96647f` (Fabric) |
 

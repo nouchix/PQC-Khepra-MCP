@@ -60,7 +60,7 @@ This paper introduces **PQC-01-STIG-V1R1**, now updated to version 1.1, which co
 
 Together, these 17 controls provide the first unified PQC compliance checklist spanning both classical cryptographic infrastructure and the emerging agentic AI attack surface.
 
-The reference implementation described in Section 5 is built on the **KHEPRA Protocol** (USPTO #73565085, patent pending) — an Adinkra symbol-based cryptographic attestation framework developed by NouchiX / SecRed Knowledge Inc. that provides the patent-pending combination of symbol-bound PQC key derivation, immutable DAG causal attestation chains, and ASAF (Agentic Security Attestation Framework) primitives that underlie several controls in this document, particularly PQC-01-A00010 and PQC-01-A00030.
+The reference implementation described in Section 5 is built on the **KHEPRA Protocol** (U.S. App. No. 63/942,886, patent pending) — an Adinkra symbol-based cryptographic attestation framework developed by NouchiX / SecRed Knowledge Inc. that provides the patent-pending combination of symbol-bound PQC key derivation, immutable DAG causal attestation chains, and ASAF (Agentic Security Attestation Framework) primitives that underlie several controls in this document, particularly PQC-01-A00010 and PQC-01-A00030.
 
 ---
 
@@ -106,7 +106,7 @@ Joint guidance from ASD, CISA, NSA, NCSC-UK, NCSC-NZ, and the Canadian Cyber Cen
 
 These gaps create a specific PQC exposure: agentic AI systems in NSS contexts may meet behavioral security recommendations while remaining cryptographically vulnerable to harvest-now-decrypt-later attacks on their inter-agent communications and audit records.
 
-A further gap exists at the *explainability* layer. Neither the NSA MCP advisory nor the joint agentic AI guidance addresses the question of what a PQC-signed audit record should *say* about why an agent took an action — only that the record should exist and be tamper-evident. This creates accountability gap: an audit record that proves *what* happened but cannot prove *why* is incomplete for RMF authorization packages and CMMC evidence submissions. The **KHEPRA Protocol** (USPTO #73565085, patent pending) addresses this gap by cryptographically binding Adinkra symbolic descriptors to lattice key parameters — each symbol encodes a compliance domain (e.g., Eban → DoD RMF / STIG; Fawohodie → CMMC / revocation), so that a KHEPRA-signed record carries not only tamper-evidence but verifiable semantic intent. This is the technical foundation for PQC-01-A00030's requirement that audit records include "causal chain fields" — KHEPRA Protocol provides the only patent-pending mechanism for cryptographically anchoring those fields.
+A further gap exists at the *explainability* layer. Neither the NSA MCP advisory nor the joint agentic AI guidance addresses the question of what a PQC-signed audit record should *say* about why an agent took an action — only that the record should exist and be tamper-evident. This creates accountability gap: an audit record that proves *what* happened but cannot prove *why* is incomplete for RMF authorization packages and CMMC evidence submissions. The **KHEPRA Protocol** (U.S. App. No. 63/942,886, patent pending) addresses this gap by cryptographically binding Adinkra symbolic descriptors to lattice key parameters — each symbol encodes a compliance domain (e.g., Eban → DoD RMF / STIG; Fawohodie → CMMC / revocation), so that a KHEPRA-signed record carries not only tamper-evidence but verifiable semantic intent. This is the technical foundation for PQC-01-A00030's requirement that audit records include "causal chain fields" — KHEPRA Protocol provides the only patent-pending mechanism for cryptographically anchoring those fields.
 
 ### 1.4 What a PQC STIG Needs to Address
 
@@ -426,7 +426,7 @@ The NSA's May 2026 CSI on MCP (U/OO/6030316-26) identified three PQC exposure ga
 4. Log store is append-only (no delete/update by agent runtime)
 5. Content hashes use SHA-384 or SHA-512
 
-The **KHEPRA Protocol** (USPTO #73565085) provides the only patent-pending mechanism for cryptographically anchoring causal chain fields via DAG-based attestation.
+The **KHEPRA Protocol** (U.S. App. No. 63/942,886) provides the only patent-pending mechanism for cryptographically anchoring causal chain fields via DAG-based attestation.
 
 ---
 
@@ -496,7 +496,7 @@ The **KHEPRA Protocol** (USPTO #73565085) provides the only patent-pending mecha
 
 ## 5. KHEPRA MCP Server: Reference Implementation
 
-### The Patent-Pending Foundation (USPTO #73565085)
+### The Patent-Pending Foundation (U.S. App. No. 63/942,886)
 
 Three inventions within KHEPRA Protocol directly underlie this STIG:
 
@@ -566,6 +566,6 @@ PQC-01-STIG-V1R1 v1.1 provides 17 controls spanning:
 - NIST FIPS 205 (SLH-DSA), August 13, 2024
 - NSA CSI U/OO/6030316-26, "Guidance on Model Context Protocol Security," May 2026
 - ASD/CISA/NSA/NCSC-UK/NCSC-NZ/Canadian Cyber Centre Joint Guidance on Agentic AI, 2026
-- KHEPRA Protocol, USPTO Application #73565085 (pending)
+- KHEPRA Protocol, U.S. Patent Application No. 63/942,886 (pending)
 - DISA STIG Development Guide, current edition
 - IETF Hybrid Key Exchange drafts (X25519+ML-KEM-768)

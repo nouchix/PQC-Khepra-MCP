@@ -155,7 +155,7 @@ func buildManifest(pkg *C3PAOPackage, arts []artifact, privKey, pubKey []byte) (
 		PackageID:     pkg.PackageID,
 		Generated:     pkg.Generated,
 		Tool:          "KHEPRA ERT v2.0 — NouchiX / SecRed Knowledge Inc.",
-		Patent:        "USPTO #73565085",
+		Patent:        "U.S. App. No. 63/942,886",
 		Algorithm:     "ML-DSA-65 / FIPS 204 (Cloudflare CIRCL)",
 		Target:        pkg.Target,
 		Framework:     pkg.Framework,
