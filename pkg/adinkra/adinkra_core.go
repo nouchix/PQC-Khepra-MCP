@@ -95,61 +95,41 @@ func KyberDecapsulate(privKeyBytes, ciphertext []byte) (sharedSecret []byte, err
 	return ss, nil
 }
 
-// Kuntinkantan (Do not be arrogant): Bends the reality of the detailed message
-// into a riddle that only the Okyeame (Linguist) can unravel.
-// Uses Kyber-1024 for the heavy lifting of the spirit, and the Merkaba Engine (White Box) for the weaving.
+// Kuntinkantan encapsulates a message using Kyber-1024 and AES-256-GCM.
 func Kuntinkantan(okyeamePub []byte, message []byte) ([]byte, error) {
-	// 1. Summon the Sunsum (The Spirit/Ephemeral Key)
-	// We use the entropy of the universe to forge a fleeting soul.
 	pk, err := kyber1024.Scheme().UnmarshalBinaryPublicKey(okyeamePub)
 	if err != nil {
 		return nil, fmt.Errorf("the staff is broken: %v", err)
 	}
 
-	// Encapsulate the spirit.
-	// 'cypher' is the clay vessel (capsule) holding the shared secret.
-	// 'sharedSpirit' is the secret itself (the symmetric key).
 	cypher, sharedSpirit, err := kyber1024.Scheme().Encapsulate(pk)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bottle the spirit: %v", err)
 	}
 
-	// 2. Weave the Pattern (Merkaba White Box Encryption)
-	// The sharedSpirit becomes the Seed for the Sacred Geometry.
-	mk := NewMerkaba(sharedSpirit)
-
-	// Cast the Veil (Seal with Sacred Alphabet)
-	sealedLattice, err := mk.Seal(message)
+	// Encrypt using standard authenticated AES-256-GCM
+	ciphertext, err := EncryptAESGCM(sharedSpirit[:32], message)
 	if err != nil {
 		return nil, fmt.Errorf("the weaver refused the thread: %v", err)
 	}
-	wovenMatter := []byte(sealedLattice)
 
-	// 3. The Final Artifact: [Capsule (Clay) | WovenMatter (Sacred Lattice)]
-	// We concatenate them for transport across the void.
-	// Note: No nonce is passed; randomness is derived deterministically from the SharedSpirit
-	// via the ChaosEngine (Tree of Life walk), making it a true White Box implementation.
-	artifact := make([]byte, 0, len(cypher)+len(wovenMatter))
+	artifact := make([]byte, 0, len(cypher)+len(ciphertext))
 	artifact = append(artifact, cypher...)
-	artifact = append(artifact, wovenMatter...)
+	artifact = append(artifact, ciphertext...)
 
 	return artifact, nil
 }
 
-// Sankofa (Go back and get it): Retrieves the lost meaning from the artifact.
-// Requires the private Okyeame (Private Key) to break the clay vessel.
+// Sankofa recovers the plaintext from an artifact using the private Kyber key and AES-256-GCM.
 func Sankofa(okyeamePriv []byte, artifact []byte) ([]byte, error) {
-	// 1. Separate the Elements
-	// We must know the geometry of the capsule to find where the clay ends.
 	capsuleSize := kyber1024.Scheme().CiphertextSize()
 	if len(artifact) < capsuleSize {
 		return nil, fmt.Errorf("artifact is dust")
 	}
 
 	clay := artifact[:capsuleSize]
-	wovenMatter := artifact[capsuleSize:]
+	ciphertext := artifact[capsuleSize:]
 
-	// 2. Break the Clay (Decapsulate)
 	sk, err := kyber1024.Scheme().UnmarshalBinaryPrivateKey(okyeamePriv)
 	if err != nil {
 		return nil, fmt.Errorf("the hand does not fit the glove: %v", err)
@@ -160,10 +140,7 @@ func Sankofa(okyeamePriv []byte, artifact []byte) ([]byte, error) {
 		return nil, fmt.Errorf("the spirit has fled: %v", err)
 	}
 
-	// 3. Unweave the Pattern (Merkaba White Box Decryption)
-	mk := NewMerkaba(sharedSpirit)
-
-	plaintext, err := mk.Unseal(string(wovenMatter))
+	plaintext, err := DecryptAESGCM(sharedSpirit[:32], ciphertext)
 	if err != nil {
 		return nil, fmt.Errorf("the weave is tangled (auth failed): %v", err)
 	}
