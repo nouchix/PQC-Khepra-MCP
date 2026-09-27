@@ -16,7 +16,7 @@
 //   3. cd PQC-Khepra-MCP && go build -tags embed_ui -o bin/asaf-hub.exe ./cmd/asaf-hub
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// Patent Pending: USPTO #73565085
+// Patent Pending: U.S. App. No. 63/942,886
 package main
 
 import (

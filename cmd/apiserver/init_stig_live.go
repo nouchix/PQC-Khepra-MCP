@@ -3,7 +3,7 @@
 // Startup hook: live STIG enrichment + changelog-based cache invalidation.
 //
 // IP: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// USPTO #73565085 (KHEPRA Protocol)
+// U.S. App. No. 63/942,886 (KHEPRA Protocol)
 //
 // Runs as a background goroutine so it never blocks server startup.
 // Sovereign mode: if STIGVIEWER_API_KEY is absent, this is a complete no-op.

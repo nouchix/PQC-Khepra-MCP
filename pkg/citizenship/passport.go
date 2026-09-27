@@ -19,7 +19,7 @@
 // summary credential, never a substitute for the evidence.
 //
 // IP: SOUHIMBOU DOH KONE LLC, exclusively licensed to SecRed Knowledge Inc.
-// Patent: USPTO #73565085 (KHEPRA Protocol)
+// Patent: U.S. App. No. 63/942,886 (KHEPRA Protocol)
 package citizenship
 
 import (

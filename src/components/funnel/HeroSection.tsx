@@ -343,7 +343,7 @@ export const HeroSection = () => {
                 SDVOSB · SecRed Knowledge Inc.
               </span>
               <span className="text-xs px-3 py-1.5 bg-blue-500/10 text-blue-300 rounded border border-blue-500/20">
-                USPTO #73565085
+                Patent Pending
               </span>
 
               <span className="text-xs px-3 py-1.5 bg-yellow-500/10 text-yellow-300 rounded border border-yellow-500/20">
