@@ -282,10 +282,12 @@ func TestFirewallLayer_RequestSizeLimit(t *testing.T) {
 }
 
 func TestFirewallLayer_UserAgentInspection(t *testing.T) {
-	// Test XSS in User-Agent (RCE patterns are too aggressive for UA)
+	// Test UA inspection with all protections enabled (including RCE)
 	cfg := &FirewallConfig{
-		EnableXSSProtection: true,
-		AllowedMethods:      []string{"GET"},
+		EnableXSSProtection:  true,
+		EnableRCEProtection:  true,
+		EnableSQLiProtection: true,
+		AllowedMethods:       []string{"GET"},
 	}
 
 	fw, err := NewFirewallLayer(cfg)

@@ -213,18 +213,22 @@ func (fw *FirewallLayer) lookupCountry(ip string) string {
 
 // checkWAF runs Web Application Firewall rules
 func (fw *FirewallLayer) checkWAF(r *http.Request) (bool, string) {
-	inputs := fw.collectInputs(r)
+	uriInputs := fw.collectURIInputs(r)
+	headerInputs := fw.collectHeaderInputs(r)
+	allInputs := append(append([]string{}, uriInputs...), headerInputs...)
 
-	if fw.config.EnableSQLiProtection && fw.matchesPatterns(inputs, fw.sqliPatterns) {
+	if fw.config.EnableSQLiProtection && fw.matchesPatterns(allInputs, fw.sqliPatterns) {
 		return true, "SQL injection detected"
 	}
-	if fw.config.EnableXSSProtection && fw.matchesPatterns(inputs, fw.xssPatterns) {
+	if fw.config.EnableXSSProtection && fw.matchesPatterns(allInputs, fw.xssPatterns) {
 		return true, "XSS detected"
 	}
-	if fw.config.EnableLFIProtection && fw.matchesPatterns(inputs, fw.lfiPatterns) {
+	if fw.config.EnableLFIProtection && fw.matchesPatterns(allInputs, fw.lfiPatterns) {
 		return true, "LFI detected"
 	}
-	if fw.config.EnableRCEProtection && fw.matchesPatterns(inputs, fw.rcePatterns) {
+	// For RCE: evaluate URI/query inputs. Standard HTTP headers (User-Agent, Cookie)
+	// legitimately use semicolons and syntax that would trigger false positive RCE blocks.
+	if fw.config.EnableRCEProtection && fw.matchesPatterns(uriInputs, fw.rcePatterns) {
 		return true, "RCE attempt detected"
 	}
 
@@ -242,8 +246,8 @@ func (fw *FirewallLayer) matchesPatterns(inputs []string, patterns []*regexp.Reg
 	return false
 }
 
-// collectInputs gathers all user input for WAF scanning
-func (fw *FirewallLayer) collectInputs(r *http.Request) []string {
+// collectURIInputs gathers URL path and query parameters for WAF scanning
+func (fw *FirewallLayer) collectURIInputs(r *http.Request) []string {
 	var inputs []string
 
 	// URL path
@@ -254,7 +258,13 @@ func (fw *FirewallLayer) collectInputs(r *http.Request) []string {
 		inputs = append(inputs, values...)
 	}
 
-	// Headers that commonly carry user input
+	return inputs
+}
+
+// collectHeaderInputs gathers headers that commonly carry user input
+func (fw *FirewallLayer) collectHeaderInputs(r *http.Request) []string {
+	var inputs []string
+
 	dangerousHeaders := []string{
 		"User-Agent", "Referer", "Cookie", "X-Forwarded-For",
 		"X-Custom-Header",
@@ -265,10 +275,12 @@ func (fw *FirewallLayer) collectInputs(r *http.Request) []string {
 		}
 	}
 
-	// Note: For POST bodies, we'd need to buffer and re-read
-	// This should be done carefully to avoid memory issues
-
 	return inputs
+}
+
+// collectInputs gathers all user input for backward compatibility
+func (fw *FirewallLayer) collectInputs(r *http.Request) []string {
+	return append(fw.collectURIInputs(r), fw.collectHeaderInputs(r)...)
 }
 
 // initWAFPatterns initializes regex patterns for attack detection
