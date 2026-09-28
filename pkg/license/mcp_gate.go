@@ -46,6 +46,23 @@ func RequiredTierDisplayName(tierConst string) string {
 	return tierConst
 }
 
+// TierPricingMap maps tier constants to commercial pricing descriptions.
+var TierPricingMap = map[string]string{
+	TierCommunity:  "Free Community Edition",
+	TierPro:        "$19/mo (Pro Developer) or $99/mo (Pilot)",
+	TierEnterprise: "$499/mo (Enterprise Agentic SOC / ASAF Program)",
+	TierSovereign:  "$2,999/mo (Sovereign SCIF / Air-Gap)",
+	TierMaster:     "NouchiX Internal Authorization",
+}
+
+// TierUnlocksMap describes key capabilities unlocked by each paid tier.
+var TierUnlocksMap = map[string]string{
+	TierPro:        "Live compliance scoring, continuous DAG attestation, ACP identity issuance, NHI discovery, and automated email alerts.",
+	TierEnterprise: "Full STIG & CMMC Level 2/3 assessments, live DISA STIGViewer API v2 batch crosswalks, SOAR autonomous incident remediation playbooks, and C3PAO-ready POA&M / OSCAL evidence packaging.",
+	TierSovereign:  "100% sovereign air-gapped deployment, QKD Kyber-1024 post-quantum capsules, hardware security module (HSM) attestation, and unlimited fleet governance.",
+	TierMaster:     "Full unconstrained core kernel access.",
+}
+
 // ─── MCP Tool Gate ────────────────────────────────────────────────────────────
 
 // ErrMCPTierInsufficient is returned when a tool requires a higher license tier.
@@ -58,11 +75,30 @@ type ErrMCPTierInsufficient struct {
 func (e *ErrMCPTierInsufficient) Error() string {
 	upgradeURL := os.Getenv("KHEPRA_UPGRADE_URL")
 	if upgradeURL == "" {
-		upgradeURL = "https://souhimbou.ai"
+		upgradeURL = "https://khepra.nouchix.com/pricing"
 	}
+	separator := "?"
+	if strings.Contains(upgradeURL, "?") {
+		separator = "&"
+	}
+	targetURL := fmt.Sprintf("%s%supgrade_tool=%s&required_tier=%s&current_tier=%s&utm_source=pqc-khepra-mcp",
+		upgradeURL, separator, e.Tool, e.Required, e.Have)
+
+	price := TierPricingMap[e.Required]
+	if price == "" {
+		price = "Paid Subscription"
+	}
+	unlocks := TierUnlocksMap[e.Required]
+	if unlocks == "" {
+		unlocks = "Full access to advanced governance tools."
+	}
+
 	return fmt.Sprintf(
-		"license: tool %q requires %s tier (current: %s) — upgrade at %s",
-		e.Tool, RequiredTierDisplayName(e.Required), RequiredTierDisplayName(e.Have), upgradeURL,
+		"license: tool %q requires %s tier (%s; current: %s).\n"+
+			"Capabilities unlocked: %s\n"+
+			"Upgrade & instant checkout at: %s",
+		e.Tool, RequiredTierDisplayName(e.Required), price, RequiredTierDisplayName(e.Have),
+		unlocks, targetURL,
 	)
 }
 
