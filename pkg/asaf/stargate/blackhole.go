@@ -13,7 +13,7 @@
 //   GET  /dispatch   — Reporter polls for pending ChangeRequests
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// Patent Pending: USPTO #73565085
+// Patent Pending: U.S. App. No. 63/942,886
 package stargate
 
 import (

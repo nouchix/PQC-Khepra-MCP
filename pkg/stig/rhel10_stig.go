@@ -2,7 +2,7 @@
 // RHEL 10 STIG validator using STIGViewer live data (V1R1, 434 findings).
 //
 // IP: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// USPTO #73565085 (KHEPRA Protocol)
+// U.S. App. No. 63/942,886 (KHEPRA Protocol)
 //
 // Data source: STIGViewer API, slug "red_hat_enterprise_linux_10" (V1R1, 2026-03-11)
 // ASAF embedded DB has zero RHEL10 coverage — this is the first implementation.

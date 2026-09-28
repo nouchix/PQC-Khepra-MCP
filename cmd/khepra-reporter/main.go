@@ -19,7 +19,7 @@
 //   REPORTER_KEY_PATH  — path to persist ML-KEM-768 keypair (default: ~/.khepra/reporter.key)
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// Patent Pending: USPTO #73565085
+// Patent Pending: U.S. App. No. 63/942,886
 package main
 
 import (
@@ -634,7 +634,7 @@ func localIP() string {
 
 func main() {
 	logger := log.New(os.Stdout, "[khepra-reporter] ", log.LstdFlags)
-	logger.Printf("ASAF Stargate Reporter v%s — USPTO #73565085", reporterVersion)
+	logger.Printf("ASAF Stargate Reporter v%s — U.S. App. No. 63/942,886", reporterVersion)
 
 	cfg := loadConfig()
 	logger.Printf("Hub: %s | Reporter: %s | Profile: %s | Interval: %s",

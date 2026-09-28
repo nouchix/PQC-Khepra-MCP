@@ -1,7 +1,7 @@
 # SouHimBou Four-Dimensional Audit Framework
 
 **Status**: ACTIVE · **Spec version**: 2.0 · **Type**: Reusable audit methodology
-**Provenance**: SouHimBou / SecRed Knowledge Inc. dba NouchiX · KHEPRA Protocol (USPTO #73565085)
+**Provenance**: SouHimBou / SecRed Knowledge Inc. dba NouchiX · KHEPRA Protocol (U.S. App. No. 63/942,886)
 **Applies to**: Any KHEPRA / ADINKHEPRA / ASAF codebase (drop this file into the repo root and run)
 
 > This is the formal, portable specification of the audit framework first applied in
@@ -262,5 +262,5 @@ gate merges on `CRITICAL = 0`. Run the full four-dimensional audit on a cadence 
 - **Crypto-focused application**: `SOUHIMBOU_AUDIT.md` (Adinkra Lattice; includes the optional Sunsum Harmonization pass).
 - **Not this framework** (distinct, do not confuse): `docs/KHEPRA_PROTOCOL_AUDIT_FRAMEWORK.md` (PAIF) is a separate 5-point SaaS-SDLC checklist.
 
-*IP: SouHimBou / SecRed Knowledge Inc. dba NouchiX — KHEPRA Protocol, USPTO #73565085.*
+*IP: SouHimBou / SecRed Knowledge Inc. dba NouchiX — KHEPRA Protocol, U.S. App. No. 63/942,886.*
 *"The Scarab watches. The Motherboard executes. The Logic is Eternal."*

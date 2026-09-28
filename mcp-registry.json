@@ -1,7 +1,7 @@
 {
   "name": "pqc-khepra-mcp",
   "displayName": "PQC-Khepra MCP \u2014 CMMC Autopilot & AI Flight Recorder",
-  "description": "Post-quantum secure MCP server for CMMC compliance scanning, STIG validation, NIST 800-53 cross-mapping, and AI agent observability. Built on KHEPRA Protocol (USPTO #73565085). 36,195 cross-framework compliance mappings. ML-DSA-65 signed attestation packages. FIPS 140-3 compatible.",
+  "description": "Post-quantum secure MCP server for CMMC compliance scanning, STIG validation, NIST 800-53 cross-mapping, and AI agent observability. Built on KHEPRA Protocol (U.S. App. No. 63/942,886). 36,195 cross-framework compliance mappings. ML-DSA-65 signed attestation packages. FIPS 140-3 compatible.",
   "repository": "https://github.com/nouchix/PQC-Khepra-MCP",
   "homepage": "https://adinkhepra.com",
   "version": "1.0.0",
@@ -213,7 +213,7 @@
     "sdvosb": true
   },
   "security": {
-    "patentPending": "USPTO #73565085",
+    "patentPending": "U.S. App. No. 63/942,886",
     "pqcAlgorithms": [
       "ML-DSA-65 (NIST FIPS 204)",
       "Kyber-1024 (NIST FIPS 203)",

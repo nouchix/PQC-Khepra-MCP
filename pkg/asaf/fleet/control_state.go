@@ -13,7 +13,7 @@
 // Concurrency: RWMutex — safe for parallel fleet scan workers.
 //
 // IP: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// USPTO #73565085 (KHEPRA Protocol)
+// U.S. App. No. 63/942,886 (KHEPRA Protocol)
 
 package fleet
 

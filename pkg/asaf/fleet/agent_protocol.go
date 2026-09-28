@@ -1,7 +1,7 @@
 // Package fleet implements the sovereign ASAF Fleet Manager and protocol.
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// Patent Pending: USPTO #73565085
+// Patent Pending: U.S. App. No. 63/942,886
 package fleet
 
 import "time"

@@ -19,7 +19,7 @@ package tools
 // Returns AttestExportResponse with zip_path, sprs_score, manifest_signature.
 //
 // IP: SOUHIMBOU DOH KONE LLC, exclusively licensed to SecRed Knowledge Inc.
-// Patent: USPTO #73565085 (KHEPRA Protocol)
+// Patent: U.S. App. No. 63/942,886 (KHEPRA Protocol)
 
 import (
 	"context"

@@ -21,7 +21,7 @@
 // The compiler does NOT execute anything — it produces a signed bundle that
 // must be submitted to the ASAF System Daemon via the staging workflow.
 //
-// IP: SecRed Knowledge Inc. / SOUHIMBOU DOH KONE LLC — USPTO #73565085
+// IP: SecRed Knowledge Inc. / SOUHIMBOU DOH KONE LLC — U.S. App. No. 63/942,886
 
 package policy
 

@@ -2,7 +2,7 @@
 // STIGViewer API client (v2) — all 7 Customer Board improvements live 2026-07-11.
 //
 // IP: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// USPTO #73565085 (KHEPRA Protocol)
+// U.S. App. No. 63/942,886 (KHEPRA Protocol)
 //
 // Changelog (2026-07-11):
 //   + ruleIdents[]  — full multi-CCI array per rule (complete CMMC audit trail)
@@ -551,7 +551,7 @@ func (f *LiveFetcher) do(ctx context.Context, method, path string, body []byte) 
 		req.Header.Set("Content-Type", "application/json")
 	}
 	// User-Agent identifies NouchiX in STIGViewer analytics; Customer Board member.
-	req.Header.Set("User-Agent", "KHEPRA-ASAF/2.0 (SecRed-Knowledge-Inc; USPTO#73565085; board-member)")
+	req.Header.Set("User-Agent", "KHEPRA-ASAF/2.0 (SecRed-Knowledge-Inc; Patent-Pending; board-member)")
 
 	resp, err := f.client.Do(req)
 	if err != nil {

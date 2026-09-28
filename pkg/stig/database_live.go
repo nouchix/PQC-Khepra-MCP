@@ -2,7 +2,7 @@
 // Live enrichment of the embedded compliance database via STIGViewer API.
 //
 // IP: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// USPTO #73565085 (KHEPRA Protocol)
+// U.S. App. No. 63/942,886 (KHEPRA Protocol)
 //
 // Design principle: NON-DESTRUCTIVE enrichment.
 // The embedded 7,433-row CCI_to_NIST53.csv is loaded first and is the baseline.

@@ -5,7 +5,7 @@
 
 > This is the **canonical, hyper-comprehensive Trust Center source of truth** for
 > SecRed Knowledge Inc. dba **NouchiX** and the **KHEPRA Protocol** product family
-> (USPTO #73565085). An identical copy is maintained on every NouchiX product repo so
+> (U.S. App. No. 63/942,886). An identical copy is maintained on every NouchiX product repo so
 > that posture questions can be answered consistently from any surface. It is the
 > content source that seeds the OSCAL System Security Plan assembled in the private
 > audit enclave (`asaf-compliance`). See `COMPLIANCE_AUDIT_ROADMAP.md` and
@@ -64,7 +64,7 @@ builds and distributes it, and the organizational controls around it.
 |---|---|
 | Operating company | **SecRed Knowledge Inc.** (dba **NouchiX**) |
 | Intellectual-property holder | **SOUHIMBOU DOH KONE LLC** (exclusively licensed to SecRed Knowledge Inc.) |
-| Core patent | **KHEPRA Protocol — USPTO #73565085** |
+| Core patent | **KHEPRA Protocol — U.S. App. No. 63/942,886** |
 | Business classification | SDVOSB (Service-Disabled Veteran-Owned Small Business) <!-- confirm current SAM.gov status --> |
 | Primary domain | nouchix.com |
 | Product domain | adinkhepra.com |

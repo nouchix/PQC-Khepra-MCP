@@ -24,7 +24,7 @@ export const TrustAnchors = () => {
     },
     {
       icon: Award,
-      title: 'Patent Pending — USPTO #73565085',
+      title: 'Patent Pending',
       description: 'KHEPRA Protocol: PQC attestation + Adinkra symbol-bound cryptographic identity',
     },
     {
