@@ -15,7 +15,7 @@
 #     ghcr.io/nouchix/asaf-hub:latest
 #
 # Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-# Patent Pending: USPTO #73565085
+# Patent Pending: U.S. App. No. 63/942,886
 
 # ── Stage 1: Build Next.js Stargate UI ────────────────────────────────────────
 FROM node:25-alpine AS ui-builder
@@ -97,7 +97,7 @@ ENV KHEPRA_MODE=sovereign \
 
 # Security labels for Iron Bank compliance
 LABEL org.opencontainers.image.title="ASAF Stargate Hub" \
-      org.opencontainers.image.description="PQC-secured CMMC compliance platform. USPTO #73565085." \
+      org.opencontainers.image.description="PQC-secured CMMC compliance platform. U.S. App. No. 63/942,886." \
       org.opencontainers.image.vendor="SecRed Knowledge Inc. / SOUHIMBOU DOH KONE LLC" \
       org.opencontainers.image.licenses="Proprietary" \
       org.opencontainers.image.source="https://github.com/nouchix/PQC-Khepra-MCP" \

@@ -275,7 +275,7 @@ func (p *pdfWriter) buildCoverPage(r *EvidenceReport) string {
 
 	// Footer
 	s.WriteString("/F1 8 Tf\n72 40 Td\n")
-	s.WriteString("(ADINKHEPRA by NouchiX - Patent Pending USPTO #73565085 - SDVOSB) Tj\n")
+	s.WriteString("(ADINKHEPRA by NouchiX - Patent Pending: U.S. App. No. 63/942,886 - SDVOSB) Tj\n")
 
 	s.WriteString("ET\n")
 	return s.String()
@@ -313,7 +313,7 @@ func (p *pdfWriter) buildFindingsPage(r *EvidenceReport) string {
 
 	// Footer
 	s.WriteString("/F1 8 Tf\n72 40 Td\n")
-	s.WriteString("(ADINKHEPRA by NouchiX - Patent Pending USPTO #73565085) Tj\n")
+	s.WriteString("(ADINKHEPRA by NouchiX - Patent Pending: U.S. App. No. 63/942,886) Tj\n")
 
 	s.WriteString("ET\n")
 	return s.String()

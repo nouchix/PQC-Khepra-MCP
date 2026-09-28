@@ -22,7 +22,7 @@ package evidence
 //   - Standard library only. No new module dependencies.
 //
 // IP: SOUHIMBOU DOH KONE LLC, exclusively licensed to SecRed Knowledge Inc.
-// Patent: USPTO #73565085 (KHEPRA Protocol)
+// Patent: U.S. App. No. 63/942,886 (KHEPRA Protocol)
 
 import (
 	"crypto/sha1"
@@ -230,7 +230,7 @@ func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 		OscalVersion: oscalVersion,
 		Props: []oscalProp{
 			{Name: "tool", Value: "KHEPRA ERT v2.0"},
-			{Name: "patent", Value: "USPTO #73565085"},
+			{Name: "patent", Value: "U.S. App. No. 63/942,886"},
 			{Name: "algorithm", Value: "ML-DSA-65 / FIPS 204"},
 			{Name: "framework", Value: pkg.Framework},
 			{Name: "sprs-score", Value: fmt.Sprintf("%d", pkg.SPRS.Score)},
@@ -313,7 +313,7 @@ func buildComponentDefinition(generated time.Time) oscalComponentDefinition {
 		OscalVersion: oscalVersion,
 		Props: []oscalProp{
 			{Name: "tool", Value: "KHEPRA ERT v2.0"},
-			{Name: "patent", Value: "USPTO #73565085"},
+			{Name: "patent", Value: "U.S. App. No. 63/942,886"},
 			{Name: "source", Value: "COMPLIANCE_AUDIT_ROADMAP.md Section 4"},
 		},
 	}

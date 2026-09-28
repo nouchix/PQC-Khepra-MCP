@@ -15,7 +15,7 @@
 //   ./bin/asaf-hub.exe
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// Patent Pending: USPTO #73565085
+// Patent Pending: U.S. App. No. 63/942,886
 package main
 
 import (
@@ -78,7 +78,7 @@ func main() {
 	runCfg := config.LoadRuntime()
 
 	logger.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	logger.Printf("  ASAF Stargate Hub v%s — USPTO #73565085", version)
+	logger.Printf("  ASAF Stargate Hub v%s — U.S. App. No. 63/942,886", version)
 	logger.Printf("  SecRed Knowledge Inc. / SOUHIMBOU DOH KONE LLC")
 	logger.Printf("  mode=%-12s  org=%s", khepraMode, orgName)
 	logger.Printf("  data=%s", dataPath)
@@ -574,7 +574,7 @@ const devHTML = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>ASAF Stargate</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0f1e;color:#e2e8f0;font-family:-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2rem}h1{font-size:2rem;color:#4EAEF5}p{color:#94a3b8;text-align:center;max-width:480px;line-height:1.6}.cmd{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:1rem 1.5rem;font-family:monospace;color:#4EAEF5}.badge{border:1px solid #4EAEF5;color:#4EAEF5;padding:.25rem .75rem;border-radius:999px;font-size:.75rem}.routes{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:1rem 1.5rem;font-size:.8rem;color:#94a3b8;text-align:left}.routes span{color:#4EAEF5}</style>
 </head><body>
-<div class="badge">USPTO #73565085 — KHEPRA PROTOCOL</div>
+<div class="badge">U.S. App. No. 63/942,886 — KHEPRA PROTOCOL</div>
 <h1>ASAF Stargate Hub is running</h1>
 <p>The Stargate UI is not yet built. Run this to embed it:</p>
 <div class="cmd">make build-hub</div>

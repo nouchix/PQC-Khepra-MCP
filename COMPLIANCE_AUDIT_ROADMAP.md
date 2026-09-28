@@ -1,7 +1,7 @@
 # NouchiX / KHEPRA — Compliance Audit Roadmap
 
 **Organization**: SecRed Knowledge Inc. dba NouchiX  
-**Product**: KHEPRA Protocol (USPTO #73565085)  
+**Product**: KHEPRA Protocol (U.S. App. No. 63/942,886)  
 **Document owner**: GRC Lead  
 **Review cadence**: Quarterly  
 **Frameworks in scope**: SOC 2 Type II · CMMC Level 1 · CMMC Level 2 · FedRAMP Moderate  

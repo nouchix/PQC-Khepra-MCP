@@ -2,7 +2,7 @@
 // and CUI boundary declaration engine for CMMC Phase 1 (SCOPE).
 //
 // Copyright: SOUHIMBOU DOH KONE LLC — exclusively licensed to SecRed Knowledge Inc.
-// Patent Pending: USPTO #73565085
+// Patent Pending: U.S. App. No. 63/942,886
 package fleet
 
 import (
