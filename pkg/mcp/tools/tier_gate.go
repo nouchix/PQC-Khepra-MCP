@@ -86,11 +86,13 @@ func ActiveTier() string {
 // GatedResponse is the standard response when a tool is tier-gated.
 // It tells the AI agent (and ultimately the user) exactly what to do.
 type GatedResponse struct {
-	Error       string `json:"error"`
-	Tier        string `json:"current_tier"`
-	RequiredMin string `json:"required_tier"`
-	UpgradeURL  string `json:"upgrade_url"`
-	Reason      string `json:"gated_reason"`
+	Error       string   `json:"error"`
+	Tier        string   `json:"current_tier"`
+	RequiredMin string   `json:"required_tier"`
+	Pricing     string   `json:"pricing"`
+	UpgradeURL  string   `json:"upgrade_url"`
+	Reason      string   `json:"gated_reason"`
+	Unlocks     []string `json:"unlocks,omitempty"`
 }
 
 // ─── Gate Functions ────────────────────────────────────────────────────────────
@@ -120,8 +122,10 @@ func RequireTier(minTier, reason string) *GatedResponse {
 		Error:       fmt.Sprintf("This tool requires %s tier (%s)", minTier, pricing),
 		Tier:        cachedTier,
 		RequiredMin: minTier,
-		UpgradeURL:  upgradeURL(),
+		Pricing:     pricing,
+		UpgradeURL:  upgradeURLFor("tier_gate", minTier),
 		Reason:      reason,
+		Unlocks:     tierUnlocks(minTier),
 	}
 }
 
@@ -153,8 +157,10 @@ found:
 		Error:       fmt.Sprintf("Capability %q requires %s tier (%s)", capability, minTier, pricing),
 		Tier:        cachedTier,
 		RequiredMin: minTier,
-		UpgradeURL:  upgradeURL(),
+		Pricing:     pricing,
+		UpgradeURL:  upgradeURLFor(capability, minTier),
 		Reason:      reason,
+		Unlocks:     tierUnlocks(minTier),
 	}
 }
 
@@ -162,22 +168,64 @@ found:
 
 func tierPricing(tier string) string {
 	switch tier {
-	case TierPilot:
-		return "$99/mo or $25K/yr ASAF pilot"
-	case TierEnterprise:
-		return "$499/mo or $75K+/yr ASAF program"
-	case TierMaster:
+	case TierPilot, license.TierPro:
+		return "$19/mo Pro or $99/mo Pilot"
+	case TierEnterprise, license.TierEnterprise:
+		return "$499/mo Enterprise SOC or $75K+/yr ASAF"
+	case license.TierSovereign:
+		return "$2,999/mo Sovereign Air-Gap or $150K-$250K/yr ASAF Enterprise"
+	case TierMaster, license.TierMaster:
 		return "Internal only"
 	default:
 		return "Free"
 	}
 }
 
+func tierUnlocks(tier string) []string {
+	switch tier {
+	case TierPilot, license.TierPro:
+		return []string{
+			"Live compliance scoring & continuous DAG attestation",
+			"ACP credential issuance & NHI discovery",
+			"Automated email notifications via Resend",
+			"500 STIGViewer API credits/mo",
+		}
+	case TierEnterprise, license.TierEnterprise:
+		return []string{
+			"Full STIG and CMMC Level 1/2/3 assessments",
+			"Live DISA STIGViewer API v2 batch crosswalks (15,000 credits/mo)",
+			"SOAR autonomous incident remediation playbooks",
+			"C3PAO-ready POA&M / OSCAL evidence packaging",
+		}
+	case license.TierSovereign:
+		return []string{
+			"100% sovereign air-gapped deployment posture",
+			"QKD Kyber-1024 post-quantum capsules",
+			"Hardware Security Module (HSM) attestation",
+			"Unlimited fleet governance nodes",
+		}
+	default:
+		return nil
+	}
+}
+
+func upgradeURLFor(targetName, minTier string) string {
+	u := os.Getenv("KHEPRA_UPGRADE_URL")
+	if u == "" {
+		u = "https://khepra.nouchix.com/pricing"
+	}
+	sep := "?"
+	if strings.Contains(u, "?") {
+		sep = "&"
+	}
+	return fmt.Sprintf("%s%supgrade_target=%s&tier=%s&utm_source=pqc-khepra-mcp", u, sep, targetName, minTier)
+}
+
 func upgradeURL() string {
 	if u := os.Getenv("KHEPRA_UPGRADE_URL"); u != "" {
 		return u
 	}
-	return "https://souhimbou.ai/pricing"
+	return "https://khepra.nouchix.com/pricing"
 }
 
 // ─── Tool → Tier Mapping (reference table) ─────────────────────────────────────
