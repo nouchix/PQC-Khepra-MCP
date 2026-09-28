@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^16.2.12",
+    "next": "^15.5.24",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "framer-motion": "^11.3.19",
@@ -70,7 +70,7 @@
     "@types/react-dom": "^18",
     "typescript": "^5",
     "tailwindcss": "^4.3.3",
-    "postcss": "^8",
+    "postcss": "^8.5.12",
     "autoprefixer": "^10.5.4"
   }
 }
