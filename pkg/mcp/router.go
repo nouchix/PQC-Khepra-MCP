@@ -104,6 +104,8 @@ type Router struct {
 	// as a chain-linked, ML-DSA-65 signed FlightFrame to khepra-flight.ndjson.
 	// This is the value proposition: zero SDK required — automatic for every call.
 	recorder kernelports.FlightRecorder
+	// sekhem is the SEKHEM Gateway / PQC-WAF demarcation shield.
+	sekhem *SekhemDemarcShield
 }
 
 // RouterConfig holds all dependencies for constructing a Router.
@@ -231,6 +233,7 @@ func NewRouter(cfg RouterConfig) (*Router, error) {
 		license:           cfg.License,
 		callLog:           NewCallLog(cfg.CallLogCapacity),
 		recorder:          cfg.FlightRecorder,
+		sekhem:            NewSekhemDemarcShield(logger),
 	}, nil
 }
 
@@ -270,6 +273,23 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 			IsError:      true,
 			ErrorMessage: rlErr.Message,
 		}, nil
+	}
+
+	// ── Step 1.55: SEKHEM Gateway / PQC-WAF Ingress Demarcation ───────────────
+	// Enforces SEKHEM-001 (SQLi), SEKHEM-002 (XSS), SEKHEM-003 (Traversal),
+	// SEKHEM-004 (Size cap), SEKHEM-005 (Null-byte/UTF8), and SEKHEM-006-PI (Prompt Injection).
+	if r.sekhem != nil {
+		rawArgs, _ := json.Marshal(call.Args)
+		if verdict, sErr := r.sekhem.InspectIngress(call.ToolName, rawArgs); sErr != nil || !verdict.Allowed {
+			r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, verdict.RuleID, verdict.Reason)
+			r.logger.Printf("[SEKHEM-WAF:INGRESS] BLOCKED [%s]: tool=%q agent=%q: %s (FP=%s)",
+				verdict.RuleID, call.ToolName, id.AgentID, verdict.Reason, verdict.Fingerprint)
+			return &MCPToolResponse{
+				IsError: true,
+				ErrorMessage: fmt.Sprintf("SEKHEM GATEWAY / PQC-WAF REFUSAL [%s]: %s (X-Sekhem-FP: %s)",
+					verdict.RuleID, verdict.Reason, verdict.Fingerprint),
+			}, nil
+		}
 	}
 
 	// ── Step 1.6: Input Validation ──────────────────────────────────────────
@@ -524,6 +544,18 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 		// Uses the package-local bridge (runOutputSecretScan) to avoid
 		// a scanner ↔ mcp import cycle.
 
+		// Phase C: SEKHEM Gateway Egress Demarcation (Secret Scrubbing & Prompt Override Filter)
+		if r.sekhem != nil {
+			scrubbed, sWarns, _ := r.sekhem.FilterEgress(call.ToolName, outputBytes)
+			if len(sWarns) > 0 {
+				warnings = append(warnings, sWarns...)
+			}
+			var scrubbedObj any
+			if json.Unmarshal(scrubbed, &scrubbedObj) == nil {
+				result = scrubbedObj
+				outputBytes = scrubbed
+			}
+		}
 	}
 
 	// ── Step 6: Attestation + PQC Seal ─────────────────────────────────────
