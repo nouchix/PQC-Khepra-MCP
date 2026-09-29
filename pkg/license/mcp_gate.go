@@ -82,7 +82,7 @@ type ErrMCPTierInsufficient struct {
 func (e *ErrMCPTierInsufficient) Error() string {
 	upgradeURL := os.Getenv("KHEPRA_UPGRADE_URL")
 	if upgradeURL == "" {
-		upgradeURL = "https://souhimbou.ai/pricing"
+		upgradeURL = "https://souhimbou.ai/billing"
 	}
 	separator := "?"
 	if strings.Contains(upgradeURL, "?") {
