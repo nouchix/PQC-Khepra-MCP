@@ -1,59 +1,56 @@
-# KHEPRA MCP Server
+# PQC-Khepra-MCP
 
 [![smithery badge](https://smithery.ai/badge/skone/pqc-khepra-mcp)](https://smithery.ai/servers/skone/pqc-khepra-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
 [![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
-[![License](https://img.shields.io/badge/License-Community%20%2F%20Commercial-green?style=for-the-badge)](https://nouchix.com)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](LICENSE)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
 
-**Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. 76 tools. v2.0.0.**
+**Post-Quantum Cryptographic & Autonomous Flight Recording Kernel for AI Agents.**
 
-Air-gappable. Zero token costs. Run `ert_scan` → get a Godfather Report with dollar-denominated business impact.  
-The only MCP compliance server that runs on your metal — with the **World's First DoD PQC STIG** built in.
+Air-gappable. Zero cloud telemetry. Zero token overhead.  
+Provides FIPS 203 (ML-KEM-768) and FIPS 204 (ML-DSA-65) post-quantum cryptographic signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Completely free and open-source under Apache 2.0.
 
-> **[PQC-01-STIG-V1R1 — Full Whitepaper →](docs/PQC-01-STIG-V1R1.md)**  
-> 17 controls covering CNSA 2.0, FIPS 203/204/205, and the NSA's May 2026 MCP security advisory.  
-> The world's first DoD-style Post-Quantum Cryptography STIG, including the first PQC controls for agentic AI and MCP deployments.
-
+> **Patent Reference:** U.S. Prov. App. No. 63/942,886 (KHEPRA Protocol & Post-Quantum Evidence Weave)  
+> **Corporate Identity:** SecRed Knowledge Inc. (operating as NouchiX) — Delaware C-Corp (EIN 99-0529252), SDVOSB (Active Self-Certified / SBA VetCert in review), Active Secret Clearance.  
 > **Live hosted endpoint:** `https://mcp.souhimbou.ai/sse` — zero install, connect in 30 seconds.  
-> Self-host for sovereign/air-gap: [Docker](#option-a-docker-recommended) or [binary](#option-b-compiled-binary).
+> **Self-host for sovereign/air-gap:** [Docker](#option-a-docker-recommended) or [binary](#option-b-compiled-binary).
 
 ---
 
+## Architecture: Free Community Kernel vs. KTOS Commercial Platform
 
-## Tiers
+To ensure clean commercial boundaries for partners, defense contractors, and developers, the KHEPRA ecosystem operates across two distinct layers:
 
-| Tier | Price | License Key | Tools | Continuous Compliance Scanning | Egress |
-|------|-------|-------------|-------|---------------------------------|--------|
-| **Community** | Free | ❌ Not required | `pqc_stig` + 12 core tools | — | Zero (sovereign mode) |
-| **Pro** | $19/mo | ✅ Required | Compliance reporting, ACP, NHI inventory | ✅ | Zero |
-| **Enterprise** | $499/mo | ✅ Required | All 76 tools | ✅ | Zero |
-| **Sovereign** | Custom — [Contact Sales](https://khepra.nouchix.com) | ✅ Required | All 76 tools + air-gap/offline licensing + HSM | ✅ | Zero |
-
-> **Community tier is free.** Run `pqc_stig` to assess your project's quantum readiness against  
-> **PQC-01-STIG-V1R1** — the World's First DoD-style Post-Quantum Cryptography STIG — no license key needed.
->
-> **Continuous compliance scanning (autopilot) is included in every paid tier** — it's core to the product, not an upsell.
+| Layer | Product | License | Scope & Capabilities |
+|---|---|---|---|
+| **Layer 1** | **PQC-Khepra-MCP** (This Repo) | **Apache 2.0** (Open Source) | **Free Community Kernel:** ML-DSA-65 / ML-KEM-768 PQC cryptographic signing, client-side autonomous flight logging, agent registration, local host/asset enumeration, and threat lookup. **Zero STIG or compliance databases.** |
+| **Layer 2** | **KHEPRA Trust OS (KTOS)** | **Commercial** ($499/mo to $250K/yr) | **Sovereign Proof-and-Actuation OS:** 36,195 cross-framework compliance mappings, live DISA STIGViewer API v2 batch crosswalks, CMMC Level 2/3 assessments, ERT multi-package engines, automated C3PAO evidence packages (OSCAL, DISA CKLB, signed POA&Ms), and bounded autonomous host remediation. |
 
 ---
 
-## What It Does
+## Tiers & Gating
 
-KHEPRA MCP connects your AI assistant directly to a hardened compliance engine. Ask Claude or any MCP client to scan a system, map findings to STIG/NIST/CMMC controls, and generate an executive-ready risk report — all without sending data to external APIs.
-
-**Key capabilities:**
-- 36,195 STIG/CCI/NIST 800-53/800-171/CMMC mappings (offline, bundled)
-- Post-quantum cryptographic attestation on every tool call (ML-DSA-65 / FIPS 204)
-- **World's First DoD PQC STIG** — 17 controls covering CNSA 2.0 / FIPS 203/204/205 + agentic AI / MCP ([PQC-01-STIG-V1R1](docs/PQC-01-STIG-V1R1.md))
-- Godfather Report: dollar-denominated business impact per finding (FAIR model)
-- Air-gap and SCIF compatible — sovereign/ironbank modes make zero egress calls
-- Flat annual licensing — no per-token or per-query charges
-- Runs on your metal: on-prem, DoD, IC, classified environments
+| Tier | Price | License Key | Tools Accessible | Focus |
+|------|-------|-------------|------------------|-------|
+| **Community** | **Free** | ❌ None required | **14 Core Tools** (`pqc_keygen`, `pqc_sign`, `pqc_verify`, `flight_record`, `flight_export`, `agent_record`, `dag_attestation`, `khepra_get_dag_chain`, `enumerate_host`, `fingerprint_device`, `discover_assets`, `kasa_status`, `threat_lookup`, `nist_map` teaser) | PQC signing, flight logging, local discovery |
+| **Pro / Pilot** | $19/mo – $99/mo | ✅ Required | 35+ Tools (+ compliance reporting, ACP identity, NHI inventory, continuous DAG) | Individual engineers & pilot teams |
+| **Enterprise / Sovereign (KTOS)** | $499/mo – $250K/yr | ✅ Required | All 80 Tools (+ live DISA STIGViewer v2 batch queries, full CMMC assessments, ERT engines, C3PAO OSCAL/CKLB exports, SOAR playbooks) | Defense contractors, C3PAOs, and federal primes |
 
 ---
+
+## What It Does (Free Community Kernel)
+
+PQC-Khepra-MCP connects your AI assistant (Claude Code, Cursor, Antigravity, Cline) directly to a post-quantum cryptographic security layer:
+
+- **ML-DSA-65 / ML-KEM-768 Signing:** FIPS 203/204 post-quantum signing on every tool call and DAG attestation.
+- **Autonomous Flight Recording:** Automatically logs all agent tool invocations, inputs, and outcomes to tamper-evident NDJSON hash chains.
+- **Local Host & Asset Discovery:** Enumerate system runtimes, network interfaces, and environment properties locally.
+- **Air-Gap & Sovereign Operation:** Runs 100% offline with zero cloud telemetry or egress calls.
+- **Permissive Apache 2.0 License:** Safe for commercial embed, partner integrations, and enterprise deployment.
 
 ## Quickstart — Hosted Endpoint (Zero Install)
 

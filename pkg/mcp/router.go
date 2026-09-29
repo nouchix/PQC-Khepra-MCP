@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"golang.org/x/crypto/sha3"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
-
-			)
+)
 
 // ─── Security Boundary Interfaces ──────────────────────────────────────────────
 //
@@ -314,10 +314,16 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 
 	// ── Step 1.6b: License Tier Gate ───────────────────────────────────────
 	// Check that the caller's license tier permits the requested tool.
-	// Community tier: ert_scan (basic) + nist_map (limited) only.
-	// Enterprise+:    all 13 tools.
+	// Community tier: PQC primitives + flight recording + discovery only.
+	// Enterprise+:    all tools.
 	// Non-fatal for Community callers hitting Community tools.
-	if tierErr := r.license.Check(call.ToolName); tierErr != nil {
+	var tierErr error
+	if r.license != nil {
+		tierErr = r.license.Check(call.ToolName)
+	} else {
+		tierErr = license.CheckToolAccess(nil, call.ToolName)
+	}
+	if tierErr != nil {
 		r.events.EmitError(EventPolicy, call.ToolName, id.AgentID, "LICENSE_TIER", tierErr.Error())
 		r.logger.Printf("[MCP:LICENSE] tier gate: tool=%q agent=%q: %q", call.ToolName, id.AgentID, tierErr.Error())
 		return &MCPToolResponse{
@@ -699,6 +705,17 @@ func (r *Router) ListTools() []map[string]any {
 	for _, s := range specs {
 		if classifiedTools[s.Name] {
 			continue
+		}
+		// License tier filtering: only show tools accessible under the current license.
+		// Community tier users see only community tools; Pro/Enterprise see their tools.
+		if r.license != nil {
+			if err := r.license.Check(s.Name); err != nil {
+				continue
+			}
+		} else {
+			if err := license.CheckToolAccess(nil, s.Name); err != nil {
+				continue
+			}
 		}
 		schema := s.ArgsSchema
 		if schema == nil {

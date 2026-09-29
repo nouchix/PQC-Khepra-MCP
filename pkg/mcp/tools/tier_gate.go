@@ -170,11 +170,11 @@ func tierPricing(tier string) string {
 	switch tier {
 	case TierPilot, license.TierPro:
 		return "$19/mo Pro or $99/mo Pilot"
-	case TierEnterprise, license.TierEnterprise:
+	case TierEnterprise:
 		return "$499/mo Enterprise SOC or $75K+/yr ASAF"
 	case license.TierSovereign:
 		return "$2,999/mo Sovereign Air-Gap or $150K-$250K/yr ASAF Enterprise"
-	case TierMaster, license.TierMaster:
+	case TierMaster:
 		return "Internal only"
 	default:
 		return "Free"
@@ -190,7 +190,7 @@ func tierUnlocks(tier string) []string {
 			"Automated email notifications via Resend",
 			"500 STIGViewer API credits/mo",
 		}
-	case TierEnterprise, license.TierEnterprise:
+	case TierEnterprise:
 		return []string{
 			"Full STIG and CMMC Level 1/2/3 assessments",
 			"Live DISA STIGViewer API v2 batch crosswalks (15,000 credits/mo)",
@@ -276,37 +276,38 @@ func upgradeURL() string {
 // Used by the executor to enforce gating before dispatch.
 var ToolTierMap = map[string]string{
 	// ── Community (free — discovery & basic status) ───────────
-	"pqc_stig":                TierCommunity,
-	"discover_assets":         TierCommunity,
-	"agent_record":            TierCommunity,
-	"kasa_status":             TierCommunity,
-	"ea_threat_score":         TierCommunity,
-	"threat_model":            TierCommunity,
 	"pqc_keygen":              TierCommunity,
 	"pqc_sign":                TierCommunity,
 	"pqc_verify":              TierCommunity,
-	"dag_query":               TierCommunity,
+	"flight_record":           TierCommunity,
+	"flight_export":           TierCommunity,
+	"agent_record":            TierCommunity,
+	"dag_attestation":         TierCommunity,
+	"khepra_get_dag_chain":    TierCommunity,
 	"enumerate_host":          TierCommunity,
 	"fingerprint_device":      TierCommunity,
-	"ouroboros_waf_eye":       TierCommunity,
-	"ouroboros_stig_eye":      TierCommunity,
-	"ouroboros_vuln_eye":      TierCommunity,
-	"ouroboros_fim_eye":       TierCommunity,
-	"khepra_query_stig":       TierCommunity,
-	"khepra_query_threat_intel": TierCommunity,
-	"nist_map":                TierCommunity,
-	"khepra_get_dag_chain":    TierCommunity,
+	"discover_assets":         TierCommunity,
+	"kasa_status":             TierCommunity,
 	"threat_lookup":           TierCommunity,
+	"nist_map":                TierCommunity,
 
 	// ── Pilot / Pro ($99/mo) ─────────────────────────────────
 	"khepra_get_compliance_score": TierPilot,
+	"pqc_stig":                    TierPilot,
+	"dag_query":                   TierPilot,
+	"threat_model":                TierPilot,
+	"ea_threat_score":             TierPilot,
+	"ouroboros_waf_eye":           TierPilot,
+	"ouroboros_stig_eye":          TierPilot,
+	"ouroboros_vuln_eye":          TierPilot,
+	"ouroboros_fim_eye":           TierPilot,
+	"khepra_query_threat_intel":   TierPilot,
 	"nhi_inventory":               TierPilot,
 	"acp_status":                  TierPilot,
 	"scan_shadow_ai":              TierPilot,
 	"attest_ai_policy":            TierPilot,
 	"ert_crypto":                  TierPilot,
 	"ert_godfather":               TierPilot,
-	"flight_export":               TierPilot,
 	"attest_export":               TierPilot, // C3PAO 13-artifact evidence ZIP (ML-DSA-65 signed)
 	"khepra_export_attestation":   TierPilot,
 	"forensic_snapshot":           TierPilot,
@@ -326,6 +327,7 @@ var ToolTierMap = map[string]string{
 	// ── Enterprise / Sovereign ($499/mo - $2,999/mo) ────────
 	"cmmc_assess":             TierEnterprise,
 	"stig_check":              TierEnterprise,
+	"khepra_query_stig":       TierEnterprise, // Live STIG crosswalk / DISA STIGViewer query
 	"ert_scan":                TierEnterprise,
 	"ert_readiness":           TierEnterprise,
 	"ert_architect":           TierEnterprise,
@@ -349,7 +351,6 @@ var ToolTierMap = map[string]string{
 	"dag_audit":               TierEnterprise,
 	"quantum_optimize":        TierEnterprise,
 	"kasa_start":              TierEnterprise,
-	"flight_record":           TierEnterprise,
 }
 
 // GateForTool checks the tier map and returns a GatedResponse if blocked.
