@@ -122,53 +122,102 @@ func (e *ErrMCPTierInsufficient) Error() string {
 //
 //	nhi_revoke, nhi_orphans, nhi_excessive, nhi_expired,
 //	ert_scan, ert_readiness, ert_architect, stig_check, cmmc_assess
+// CommunityTools lists the ONLY tools accessible in the free open-source community edition.
+// Every other tool strictly requires a commercial license (deny-by-default).
+var CommunityTools = map[string]bool{
+	"pqc_keygen":           true,
+	"pqc_sign":             true,
+	"pqc_verify":           true,
+	"flight_record":        true,
+	"flight_export":        true,
+	"agent_record":         true,
+	"dag_attestation":      true,
+	"khepra_get_dag_chain": true,
+	"enumerate_host":       true,
+	"fingerprint_device":   true,
+	"discover_assets":      true,
+	"kasa_status":          true,
+	"threat_lookup":        true,
+	"nist_map":             true, // Community teaser (limited to 25 items via NistMapLimit)
+}
+
+// mcpToolTier maps each MCP tool name to the minimum tier constant.
+// If a tool is not in CommunityTools, it MUST match a tier here or it defaults to TierEnterprise.
 var mcpToolTier = map[string]string{
+	// ── Free Community Tools (also listed in CommunityTools) ───────────────────
+	"pqc_keygen":           TierCommunity,
+	"pqc_sign":             TierCommunity,
+	"pqc_verify":           TierCommunity,
+	"flight_record":        TierCommunity,
+	"flight_export":        TierCommunity,
+	"agent_record":         TierCommunity,
+	"dag_attestation":      TierCommunity,
+	"khepra_get_dag_chain": TierCommunity,
+	"enumerate_host":       TierCommunity,
+	"fingerprint_device":   TierCommunity,
+	"discover_assets":      TierCommunity,
+	"kasa_status":          TierCommunity,
+	"threat_lookup":        TierCommunity,
+	"nist_map":             TierCommunity,
 
-	"nist_map":                  TierCommunity,
-	"khepra_query_stig":         TierCommunity,
-	"khepra_query_threat_intel": TierCommunity,
-	"discover_assets":           TierCommunity,
-	"owasp_agent_assess":        TierCommunity,
-	"ert_crypto":                TierCommunity,
-	"agent_record":              TierCommunity,
-	"dag_attestation":           TierCommunity,
-	"khepra_get_dag_chain":      TierCommunity,
-	"flight_export":             TierCommunity,
-	"dark_crypto_contribute":    TierCommunity,
-	"pqc_stig":                  TierCommunity, // World's First DoD PQC STIG — free for all, drives adoption
-
-	// ── Pro ───────────────────────────────────────────────────────────────────
+	// ── Pro Tier Tools ($19/mo Pro or $99/mo Pilot) ───────────────────────────
 	// Compliance reporting, evidence packaging, human approval gates,
 	// ACP credential management, and NHI inventory.
 	"khepra_get_compliance_score": TierPro,
 	"khepra_export_attestation":   TierPro,
-	"khepra_export_poam":          TierPro,
+	"attest_export":               TierPro,
 	"godfather_report":            TierPro,
 	"godfather_approve":           TierPro,
-	"ert_godfather":               TierPro,
 	"khepra_watch":                TierPro,
-	"acp_issue":                   TierPro,
-	"acp_revoke":                  TierPro,
 	"acp_status":                  TierPro,
 	"nhi_inventory":               TierPro,
 	"scan_shadow_ai":              TierPro,
 	"attest_ai_policy":            TierPro,
+	"sbom_generate":               TierPro,
+	"threat_model":                TierPro,
+	"agent_scan":                  TierPro,
+	"owasp_agent_assess":          TierPro,
+	"dark_crypto_contribute":      TierPro,
+	"ert_crypto":                  TierPro,
+	"ea_threat_score":             TierPro,
+	"ea_risk_summary":             TierPro,
 
-	// ── Enterprise ────────────────────────────────────────────────────────────
-	// Full NHI lifecycle, deep scanning, STIG/CMMC full assessments,
-	// Docker-sandboxed code execution.
-	"nhi_revoke":    TierEnterprise,
-	"nhi_orphans":   TierEnterprise,
-	"nhi_excessive": TierEnterprise,
-	"nhi_expired":   TierEnterprise,
-	"ert_scan":      TierEnterprise,
-	"ert_readiness": TierEnterprise,
-	"ert_architect": TierEnterprise,
-	"stig_check":    TierEnterprise,
-	"cmmc_assess":   TierEnterprise,
-	// pqc_stig is Community tier — see above
-	// Sovereign inherits every Enterprise-gated tool (tierAtLeast), plus
-	// air-gap/offline licensing — see pkg/license/manager.go.
+	// ── Enterprise Tier Tools ($499/mo Enterprise SOC or $75K+/yr ASAF) ───────
+	// Full STIG & CMMC assessments, ERT engine, Docker-sandboxed execution,
+	// SOAR remediation, and C3PAO-ready POA&M export.
+	"stig_check":        TierEnterprise,
+	"pqc_stig":          TierEnterprise,
+	"khepra_query_stig": TierEnterprise,
+	"cmmc_assess":       TierEnterprise,
+	"khepra_export_poam": TierEnterprise,
+	"ert_scan":          TierEnterprise,
+	"ert_readiness":     TierEnterprise,
+	"ert_architect":     TierEnterprise,
+	"ert_godfather":     TierEnterprise,
+	"acp_issue":         TierEnterprise,
+	"acp_revoke":        TierEnterprise,
+	"nhi_revoke":        TierEnterprise,
+	"nhi_orphans":       TierEnterprise,
+	"nhi_excessive":     TierEnterprise,
+	"nhi_expired":       TierEnterprise,
+	"kasa_start":        TierEnterprise,
+	"kasa_task":         TierEnterprise,
+	"kasa_scan":         TierEnterprise,
+	"kasa_forensics":    TierEnterprise,
+	"kasa_crypto_agent": TierEnterprise,
+	"ea_evolve":         TierEnterprise,
+	"quantum_optimize":  TierEnterprise,
+	"drift_detect":      TierEnterprise,
+	"ir_incident":       TierEnterprise,
+	"ir_add_ioc":        TierEnterprise,
+	"ouroboros_waf_eye": TierEnterprise,
+	"ouroboros_stig_eye": TierEnterprise,
+	"ouroboros_vuln_eye": TierEnterprise,
+	"ouroboros_fim_eye": TierEnterprise,
+	"forensic_snapshot": TierEnterprise,
+	"fim_baseline":      TierEnterprise,
+	"stripe_call":       TierEnterprise,
+	"mcp_gateway":       TierEnterprise,
 }
 
 // tierRank maps tier strings to numeric rank for AtLeast comparison.
@@ -193,16 +242,22 @@ func CheckToolAccess(lic *KhepraLicense, toolName string) error {
 		currentTier = lic.Tier
 	}
 
-	required, gated := mcpToolTier[toolName]
-	if !gated {
-		return nil // Community-accessible tool
+	// 1. If tool is in CommunityTools, all tiers have access
+	if CommunityTools[toolName] {
+		return nil
 	}
 
-	if !tierAtLeast(currentTier, required) {
+	// 2. Deny-by-default: if not Community, find required tier (defaults to TierEnterprise)
+	requiredTier, exists := mcpToolTier[toolName]
+	if !exists {
+		requiredTier = TierEnterprise
+	}
+
+	if !tierAtLeast(currentTier, requiredTier) {
 		return &ErrMCPTierInsufficient{
 			Tool:     toolName,
 			Have:     currentTier,
-			Required: required,
+			Required: requiredTier,
 		}
 	}
 	return nil
