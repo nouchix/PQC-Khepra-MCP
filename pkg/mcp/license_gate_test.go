@@ -241,9 +241,9 @@ func TestLicense_Community_ACP_AllBlocked(t *testing.T) {
 			if !resp.IsError {
 				t.Fatalf("%s community: expected tier gate, got success", tool)
 			}
-			// ACP tools require Pro (TierPro) — display name is "Pro"
-			if !strings.Contains(resp.ErrorMessage, "Pro") {
-				t.Errorf("%s: expected 'Pro' in error, got: %s", tool, resp.ErrorMessage)
+			// ACP tools require paid tier (Pro or Enterprise)
+			if !strings.Contains(resp.ErrorMessage, "Pro") && !strings.Contains(resp.ErrorMessage, "Enterprise") {
+				t.Errorf("%s: expected 'Pro' or 'Enterprise' in error, got: %s", tool, resp.ErrorMessage)
 			}
 		})
 	}

@@ -46,13 +46,20 @@ func RequiredTierDisplayName(tierConst string) string {
 	return tierConst
 }
 
-// TierPricingMap maps tier constants to commercial pricing descriptions.
+// TierPricingMap maps tier constants to commercial pricing descriptions aligned with Stripe products.
 var TierPricingMap = map[string]string{
 	TierCommunity:  "Free Community Edition",
-	TierPro:        "$19/mo (Pro Developer) or $99/mo (Pilot)",
-	TierEnterprise: "$499/mo (Enterprise Agentic SOC / ASAF Program)",
+	TierPro:        "$99/mo (Pro Security Engineer / Agentic SOC)",
+	TierEnterprise: "$499/mo (Enterprise Agentic SOC / SOAR / Compliance)",
 	TierSovereign:  "$2,999/mo (Sovereign SCIF / Air-Gap)",
 	TierMaster:     "NouchiX Internal Authorization",
+}
+
+// TierCheckoutLinks provides direct Stripe checkout URLs for instant upgrades.
+var TierCheckoutLinks = map[string]string{
+	TierPro:        "https://buy.stripe.com/3cI3cv8AaaNk6BdevV9ws05",
+	TierEnterprise: "https://buy.stripe.com/aFa7sLaIi6x4cZBevV9ws04",
+	TierSovereign:  "https://buy.stripe.com/7sY6oH2bM8Fc5x90F59ws03",
 }
 
 // TierUnlocksMap describes key capabilities unlocked by each paid tier.
@@ -75,7 +82,7 @@ type ErrMCPTierInsufficient struct {
 func (e *ErrMCPTierInsufficient) Error() string {
 	upgradeURL := os.Getenv("KHEPRA_UPGRADE_URL")
 	if upgradeURL == "" {
-		upgradeURL = "https://khepra.nouchix.com/pricing"
+		upgradeURL = "https://souhimbou.ai/pricing"
 	}
 	separator := "?"
 	if strings.Contains(upgradeURL, "?") {
@@ -92,13 +99,17 @@ func (e *ErrMCPTierInsufficient) Error() string {
 	if unlocks == "" {
 		unlocks = "Full access to advanced governance tools."
 	}
+	checkoutMsg := ""
+	if checkoutLink, ok := TierCheckoutLinks[e.Required]; ok && checkoutLink != "" {
+		checkoutMsg = fmt.Sprintf("\nInstant Stripe Checkout: %s", checkoutLink)
+	}
 
 	return fmt.Sprintf(
 		"license: tool %q requires %s tier (%s; current: %s).\n"+
 			"Capabilities unlocked: %s\n"+
-			"Upgrade & instant checkout at: %s",
+			"Upgrade & plans: %s%s",
 		e.Tool, RequiredTierDisplayName(e.Required), price, RequiredTierDisplayName(e.Have),
-		unlocks, targetURL,
+		unlocks, targetURL, checkoutMsg,
 	)
 }
 
