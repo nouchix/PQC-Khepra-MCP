@@ -91,6 +91,7 @@ type GatedResponse struct {
 	RequiredMin string   `json:"required_tier"`
 	Pricing     string   `json:"pricing"`
 	UpgradeURL  string   `json:"upgrade_url"`
+	CheckoutURL string   `json:"checkout_url,omitempty"`
 	Reason      string   `json:"gated_reason"`
 	Unlocks     []string `json:"unlocks,omitempty"`
 }
@@ -124,6 +125,7 @@ func RequireTier(minTier, reason string) *GatedResponse {
 		RequiredMin: minTier,
 		Pricing:     pricing,
 		UpgradeURL:  upgradeURLFor("tier_gate", minTier),
+		CheckoutURL: checkoutURLFor(minTier),
 		Reason:      reason,
 		Unlocks:     tierUnlocks(minTier),
 	}
@@ -159,6 +161,7 @@ found:
 		RequiredMin: minTier,
 		Pricing:     pricing,
 		UpgradeURL:  upgradeURLFor(capability, minTier),
+		CheckoutURL: checkoutURLFor(minTier),
 		Reason:      reason,
 		Unlocks:     tierUnlocks(minTier),
 	}
@@ -169,15 +172,28 @@ found:
 func tierPricing(tier string) string {
 	switch tier {
 	case TierPilot, license.TierPro:
-		return "$19/mo Pro or $99/mo Pilot"
+		return "$99/mo (Pro Security Engineer / Agentic SOC)"
 	case TierEnterprise:
-		return "$499/mo Enterprise SOC or $75K+/yr ASAF"
+		return "$499/mo (Enterprise Agentic SOC / SOAR / Compliance)"
 	case license.TierSovereign:
-		return "$2,999/mo Sovereign Air-Gap or $150K-$250K/yr ASAF Enterprise"
+		return "$2,999/mo (Sovereign SCIF / Air-Gap)"
 	case TierMaster:
 		return "Internal only"
 	default:
 		return "Free"
+	}
+}
+
+func checkoutURLFor(tier string) string {
+	switch tier {
+	case TierPilot, license.TierPro:
+		return "https://buy.stripe.com/3cI3cv8AaaNk6BdevV9ws05"
+	case TierEnterprise:
+		return "https://buy.stripe.com/aFa7sLaIi6x4cZBevV9ws04"
+	case license.TierSovereign:
+		return "https://buy.stripe.com/7sY6oH2bM8Fc5x90F59ws03"
+	default:
+		return ""
 	}
 }
 
@@ -212,7 +228,7 @@ func tierUnlocks(tier string) []string {
 func upgradeURLFor(targetName, minTier string) string {
 	u := os.Getenv("KHEPRA_UPGRADE_URL")
 	if u == "" {
-		u = "https://khepra.nouchix.com/pricing"
+		u = "https://souhimbou.ai/pricing"
 	}
 	sep := "?"
 	if strings.Contains(u, "?") {
@@ -225,7 +241,7 @@ func upgradeURL() string {
 	if u := os.Getenv("KHEPRA_UPGRADE_URL"); u != "" {
 		return u
 	}
-	return "https://khepra.nouchix.com/pricing"
+	return "https://souhimbou.ai/pricing"
 }
 
 // ─── Tool → Tier Mapping (reference table) ─────────────────────────────────────
