@@ -228,7 +228,7 @@ func tierUnlocks(tier string) []string {
 func upgradeURLFor(targetName, minTier string) string {
 	u := os.Getenv("KHEPRA_UPGRADE_URL")
 	if u == "" {
-		u = "https://souhimbou.ai/pricing"
+		u = "https://souhimbou.ai/billing"
 	}
 	sep := "?"
 	if strings.Contains(u, "?") {
@@ -241,7 +241,7 @@ func upgradeURL() string {
 	if u := os.Getenv("KHEPRA_UPGRADE_URL"); u != "" {
 		return u
 	}
-	return "https://souhimbou.ai/pricing"
+	return "https://souhimbou.ai/billing"
 }
 
 // ─── Tool → Tier Mapping (reference table) ─────────────────────────────────────
