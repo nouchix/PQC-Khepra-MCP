@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -443,7 +444,7 @@ func calculateEntropy(s string) float64 {
 	for _, count := range freq {
 		p := float64(count) / length
 		if p > 0 {
-			entropy -= p * (float64(len(fmt.Sprintf("%b", int(p*1000)))) / 10.0)
+			entropy -= p * math.Log2(p)
 		}
 	}
 

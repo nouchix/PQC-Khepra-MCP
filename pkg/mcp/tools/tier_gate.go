@@ -86,11 +86,14 @@ func ActiveTier() string {
 // GatedResponse is the standard response when a tool is tier-gated.
 // It tells the AI agent (and ultimately the user) exactly what to do.
 type GatedResponse struct {
-	Error       string `json:"error"`
-	Tier        string `json:"current_tier"`
-	RequiredMin string `json:"required_tier"`
-	UpgradeURL  string `json:"upgrade_url"`
-	Reason      string `json:"gated_reason"`
+	Error       string   `json:"error"`
+	Tier        string   `json:"current_tier"`
+	RequiredMin string   `json:"required_tier"`
+	Pricing     string   `json:"pricing"`
+	UpgradeURL  string   `json:"upgrade_url"`
+	CheckoutURL string   `json:"checkout_url,omitempty"`
+	Reason      string   `json:"gated_reason"`
+	Unlocks     []string `json:"unlocks,omitempty"`
 }
 
 // ─── Gate Functions ────────────────────────────────────────────────────────────
@@ -120,8 +123,11 @@ func RequireTier(minTier, reason string) *GatedResponse {
 		Error:       fmt.Sprintf("This tool requires %s tier (%s)", minTier, pricing),
 		Tier:        cachedTier,
 		RequiredMin: minTier,
-		UpgradeURL:  upgradeURL(),
+		Pricing:     pricing,
+		UpgradeURL:  upgradeURLFor("tier_gate", minTier),
+		CheckoutURL: checkoutURLFor(minTier),
 		Reason:      reason,
+		Unlocks:     tierUnlocks(minTier),
 	}
 }
 
@@ -153,8 +159,11 @@ found:
 		Error:       fmt.Sprintf("Capability %q requires %s tier (%s)", capability, minTier, pricing),
 		Tier:        cachedTier,
 		RequiredMin: minTier,
-		UpgradeURL:  upgradeURL(),
+		Pricing:     pricing,
+		UpgradeURL:  upgradeURLFor(capability, minTier),
+		CheckoutURL: checkoutURLFor(minTier),
 		Reason:      reason,
+		Unlocks:     tierUnlocks(minTier),
 	}
 }
 
@@ -162,10 +171,12 @@ found:
 
 func tierPricing(tier string) string {
 	switch tier {
-	case TierPilot:
-		return "$99/mo or $25K/yr ASAF pilot"
+	case TierPilot, license.TierPro:
+		return "$99/mo (Pro Security Engineer / Agentic SOC)"
 	case TierEnterprise:
-		return "$499/mo or $75K+/yr ASAF program"
+		return "$499/mo (Enterprise Agentic SOC / SOAR / Compliance)"
+	case license.TierSovereign:
+		return "$2,999/mo (Sovereign SCIF / Air-Gap)"
 	case TierMaster:
 		return "Internal only"
 	default:
@@ -173,11 +184,64 @@ func tierPricing(tier string) string {
 	}
 }
 
+func checkoutURLFor(tier string) string {
+	switch tier {
+	case TierPilot, license.TierPro:
+		return "https://buy.stripe.com/3cI3cv8AaaNk6BdevV9ws05"
+	case TierEnterprise:
+		return "https://buy.stripe.com/aFa7sLaIi6x4cZBevV9ws04"
+	case license.TierSovereign:
+		return "https://buy.stripe.com/7sY6oH2bM8Fc5x90F59ws03"
+	default:
+		return ""
+	}
+}
+
+func tierUnlocks(tier string) []string {
+	switch tier {
+	case TierPilot, license.TierPro:
+		return []string{
+			"Live compliance scoring & continuous DAG attestation",
+			"ACP credential issuance & NHI discovery",
+			"Automated email notifications via Resend",
+			"500 STIGViewer API credits/mo",
+		}
+	case TierEnterprise:
+		return []string{
+			"Full STIG and CMMC Level 1/2/3 assessments",
+			"Live DISA STIGViewer API v2 batch crosswalks (15,000 credits/mo)",
+			"SOAR autonomous incident remediation playbooks",
+			"C3PAO-ready POA&M / OSCAL evidence packaging",
+		}
+	case license.TierSovereign:
+		return []string{
+			"100% sovereign air-gapped deployment posture",
+			"QKD Kyber-1024 post-quantum capsules",
+			"Hardware Security Module (HSM) attestation",
+			"Unlimited fleet governance nodes",
+		}
+	default:
+		return nil
+	}
+}
+
+func upgradeURLFor(targetName, minTier string) string {
+	u := os.Getenv("KHEPRA_UPGRADE_URL")
+	if u == "" {
+		u = "https://souhimbou.ai/billing"
+	}
+	sep := "?"
+	if strings.Contains(u, "?") {
+		sep = "&"
+	}
+	return fmt.Sprintf("%s%supgrade_target=%s&tier=%s&utm_source=pqc-khepra-mcp", u, sep, targetName, minTier)
+}
+
 func upgradeURL() string {
 	if u := os.Getenv("KHEPRA_UPGRADE_URL"); u != "" {
 		return u
 	}
-	return "https://souhimbou.ai/pricing"
+	return "https://souhimbou.ai/billing"
 }
 
 // ─── Tool → Tier Mapping (reference table) ─────────────────────────────────────
@@ -228,37 +292,38 @@ func upgradeURL() string {
 // Used by the executor to enforce gating before dispatch.
 var ToolTierMap = map[string]string{
 	// ── Community (free — discovery & basic status) ───────────
-	"pqc_stig":                TierCommunity,
-	"discover_assets":         TierCommunity,
-	"agent_record":            TierCommunity,
-	"kasa_status":             TierCommunity,
-	"ea_threat_score":         TierCommunity,
-	"threat_model":            TierCommunity,
 	"pqc_keygen":              TierCommunity,
 	"pqc_sign":                TierCommunity,
 	"pqc_verify":              TierCommunity,
-	"dag_query":               TierCommunity,
+	"flight_record":           TierCommunity,
+	"flight_export":           TierCommunity,
+	"agent_record":            TierCommunity,
+	"dag_attestation":         TierCommunity,
+	"khepra_get_dag_chain":    TierCommunity,
 	"enumerate_host":          TierCommunity,
 	"fingerprint_device":      TierCommunity,
-	"ouroboros_waf_eye":       TierCommunity,
-	"ouroboros_stig_eye":      TierCommunity,
-	"ouroboros_vuln_eye":      TierCommunity,
-	"ouroboros_fim_eye":       TierCommunity,
-	"khepra_query_stig":       TierCommunity,
-	"khepra_query_threat_intel": TierCommunity,
-	"nist_map":                TierCommunity,
-	"khepra_get_dag_chain":    TierCommunity,
+	"discover_assets":         TierCommunity,
+	"kasa_status":             TierCommunity,
 	"threat_lookup":           TierCommunity,
+	"nist_map":                TierCommunity,
 
 	// ── Pilot / Pro ($99/mo) ─────────────────────────────────
 	"khepra_get_compliance_score": TierPilot,
+	"pqc_stig":                    TierPilot,
+	"dag_query":                   TierPilot,
+	"threat_model":                TierPilot,
+	"ea_threat_score":             TierPilot,
+	"ouroboros_waf_eye":           TierPilot,
+	"ouroboros_stig_eye":          TierPilot,
+	"ouroboros_vuln_eye":          TierPilot,
+	"ouroboros_fim_eye":           TierPilot,
+	"khepra_query_threat_intel":   TierPilot,
 	"nhi_inventory":               TierPilot,
 	"acp_status":                  TierPilot,
 	"scan_shadow_ai":              TierPilot,
 	"attest_ai_policy":            TierPilot,
 	"ert_crypto":                  TierPilot,
 	"ert_godfather":               TierPilot,
-	"flight_export":               TierPilot,
 	"attest_export":               TierPilot, // C3PAO 13-artifact evidence ZIP (ML-DSA-65 signed)
 	"khepra_export_attestation":   TierPilot,
 	"forensic_snapshot":           TierPilot,
@@ -278,6 +343,7 @@ var ToolTierMap = map[string]string{
 	// ── Enterprise / Sovereign ($499/mo - $2,999/mo) ────────
 	"cmmc_assess":             TierEnterprise,
 	"stig_check":              TierEnterprise,
+	"khepra_query_stig":       TierEnterprise, // Live STIG crosswalk / DISA STIGViewer query
 	"ert_scan":                TierEnterprise,
 	"ert_readiness":           TierEnterprise,
 	"ert_architect":           TierEnterprise,
@@ -301,7 +367,6 @@ var ToolTierMap = map[string]string{
 	"dag_audit":               TierEnterprise,
 	"quantum_optimize":        TierEnterprise,
 	"kasa_start":              TierEnterprise,
-	"flight_record":           TierEnterprise,
 }
 
 // GateForTool checks the tier map and returns a GatedResponse if blocked.
