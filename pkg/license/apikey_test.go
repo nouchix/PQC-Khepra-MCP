@@ -95,7 +95,10 @@ func TestValidateAPIKey_AllTierSlugs(t *testing.T) {
 		slug string
 	}{
 		{"community", "com"},
+		{"pro", "pro"},
+		{"enterprise", "ent"},
 		{"sovereign", "sov"},
+		{"master", "mas"},
 		{"pharaoh", "pha"},
 	}
 	for _, tc := range cases {
@@ -108,6 +111,15 @@ func TestValidateAPIKey_AllTierSlugs(t *testing.T) {
 		wantPrefix := "kphr_" + tc.slug + "_"
 		if len(key) < len(wantPrefix) || key[:len(wantPrefix)] != wantPrefix {
 			t.Errorf("tier %s: want prefix %q, key starts with %q", tc.tier, wantPrefix, key[:minInt(len(key), 12)])
+		}
+
+		parsed, err := ValidateAPIKey(key)
+		if err != nil {
+			t.Errorf("tier %s: ValidateAPIKey: %v", tc.tier, err)
+			continue
+		}
+		if parsed.Tier != tc.tier {
+			t.Errorf("tier %s: want %q, got %q", tc.tier, tc.tier, parsed.Tier)
 		}
 	}
 }
@@ -201,16 +213,70 @@ func TestValidateEnv_CommunityFallback(t *testing.T) {
 // TestSlugForTier verifies the tier → slug mapping.
 func TestSlugForTier(t *testing.T) {
 	cases := map[string]string{
-		"community": "com",
-		"sovereign": "sov",
-		"pharaoh":   "pha",
-		"unknown":   "unk",
+		"community":  "com",
+		"pro":        "pro",
+		"enterprise": "ent",
+		"sovereign":  "sov",
+		"master":     "mas",
+		"pharaoh":    "pha",
+		"unknown":    "unk",
 	}
 	for tier, want := range cases {
 		got := slugForTier(tier)
 		if got != want {
 			t.Errorf("slugForTier(%q): want %q, got %q", tier, want, got)
 		}
+	}
+}
+
+// TestGenerateSignedAPIKey tests the programmatic generation of API keys.
+func TestGenerateSignedAPIKey(t *testing.T) {
+	key, err := GenerateSignedAPIKey(nil, TierPro, "cus_test_123", time.Now().Add(30*24*time.Hour), "")
+	if err != nil {
+		t.Fatalf("GenerateSignedAPIKey: %v", err)
+	}
+
+	parsed, err := ValidateAPIKey(key)
+	if err != nil {
+		t.Fatalf("ValidateAPIKey on generated key: %v", err)
+	}
+	if parsed.Tier != TierPro {
+		t.Errorf("tier: want %q, got %q", TierPro, parsed.Tier)
+	}
+	if parsed.CustomerID != "cus_test_123" {
+		t.Errorf("customer_id: want %q, got %q", "cus_test_123", parsed.CustomerID)
+	}
+}
+
+// TestValidateAPIKey_RevocationDenylist ensures that a key whose LicenseKey matches
+// a revoked ID (Incident 2026-09-06) is rejected even if mathematically valid.
+func TestValidateAPIKey_RevocationDenylist(t *testing.T) {
+	lf := buildSignedLicenseFile(t, TierMaster, 30*24*time.Hour)
+	lf.LicenseKey = "ce74939c-6af8-4a77-98b6-c9e179255771" // explicitly revoked in revoked.go
+
+	// Resign so signature is genuine
+	payload := map[string]string{
+		"license_key": lf.LicenseKey,
+		"tier":        lf.Tier,
+		"customer_id": lf.CustomerID,
+		"issued_at":   lf.IssuedAt,
+		"expires_at":  lf.ExpiresAt,
+		"version":     lf.Version,
+		"algorithm":   lf.Algorithm,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	mac := hmac.New(sha256.New, embeddedPublicKey)
+	mac.Write(payloadJSON)
+	lf.Signature = base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+	key, err := EncodeAPIKey(lf)
+	if err != nil {
+		t.Fatalf("EncodeAPIKey: %v", err)
+	}
+
+	_, err = ValidateAPIKey(key)
+	if err == nil {
+		t.Fatal("expected revoked license key to be rejected by ValidateAPIKey, but got nil error")
 	}
 }
 

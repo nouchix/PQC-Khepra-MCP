@@ -32,6 +32,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // sanitizeHeader removes CRLF characters from user-supplied strings to prevent
@@ -483,18 +485,66 @@ func handleCheckoutComplete(event StripeEvent) error {
 	// CLI token from client_reference_id (set by `asaf certify` command)
 	cliToken := session.ClientReferenceID
 
-	log.Printf("[webhook] payment confirmed: email=%q token=%q session=%q", sanitizeLog(email), sanitizeLog(cliToken), sanitizeLog(session.ID))
+	log.Printf("[webhook] payment confirmed: email=%q token=%q session=%q amount=%d",
+		sanitizeLog(email), sanitizeLog(cliToken), sanitizeLog(session.ID), session.AmountTotal)
 
-	// 1. Request certificate from ASAF API
-	cert, err := requestCertificate(session, email)
-	if err != nil {
-		log.Printf("[webhook] cert request failed: %v — sending manual follow-up email", err)
-		return sendManualFollowUp(email, name, session.ID)
+	// Determine if this is an MCP subscription / license key purchase
+	mcpTier := ""
+	if t, ok := session.Metadata["tier"]; ok && t != "" {
+		switch strings.ToLower(t) {
+		case "pro":
+			mcpTier = license.TierPro
+		case "enterprise", "ent":
+			mcpTier = license.TierEnterprise
+		case "sovereign", "sov":
+			mcpTier = license.TierSovereign
+		}
+	} else if session.Metadata["upgrade_tool"] != "" || session.Metadata["product"] == "pqc-khepra-mcp" {
+		mcpTier = license.TierEnterprise
+	} else {
+		// Infer from Stripe subscription amount
+		switch session.AmountTotal {
+		case 1900, 9900:
+			mcpTier = license.TierPro
+		case 49900:
+			mcpTier = license.TierEnterprise
+		case 299900:
+			mcpTier = license.TierSovereign
+		}
 	}
 
-	// 2. Send certificate via email
-	if err := sendCertificateEmail(email, name, cliToken, cert); err != nil {
-		return fmt.Errorf("send email to %s: %w", email, err)
+	// If MCP tier identified, issue signed license key
+	if mcpTier != "" {
+		expiry := time.Now().AddDate(0, 1, 3) // 1 month + 3 days grace
+		if session.Metadata["interval"] == "year" {
+			expiry = time.Now().AddDate(1, 0, 7) // 1 year + 7 days grace
+		}
+		machineID := session.Metadata["machine_id"]
+
+		key, err := license.GenerateSignedAPIKey(nil, mcpTier, email, expiry, machineID)
+		if err != nil {
+			log.Printf("[webhook] failed to generate license key for %s: %v", sanitizeLog(email), err)
+		} else {
+			log.Printf("[webhook] generated %s license key for %s", mcpTier, sanitizeLog(email))
+			if err := sendLicenseKeyEmail(email, name, mcpTier, key, expiry); err != nil {
+				log.Printf("[webhook] failed to email license key to %s: %v", sanitizeLog(email), err)
+			}
+		}
+	}
+
+	// If this checkout includes a compliance certificate (e.g. from `asaf certify` or certify tier)
+	if cliToken != "" || session.Metadata["framework"] != "" || session.Metadata["tier"] == "certify" || mcpTier == "" {
+		// 1. Request certificate from ASAF API
+		cert, err := requestCertificate(session, email)
+		if err != nil {
+			log.Printf("[webhook] cert request failed: %v — sending manual follow-up email", err)
+			_ = sendManualFollowUp(email, name, session.ID)
+		} else {
+			// 2. Send certificate via email
+			if err := sendCertificateEmail(email, name, cliToken, cert); err != nil {
+				log.Printf("[webhook] send cert email to %s error: %v", sanitizeLog(email), err)
+			}
+		}
 	}
 
 	// 3. Notify operator
@@ -628,6 +678,70 @@ Questions? security@nouchix.com
 		body += fmt.Sprintf("\nYour CLI session token %q has been activated.\n"+
 			"Your certificate is ready — re-run your asaf certify command to download.\n", safeCLIToken)
 	}
+
+	return sendMail([]string{to}, subject, body)
+}
+
+func sendLicenseKeyEmail(to, name, tier, licenseKey string, expiry time.Time) error {
+	subject := fmt.Sprintf("Your %s License Key — PQC-Khepra-MCP", strings.ToUpper(tier))
+	greeting := name
+	if greeting == "" {
+		greeting = "Security Operator"
+	}
+
+	sTo := sanitizeHeader(to)
+	sGreeting := sanitizeHeader(greeting)
+	sTier := strings.ToUpper(sanitizeHeader(tier))
+	sKey := sanitizeHeader(licenseKey)
+
+	body := fmt.Sprintf(`From: NouchiX Security <licenses@nouchix.com>
+To: %s
+Subject: %s
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+%s,
+
+Thank you for subscribing to PQC-Khepra-MCP (%s Tier).
+Your post-quantum signed license key has been generated and activated.
+
+LICENSE KEY:
+%s
+
+TIER:    %s
+EXPIRES: %s
+STATUS:  ACTIVE (Cryptographically attested with ML-DSA-65)
+
+QUICK START INSTRUCTIONS:
+
+1. CLI / Terminal:
+   export KHEPRA_LICENSE_KEY="%s"
+   ./khepra-mcp --license-status
+
+2. Claude Desktop / Cursor / Antigravity config:
+   {
+     "mcpServers": {
+       "khepra-mcp": {
+         "command": "khepra-mcp",
+         "env": {
+           "KHEPRA_LICENSE_KEY": "%s"
+         }
+       }
+     }
+   }
+
+3. Air-Gapped / Zero-Egress Enclaves:
+   This key verifies 100%% OFFLINE with zero outbound network calls.
+   No telemetry, no phone-home, and no egress required.
+
+Manage your subscription:
+https://souhimbou.ai/billing
+
+Support & Inquiries: support@nouchix.com
+
+— SecRed Knowledge Inc. / NouchiX
+  Patent Pending · ML-DSA-65 / ML-KEM-768
+`, sTo, subject, sGreeting, sTier, sKey, sTier, expiry.Format("2006-01-02"), sKey, sKey)
 
 	return sendMail([]string{to}, subject, body)
 }

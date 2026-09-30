@@ -350,7 +350,32 @@ func main() {
 	loginURL := flag.String("login", "", "authorize an upstream MCP server (OAuth 2.1 + PKCE) and exit")
 	loginAlias := flag.String("alias", "", "tool namespace for -login (default: upstream)")
 	logoutURL := flag.String("logout", "", "forget sealed credentials and pins for an upstream and exit")
+	machineIDFlag := flag.Bool("machine-id", false, "print local hardware machine ID for sovereign air-gap license binding and exit")
+	licenseStatusFlag := flag.Bool("license-status", false, "display active license tier, tenant, and expiry and exit")
 	flag.Parse()
+
+	if *machineIDFlag {
+		mid := license.GenerateMachineID()
+		fmt.Printf("Machine ID: %s\n", mid)
+		return
+	}
+	if *licenseStatusFlag {
+		lic, err := license.ParseMCPLicense()
+		if err != nil {
+			if errors.Is(err, license.ErrNoLicenseKey) {
+				fmt.Println("License Tier: community (free open-source edition)")
+				fmt.Println("Active Tools: 14 open-source tools enabled")
+				fmt.Println("Upgrade URL:  https://souhimbou.ai/billing")
+				return
+			}
+			logger.Fatalf("License validation error: %v", err)
+		}
+		fmt.Printf("License ID: %s\n", lic.LicenseID)
+		fmt.Printf("Tenant:     %s\n", lic.Tenant)
+		fmt.Printf("Tier:       %s\n", lic.Tier)
+		fmt.Printf("Expires:    %s\n", lic.ExpiresAt.Format("2006-01-02 15:04:05 MST"))
+		return
+	}
 	if *loginURL != "" {
 		runLogin(ctx, *loginAlias, *loginURL, logger)
 		return
