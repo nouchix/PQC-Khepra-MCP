@@ -6,7 +6,7 @@ require (
 	github.com/anchore/clio v0.1.1
 	github.com/anchore/grype v0.119.0
 	github.com/anchore/syft v1.52.0
-	github.com/beevik/etree v1.8.0
+	github.com/beevik/etree v1.8.1
 	github.com/cloudflare/circl v1.6.5
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gin-gonic/gin v1.12.0
@@ -25,7 +25,7 @@ require (
 	google.golang.org/grpc v1.84.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.59.0
-	tailscale.com v1.102.4
+	tailscale.com v1.102.5
 )
 
 require (
