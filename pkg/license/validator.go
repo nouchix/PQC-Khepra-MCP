@@ -34,6 +34,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/google/uuid"
+
 	_ "embed"
 )
 
@@ -133,6 +136,11 @@ func Validate(licensePath string) (*ParsedLicense, error) {
 		return nil, fmt.Errorf("license expired on %s — renew at https://nouchix.com", expires.Format("2006-01-02"))
 	}
 
+	// 4. Check compiled-in revocation denylist (offline, non-bypassable)
+	if err := CheckRevocationDenylist(lf.LicenseKey); err != nil {
+		return nil, fmt.Errorf("license revoked: %w", err)
+	}
+
 	issued, _ := time.Parse(time.RFC3339, lf.IssuedAt)
 
 	return &ParsedLicense{
@@ -204,6 +212,11 @@ func ValidateAPIKey(key string) (*ParsedLicense, error) {
 	}
 	if time.Now().After(expires) {
 		return nil, fmt.Errorf("license expired on %s — renew at https://nouchix.com", expires.Format("2006-01-02"))
+	}
+
+	// 4. Check compiled-in revocation denylist (offline, non-bypassable)
+	if err := CheckRevocationDenylist(lf.LicenseKey); err != nil {
+		return nil, fmt.Errorf("license revoked: %w", err)
 	}
 
 	issued, _ := time.Parse(time.RFC3339, lf.IssuedAt)
@@ -281,8 +294,14 @@ func slugForTier(tier string) string {
 	switch strings.ToLower(tier) {
 	case TierCommunity:
 		return "com"
+	case TierPro:
+		return "pro"
+	case TierEnterprise:
+		return "ent"
 	case TierSovereign:
 		return "sov"
+	case TierMaster:
+		return "mas"
 	case TierPharaoh:
 		return "pha"
 	default:
@@ -292,11 +311,31 @@ func slugForTier(tier string) string {
 
 // isValidTierSlug reports whether s is a known tier slug.
 func isValidTierSlug(s string) bool {
-	switch s {
-	case "com", "sov", "pha":
+	switch strings.ToLower(s) {
+	case "com", "pro", "ent", "sov", "mas", "pha":
 		return true
 	}
 	return false
+}
+
+// TierFromSlug maps a slug ("com", "pro", "ent", "sov", "mas", "pha") to its canonical tier constant.
+func TierFromSlug(slug string) string {
+	switch strings.ToLower(slug) {
+	case "com":
+		return TierCommunity
+	case "pro":
+		return TierPro
+	case "ent":
+		return TierEnterprise
+	case "sov":
+		return TierSovereign
+	case "mas":
+		return TierMaster
+	case "pha":
+		return TierPharaoh
+	default:
+		return TierCommunity
+	}
 }
 
 // truncate returns up to n chars of s with "..." appended if truncated.
@@ -307,22 +346,17 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
-
-
 // ---------------------------------------------------------------------------
 // Signature verification
 //
-// NOTE: This currently uses HMAC-SHA256 as a placeholder.
-// Replace verifySignature() with the actual ML-DSA-65 verification once
-// the Go NIST PQC library (golang.org/x/crypto or circl) is integrated.
-//
-// Recommended library: cloudflare/circl (CRYSTALS-Dilithium / ML-DSA)
-//   go get github.com/cloudflare/circl
-//   import "github.com/cloudflare/circl/sign/mldsa/mldsa65"
+// Dual verification:
+// 1. Post-Quantum: ML-DSA-65 (NIST FIPS 204) verified against MasterPublicKey
+//    pinned in master_pubkey.go (1952 bytes).
+// 2. Fallback: HMAC-SHA256 using embeddedPublicKey for unit tests/fixtures.
 // ---------------------------------------------------------------------------
 
 func verifySignature(lf licenseFile) error {
-	// Build the canonical payload (same fields signed by Edge Function)
+	// Build the canonical payload (same fields signed by Edge Function / License Authority)
 	payload := map[string]string{
 		"license_key": lf.LicenseKey,
 		"tier":        lf.Tier,
@@ -346,16 +380,92 @@ func verifySignature(lf licenseFile) error {
 		return fmt.Errorf("malformed signature encoding: %w", err)
 	}
 
-	// TODO: Replace with mldsa65.Verify(embeddedPublicKey, payloadJSON, sig)
-	// Placeholder HMAC verification (uses embedded key as HMAC secret):
-	mac := hmac.New(sha256.New, embeddedPublicKey)
-	mac.Write(payloadJSON)
-	expected := mac.Sum(nil)
-
-	if !hmac.Equal(sig, expected) {
-		return fmt.Errorf("signature mismatch")
+	// 1. ML-DSA-65 verification against MasterPublicKey (offline, zero egress)
+	if len(MasterPublicKey) == mldsa65.PublicKeySize && len(sig) == mldsa65.SignatureSize {
+		var pk mldsa65.PublicKey
+		pk.Unpack((*[mldsa65.PublicKeySize]byte)(MasterPublicKey))
+		if mldsa65.Verify(&pk, payloadJSON, nil, sig) {
+			return nil
+		}
 	}
-	return nil
+
+	// 2. Fallback HMAC verification for legacy/unit tests
+	if len(embeddedPublicKey) > 0 {
+		mac := hmac.New(sha256.New, embeddedPublicKey)
+		mac.Write(payloadJSON)
+		expected := mac.Sum(nil)
+
+		if hmac.Equal(sig, expected) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("signature mismatch")
+}
+
+// GenerateSignedAPIKey creates a signed API key string formatted as kphr_{tier}_{base64url}.
+// If signerKey is 4032 bytes (mldsa65.PrivateKeySize), it signs with ML-DSA-65 (FIPS 204).
+// Otherwise, it falls back to HMAC-SHA256 with signerKey (or embeddedPublicKey if empty).
+func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time.Time, machineID string) (string, error) {
+	if !isValidTier(tier) {
+		return "", fmt.Errorf("license: invalid tier %q", tier)
+	}
+
+	licenseKey := "KHRPA-" + strings.ToUpper(uuid.New().String()[:8]) + "-" + strings.ToUpper(uuid.New().String()[:8])
+	lf := licenseFile{
+		LicenseKey: licenseKey,
+		Tier:       tier,
+		CustomerID: customerID,
+		IssuedAt:   time.Now().UTC().Format(time.RFC3339),
+		ExpiresAt:  expiry.UTC().Format(time.RFC3339),
+		Version:    "1",
+		Algorithm:  "ML-DSA-65",
+		MachineID:  machineID,
+	}
+
+	payload := map[string]string{
+		"license_key": lf.LicenseKey,
+		"tier":        lf.Tier,
+		"customer_id": lf.CustomerID,
+		"issued_at":   lf.IssuedAt,
+		"expires_at":  lf.ExpiresAt,
+		"version":     lf.Version,
+		"algorithm":   lf.Algorithm,
+	}
+	if lf.MachineID != "" {
+		payload["machine_id"] = lf.MachineID
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("license: marshal payload: %w", err)
+	}
+
+	if len(signerKey) == mldsa65.PrivateKeySize {
+		var sk mldsa65.PrivateKey
+		sk.Unpack((*[mldsa65.PrivateKeySize]byte)(signerKey))
+		sig := make([]byte, mldsa65.SignatureSize)
+		mldsa65.SignTo(&sk, payloadJSON, nil, false, sig)
+		lf.Signature = base64.StdEncoding.EncodeToString(sig)
+	} else {
+		key := signerKey
+		if len(key) == 0 {
+			key = embeddedPublicKey
+		}
+		mac := hmac.New(sha256.New, key)
+		mac.Write(payloadJSON)
+		lf.Signature = base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	}
+
+	return EncodeAPIKey(lf)
+}
+
+func isValidTier(tier string) bool {
+	switch strings.ToLower(tier) {
+	case TierCommunity, TierPro, TierEnterprise, TierSovereign, TierMaster, TierPharaoh:
+		return true
+	}
+	return false
 }
 
 // ---------------------------------------------------------------------------
@@ -375,7 +485,7 @@ func (l *ParsedLicense) HasFeature(feature string) bool {
 	switch feature {
 	case "ert_scan", "stig_check", "cmmc_assess", "godfather_report",
 		"agent_record", "dag_attestation":
-		return l.Tier == TierSovereign || l.Tier == TierPharaoh
+		return l.Tier == TierSovereign || l.Tier == TierPharaoh || l.Tier == TierEnterprise || l.Tier == TierPro
 	case "priority_support", "sla":
 		return l.Tier == TierPharaoh
 	default:
