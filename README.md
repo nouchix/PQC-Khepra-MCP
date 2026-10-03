@@ -32,13 +32,14 @@ To ensure clean commercial boundaries for partners, defense contractors, and dev
 
 ---
 
-## Tiers & Gating
+## Tiers & Gating (The 4-Tier Commercial & Sovereign Model)
 
-| Tier | Price | License Key | Tools Accessible | Focus |
-|------|-------|-------------|------------------|-------|
-| **Community** | **Free** | ❌ None required | **14 Core Tools** (`pqc_keygen`, `pqc_sign`, `pqc_verify`, `flight_record`, `flight_export`, `agent_record`, `dag_attestation`, `khepra_get_dag_chain`, `enumerate_host`, `fingerprint_device`, `discover_assets`, `kasa_status`, `threat_lookup`, `nist_map` teaser) | PQC signing, flight logging, local discovery |
-| **Pro / Pilot** | $19/mo – $99/mo | ✅ Required | 35+ Tools (+ compliance reporting, ACP identity, NHI inventory, continuous DAG) | Individual engineers & pilot teams |
-| **Enterprise / Sovereign (KTOS)** | $499/mo – $250K/yr | ✅ Required | All 80 Tools (+ live DISA STIGViewer v2 batch queries, full CMMC assessments, ERT engines, C3PAO OSCAL/CKLB exports, SOAR playbooks) | Defense contractors, C3PAOs, and federal primes |
+| Tier | Price Point | Quota | Gated Tools & Capabilities | Focus |
+|------|-------------|-------|----------------------------|-------|
+| **Community** | **$0 / Free** (Open-Core) | 500 Credits | **14 Core Tools** (`pqc_keygen`, `pqc_sign`, `pqc_verify`, `flight_record`, `flight_export`, `agent_record`, `dag_attestation`, `khepra_get_dag_chain`, `enumerate_host`, `fingerprint_device`, `discover_assets`, `kasa_status`, `threat_lookup`, `nist_map` teaser) | Open-source PQC signing, flight logging, local discovery |
+| **Platform** | **$499 / mo** (Self-Serve) | 3,000 Credits | **50+ Tools** (+ OmniScan multi-lane sweep, Shadow AI discovery, live STIGViewer API v2, OCSF SIEM stream) | Engineering teams & commercial SOC operations |
+| **Enterprise** | **$2,999 / mo** | 15,000 Credits | **85+ Tools** (+ Full Agentic SOC, SEKHEM L7 PQC-WAF, PTY Enclave Supervisor, ASAF Remediation Daemon, Z3 SMT proofs) | Enterprise agent fleets & compliance automation |
+| **Sovereign** | **$45K – $250K / yr** | 100,000+ Credits | **All 100 Tools** (+ Bare-metal air-gap, osquery Fleet Manager, CMMC L2/L3 autopilot, Tactical RF anti-jamming, Windows EventLog telemetry) | Defense contractors, C3PAOs, federal primes & GovCloud |
 
 ---
 
@@ -744,4 +745,23 @@ Veteran-led advisory firm translating CMMC, NIST, and STIG mandates into executi
 - **Phone**: (518) 304-4450
 
 Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
+
+---
+
+## 📋 TC-25 Operator Manual & Developer Runbook
+
+PQC-Khepra-MCP is the open-core agent channel of the KHEPRA Trust OS (KTOS) architecture:
+- **[TC-25 Technical Operator & Maintenance Manual](https://github.com/nouchix/khepra-trust-os/blob/main/docs/TC-25_KTOS_OPERATOR_MANUAL.md)** — Training Circular No. 25-KTOS-001 covering Four-Layer Sovereign Architecture, Tactical RF anti-jamming suite, Windows Event Viewer hierarchy (IDs 1001–1050), and Dual-Engine Adversarial Neutralization (58/58 Verified).
+- **[Developer Installation & Troubleshooting Runbook](https://github.com/nouchix/khepra-trust-os/blob/main/docs/DEVELOPER_INSTALLATION_AND_TROUBLESHOOTING.md)** — Step-by-step runbook for Master Dev Machines, Antigravity IDE (`mcp_config.json`), Claude Code (`.claude.json`), and Sovereign Linux VPS deployment.
+
+### Unified KTOS Product Surfaces
+- **Layer 4 — KTOS-MCP Master-Kernel** (`mcp.souhimbou.ai`): 100 native tools, ML-DSA-65 post-quantum signing, SEKHEM L7 WAF prompt defense, Event Viewer logging, Tactical RF suite.
+- **Layer 3a — KTOS CMMC Hub & Fleet Engine** (`adinkhepra.com`): Sovereign bare-metal & osquery Fleet Manager for CMMC/STIG compliance audits.
+- **Layer 3b — KTOS Agentic SOC** (`souhimbou.ai`): Cloud Agentic SOC & AI Security Architect with autonomous Flight Recorder SDK and KASA threat detector.
+- **Layer 2 — Shared Trust Substrate**: 36,195 cross-framework compliance mappings, ML-DSA-65 / ML-KEM-1024, immutable DAG attestation.
+- **Layer 1 — KHEPRA Protocol**: Patent-pending non-linear cryptographic attestation (USPTO #73565085).
+
+### Dual-Engine Pentest Neutralization (58/58 Verified · 100.00% Zero-Bypass Rate)
+- **CyberStryke Automated Assault (30/30)**: SQLi, XSS, Path Traversal, Null Byte Escapes, Prompt Injections, Egress Data Disclosure neutralized.
+- **AgentHound Offensive Security Framework (28/28)**: MCP Tool Description Poisoning (`POISONED_DESCRIPTION`), Tool Shadowing (`SHADOWS`), A2A Impersonation (`CAN_IMPERSONATE`), Indirect Tool Execution (`CAN_EXECUTE`), Context Window Taint (`TAINTS`), and Information Flow Control Violations (`IFC_VIOLATION`) neutralized.
 
