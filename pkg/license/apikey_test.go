@@ -2,22 +2,78 @@ package license
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 
 // ---------------------------------------------------------------------------
 // API-key format tests (kphr_{tier}_{base64url-payload})
 // ---------------------------------------------------------------------------
 
-// buildSignedLicenseFile constructs a licenseFile with a valid HMAC-SHA256
-// signature using the same logic as verifySignature — sufficient for unit tests
-// since the placeholder implementation uses HMAC, not ML-DSA-65 yet.
+// useTestAPIKeyRoot replaces the pinned API-key root with a throwaway ML-DSA-65
+// key for the duration of the test and returns its packed private key.
+func useTestAPIKeyRoot(t *testing.T) []byte {
+	t.Helper()
+	pk, sk, err := mldsa65.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("mldsa65.GenerateKey: %v", err)
+	}
+	pub, _ := pk.MarshalBinary()
+	priv, _ := sk.MarshalBinary()
+	prev := apiKeyTrustedRoot
+	apiKeyTrustedRoot = func() []byte { return pub }
+	t.Cleanup(func() { apiKeyTrustedRoot = prev })
+	return priv
+}
+
+// signLicenseFile signs lf's canonical payload with the given ML-DSA-65 key.
+func signLicenseFile(t *testing.T, lf *licenseFile, priv []byte) {
+	t.Helper()
+	var sk mldsa65.PrivateKey
+	if err := sk.UnmarshalBinary(priv); err != nil {
+		t.Fatalf("unmarshal test key: %v", err)
+	}
+	sig := make([]byte, mldsa65.SignatureSize)
+	if err := mldsa65.SignTo(&sk, canonicalPayload(t, *lf), nil, true, sig); err != nil {
+		t.Fatalf("SignTo: %v", err)
+	}
+	lf.Signature = base64.StdEncoding.EncodeToString(sig)
+}
+
+// canonicalPayload reproduces the exact payload that verifySignature() builds.
+func canonicalPayload(t *testing.T, lf licenseFile) []byte {
+	t.Helper()
+	payload := map[string]string{
+		"license_key": lf.LicenseKey,
+		"tier":        lf.Tier,
+		"customer_id": lf.CustomerID,
+		"issued_at":   lf.IssuedAt,
+		"expires_at":  lf.ExpiresAt,
+		"version":     lf.Version,
+		"algorithm":   lf.Algorithm,
+	}
+	if lf.MachineID != "" {
+		payload["machine_id"] = lf.MachineID
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	return b
+}
+
+// buildSignedLicenseFile constructs a licenseFile signed with ML-DSA-65 under a
+// throwaway root installed for the duration of the test.
 func buildSignedLicenseFile(t *testing.T, tier string, expiresIn time.Duration) licenseFile {
 	t.Helper()
+	priv := useTestAPIKeyRoot(t)
 
 	lf := licenseFile{
 		LicenseKey: "KHRPA-TEST-0000-0000-0001",
@@ -30,22 +86,7 @@ func buildSignedLicenseFile(t *testing.T, tier string, expiresIn time.Duration) 
 		MachineID:  "",
 	}
 
-	// Reproduce the exact payload that verifySignature() builds.
-	payload := map[string]string{
-		"license_key": lf.LicenseKey,
-		"tier":        lf.Tier,
-		"customer_id": lf.CustomerID,
-		"issued_at":   lf.IssuedAt,
-		"expires_at":  lf.ExpiresAt,
-		"version":     lf.Version,
-		"algorithm":   lf.Algorithm,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	mac := hmac.New(sha256.New, embeddedPublicKey)
-	mac.Write(payloadJSON)
-	lf.Signature = base64.StdEncoding.EncodeToString(mac.Sum(nil))
-
+	signLicenseFile(t, &lf, priv)
 	return lf
 }
 
@@ -231,7 +272,8 @@ func TestSlugForTier(t *testing.T) {
 
 // TestGenerateSignedAPIKey tests the programmatic generation of API keys.
 func TestGenerateSignedAPIKey(t *testing.T) {
-	key, err := GenerateSignedAPIKey(nil, TierPro, "cus_test_123", time.Now().Add(30*24*time.Hour), "")
+	priv := useTestAPIKeyRoot(t)
+	key, err := GenerateSignedAPIKey(priv, TierPro, "cus_test_123", time.Now().Add(30*24*time.Hour), "")
 	if err != nil {
 		t.Fatalf("GenerateSignedAPIKey: %v", err)
 	}
@@ -251,23 +293,19 @@ func TestGenerateSignedAPIKey(t *testing.T) {
 // TestValidateAPIKey_RevocationDenylist ensures that a key whose LicenseKey matches
 // a revoked ID (Incident 2026-09-06) is rejected even if mathematically valid.
 func TestValidateAPIKey_RevocationDenylist(t *testing.T) {
-	lf := buildSignedLicenseFile(t, TierMaster, 30*24*time.Hour)
-	lf.LicenseKey = "ce74939c-6af8-4a77-98b6-c9e179255771" // explicitly revoked in revoked.go
-
-	// Resign so signature is genuine
-	payload := map[string]string{
-		"license_key": lf.LicenseKey,
-		"tier":        lf.Tier,
-		"customer_id": lf.CustomerID,
-		"issued_at":   lf.IssuedAt,
-		"expires_at":  lf.ExpiresAt,
-		"version":     lf.Version,
-		"algorithm":   lf.Algorithm,
+	priv := useTestAPIKeyRoot(t)
+	lf := licenseFile{
+		LicenseKey: "ce74939c-6af8-4a77-98b6-c9e179255771", // explicitly revoked in revoked.go
+		Tier:       TierMaster,
+		CustomerID: "test-customer",
+		IssuedAt:   time.Now().UTC().Format(time.RFC3339),
+		ExpiresAt:  time.Now().Add(30 * 24 * time.Hour).UTC().Format(time.RFC3339),
+		Version:    "1",
+		Algorithm:  "ML-DSA-65",
 	}
-	payloadJSON, _ := json.Marshal(payload)
-	mac := hmac.New(sha256.New, embeddedPublicKey)
-	mac.Write(payloadJSON)
-	lf.Signature = base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	// Sign under the trusted test root so the signature is genuine and only the
+	// denylist can reject it.
+	signLicenseFile(t, &lf, priv)
 
 	key, err := EncodeAPIKey(lf)
 	if err != nil {
@@ -286,4 +324,72 @@ func minInt(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// The HMAC issuer is gone: a missing or non-ML-DSA key must be refused rather
+// than silently falling back to a MAC keyed by a file in the repository.
+func TestGenerateSignedAPIKey_RequiresMLDSAKey(t *testing.T) {
+	for _, key := range [][]byte{nil, []byte("not-an-ml-dsa-key"), make([]byte, 32)} {
+		if _, err := GenerateSignedAPIKey(key, TierPro, "cus_x", time.Now().Add(time.Hour), ""); err == nil {
+			t.Errorf("expected an error for a %d-byte signer key", len(key))
+		}
+	}
+}
+
+// A key MAC'd with HMAC-SHA256, as the old webhook issued them, must never
+// validate, whatever MAC key was used.
+func TestValidateAPIKey_RejectsLegacyHMACKey(t *testing.T) {
+	useTestAPIKeyRoot(t)
+	lf := licenseFile{
+		LicenseKey: "KHRPA-FORGED-0001",
+		Tier:       TierPharaoh,
+		CustomerID: "attacker",
+		IssuedAt:   time.Now().UTC().Format(time.RFC3339),
+		ExpiresAt:  time.Now().Add(365 * 24 * time.Hour).UTC().Format(time.RFC3339),
+		Version:    "1",
+		Algorithm:  "ML-DSA-65",
+	}
+	mac := hmac.New(sha256.New, []byte("any key at all"))
+	mac.Write(canonicalPayload(t, lf))
+	lf.Signature = base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+	key, err := EncodeAPIKey(lf)
+	if err != nil {
+		t.Fatalf("EncodeAPIKey: %v", err)
+	}
+	_, err = ValidateAPIKey(key)
+	if err == nil {
+		t.Fatal("SECURITY REGRESSION: an HMAC-signed API key validated")
+	}
+	if !strings.Contains(err.Error(), "retired signing method") {
+		t.Errorf("expected a retired-signing-method error, got: %v", err)
+	}
+}
+
+// A well-formed ML-DSA-65 signature from a key other than the pinned root must
+// be rejected.
+func TestValidateAPIKey_RejectsUntrustedSigner(t *testing.T) {
+	useTestAPIKeyRoot(t)
+	_, attackerSK, err := mldsa65.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	attackerPriv, _ := attackerSK.MarshalBinary()
+	lf := licenseFile{
+		LicenseKey: "KHRPA-FORGED-0002",
+		Tier:       TierPharaoh,
+		CustomerID: "attacker",
+		IssuedAt:   time.Now().UTC().Format(time.RFC3339),
+		ExpiresAt:  time.Now().Add(365 * 24 * time.Hour).UTC().Format(time.RFC3339),
+		Version:    "1",
+		Algorithm:  "ML-DSA-65",
+	}
+	signLicenseFile(t, &lf, attackerPriv)
+	key, err := EncodeAPIKey(lf)
+	if err != nil {
+		t.Fatalf("EncodeAPIKey: %v", err)
+	}
+	if _, err := ValidateAPIKey(key); err == nil {
+		t.Fatal("SECURITY REGRESSION: an API key signed by an untrusted ML-DSA key validated")
+	}
 }

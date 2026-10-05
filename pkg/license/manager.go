@@ -266,33 +266,20 @@ func findKhepraFile() (string, error) {
 	return "", fmt.Errorf("no .khepra license file found in ~/.khepra/")
 }
 
-// loadMasterPublicKey returns the ML-DSA-65 master public key bytes.
-// Sources (in priority order):
-//  1. KHEPRA_MASTER_PUBLIC_KEY env var (hex)
-//  2. KHEPRA_MASTER_PUBLIC_KEY_PATH env var
-//  3. ~/.khepra/master.pub
-//  4. keys/offline/OFFLINE_ROOT_KEY.pub (dev/build machine fallback)
+// loadMasterPublicKey returns the license root public key that offline
+// verification trusts. Release builds return only the compiled-in
+// MasterPublicKey: a root that can be swapped through the environment or a
+// file lets anyone who controls either one sign their own licenses.
+// Development builds (-tags devroot) may override it; see
+// master_pubkey_devroot.go.
 func loadMasterPublicKey() ([]byte, error) {
-	if raw := os.Getenv("KHEPRA_MASTER_PUBLIC_KEY"); raw != "" {
-		return hex.DecodeString(strings.TrimSpace(raw))
+	if key, ok, err := devRootOverride(); ok || err != nil {
+		return key, err
 	}
-
-	paths := []string{}
-	if p := os.Getenv("KHEPRA_MASTER_PUBLIC_KEY_PATH"); p != "" {
-		paths = append(paths, p)
+	if len(MasterPublicKey) == 0 {
+		return nil, fmt.Errorf("license: no master public key compiled into this build")
 	}
-	if home, err := os.UserHomeDir(); err == nil {
-		paths = append(paths, filepath.Join(home, ".khepra", "master.pub"))
-	}
-	paths = append(paths, "keys/offline/OFFLINE_ROOT_KEY.pub")
-
-	for _, p := range paths {
-		if data, err := os.ReadFile(p); err == nil {
-			return hex.DecodeString(strings.TrimSpace(string(data)))
-		}
-	}
-
-	return nil, fmt.Errorf("master public key not found; set KHEPRA_MASTER_PUBLIC_KEY or place key at ~/.khepra/master.pub")
+	return MasterPublicKey, nil
 }
 
 func (m *Manager) handleInitialFailure() (*ValidateResponse, error) {

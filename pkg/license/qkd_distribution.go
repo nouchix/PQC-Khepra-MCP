@@ -402,18 +402,18 @@ func InstallLicenseCapsule(capsule *LicenseCapsule, session *EphemeralKyberSessi
 	return &lic, nil
 }
 
-// verifyCapsuleSignature checks the ML-DSA-65 signature on a LicenseCapsule.
-// Falls back to the capsule's embedded signer key when masterPublicKey is empty.
+// verifyCapsuleSignature checks the ML-DSA-65 signature on a LicenseCapsule
+// against the pinned master public key. An empty key is an error: trusting
+// the capsule's own SignerPublicKey would accept any self-signed capsule.
 func verifyCapsuleSignature(capsule *LicenseCapsule, masterPublicKey []byte) error {
 	payload, err := capsule.Bytes()
 	if err != nil {
 		return fmt.Errorf("QKD install: marshal capsule: %w", err)
 	}
-	verifyKey := masterPublicKey
-	if len(verifyKey) == 0 {
-		verifyKey = capsule.SignerPublicKey
+	if len(masterPublicKey) == 0 {
+		return errors.New("QKD install: no pinned master public key — refusing to trust the capsule's own signer key")
 	}
-	valid, err := adinkra.Verify(verifyKey, payload, capsule.Signature)
+	valid, err := adinkra.Verify(masterPublicKey, payload, capsule.Signature)
 	if err != nil {
 		return fmt.Errorf("QKD install: capsule signature error: %w", err)
 	}

@@ -25,8 +25,6 @@
 package license
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -36,17 +34,17 @@ import (
 
 	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 	"github.com/google/uuid"
-
-	_ "embed"
 )
 
-// ---------------------------------------------------------------------------
-// Embedded public key — replace with actual ML-DSA-65 public key bytes
-// generated via: khepra-admin keygen --algorithm ml-dsa-65
-// ---------------------------------------------------------------------------
+// apiKeyTrustedRoot returns the public key that API-key signatures must verify
+// under. It is the compiled-in MasterPublicKey; tests substitute a throwaway
+// key. Nothing at runtime (environment, files) can change it.
+var apiKeyTrustedRoot = func() []byte { return MasterPublicKey }
 
-//go:embed keys/khepra_signing.pub
-var embeddedPublicKey []byte
+// legacyHMACSignatureSize is the length of the HMAC-SHA256 tags that API keys
+// carried before ML-DSA issuance was required. Those keys were MAC'd with a
+// key that shipped in the public repository, so they can no longer be trusted.
+const legacyHMACSignatureSize = 32
 
 // ---------------------------------------------------------------------------
 // Tier constants for file-based (.adinkhepra) validation.
@@ -349,10 +347,10 @@ func truncate(s string, n int) string {
 // ---------------------------------------------------------------------------
 // Signature verification
 //
-// Dual verification:
-// 1. Post-Quantum: ML-DSA-65 (NIST FIPS 204) verified against MasterPublicKey
-//    pinned in master_pubkey.go (1952 bytes).
-// 2. Fallback: HMAC-SHA256 using embeddedPublicKey for unit tests/fixtures.
+// The signature must be ML-DSA-65 (FIPS 204) and verify under the pinned
+// MasterPublicKey (master_pubkey.go). There is no fallback: the HMAC-SHA256
+// path that used to exist was keyed by a file published in the repository,
+// so anyone could mint a key for any tier.
 // ---------------------------------------------------------------------------
 
 func verifySignature(lf licenseFile) error {
@@ -380,35 +378,32 @@ func verifySignature(lf licenseFile) error {
 		return fmt.Errorf("malformed signature encoding: %w", err)
 	}
 
-	// 1. ML-DSA-65 verification against MasterPublicKey (offline, zero egress)
-	if len(MasterPublicKey) == mldsa65.PublicKeySize && len(sig) == mldsa65.SignatureSize {
-		var pk mldsa65.PublicKey
-		pk.Unpack((*[mldsa65.PublicKeySize]byte)(MasterPublicKey))
-		if mldsa65.Verify(&pk, payloadJSON, nil, sig) {
-			return nil
-		}
+	if len(sig) == legacyHMACSignatureSize {
+		return fmt.Errorf("this key was issued with a retired signing method and is no longer accepted; " +
+			"unset KHEPRA_LICENSE_KEY to run as Community, or request a new key")
 	}
 
-	// 2. Fallback HMAC verification for legacy/unit tests
-	if len(embeddedPublicKey) > 0 {
-		mac := hmac.New(sha256.New, embeddedPublicKey)
-		mac.Write(payloadJSON)
-		expected := mac.Sum(nil)
-
-		if hmac.Equal(sig, expected) {
-			return nil
-		}
+	root := apiKeyTrustedRoot()
+	if len(root) != mldsa65.PublicKeySize || len(sig) != mldsa65.SignatureSize {
+		return fmt.Errorf("signature mismatch")
 	}
-
-	return fmt.Errorf("signature mismatch")
+	var pk mldsa65.PublicKey
+	pk.Unpack((*[mldsa65.PublicKeySize]byte)(root))
+	if !mldsa65.Verify(&pk, payloadJSON, nil, sig) {
+		return fmt.Errorf("signature mismatch")
+	}
+	return nil
 }
 
 // GenerateSignedAPIKey creates a signed API key string formatted as kphr_{tier}_{base64url}.
-// If signerKey is 4032 bytes (mldsa65.PrivateKeySize), it signs with ML-DSA-65 (FIPS 204).
-// Otherwise, it falls back to HMAC-SHA256 with signerKey (or embeddedPublicKey if empty).
+// signerKey must be a packed ML-DSA-65 private key (mldsa65.PrivateKeySize bytes)
+// whose public half is the root that validators trust; anything else is an error.
 func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time.Time, machineID string) (string, error) {
 	if !isValidTier(tier) {
 		return "", fmt.Errorf("license: invalid tier %q", tier)
+	}
+	if len(signerKey) != mldsa65.PrivateKeySize {
+		return "", fmt.Errorf("license: an ML-DSA-65 private key is required to issue API keys (got %d bytes)", len(signerKey))
 	}
 
 	licenseKey := "KHRPA-" + strings.ToUpper(uuid.New().String()[:8]) + "-" + strings.ToUpper(uuid.New().String()[:8])
@@ -441,21 +436,13 @@ func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time
 		return "", fmt.Errorf("license: marshal payload: %w", err)
 	}
 
-	if len(signerKey) == mldsa65.PrivateKeySize {
-		var sk mldsa65.PrivateKey
-		sk.Unpack((*[mldsa65.PrivateKeySize]byte)(signerKey))
-		sig := make([]byte, mldsa65.SignatureSize)
-		mldsa65.SignTo(&sk, payloadJSON, nil, false, sig)
-		lf.Signature = base64.StdEncoding.EncodeToString(sig)
-	} else {
-		key := signerKey
-		if len(key) == 0 {
-			key = embeddedPublicKey
-		}
-		mac := hmac.New(sha256.New, key)
-		mac.Write(payloadJSON)
-		lf.Signature = base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	var sk mldsa65.PrivateKey
+	sk.Unpack((*[mldsa65.PrivateKeySize]byte)(signerKey))
+	sig := make([]byte, mldsa65.SignatureSize)
+	if err := mldsa65.SignTo(&sk, payloadJSON, nil, true, sig); err != nil {
+		return "", fmt.Errorf("license: sign API key: %w", err)
 	}
+	lf.Signature = base64.StdEncoding.EncodeToString(sig)
 
 	return EncodeAPIKey(lf)
 }

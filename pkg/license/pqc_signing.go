@@ -192,10 +192,14 @@ func VerifyLicense(shuBreath *ShuBreathSignature, trustedPublicKey []byte) (bool
 	}
 
 	// ─── Verify Public Key Matches Trusted Root ──────────────────────────────
-	if len(trustedPublicKey) > 0 {
-		if !bytesEqual(shuBreath.SignerPublicKey, trustedPublicKey) {
-			return false, fmt.Errorf("signer public key does not match trusted root CA. Potential forgery detected.")
-		}
+	// A trusted root is mandatory. Without one, the signature below would be
+	// checked against the signer key the license carries, so any self-signed
+	// license would pass.
+	if len(trustedPublicKey) == 0 {
+		return false, fmt.Errorf("no trusted root public key supplied; refusing to verify against the license's own signer key")
+	}
+	if !bytesEqual(shuBreath.SignerPublicKey, trustedPublicKey) {
+		return false, fmt.Errorf("signer public key does not match trusted root CA. Potential forgery detected.")
 	}
 
 	// ─── Layer 2: Verify ML-DSA-65 (Dilithium3) Signature ────────────────────
