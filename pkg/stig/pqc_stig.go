@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -91,20 +92,34 @@ func (v *Validator) checkPQC_010010(result *ValidationResult, checker *SystemChe
 		CheckedAt:   time.Now(),
 	}
 
-	// Scan for approved algorithm references in the target path
-	approved := []string{"ml-kem", "mlkem", "kyber", "ml-dsa", "mldsa", "dilithium", "slh-dsa", "slhdsa", "sphincs"}
-	deprecated := []string{"rainbow", "picnic", "sike", "ntru-prime-fail", "luov", "dulp", "gui"}
+	// Only the FIPS 203/204/205 names count as approved. Pre-standard
+	// CRYSTALS-Kyber, CRYSTALS-Dilithium and SPHINCS+ are matched by identifier
+	// (import paths and parameter-set names), so prose that merely mentions
+	// them is not flagged. They are not interoperable with the standards.
+	approved := []string{"ml-kem", "mlkem", "ml-dsa", "mldsa", "slh-dsa", "slhdsa"}
+	preStandard := []string{"kem/kyber", "kyber512", "kyber768", "kyber1024",
+		"sign/dilithium", "dilithium2", "dilithium3", "dilithium5", "sphincs"}
+	// "gui" was dropped from this list: as a substring it matched "guide" and
+	// "GUI" in ordinary source.
+	deprecated := []string{"rainbow", "picnic", "sike", "ntru-prime-fail", "luov", "dulp"}
 
 	hasPQC, hasDeprecated, deprecatedFound := scanSourceForAlgorithms(v.targetPath, approved, deprecated)
+	preStandardFound := scanSourceForPresence(v.targetPath, preStandard)
+	sort.Strings(preStandardFound)
 
 	if hasDeprecated {
 		finding.Status = "Fail"
 		finding.Actual = fmt.Sprintf("Deprecated/broken PQC algorithms detected: %s", strings.Join(deprecatedFound, ", "))
 		finding.Expected = "Only NIST-approved PQC algorithms (FIPS 203/204/205)"
-		finding.Remediation = "Immediately remove references to: " + strings.Join(deprecatedFound, ", ") + ". Migrate to ML-DSA-65 (signing) and ML-KEM-768 (key encapsulation)."
+		finding.Remediation = "Immediately remove references to: " + strings.Join(deprecatedFound, ", ") + ". Migrate to ML-KEM (FIPS 203) and ML-DSA (FIPS 204); CNSA 2.0 systems require ML-KEM-1024 and ML-DSA-87."
+	} else if len(preStandardFound) > 0 {
+		finding.Status = "Fail"
+		finding.Actual = fmt.Sprintf("Pre-standard PQC detected: %s", strings.Join(preStandardFound, ", "))
+		finding.Expected = "Only NIST-standardized PQC algorithms (FIPS 203/204/205)"
+		finding.Remediation = "Migrate CRYSTALS-Kyber to ML-KEM (FIPS 203), CRYSTALS-Dilithium to ML-DSA (FIPS 204) and SPHINCS+ to SLH-DSA (FIPS 205). The pre-standard versions are not interoperable with the standards. CNSA 2.0 systems require ML-KEM-1024 and ML-DSA-87."
 	} else if hasPQC {
 		finding.Status = "Pass"
-		finding.Actual = "NIST-approved PQC algorithms detected. No deprecated algorithms found."
+		finding.Actual = "NIST-standardized PQC algorithms detected. No pre-standard or deprecated algorithms found."
 		finding.Expected = "NIST-approved PQC algorithms only"
 		finding.Remediation = "N/A"
 	} else {
@@ -112,7 +127,7 @@ func (v *Validator) checkPQC_010010(result *ValidationResult, checker *SystemChe
 		finding.Status = "Manual Review Required"
 		finding.Actual = "No PQC algorithm references detected in source. System may rely entirely on classical crypto."
 		finding.Expected = "NIST-approved PQC algorithms present"
-		finding.Remediation = "Assess whether this system processes CUI or classified data. If so, begin ML-KEM-768 + ML-DSA-65 migration per CNSA 2.0 timeline."
+		finding.Remediation = "Assess whether this system processes CUI or classified data. If so, begin migration to ML-KEM-1024 and ML-DSA-87 per the CNSA 2.0 timeline."
 	}
 
 	_ = checker
@@ -124,8 +139,8 @@ func (v *Validator) checkPQC_010020(result *ValidationResult, checker *SystemChe
 	_ = checker
 	finding := Finding{
 		ID:          "PQC-010020",
-		Title:       "ML-DSA (Dilithium) signing keys SHALL meet Level 3 minimum (2,592-byte public key)",
-		Description: "ML-DSA-44 (Level 2) is insufficient for systems handling CUI. ML-DSA-65 (Level 3) provides 128-bit classical + quantum security and is CNSA 2.0 compliant.",
+		Title:       "ML-DSA signing keys SHALL meet security category 3 minimum (ML-DSA-65, 1,952-byte public key)",
+		Description: "ML-DSA-44 (category 2) is insufficient for systems handling CUI under this control set. ML-DSA-65 (category 3) is the minimum here; CNSA 2.0 national security systems require ML-DSA-87 (category 5).",
 		Severity:    SeverityCAT1,
 		References:  []string{"NIST FIPS 204", "CNSA 2.0", "NSA CSA Quantum Resistant Algorithms"},
 		CheckedAt:   time.Now(),
@@ -164,8 +179,8 @@ func (v *Validator) checkPQC_010020(result *ValidationResult, checker *SystemChe
 func (v *Validator) checkPQC_010030(result *ValidationResult, checker *SystemChecker) {
 	finding := Finding{
 		ID:          "PQC-010030",
-		Title:       "ML-KEM (Kyber) encapsulation keys SHALL meet Level 3 minimum (Kyber-768 / ML-KEM-768)",
-		Description: "ML-KEM-512 (Level 1) is insufficient for CUI systems. ML-KEM-768 (Level 3) provides 128-bit quantum security and is the CNSA 2.0 baseline.",
+		Title:       "ML-KEM encapsulation keys SHALL meet security category 3 minimum (ML-KEM-768)",
+		Description: "ML-KEM-512 (category 1) is insufficient for CUI systems under this control set. ML-KEM-768 (category 3) is the minimum here; CNSA 2.0 national security systems require ML-KEM-1024 (category 5).",
 		Severity:    SeverityCAT1,
 		References:  []string{"NIST FIPS 203", "CNSA 2.0"},
 		CheckedAt:   time.Now(),
@@ -245,7 +260,7 @@ func (v *Validator) checkPQC_020010(result *ValidationResult, checker *SystemChe
 	finding := Finding{
 		ID:          "PQC-020010",
 		Title:       "Systems SHOULD implement hybrid cryptography (classical + PQC) during transition period",
-		Description: "NSA CNSA 2.0 recommends hybrid crypto (e.g., ECDH + ML-KEM-768) during the 2024-2030 transition window to protect against implementation flaws in new PQC algorithms.",
+		Description: "Hybrid key exchange (for example X25519MLKEM768 in TLS 1.3) guards against implementation flaws in new PQC code during the 2024-2030 transition. NSA permits hybrid but does not require it; the CNSA 2.0 end state is ML-KEM-1024.",
 		Severity:    SeverityCAT2,
 		References:  []string{"NSA CNSA 2.0", "IETF draft-ietf-tls-hybrid-design"},
 		CheckedAt:   time.Now(),
@@ -267,7 +282,7 @@ func (v *Validator) checkPQC_020010(result *ValidationResult, checker *SystemChe
 		finding.Status = "Pass"
 		finding.Actual = "Classical and PQC algorithms both present — hybrid mode implied"
 		finding.Expected = "Hybrid crypto during transition period"
-		finding.Remediation = "Consider explicitly using hybrid key exchange (X25519Kyber768) for TLS sessions."
+		finding.Remediation = "Consider hybrid key exchange (X25519MLKEM768, or SecP384r1MLKEM1024 for CNSA 2.0) for TLS sessions. X25519Kyber768 was the pre-standard draft codepoint."
 	} else if hasPQC && !hasClassical {
 		finding.Status = "Pass"
 		finding.Actual = "PQC-only mode — CNSA 2.0 forward-ready posture"
@@ -364,7 +379,7 @@ func (v *Validator) checkPQC_020030(result *ValidationResult, checker *SystemChe
 		finding.Status = "Manual Review Required"
 		finding.Actual = "Cannot verify constant-time implementation via static analysis"
 		finding.Expected = "Constant-time PQC operations"
-		finding.Remediation = "Use cloudflare/circl or filippo.io/mlkem768. Review all crypto comparisons for timing safety."
+		finding.Remediation = "Prefer a validated implementation such as Go's crypto/mlkem (inside the Go FIPS 140-3 module). Review all crypto comparisons for timing safety."
 	}
 
 	_ = checker
