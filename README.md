@@ -4,7 +4,7 @@
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
 [![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-KSCL--1.0_(source--available)-blue?style=for-the-badge)](LICENSE)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
@@ -12,7 +12,7 @@
 **Post-Quantum Cryptographic & Autonomous Flight Recording Kernel for AI Agents.**
 
 Air-gappable. Zero cloud telemetry. Zero token overhead.  
-Provides ML-DSA-65 (FIPS 204) post-quantum signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Completely free and open-source under Apache 2.0.
+Provides ML-DSA-65 (FIPS 204) post-quantum signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Source-available under the KHEPRA Sovereign Public & Commercial License (KSCL-1.0): free for community and evaluation use; commercial production use requires a subscription. See [LICENSE](LICENSE).
 
 > **Patent Reference:** U.S. Prov. App. No. 63/942,886 (KHEPRA Protocol & Post-Quantum Evidence Weave)  
 > **Corporate Identity:** SecRed Knowledge Inc. (operating as NouchiX) — Delaware C-Corp (EIN 99-0529252), SDVOSB (Active Self-Certified / SBA VetCert in review), Active Secret Clearance.  
@@ -27,7 +27,7 @@ To ensure clean commercial boundaries for partners, defense contractors, and dev
 
 | Layer | Product | License | Scope & Capabilities |
 |---|---|---|---|
-| **Layer 1** | **PQC-Khepra-MCP** (This Repo) | **Apache 2.0** (Open Source) | **Free Community Kernel:** ML-DSA-65 (FIPS 204) post-quantum signing, client-side autonomous flight logging, agent registration, local host/asset enumeration, and threat lookup. **Zero STIG or compliance databases.** |
+| **Layer 1** | **PQC-Khepra-MCP** (This Repo) | **KSCL-1.0** (source-available) | **Free Community Kernel:** ML-DSA-65 (FIPS 204) post-quantum signing, client-side autonomous flight logging, agent registration, local host/asset enumeration, and threat lookup. **Zero STIG or compliance databases.** |
 | **Layer 2** | **KHEPRA Trust OS (KTOS)** | **Commercial** ($499/mo to $250K/yr) | **Sovereign Proof-and-Actuation OS:** 36,195 cross-framework compliance mappings, live DISA STIGViewer API v2 batch crosswalks, CMMC Level 2/3 assessments, ERT multi-package engines, automated C3PAO evidence packages (OSCAL, DISA CKLB, signed POA&Ms), and bounded autonomous host remediation. |
 
 ---
@@ -51,7 +51,7 @@ PQC-Khepra-MCP connects your AI assistant (Claude Code, Cursor, Antigravity, Cli
 - **Autonomous Flight Recording:** Automatically logs all agent tool invocations, inputs, and outcomes to tamper-evident NDJSON hash chains.
 - **Local Host & Asset Discovery:** Enumerate system runtimes, network interfaces, and environment properties locally.
 - **Air-Gap & Sovereign Operation:** Runs 100% offline with zero cloud telemetry or egress calls.
-- **Permissive Apache 2.0 License:** Safe for commercial embed, partner integrations, and enterprise deployment.
+- **KSCL-1.0 License:** free community and evaluation use. Commercial production use, enterprise deployment and managed-service hosting require a commercial agreement; see [LICENSE](LICENSE).
 
 ## Quickstart — Hosted Endpoint (Zero Install)
 
