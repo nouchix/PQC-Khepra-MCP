@@ -272,6 +272,14 @@ func findKhepraFile() (string, error) {
 // file lets anyone who controls either one sign their own licenses.
 // Development builds (-tags devroot) may override it; see
 // master_pubkey_devroot.go.
+// TrustedMasterPublicKey returns the license root this build trusts: the
+// compiled-in MasterPublicKey, or a development override in -tags devroot
+// builds. Commands outside this package use it instead of loading keys from
+// the environment or the filesystem themselves.
+func TrustedMasterPublicKey() ([]byte, error) {
+	return loadMasterPublicKey()
+}
+
 func loadMasterPublicKey() ([]byte, error) {
 	if key, ok, err := devRootOverride(); ok || err != nil {
 		return key, err
