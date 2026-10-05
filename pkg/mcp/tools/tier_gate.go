@@ -37,10 +37,7 @@ var tierRank = map[string]int{
 // response. They remain functional for authenticated Enterprise/Master tier
 // users via stdio transport or licensed HTTP calls.
 // Ref: AGENTS.md Non-Negotiable #3.
-var ClassifiedTools = map[string]bool{
-	"identity_shroud":  true,
-	"identity_epiphany": true,
-}
+var ClassifiedTools = map[string]bool{}
 
 // IsClassified returns true if the tool must be hidden from public discovery.
 func IsClassified(toolName string) bool {
@@ -281,7 +278,6 @@ func upgradeURL() string {
 //   attack_graph
 //   port_scan, vuln_scan, secret_scan, container_scan, compliance_scan, packet_analyze
 //   drbc_backup, drbc_restore
-//   identity_shroud, identity_epiphany
 //   dag_write, dag_audit
 //   quantum_optimize
 //   kasa_start
@@ -359,8 +355,6 @@ var ToolTierMap = map[string]string{
 	"container_scan":          TierEnterprise,
 	"compliance_scan":         TierEnterprise,
 	"packet_analyze":          TierEnterprise,
-	"identity_shroud":         TierEnterprise,
-	"identity_epiphany":       TierEnterprise,
 	"dag_write":               TierEnterprise,
 	"dag_audit":               TierEnterprise,
 	"quantum_optimize":        TierEnterprise,
@@ -383,8 +377,6 @@ func GateForTool(toolName string) *GatedResponse {
 		reason = "Incident Response tools require Enterprise tier for SOC-grade IR workflows"
 	case strings.HasPrefix(toolName, "drbc_"):
 		reason = "Disaster Recovery/Business Continuity requires Enterprise tier"
-	case strings.HasPrefix(toolName, "identity_"):
-		reason = "OPSEC tools require Enterprise tier for operational security"
 	case strings.Contains(toolName, "export") || strings.Contains(toolName, "attestation"):
 		reason = "Evidence export and attestation require Pilot tier for C3PAO-ready packages"
 	case strings.Contains(toolName, "scan") && minTier == TierEnterprise:

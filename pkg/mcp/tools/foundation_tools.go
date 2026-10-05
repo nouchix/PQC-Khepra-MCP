@@ -9,7 +9,6 @@
 //   - HandleDAGWrite       : Write an attested node to the shared DAG
 //   - HandleDAGQuery       : Query DAG history by action/symbol/time
 //   - HandleDAGAudit       : Full DAG chain integrity audit
-//   - HandleIdentityShroud : Shroud agent identity (Nkyinkyim encoding)
 //   - HandleDRBCBackup     : Encrypted disaster recovery backup (DRBC genesis)
 package tools
 
@@ -23,7 +22,6 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/drbc"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/nkyinkyim"
 )
 
 // ── PQC handlers ─────────────────────────────────────────────────────────────
@@ -240,49 +238,6 @@ func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 		"warnings":     warnings,
 		"audited_at":   lorentz.StampNow(),
 	}, warnings, nil
-}
-
-// HandleIdentityShroud encodes a strand (identity token, API key, or agent fingerprint)
-// using the Nkyinkyim mystery encoding for OPSEC identity protection.
-func HandleIdentityShroud(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	if gate := GateForTool("identity_shroud"); gate != nil {
-		return gate, nil, nil
-	}
-	strand, _ := call.Args["strand"].(string)
-	if strand == "" {
-		return nil, nil, fmt.Errorf("identity_shroud: strand is required")
-	}
-
-	shrouded := nkyinkyim.Shroud([]byte(strand))
-
-	return map[string]any{
-		"shrouded":    shrouded,
-		"symbol":      "Nkyinkyim",
-		"algorithm":   "Nkyinkyim-Mystery-v1",
-		"shrouded_at": lorentz.StampNow(),
-	}, nil, nil
-}
-
-// HandleIdentityEpiphany decodes a Nkyinkyim-shrouded strand back to plaintext.
-func HandleIdentityEpiphany(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	if gate := GateForTool("identity_epiphany"); gate != nil {
-		return gate, nil, nil
-	}
-	verse, _ := call.Args["verse"].(string)
-	if verse == "" {
-		return nil, nil, fmt.Errorf("identity_epiphany: verse is required")
-	}
-
-	revealed, err := nkyinkyim.Epiphany(verse)
-	if err != nil {
-		return nil, nil, fmt.Errorf("identity_epiphany: %w", err)
-	}
-
-	return map[string]any{
-		"revealed":    string(revealed),
-		"symbol":      "Nkyinkyim",
-		"revealed_at": lorentz.StampNow(),
-	}, nil, nil
 }
 
 // ── DRBC handlers ─────────────────────────────────────────────────────────────
