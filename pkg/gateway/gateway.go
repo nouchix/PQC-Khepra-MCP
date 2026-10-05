@@ -139,10 +139,10 @@ func (g *Gateway) configureTLS() error {
 			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 		},
 		PreferServerCipherSuites: true,
-		CurvePreferences: []tls.CurveID{
-			tls.X25519,
-			tls.CurveP384,
-		},
+		// CurvePreferences is deliberately left unset. An explicit list replaces
+		// Go's defaults, which include the hybrid post-quantum key exchanges
+		// (X25519MLKEM768, SecP256r1MLKEM768, SecP384r1MLKEM1024); pinning
+		// [X25519, P-384] made every handshake classical-only.
 	}
 
 	// Configure mTLS if required
