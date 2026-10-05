@@ -307,17 +307,18 @@ func licenseInstallCmd(args []string) {
 		fatal("parse session key", err)
 	}
 
-	var masterPubKey []byte
+	masterPubKey := findMasterPubKey()
 	if masterPubKeyPath != "" {
-		masterPubKey = findMasterPubKey()
-		// Override with explicit path if provided
+		// An explicit root is a development-only override: a release binary
+		// that accepted one would install capsules signed by any key.
+		if !license.DevOverridesEnabled() {
+			fatal("master pub key", fmt.Errorf("an explicit master public key is only accepted by development (-tags devroot) builds"))
+		}
 		data, err := os.ReadFile(masterPubKeyPath)
 		if err != nil {
 			fatal("read master pub key", err)
 		}
 		masterPubKey = data
-	} else {
-		masterPubKey = findMasterPubKey()
 	}
 
 	lic, err := license.InstallLicenseCapsule(capsule, &session, masterPubKey, outputPath, sessionPath)

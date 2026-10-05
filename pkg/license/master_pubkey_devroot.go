@@ -58,3 +58,10 @@ func decodeDevRoot(s string) ([]byte, error) {
 	}
 	return key, nil
 }
+
+// DevOverridesEnabled reports whether development-only license overrides
+// (ADINKHEPRA_DEV, explicit root key paths) are compiled in. They are in
+// -tags devroot builds only.
+func DevOverridesEnabled() bool {
+	return true
+}

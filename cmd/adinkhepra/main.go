@@ -278,17 +278,13 @@ func resolvePath(relPath string) string {
 
 // EnforceLicense checks for valid license or panics
 func enforceLicense() {
-	if os.Getenv("ADINKHEPRA_DEV") == "1" {
+	if license.DevOverridesEnabled() && os.Getenv("ADINKHEPRA_DEV") == "1" {
 		return
 	}
 
 	pubKey := findMasterPubKey()
 	if pubKey == nil {
-		fmt.Println("FATAL: AdinKhepra Master Key not found. Checked:")
-		fmt.Println("  - ADINKHEPRA_MASTER_KEY_PUB env var")
-		fmt.Printf(listBulletMsg, resolvePath("keys/offline/OFFLINE_ROOT_KEY.pub"))
-		fmt.Printf(listBulletMsg, filepath.Join(getExeDir(), masterPubKeyFile))
-		fmt.Printf("  - %s (cwd)\n", masterPubKeyFile)
+		fmt.Println("FATAL: no license root public key is compiled into this build.")
 		fmt.Println("Integrity check failed.")
 		os.Exit(1)
 	}
@@ -310,31 +306,15 @@ func enforceLicense() {
 	fmt.Printf("[ADINKHEPRA] Licensed to: %s (Expires: %s)\n", claims.Tenant, claims.Expiry.Format("2006-01-02"))
 }
 
+// findMasterPubKey returns the license root this binary trusts. Release builds
+// trust only the compiled-in key; the environment and files on disk cannot
+// replace it (see license.TrustedMasterPublicKey).
 func findMasterPubKey() []byte {
-	exeDir := getExeDir()
-	keyPaths := []string{
-		os.Getenv("ADINKHEPRA_MASTER_KEY_PUB"),
-		resolvePath("keys/offline/OFFLINE_ROOT_KEY.pub"),
-		filepath.Join(exeDir, masterPubKeyFile),
-		masterPubKeyFile,
+	key, err := license.TrustedMasterPublicKey()
+	if err != nil {
+		return nil
 	}
-
-	for _, path := range keyPaths {
-		if path == "" {
-			continue
-		}
-		keyData, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		// Try hex-decoding first
-		decoded, err := hex.DecodeString(strings.TrimSpace(string(keyData)))
-		if err == nil {
-			return decoded
-		}
-		return keyData
-	}
-	return nil
+	return key
 }
 
 func findLicenseFile() string {
