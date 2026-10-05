@@ -117,7 +117,7 @@ Expected: A JSON-RPC response on stdout with `serverInfo.name: "khepra-mcp"`.
 - **Forensics**: `forensic_snapshot`, `fim_baseline`, `audit_dag_integrity`
 - **Scanning**: `enumerate_host`, `fingerprint_device`, `port_scan`, `vuln_scan`, `secret_scan`, `container_scan`, `sbom_generate`
 - **Flight Recorder**: `agent_record`, `flight_record`, `flight_export`
-- **OPSEC**: `phantom_stealth`, `identity_shroud`, `identity_epiphany`
+- **OPSEC**: `identity_shroud`, `identity_epiphany`
 - **Disaster Recovery**: `drbc_backup`, `drbc_restore`
 
 ## Troubleshooting

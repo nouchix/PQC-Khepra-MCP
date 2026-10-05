@@ -11,7 +11,6 @@
 //	pkg/forensics  → Evidence collection (Imhotep's Eye)
 //	pkg/drbc       → Disaster Recovery / Business Continuity
 //	pkg/ert        → Evidence Recording Token / threat analysis
-//	pkg/phantom    → Stealth network operations
 //	pkg/fingerprint → Behavioral/device fingerprinting
 //	pkg/dag        → Tamper-evident audit chain
 //	pkg/adinkra    → PQC signing for all evidence
