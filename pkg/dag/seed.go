@@ -220,7 +220,7 @@ func SeedDemoNodes(store Store, cfg SeedConfig) int {
 			"stig_id":    "KHEPRA-PQC-001",
 			"control":    "SC-13",
 			"framework":  "NIST-800-53",
-			"check":      "PQC cryptography active (ML-DSA-65 + ML-KEM-768)",
+			"check":      "PQC cryptography active (ML-DSA-65 + Kyber-1024)",
 			"status":     "PASS",
 			"finding":    "ML-DSA-65 Dilithium3 signatures verified on all DAG nodes",
 			"cmmc_map":   "CMMC.SC.L2-3.13.10",
