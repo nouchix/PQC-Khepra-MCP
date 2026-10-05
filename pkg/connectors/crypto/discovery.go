@@ -510,7 +510,7 @@ func suggestMigrationPath(alg string, usage CryptoUsageType) string {
 		if usage == UsageIdentity || usage == UsageIntegrityCheck {
 			return "Dilithium3 (NIST FIPS 204)"
 		}
-		return "Kyber-1024 (NIST FIPS 203)"
+		return "Kyber-1024 (pre-standard CRYSTALS-Kyber, not FIPS 203)"
 	case "AES":
 		return "No migration needed (AES-256 is quantum-safe)"
 	case "TLS":

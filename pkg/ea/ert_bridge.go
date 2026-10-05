@@ -528,7 +528,7 @@ func generateRecommendations(findings []sca.EnrichedFinding, summary RiskSummary
 
 	// PQC readiness
 	if constraints.MinSecurityBits >= 256 && constraints.QuantumTimeline == "CNSA-2.0" {
-		recs = append(recs, "PQC: CNSA-2.0 timeline active — ensure all cryptographic operations use ML-DSA-65/ML-KEM-1024 minimum.")
+		recs = append(recs, "PQC: CNSA-2.0 timeline active — CNSA 2.0 requires ML-KEM-1024 and ML-DSA-87 for national security systems.")
 	}
 
 	// Default recommendation if nothing alarming
