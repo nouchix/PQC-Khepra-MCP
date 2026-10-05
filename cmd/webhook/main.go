@@ -513,23 +513,13 @@ func handleCheckoutComplete(event StripeEvent) error {
 		}
 	}
 
-	// If MCP tier identified, issue signed license key
+	// If MCP tier identified, route the license key to manual issuance.
+	// Automated issuance is paused until an ML-DSA issuer key is provisioned
+	// for this service: keys are never signed with anything weaker, so the
+	// operator issues this one offline with cmd/issue-license.
 	if mcpTier != "" {
-		expiry := time.Now().AddDate(0, 1, 3) // 1 month + 3 days grace
-		if session.Metadata["interval"] == "year" {
-			expiry = time.Now().AddDate(1, 0, 7) // 1 year + 7 days grace
-		}
-		machineID := session.Metadata["machine_id"]
-
-		key, err := license.GenerateSignedAPIKey(nil, mcpTier, email, expiry, machineID)
-		if err != nil {
-			log.Printf("[webhook] failed to generate license key for %s: %v", sanitizeLog(email), err)
-		} else {
-			log.Printf("[webhook] generated %s license key for %s", mcpTier, sanitizeLog(email))
-			if err := sendLicenseKeyEmail(email, name, mcpTier, key, expiry); err != nil {
-				log.Printf("[webhook] failed to email license key to %s: %v", sanitizeLog(email), err)
-			}
-		}
+		log.Printf("[webhook] %s license key for %s requires manual issuance", mcpTier, sanitizeLog(email))
+		sendManualLicenseIssuanceAlert(email, mcpTier, session.ID)
 	}
 
 	// If this checkout includes a compliance certificate (e.g. from `asaf certify` or certify tier)
@@ -764,6 +754,30 @@ We apologize for the inconvenience.
 — NouchiX / Sacred Knowledge Inc
 `, sanitizeHeader(email), subject, sanitizeHeader(name), sanitizeHeader(sessionID))
 	return sendMail([]string{email, cfg.NotifyEmail}, subject, body)
+}
+
+// sendManualLicenseIssuanceAlert tells the operator a paid checkout needs a
+// license key issued by hand.
+func sendManualLicenseIssuanceAlert(customerEmail, tier, sessionID string) {
+	safeEmail := sanitizeHeader(customerEmail)
+	safeTier := sanitizeHeader(tier)
+	safeSession := sanitizeHeader(sessionID)
+	subject := fmt.Sprintf("ACTION: issue %s license key for %s", safeTier, safeEmail)
+	body := fmt.Sprintf(`From: ASAF Webhook <webhook@nouchix.com>
+To: %s
+Subject: %s
+
+A paid checkout needs a license key issued manually:
+  Email:   %s
+  Tier:    %s
+  Session: %s
+
+Automated key issuance is paused. Issue the key with cmd/issue-license and
+send it to the customer.
+`, cfg.NotifyEmail, subject, safeEmail, safeTier, safeSession)
+	if err := sendMail([]string{cfg.NotifyEmail}, subject, body); err != nil {
+		log.Printf("[webhook] failed to send manual-issuance alert for session %s: %v", sanitizeLog(sessionID), err)
+	}
 }
 
 func sendOperatorNotification(customerEmail, sessionID string, amountCents int64) {

@@ -256,12 +256,13 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 		return fmt.Errorf("sovereign: canonical bytes: %w", err)
 	}
 
-	pubKey := masterPublicKey
-	if len(pubKey) == 0 {
-		pubKey = lic.SignerPublicKey
+	// The license must verify under a pinned root. Never fall back to
+	// lic.SignerPublicKey: a self-signed license verifies against its own key.
+	if len(masterPublicKey) == 0 {
+		return errors.New("sovereign: no pinned master public key — refusing to trust the license's own signer key")
 	}
 
-	valid, err := adinkra.Verify(pubKey, payload, lic.Signature)
+	valid, err := adinkra.Verify(masterPublicKey, payload, lic.Signature)
 	if err != nil {
 		return fmt.Errorf("sovereign: signature verification error: %w", err)
 	}

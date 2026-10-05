@@ -41,10 +41,10 @@ func TestVerifySovereignLicense_RejectsForgedSelfSignedLicense(t *testing.T) {
 		t.Fatalf("attacker IssueLicense: %v", err)
 	}
 
-	// Without pinning, this passes: it falls back to forged.SignerPublicKey,
-	// which is exactly the key that signed it. This is the bug in isolation.
-	if err := VerifySovereignLicense(forged, nil); err != nil {
-		t.Fatalf("sanity check failed: a license should verify against its own embedded key: %v", err)
+	// With no pinned key, verification must fail rather than fall back to
+	// forged.SignerPublicKey — the key that signed it. That fallback was the bug.
+	if err := VerifySovereignLicense(forged, nil); err == nil {
+		t.Fatal("expected verification with no pinned key to reject a self-signed license")
 	}
 
 	// Pinned against the REAL authority's key, the forged license must fail.
