@@ -297,17 +297,24 @@ func main() {
 	// Imhotep remediation approval
 	stargate.NewImhotepHandlers().Register(mux)
 
-	// Blackhole VPN
-	ebg := policy.NewEgressBoundaryGuard(
-		[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
-		dagStore,
-		nil,
-		nil,
-		nil,
-		keyID,
-		privKey,
-	)
-	stargate.NewBlackholeHandlers(hubExtAddr, ebg).Register(mux)
+	// Blackhole VPN — prototype. Enrollment does not yet perform a real key
+	// exchange, heartbeats are not decrypted and /dispatch is unauthenticated,
+	// so the routes stay off unless explicitly enabled for local testing.
+	if os.Getenv("KHEPRA_BLACKHOLE_PROTOTYPE") == "1" {
+		ebg := policy.NewEgressBoundaryGuard(
+			[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
+			dagStore,
+			nil,
+			nil,
+			nil,
+			keyID,
+			privKey,
+		)
+		stargate.NewBlackholeHandlers(hubExtAddr, ebg).Register(mux)
+		logger.Printf("[BLACKHOLE] WARNING: prototype routes enabled (no key exchange, no auth) — local testing only")
+	} else {
+		logger.Printf("[BLACKHOLE] disabled (prototype; set KHEPRA_BLACKHOLE_PROTOTYPE=1 for local testing)")
+	}
 
 	// Health (Hub-level — MCP has its own at :8444/health)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
