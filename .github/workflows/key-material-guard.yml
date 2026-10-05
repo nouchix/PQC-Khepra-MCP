@@ -1,0 +1,16 @@
+name: Key material guard
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if private keys, sealed artifacts or env files are tracked
+        run: bash scripts/check-no-key-material.sh
