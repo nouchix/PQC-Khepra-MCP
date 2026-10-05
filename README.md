@@ -8,6 +8,7 @@
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
 [![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
+[![TriPentest Certified 92/92](https://img.shields.io/badge/TRIPENTEST-92%2F92_NEUTRALIZED-brightgreen?style=for-the-badge)](https://nouchix.com)
 
 **Post-Quantum Cryptographic & Autonomous Flight Recording Kernel for AI Agents.**
 
@@ -751,7 +752,7 @@ Developed by SecRed Knowledge Inc. dba NouchiX, Albany, NY.
 ## 📋 TC-25 Operator Manual & Developer Runbook
 
 PQC-Khepra-MCP is the open-core agent channel of the KHEPRA Trust OS (KTOS) architecture:
-- **[TC-25 Technical Operator & Maintenance Manual](https://github.com/nouchix/khepra-trust-os/blob/main/docs/TC-25_KTOS_OPERATOR_MANUAL.md)** — Training Circular No. 25-KTOS-001 covering Four-Layer Sovereign Architecture, Tactical RF anti-jamming suite, Windows Event Viewer hierarchy (IDs 1001–1050), and Dual-Engine Adversarial Neutralization (58/58 Verified).
+- **[TC-25 Technical Operator & Maintenance Manual](https://github.com/nouchix/khepra-trust-os/blob/main/docs/TC-25_KTOS_OPERATOR_MANUAL.md)** — Training Circular No. 25-KTOS-001 covering Four-Layer Sovereign Architecture, Tactical RF anti-jamming suite, Windows Event Viewer hierarchy (IDs 1001–1050), and Triple-Engine Adversarial Neutralization (92/92 Verified · 100% Zero-Bypass).
 - **[Developer Installation & Troubleshooting Runbook](https://github.com/nouchix/khepra-trust-os/blob/main/docs/DEVELOPER_INSTALLATION_AND_TROUBLESHOOTING.md)** — Step-by-step runbook for Master Dev Machines, Antigravity IDE (`mcp_config.json`), Claude Code (`.claude.json`), and Sovereign Linux VPS deployment.
 
 ### Unified KTOS Product Surfaces
@@ -761,7 +762,8 @@ PQC-Khepra-MCP is the open-core agent channel of the KHEPRA Trust OS (KTOS) arch
 - **Layer 2 — Shared Trust Substrate**: 36,195 cross-framework compliance mappings, ML-DSA-65 (FIPS 204) / Kyber-1024 (pre-standard), immutable DAG attestation.
 - **Layer 1 — KHEPRA Protocol**: Patent-pending non-linear cryptographic attestation (USPTO #73565085).
 
-### Dual-Engine Pentest Neutralization (58/58 Verified · 100.00% Zero-Bypass Rate)
+### Triple-Engine Adversarial Neutralization (TriPentest · 92/92 Verified · 100.00% Zero-Bypass Rate)
 - **CyberStryke Automated Assault (30/30)**: SQLi, XSS, Path Traversal, Null Byte Escapes, Prompt Injections, Egress Data Disclosure neutralized.
 - **AgentHound Offensive Security Framework (28/28)**: MCP Tool Description Poisoning (`POISONED_DESCRIPTION`), Tool Shadowing (`SHADOWS`), A2A Impersonation (`CAN_IMPERSONATE`), Indirect Tool Execution (`CAN_EXECUTE`), Context Window Taint (`TAINTS`), and Information Flow Control Violations (`IFC_VIOLATION`) neutralized.
+- **HexStrike AI Autonomous Red Team Battery (34/34)**: FastMCP Schema Fuzzing, Nuclei Template RCEs, Metasploit Stagers, Sqlmap Stacked/OOB Injections, SUID/Sudo Escapes, and Covert C2/Egress Tunneling neutralized.
 
