@@ -1,4 +1,4 @@
-// Package tools — PQC Crypto + DAG + Phantom OPSEC + DRBC foundation handler functions.
+// Package tools — PQC Crypto + DAG + OPSEC + DRBC foundation handler functions.
 //
 // Registration: add to cmd/khepra-mcp/main.go via executor.RegisterFunc().
 //
@@ -9,7 +9,6 @@
 //   - HandleDAGWrite       : Write an attested node to the shared DAG
 //   - HandleDAGQuery       : Query DAG history by action/symbol/time
 //   - HandleDAGAudit       : Full DAG chain integrity audit
-//   - HandlePhantomStealth : Activate Phantom OPSEC stealth mode
 //   - HandleIdentityShroud : Shroud agent identity (Nkyinkyim encoding)
 //   - HandleDRBCBackup     : Encrypted disaster recovery backup (DRBC genesis)
 package tools
@@ -25,7 +24,6 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 	mcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/nkyinkyim"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/phantom"
 )
 
 // ── PQC handlers ─────────────────────────────────────────────────────────────
@@ -242,40 +240,6 @@ func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 		"warnings":     warnings,
 		"audited_at":   lorentz.StampNow(),
 	}, warnings, nil
-}
-
-// ── Phantom OPSEC handlers ─────────────────────────────────────────────────────
-
-// HandlePhantomStealth activates Phantom OPSEC stealth mode.
-// Engages: GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern.
-// Symbol binding: Eban (fortress/protection).
-func HandlePhantomStealth(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	if gate := GateForTool("phantom_stealth"); gate != nil {
-		return gate, nil, nil
-	}
-	symbol, _ := call.Args["symbol"].(string)
-	deviceID, _ := call.Args["device_id"].(string)
-	targetCity, _ := call.Args["target_city"].(string)
-
-	if symbol == "" {
-		symbol = "Eban"
-	}
-	if deviceID == "" {
-		deviceID = call.Identity.AgentID
-	}
-	if targetCity == "" {
-		targetCity = "New York"
-	}
-
-	stealth := phantom.ActivateStealthMode(symbol, deviceID, targetCity, 0, 0)
-
-	return map[string]any{
-		"stealth_active": true,
-		"mode":           stealth,
-		"symbol":         symbol,
-		"device_id":      deviceID,
-		"activated_at":   lorentz.StampNow(),
-	}, nil, nil
 }
 
 // HandleIdentityShroud encodes a strand (identity token, API key, or agent fingerprint)

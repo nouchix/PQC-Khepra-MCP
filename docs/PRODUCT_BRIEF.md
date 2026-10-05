@@ -401,13 +401,6 @@ Combine a partner's existing customer relationships in a regulated vertical with
 | `ouroboros_vuln_eye` | Vulnerability continuous eye |
 | `ouroboros_fim_eye` | File integrity monitoring eye |
 
-### Phantom / Stealth
-| Tool | Description |
-|---|---|
-| `phantom_stealth` | Phantom network stealth |
-| `identity_shroud` | Identity obfuscation |
-| `identity_epiphany` | Identity revelation |
-
 ### Integrity / Continuity
 | Tool | Description |
 |---|---|
@@ -482,7 +475,6 @@ Combine a partner's existing customer relationships in a regulated vertical with
 | `pkg/sekhem` | SEKHEM Triad: Ouroboros + WAFShield + Maat Guardian |
 | `pkg/maat` | Governance engine, autonomy gate |
 | `pkg/ouroboros` | Continuous eye: WAF + STIG + Vuln + FIM |
-| `pkg/phantom` | Phantom Network (classified) |
 | `pkg/scorpion` | Scorpion Seal (integrity enforcement) |
 | `pkg/arsenal` | Security tool arsenal |
 
@@ -559,7 +551,6 @@ Every scanner finding references this DB for CMMC + NIST control IDs
 | `bin/agent.exe` | KASA agent runtime |
 | `cmd/khepra-daemon` | System daemon (privileged OS execution) |
 | `cmd/khepra-pentest` | Penetration testing binary |
-| `cmd/phantom-node` | Phantom network node |
 | `cmd/sonar` | Standalone Sonar scanner CLI |
 | `cmd/gateway` | SEKHEM API gateway |
 

@@ -1045,59 +1045,6 @@
                                       }
                   },
                   {
-                      "name":  "phantom_stealth",
-                      "description":  "Engage Phantom Network stealth mode. GPS spoofing, thermal camouflage, ephemeral IMSI, spread spectrum pattern. Symbol: Eban (fortress).",
-                      "inputSchema":  {
-                                          "properties":  {
-                                                             "device_id":  {
-                                                                               "description":  "Device identifier to shroud",
-                                                                               "type":  "string"
-                                                                           },
-                                                             "symbol":  {
-                                                                            "description":  "Adinkra symbol (default: Eban)",
-                                                                            "type":  "string"
-                                                                        },
-                                                             "target_city":  {
-                                                                                 "description":  "City for GPS spoof anchor",
-                                                                                 "type":  "string"
-                                                                             }
-                                                         },
-                                          "type":  "object"
-                                      }
-                  },
-                  {
-                      "name":  "identity_shroud",
-                      "description":  "Encode a strand (identity token, API key, agent fingerprint) using Nkyinkyim mystery encoding for OPSEC identity protection.",
-                      "inputSchema":  {
-                                          "properties":  {
-                                                             "strand":  {
-                                                                            "description":  "Identity strand to shroud",
-                                                                            "type":  "string"
-                                                                        }
-                                                         },
-                                          "required":  [
-                                                           "strand"
-                                                       ],
-                                          "type":  "object"
-                                      }
-                  },
-                  {
-                      "name":  "identity_epiphany",
-                      "description":  "Decode a Nkyinkyim-shrouded strand back to plaintext. Reveals the original identity.",
-                      "inputSchema":  {
-                                          "properties":  {
-                                                             "verse":  {
-                                                                           "description":  "Shrouded verse to decode",
-                                                                           "type":  "string"
-                                                                       }
-                                                         },
-                                          "required":  [
-                                                           "verse"
-                                                       ],
-                                          "type":  "object"
-                                      }
-                  },
-                  {
                       "name":  "drbc_backup",
                       "description":  "Create a DRBC genesis backup of the KHEPRA project. AES-256-GCM encrypted, ML-DSA-65 signed.",
                       "inputSchema":  {

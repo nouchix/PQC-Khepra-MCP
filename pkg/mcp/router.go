@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/sha3"
@@ -678,6 +679,34 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 	return resp, nil
 }
 
+// Classified tools are hidden from public discovery (server-card.json,
+// tools/list). They remain callable via authenticated Enterprise/Master tier
+// sessions. Ref: AGENTS.md Non-Negotiable #3.
+var (
+	classifiedMu    sync.RWMutex
+	classifiedTools = map[string]bool{
+		"identity_shroud":   true,
+		"identity_epiphany": true,
+	}
+)
+
+// MarkClassified hides additional tools from public discovery. Private builds
+// call it at startup for tools that must never be advertised, so their names
+// do not have to appear in this public package.
+func MarkClassified(names ...string) {
+	classifiedMu.Lock()
+	defer classifiedMu.Unlock()
+	for _, n := range names {
+		classifiedTools[n] = true
+	}
+}
+
+func isClassifiedTool(name string) bool {
+	classifiedMu.RLock()
+	defer classifiedMu.RUnlock()
+	return classifiedTools[name]
+}
+
 // ListTools returns MCP-formatted tool definitions from the registry.
 //
 // IMPORTANT: The MCP spec mandates that every tool entry includes an
@@ -691,19 +720,10 @@ func (r *Router) ListTools() []map[string]any {
 		"properties": map[string]any{},
 	}
 
-	// Classified tools are hidden from public discovery (server-card.json,
-	// tools/list). They remain callable via authenticated Enterprise/Master
-	// tier sessions. Ref: AGENTS.md Non-Negotiable #3.
-	classifiedTools := map[string]bool{
-		"phantom_stealth":   true,
-		"identity_shroud":   true,
-		"identity_epiphany": true,
-	}
-
 	specs := r.registry.ListTools()
 	result := make([]map[string]any, 0, len(specs))
 	for _, s := range specs {
-		if classifiedTools[s.Name] {
+		if isClassifiedTool(s.Name) {
 			continue
 		}
 		// License tier filtering: only show tools accessible under the current license.

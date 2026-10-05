@@ -1,4 +1,4 @@
-# Docker ignore for Phantom Network Stack
+# Docker ignore
 # Include only necessary files for real Adinkhepra implementation
 
 # Exclude ALL large directories by default
