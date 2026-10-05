@@ -44,13 +44,12 @@ func TestListTools_HidesToolsMarkedClassified(t *testing.T) {
 	}
 }
 
-func TestListTools_HidesBuiltinClassifiedTools(t *testing.T) {
-	reg := &ManifestRegistry{byName: map[string]ToolSpec{
-		"identity_shroud":   {Name: "identity_shroud"},
-		"identity_epiphany": {Name: "identity_epiphany"},
-	}}
-	r := &Router{registry: reg, license: allowAllLicense{}}
-	if n := len(r.ListTools()); n != 0 {
-		t.Fatalf("expected classified tools to be hidden, got %d listed", n)
+// The public package must not name any classified tool; private builds
+// register theirs with MarkClassified.
+func TestPublicBuildNamesNoClassifiedTools(t *testing.T) {
+	classifiedMu.RLock()
+	defer classifiedMu.RUnlock()
+	if len(classifiedTools) != 0 {
+		t.Fatalf("public build names classified tools: %v", classifiedTools)
 	}
 }

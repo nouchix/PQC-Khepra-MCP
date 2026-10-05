@@ -514,8 +514,6 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("dag_write", tools.HandleDAGWrite)
 	executor.RegisterFunc("dag_query", tools.HandleDAGQuery)
 	executor.RegisterFunc("dag_audit", tools.HandleDAGAudit)
-	executor.RegisterFunc("identity_shroud", tools.HandleIdentityShroud)
-	executor.RegisterFunc("identity_epiphany", tools.HandleIdentityEpiphany)
 	executor.RegisterFunc("drbc_backup", tools.HandleDRBCBackup)
 	executor.RegisterFunc("drbc_restore", tools.HandleDRBCRestore)
 }

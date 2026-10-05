@@ -141,8 +141,6 @@ func handlePrimaryCmds(cmd string, args []string) bool {
 		complianceCmd(args)
 	case "audit":
 		auditCmd(args)
-	case "scada":
-		scadaCmd(args)
 	case "scan":
 		scanCmd(args, "full")
 	case "certify":

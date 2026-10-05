@@ -684,10 +684,7 @@ func (r *Router) HandleToolCall(ctx context.Context, call MCPToolCall, cred any,
 // sessions. Ref: AGENTS.md Non-Negotiable #3.
 var (
 	classifiedMu    sync.RWMutex
-	classifiedTools = map[string]bool{
-		"identity_shroud":   true,
-		"identity_epiphany": true,
-	}
+	classifiedTools = map[string]bool{}
 )
 
 // MarkClassified hides additional tools from public discovery. Private builds
