@@ -1,6 +1,6 @@
 # PQC-01-STIG-V1R1
 
-## The World's First DoD-Style Post-Quantum Cryptography STIG
+## A DoD-Style Post-Quantum Cryptography STIG (NouchiX control set, not a DISA publication)
 ### Filling the CNSA 2.0 Compliance Gap
 
 ### Document Metadata

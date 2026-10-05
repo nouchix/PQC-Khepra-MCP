@@ -1,4 +1,4 @@
-# Whitepaper.md — The World's First DoD-Style Post-Quantum Cryptography STIG
+# Whitepaper.md — A DoD-Style Post-Quantum Cryptography STIG
 
 PQC-Khepra-MCP Project Knowledge Base
 > Canonical source of truth for whitepapers, design decisions, and institutional knowledge.
@@ -7,7 +7,7 @@ PQC-Khepra-MCP Project Knowledge Base
 ---
 
 # PQC-01-STIG-V1R1
-## The World's First DoD-Style Post-Quantum Cryptography STIG
+## A DoD-Style Post-Quantum Cryptography STIG (NouchiX control set, not a DISA publication)
 ### Filling the CNSA 2.0 Compliance Gap
 
 ---
