@@ -1,4 +1,4 @@
-# PQC-01-STIG-V1R1: The World's First DoD-Style Post-Quantum Cryptography STIG
+# PQC-01-STIG-V1R1: A DoD-Style Post-Quantum Cryptography STIG (NouchiX control set, not a DISA publication)
 ## A Technical Whitepaper on Filling the CNSA 2.0 Compliance Gap
 
 **Authors:** NouchiX / SecRed Knowledge Inc.  
@@ -68,7 +68,7 @@ The following controls comprise PQC-01-STIG-V1R1. Each is assigned a finding ID 
 
 **Finding:** The system implements ML-DSA at a security level below ML-DSA-65 (NIST Security Level 3).
 
-**STIG Check:** Verify that digital signature operations use ML-DSA-65 (3293-byte public keys, 3309-byte signatures) or ML-DSA-87 as a minimum. ML-DSA-44 provides only NIST Level 2 security and is not approved for NSS use.
+**STIG Check:** Verify that digital signature operations use ML-DSA-65 (1,952-byte public keys, 3,309-byte signatures) or ML-DSA-87 as a minimum. National security systems must use ML-DSA-87 under CNSA 2.0. ML-DSA-44 provides only NIST Level 2 security and is not approved for NSS use.
 
 **Fix:** Upgrade to ML-DSA-65 parameter set. Key size difference is material: ML-DSA-44 public keys are 1312 bytes; ML-DSA-65 are 1952 bytes. The additional margin is required for NSS threat models.
 
@@ -80,7 +80,7 @@ The following controls comprise PQC-01-STIG-V1R1. Each is assigned a finding ID 
 
 **Finding:** The system uses ML-KEM-512 for key encapsulation rather than ML-KEM-768 or ML-KEM-1024.
 
-**STIG Check:** Verify key encapsulation mechanisms use ML-KEM-768 (NIST Level 3, 1184-byte public keys) or ML-KEM-1024. ML-KEM-512 is not approved for NSS key encapsulation.
+**STIG Check:** Verify key encapsulation mechanisms use ML-KEM-768 (NIST Level 3, 1,184-byte encapsulation keys) or ML-KEM-1024. National security systems must use ML-KEM-1024 under CNSA 2.0. ML-KEM-512 is not approved for NSS key encapsulation.
 
 **Fix:** Migrate to ML-KEM-768 parameter set. Validate ciphertext sizes (1088 bytes for ML-KEM-768) in protocol implementations to confirm correct parameter selection.
 
@@ -307,7 +307,7 @@ The Community tier `pqc_stig` tool is permanently free. Run it directly from Cla
 }
 ```
 
-Then prompt your AI assistant: *"Run pqc_stig on my project and tell me if I'm CNSA 2.0 compliant."*
+Then prompt your AI assistant: *"Run pqc_stig on my project and tell me what stands between it and the CNSA 2.0 algorithm suite."*
 
 ### 5.2 Enterprise Assessment (Sovereign/Pharaoh Tier)
 
