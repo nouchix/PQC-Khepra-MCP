@@ -213,7 +213,7 @@ func buildRoadmap(summary nist80171.ComplianceSummary, score int) []RoadmapItem 
 	}
 	items = append(items, RoadmapItem{
 		Priority: "STRATEGIC",
-		Action:   "PQC Migration — ML-KEM-768 + ML-DSA-65",
+		Action:   "PQC Migration — ML-KEM-1024 + ML-DSA-87",
 		Control:  "NIST 800-171 3.13.10",
 	})
 	items = append(items, RoadmapItem{
@@ -427,7 +427,7 @@ func HandleERTCrypto(ctx context.Context, call mcp.MCPToolCall) (any, []string, 
 
 	// Migration path
 	migrationPath := []string{
-		"RSA → ML-KEM-768 (NIST FIPS 203)",
+		"RSA/ECDH → ML-KEM-1024 (NIST FIPS 203)",
 		"ECDSA → ML-DSA-65 (NIST FIPS 204)",
 		"SHA-1 → SHA-3-256 (NIST FIPS 202)",
 		"DES/3DES → AES-256-GCM",
@@ -494,11 +494,11 @@ var cryptoLibPatternsMCP = []struct {
 	Note       string
 }{
 	{"liboqs", true, false, "Open Quantum Safe — NIST PQC reference implementation"},
-	{"kyber", true, false, "ML-KEM-768 key encapsulation (NIST FIPS 203)"},
+	{"kyber", true, false, "CRYSTALS-Kyber key encapsulation (pre-standard; migrate to FIPS 203 ML-KEM)"},
 	{"dilithium", true, false, "ML-DSA-65 digital signatures (NIST FIPS 204)"},
 	{"mlkem", true, false, "ML-KEM standardized KEM"},
 	{"mldsa", true, false, "ML-DSA standardized signature"},
-	{"sphincs", true, false, "SLH-DSA hash-based signatures (NIST FIPS 205)"},
+	{"sphincs", true, false, "SPHINCS+ signatures (pre-standard; FIPS 205 standardizes SLH-DSA)"},
 	{"rsa", false, true, "RSA — quantum-vulnerable via Shor's algorithm"},
 	{"ecdsa", false, true, "ECDSA — quantum-vulnerable via Shor's algorithm"},
 	{"ecdh", false, true, "ECDH — quantum-vulnerable key exchange"},
@@ -830,7 +830,7 @@ func (a *godfatherPQCAgent) Execute(_ context.Context, sec *ea.SecurityContext) 
 			ID: "PQC-001", Severity: "HIGH",
 			Title:       "Legacy crypto detected (RSA/ECDSA)",
 			Control:     "NIST 800-171 3.13.10",
-			Remediation: "Migrate to ML-KEM-768 + ML-DSA-65 (NIST FIPS 203/204)",
+			Remediation: "Migrate to ML-KEM-1024 + ML-DSA-87 (NIST FIPS 203/204; CNSA 2.0)",
 			DiscoveredAt: time.Now(),
 		})
 		score += 30.0
@@ -1002,7 +1002,7 @@ func buildGodfatherInterventions(results []*ea.AgentResult, critical, high, kevC
 	}
 	ivs = append(ivs, Intervention{
 		Priority: "STRATEGIC",
-		Action:   "PQC Migration — ML-KEM-768 + ML-DSA-65 (NIST FIPS 203/204)",
+		Action:   "PQC Migration — ML-KEM-1024 + ML-DSA-87 (NIST FIPS 203/204)",
 		Impact:   "Future-proofs compliance evidence before CNSA 2.0 mandatory window",
 	})
 	ivs = append(ivs, Intervention{

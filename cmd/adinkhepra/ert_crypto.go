@@ -71,13 +71,13 @@ func ertCryptoCmd(args []string) {
 	// ── PQC migration simulation ───────────────────────────────────────────────
 	fmt.Println("\n[*] Simulating Khepra PQC Migration...")
 	time.Sleep(time.Second)
-	fmt.Println("    [>] Replacing RSA with ML-KEM-768 (NIST FIPS 203)...")
+	fmt.Println("    [>] Replacing RSA/ECDH with ML-KEM-1024 (NIST FIPS 203)...")
 	time.Sleep(500 * time.Millisecond)
-	fmt.Println("    [>] Replacing ECDSA with ML-DSA-65 (NIST FIPS 204)...")
+	fmt.Println("    [>] Replacing ECDSA with ML-DSA-87 (NIST FIPS 204)...")
 	time.Sleep(500 * time.Millisecond)
 	fmt.Println("    [>] Replacing SHA-1 with SHA-3 (NIST FIPS 202)...")
 	time.Sleep(500 * time.Millisecond)
-	printGreen("    [✓] PQC Migration Path: VALIDATED (CNSA 2.0 compliant)")
+	printGreen("    [✓] PQC migration path simulated (CNSA 2.0 parameter sets: ML-KEM-1024, ML-DSA-87)")
 
 	// ── Quantum risk context (CNSA 2.0 scenario-based, not precise dates) ────
 	displayQuantumRiskContext(cryptoUsage, sbomCryptoLibs)
@@ -124,11 +124,11 @@ var cryptoLibPatterns = []struct {
 	// Post-quantum capable
 	{"liboqs", true, false, "Open Quantum Safe — NIST PQC reference implementation"},
 	{"pqcrypto", true, false, "PQCrypto — pure-Go NIST PQC suite"},
-	{"kyber", true, false, "ML-KEM-768 key encapsulation (NIST FIPS 203)"},
-	{"dilithium", true, false, "ML-DSA-65 digital signatures (NIST FIPS 204)"},
+	{"kyber", true, false, "CRYSTALS-Kyber key encapsulation (pre-standard; migrate to FIPS 203 ML-KEM)"},
+	{"dilithium", true, false, "CRYSTALS-Dilithium signatures (pre-standard; migrate to FIPS 204 ML-DSA)"},
 	{"mlkem", true, false, "ML-KEM — NIST standardized KEM"},
 	{"mldsa", true, false, "ML-DSA — NIST standardized signature scheme"},
-	{"sphincs", true, false, "SLH-DSA hash-based signatures (NIST FIPS 205)"},
+	{"sphincs", true, false, "SPHINCS+ signatures (pre-standard; FIPS 205 standardizes SLH-DSA)"},
 	{"falcon", true, false, "Falcon lattice signatures (NIST round 4)"},
 
 	// Classical but safe (quantum-resistant for symmetric operations)
@@ -356,14 +356,14 @@ func displayQuantumRiskContext(usage CryptoUsage, sbomLibs []SBOMCryptoLib) {
 		printRed("    [QUANTUM-VULN] RSA detected:")
 		fmt.Println("    • Vulnerable to Shor's algorithm when cryptographically-relevant")
 		fmt.Println("      quantum computers (CRQCs) reach scale (scenario: 2030–2040 window)")
-		fmt.Println("    • CNSA 2.0 mandates ML-KEM-768 for new systems NOW")
-		fmt.Println("    • Migration path: RSA → ML-KEM-768 (NIST FIPS 203)")
+		fmt.Println("    • CNSA 2.0 requires ML-KEM-1024 for national security systems")
+		fmt.Println("    • Migration path: RSA/ECDH → ML-KEM-1024 (NIST FIPS 203)")
 	}
 
 	if hasECDSA {
 		printRed("    [QUANTUM-VULN] ECDSA/ECDH detected:")
 		fmt.Println("    • Same Shor's vulnerability as RSA — elliptic curve discrete log is broken")
-		fmt.Println("    • CNSA 2.0 mandates ML-DSA-65 for signatures NOW")
+		fmt.Println("    • CNSA 2.0 requires ML-DSA-87 for signatures (LMS/XMSS for firmware signing)")
 		fmt.Println("    • Migration path: ECDSA → ML-DSA-65 (NIST FIPS 204)")
 	}
 

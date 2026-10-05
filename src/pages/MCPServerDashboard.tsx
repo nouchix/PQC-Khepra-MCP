@@ -293,7 +293,7 @@ const MCPServerDashboard = () => {
       {/* ── Footer ───────────────────────────────────────────────────────────── */}
       <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 11, color: '#334155' }}>
-          Khepra MCP Server — PQC-01-STIG-V1R1 · NSA CNSA 2.0 · NIST FIPS 203/204/205
+          Khepra MCP Server — PQC-01-STIG-V1R1 (checks CNSA 2.0 and FIPS 203/204/205 readiness)
         </div>
         <div style={{ fontSize: 11, color: '#334155', fontFamily: '"JetBrains Mono", monospace' }}>
           souhimbou.ai · NouchiX

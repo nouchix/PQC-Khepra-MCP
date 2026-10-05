@@ -1246,7 +1246,7 @@ func keygenCmd(args []string) {
 	fmt.Printf("   - Private: %s\n   - Public : %s\n", signPrivPath, signPubPath)
 	fmt.Println("   - Symbol : Eban (The Fence) - Unforgeable Identity")
 	fmt.Println(separator)
-	fmt.Printf(" [ENCRYPTION] (Kyber-1024 / ML-KEM-1024)\n")
+	fmt.Printf(" [ENCRYPTION] (CRYSTALS-Kyber-1024, pre-standard)\n")
 	fmt.Printf("   - Private: %s\n   - Public : %s\n", encPrivPath, encPubPath)
 	fmt.Println("   - Symbol : Kuntinkantan (The Riddle) - Unbreakable Privacy")
 	fmt.Println(separator)
@@ -1279,11 +1279,11 @@ func explainCmd(args []string) {
 	fmt.Printf(" Size: %d bytes\n", size)
 
 	if size == 1568 {
-		fmt.Println(" Type: Kyber-1024 Public Key (ML-KEM)")
+		fmt.Println(" Type: Kyber-1024 Public Key (pre-standard, not FIPS 203)")
 		fmt.Println(" Meaning: 'I am ready to receive secrets.'")
 		fmt.Println(" Symbol:  Kuntinkantan (Do not be arrogant)")
 	} else if size == 3168 {
-		fmt.Println(" Type: Kyber-1024 Private Key (ML-KEM)")
+		fmt.Println(" Type: Kyber-1024 Private Key (pre-standard, not FIPS 203)")
 		fmt.Println(" Meaning: 'I hold the power to unravel.'")
 		fmt.Println(" Warning: EXTREMELY SENSITIVE MATERIAL")
 	} else if size == 1952 {

@@ -300,10 +300,10 @@ func main() {
 			},
 		},
 
-		// ── PQC STIG — World's First DoD PQC STIG ───────────────────────────
+		// ── PQC STIG — PQC-01-STIG-V1R1 ───────────────────────────
 		{
 			Name:           "pqc_stig",
-			Description:    "World's First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
+			Description:    "PQC-01-STIG-V1R1, a NouchiX post-quantum control set (not a DISA STIG). Assesses code against CNSA 2.0 and FIPS 203/204/205 algorithm requirements. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
 			RiskClass:      "read_only", Scope: "stig:pqc",
 			SchemaVersion:       "2.0.0", SchemaHash: hash("pqc_stig"),
 			AllowedBackend: "in-process", TimeoutMs: 60000,

@@ -653,7 +653,7 @@ To renew or upgrade:
 Questions? security@nouchix.com
 
 — NouchiX / Sacred Knowledge Inc
-  Patent Pending · Post-Quantum Certified
+  Patent Pending · Post-Quantum Signed
 
 `, sTo, subject, sGreeting,
 		sanitizeHeader(cert.CertificateID), sanitizeHeader(cert.Framework),
@@ -730,7 +730,7 @@ https://souhimbou.ai/billing
 Support & Inquiries: support@nouchix.com
 
 — SecRed Knowledge Inc. / NouchiX
-  Patent Pending · ML-DSA-65 / ML-KEM-768
+  Patent Pending · ML-DSA-65 (FIPS 204)
 `, sTo, subject, sGreeting, sTier, sKey, sTier, expiry.Format("2006-01-02"), sKey, sKey)
 
 	return sendMail([]string{to}, subject, body)

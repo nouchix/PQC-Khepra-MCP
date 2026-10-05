@@ -18,7 +18,7 @@
 
 This kernel relies on NIST post-quantum cryptographic standards:
 - **Digital Signatures**: ML-DSA-65 (NIST FIPS 204)
-- **Key Encapsulation**: ML-KEM-1024 (NIST FIPS 203)
+- **Key Encapsulation**: CRYSTALS-Kyber-1024 key encapsulation (pre-standard; FIPS 203 ML-KEM-1024 migration in progress)
 - **Hash Functions**: SHA-256 / SHA3-256
 
 ---

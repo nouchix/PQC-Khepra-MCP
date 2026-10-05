@@ -438,7 +438,7 @@ func generateDAGVisualization(_ map[string]interface{}) string {
         <h1>⚡ Trust Constellation</h1>
         <div class="metric">Nodes: <span id="node-count">0</span></div>
         <div class="metric">Edges: <span id="edge-count">0</span></div>
-        <div class="metric">Quantum-Proof: <span>✓ Dilithium3</span></div>
+        <div class="metric">Post-Quantum Signature: <span>✓ Dilithium3 (pre-standard)</span></div>
         <div class="legend">
             <div class="legend-item critical">● CRITICAL (CVE Exploited)</div>
             <div class="legend-item high">● HIGH (Public Exploit)</div>

@@ -39,7 +39,7 @@ var PQCControlMapping = map[string]NIST80053Control{
 		Baseline: []string{"LOW", "MODERATE", "HIGH"},
 		RelatedControls: []string{"SC-12", "SC-28"},
 		CCIs: []string{"CCI-002450", "CCI-003123"},
-		PQCRelevance: "Mandates use of NIST FIPS 203 (Kyber), FIPS 204 (Dilithium), FIPS 205 (SPHINCS+) for quantum-resistant cryptography.",
+		PQCRelevance: "Requires FIPS-validated or NSA-approved cryptography; post-quantum migration targets FIPS 203 (ML-KEM), FIPS 204 (ML-DSA) and FIPS 205 (SLH-DSA).",
 	},
 	"SC-17": {
 		ID:     "SC-17",

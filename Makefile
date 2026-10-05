@@ -98,7 +98,7 @@ secure-build:
 #
 # Note: BoringCrypto requires CGO_ENABLED=1 and Linux/amd64 target
 fips-boring-build:
-	@echo "[ADINKHEPRA] Building with BoringCrypto (FIPS 140-3 validated)"
+	@echo "[ADINKHEPRA] Building with BoringCrypto (FIPS mode; this build is not FIPS 140-3 validated)"
 	@echo "[ADINKHEPRA] Target: Linux/amd64 (DoD Platform One)"
 	GOOS=linux GOARCH=amd64 GOEXPERIMENT=boringcrypto CGO_ENABLED=1 \
 		go build -tags=fips -trimpath \

@@ -130,7 +130,7 @@ func attestDemoFindings() []evidence.Finding {
 			CMMCPractice: "CMMC.SC.L2-3.13.10", NIST: "3.13.10",
 			CCI: "CCI-002450", MITRETechnique: "T1600",
 			Detail:      "Non-FIPS cryptographic algorithms detected. FIPS 140-2/3 compliance required.",
-			Remediation: "Migrate to ML-DSA-65 / ML-KEM-768 (FIPS 203/204) via KHEPRA adinkra package.",
+			Remediation: "Migrate to ML-KEM-1024 (FIPS 203) and ML-DSA-87 (FIPS 204).",
 			SignedBy:    "ML-DSA-65 / FIPS 204",
 		},
 		{

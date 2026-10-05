@@ -292,7 +292,7 @@ func (p *OfflineProvider) Chat(messages []Message, stream bool) (string, error) 
 	case strings.Contains(last, "license"):
 		return "Check your license status with `adinkhepra license status`. Enterprise licenses include AI API budget.", nil
 	case strings.Contains(last, "pqc") || strings.Contains(last, "quantum"):
-		return "AdinKhepra uses Dilithium3 (FIPS 204) for signing and Kyber-1024 (FIPS 203) for key exchange. Run `adinkhepra scan` for a PQC inventory.", nil
+		return "AdinKhepra signs with ML-DSA-65 (FIPS 204) and pre-standard Dilithium3, and uses pre-standard CRYSTALS-Kyber-1024 for key exchange (FIPS 203 ML-KEM-1024 migration in progress). Run `adinkhepra scan` for a PQC inventory.", nil
 	case strings.Contains(last, "help"):
 		return "Commands: scan, watch, report, serve, harden, license, keygen. Run `adinkhepra --help` for full usage.", nil
 	case strings.Contains(last, "dag") || strings.Contains(last, "audit"):

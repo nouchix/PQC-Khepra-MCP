@@ -305,11 +305,11 @@ var pqcCryptoAnnotations = []struct {
 	WeakCrypto bool
 	Note       string
 }{
-	{"circl", true, false, "Cloudflare CIRCL — ML-DSA-65 / ML-KEM-768 (NIST FIPS 203/204)"},
+	{"circl", true, false, "Cloudflare CIRCL — ML-KEM / ML-DSA and pre-standard Kyber / Dilithium (not a FIPS-validated module)"},
 	{"liboqs", true, false, "Open Quantum Safe — NIST PQC reference implementation"},
-	{"kyber", true, false, "ML-KEM key encapsulation (NIST FIPS 203)"},
+	{"kyber", true, false, "CRYSTALS-Kyber key encapsulation (pre-standard; migrate to FIPS 203 ML-KEM)"},
 	{"dilithium", true, false, "ML-DSA digital signatures (NIST FIPS 204)"},
-	{"sphincs", true, false, "SLH-DSA hash-based signatures (NIST FIPS 205)"},
+	{"sphincs", true, false, "SPHINCS+ signatures (pre-standard; FIPS 205 standardizes SLH-DSA)"},
 	{"mlkem", true, false, "ML-KEM (NIST FIPS 203 standardized)"},
 	{"mldsa", true, false, "ML-DSA (NIST FIPS 204 standardized)"},
 	{"openssl", false, false, "OpenSSL — verify TLS 1.3 and PQC extension support"},
@@ -685,7 +685,7 @@ func buildSTRIDEThreatCatalog(p projectProfile, scope string) []STRIDEThreat {
 			NIST53: []string{"SC-13", "SC-28", "SC-8"},
 			CMMC:   []string{"SC.L2-3.13.10", "SC.L2-3.13.16"},
 			Mitigations: []string{
-				"Migrate to ML-KEM-768 for key encapsulation (NIST FIPS 203)",
+				"Migrate to ML-KEM-1024 for key encapsulation (NIST FIPS 203; CNSA 2.0)",
 				"Apply hybrid TLS: X25519+ML-KEM-768 (IETF draft-ietf-tls-hybrid-design)",
 				"Prioritize data classification — encrypt highest-sensitivity data first",
 			},
