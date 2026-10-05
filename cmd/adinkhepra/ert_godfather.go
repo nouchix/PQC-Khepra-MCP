@@ -70,7 +70,7 @@ func ertGodfatherCmd(args []string) {
 
 	if aggRisk.LegacyCrypto {
 		typeWriter("Cryptographic infrastructure contains quantum-vulnerable primitives (RSA/ECDSA).")
-		typeWriter("Post-Quantum migration is required per CNSA 2.0 — begin transition to ML-KEM-768 and ML-DSA-65.")
+		typeWriter("Post-Quantum migration is required per CNSA 2.0 — begin transition to ML-KEM-1024 and ML-DSA-87.")
 	}
 	if aggRisk.HasPQC {
 		typeWriter("Post-Quantum Cryptography implementation detected — strategic advantage confirmed.")
@@ -248,7 +248,7 @@ func (a *pqcAgent) Execute(_ context.Context, sec *ea.SecurityContext) (*ea.Agen
 			Title:       "Legacy cryptographic algorithms detected",
 			Description: "RSA or ECDSA found in source — quantum-vulnerable via Shor's algorithm",
 			Control:     "NIST 800-171 3.13.10 (Cryptographic Key Management)",
-			Remediation: "Migrate to ML-KEM-768 (NIST FIPS 203) for key exchange; ML-DSA-65 (NIST FIPS 204) for signatures",
+			Remediation: "Migrate to ML-KEM-1024 (NIST FIPS 203) for key exchange and ML-DSA-87 (NIST FIPS 204) for signatures (CNSA 2.0 parameter sets)",
 			DiscoveredAt: time.Now(),
 		})
 		riskScore += 40.0
@@ -546,7 +546,7 @@ func displayRealRecommendations(agg AggregatedRisk, results []*ea.AgentResult) {
 	if agg.LegacyCrypto && !agg.HasPQC {
 		recs = append(recs, Recommendation{
 			Priority: "STRATEGIC",
-			Action:   "Initiate Post-Quantum Cryptography Migration (ML-KEM-768 + ML-DSA-65)",
+			Action:   "Initiate Post-Quantum Cryptography Migration (ML-KEM-1024 + ML-DSA-87)",
 			Impact:   "Future-proofs compliance evidence before CNSA 2.0 mandatory transition window",
 		})
 	}

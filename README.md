@@ -12,7 +12,7 @@
 **Post-Quantum Cryptographic & Autonomous Flight Recording Kernel for AI Agents.**
 
 Air-gappable. Zero cloud telemetry. Zero token overhead.  
-Provides FIPS 203 (ML-KEM-768) and FIPS 204 (ML-DSA-65) post-quantum cryptographic signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Completely free and open-source under Apache 2.0.
+Provides ML-DSA-65 (FIPS 204) post-quantum signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Completely free and open-source under Apache 2.0.
 
 > **Patent Reference:** U.S. Prov. App. No. 63/942,886 (KHEPRA Protocol & Post-Quantum Evidence Weave)  
 > **Corporate Identity:** SecRed Knowledge Inc. (operating as NouchiX) — Delaware C-Corp (EIN 99-0529252), SDVOSB (Active Self-Certified / SBA VetCert in review), Active Secret Clearance.  
@@ -27,7 +27,7 @@ To ensure clean commercial boundaries for partners, defense contractors, and dev
 
 | Layer | Product | License | Scope & Capabilities |
 |---|---|---|---|
-| **Layer 1** | **PQC-Khepra-MCP** (This Repo) | **Apache 2.0** (Open Source) | **Free Community Kernel:** ML-DSA-65 / ML-KEM-768 PQC cryptographic signing, client-side autonomous flight logging, agent registration, local host/asset enumeration, and threat lookup. **Zero STIG or compliance databases.** |
+| **Layer 1** | **PQC-Khepra-MCP** (This Repo) | **Apache 2.0** (Open Source) | **Free Community Kernel:** ML-DSA-65 (FIPS 204) post-quantum signing, client-side autonomous flight logging, agent registration, local host/asset enumeration, and threat lookup. **Zero STIG or compliance databases.** |
 | **Layer 2** | **KHEPRA Trust OS (KTOS)** | **Commercial** ($499/mo to $250K/yr) | **Sovereign Proof-and-Actuation OS:** 36,195 cross-framework compliance mappings, live DISA STIGViewer API v2 batch crosswalks, CMMC Level 2/3 assessments, ERT multi-package engines, automated C3PAO evidence packages (OSCAL, DISA CKLB, signed POA&Ms), and bounded autonomous host remediation. |
 
 ---
@@ -47,7 +47,7 @@ To ensure clean commercial boundaries for partners, defense contractors, and dev
 
 PQC-Khepra-MCP connects your AI assistant (Claude Code, Cursor, Antigravity, Cline) directly to a post-quantum cryptographic security layer:
 
-- **ML-DSA-65 / ML-KEM-768 Signing:** FIPS 203/204 post-quantum signing on every tool call and DAG attestation.
+- **ML-DSA-65 Signing:** FIPS 204 post-quantum signing on every tool call and DAG attestation. Key encapsulation is pre-standard CRYSTALS-Kyber-1024; FIPS 203 ML-KEM-1024 migration is in progress.
 - **Autonomous Flight Recording:** Automatically logs all agent tool invocations, inputs, and outcomes to tamper-evident NDJSON hash chains.
 - **Local Host & Asset Discovery:** Enumerate system runtimes, network interfaces, and environment properties locally.
 - **Air-Gap & Sovereign Operation:** Runs 100% offline with zero cloud telemetry or egress calls.
@@ -501,13 +501,13 @@ Expected output: a JSON-RPC response listing all available tools. If you see `"t
 ### Community Tier (Free — No License Key)
 
 #### `pqc_stig` — World's First DoD PQC STIG ⭐
-Assesses a source code directory against **PQC-01-STIG-V1R1**: 12 controls covering CNSA 2.0 algorithm approval, ML-DSA-65 key strength, ML-KEM-768 encapsulation, hybrid cryptography, key storage, constant-time implementation, and certificate chain requirements.
+Assesses a source code directory against **PQC-01-STIG-V1R1**: 12 controls covering CNSA 2.0 algorithm approval, ML-DSA key strength, ML-KEM encapsulation strength, hybrid cryptography, key storage, constant-time implementation, and certificate chain requirements.
 
 ```
 pqc_stig(scan_path?: string, profile?: "quick" | "full" | "executive")
 ```
 
-> **Example:** *"Run pqc_stig on my project and tell me if I'm CNSA 2.0 compliant"*
+> **Example:** *"Run pqc_stig on my project and tell me what stands between it and the CNSA 2.0 algorithm suite"*
 
 #### `nist_map`
 Map CCI identifiers or STIG findings to NIST 800-53 Rev 5 controls.
@@ -619,7 +619,7 @@ docker load < khepra-mcp.tar.gz
 | NIST 800-171 | Rev 2 | 320 controls |
 | CMMC | Level 3 | Full practice set |
 | FedRAMP | High | Baseline scanning |
-| **PQC-01-STIG-V1R1** | V1R1 | **17 PQC controls (CNSA 2.0)** |
+| **PQC-01-STIG-V1R1** | V1R1 | **12 PQC controls (NouchiX control set; checks CNSA 2.0 algorithms)** |
 | **Total** | | **36,195+ mappings** |
 
 ---
@@ -687,7 +687,7 @@ The NSA and Australian Signals Directorate (ASD) have published specific threat 
 | CMMC Level 2 | ✅ | Automates evidence collection for AU, CM, SI, SC domains |
 | NIST SP 800-171 Rev 2 | ✅ | Logging, accountability, system integrity |
 | NIST SP 800-53 Rev 5 | ✅ | Continuous monitoring (AU-2, SI-4) |
-| FIPS 203 (ML-KEM) | ✅ | Key encapsulation for secure transit |
+| FIPS 203 (ML-KEM) | 🟡 | Pre-standard Kyber-1024 today; ML-KEM-1024 migration in progress |
 | FIPS 204 (ML-DSA) | ✅ | Digital signatures for payload authentication |
 | NSM-10 PQC Mandate | ✅ | National Security Memorandum 10 compliance |
 | DFARS 252.204-7012 | ✅ | Immutable forensic trails for cyber incident reporting |
@@ -715,7 +715,7 @@ Running continuously on constrained edge hardware since **May 12, 2026** to prov
 
 ## Open-Core Architecture Notice
 
-`PQC-Khepra-MCP` is an open-source Model Context Protocol server providing Post-Quantum Cryptographic primitives (ML-DSA-65, ML-KEM-768) and compliance tooling.
+`PQC-Khepra-MCP` is an open-source Model Context Protocol server providing post-quantum signing (ML-DSA-65, FIPS 204), pre-standard Kyber-1024 key encapsulation and compliance tooling.
 
 Proprietary runtime governance engines—including the KHEPRA Trust Operating System (KTOS), the ASAF Policy Declaration Language (APDL) Compiler, the Evolutionary Algorithm Lattice Auto-Tuning Kernel, the SEKHEM Polymorphic WAF Gateway, and the Full-Stealth Sovereign Mesh—are components of Khepra Enterprise and are licensed under commercial terms.
 
@@ -758,7 +758,7 @@ PQC-Khepra-MCP is the open-core agent channel of the KHEPRA Trust OS (KTOS) arch
 - **Layer 4 — KTOS-MCP Master-Kernel** (`mcp.souhimbou.ai`): 100 native tools, ML-DSA-65 post-quantum signing, SEKHEM L7 WAF prompt defense, Event Viewer logging, Tactical RF suite.
 - **Layer 3a — KTOS CMMC Hub & Fleet Engine** (`adinkhepra.com`): Sovereign bare-metal & osquery Fleet Manager for CMMC/STIG compliance audits.
 - **Layer 3b — KTOS Agentic SOC** (`souhimbou.ai`): Cloud Agentic SOC & AI Security Architect with autonomous Flight Recorder SDK and KASA threat detector.
-- **Layer 2 — Shared Trust Substrate**: 36,195 cross-framework compliance mappings, ML-DSA-65 / ML-KEM-1024, immutable DAG attestation.
+- **Layer 2 — Shared Trust Substrate**: 36,195 cross-framework compliance mappings, ML-DSA-65 (FIPS 204) / Kyber-1024 (pre-standard), immutable DAG attestation.
 - **Layer 1 — KHEPRA Protocol**: Patent-pending non-linear cryptographic attestation (USPTO #73565085).
 
 ### Dual-Engine Pentest Neutralization (58/58 Verified · 100.00% Zero-Bypass Rate)

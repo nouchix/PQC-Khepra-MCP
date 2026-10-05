@@ -82,7 +82,7 @@ determines its cryptographic path and the compliance impact levels it can suppor
 |---|---|---|---|
 | **Community** | Evaluation, OSS, non-commercial | Standard TLS | Standard |
 | **Sovereign** | DoD networks, air-gapped / SCIF, contractor systems | ML-DSA-65 offline license validation | **Zero egress** — all ops on operator infrastructure, no external calls |
-| **Pharaoh / Iron Bank** | FedRAMP / IL4 / IL5 production | **FIPS 140-3 validated** path | Air-gapped binary, DoD Iron Bank provenance |
+| **Pharaoh / Iron Bank** | FedRAMP / IL4 / IL5 production | FIPS 140-3 module inheritance (in progress; no certificate held) | Air-gapped binary, DoD Iron Bank provenance |
 
 Proprietary (Sovereign / Pharaoh) features require a valid license key validated
 **offline** via an ML-DSA-65 signed `license.adinkhepra` file. No external validation
@@ -114,7 +114,7 @@ back to Community functionality only.
 | **PQC-01-STIG-V1R1** (NouchiX internal PQC STIG) | ✅ Defined & self-scanned | Enforced against own infrastructure via `pqc_stig`; CAT I remediation ongoing |
 | **FIPS 140-3** | 🟡 Path available | Validated crypto path in Iron Bank tier; module validation status per build |
 | **ISO/IEC 27001** | 🟡 Aligned, not certified | `SECURITY.md` controls align to ISO 27001 Annex A; certification not pursued yet |
-| **NSM-10 / CNSA 2.0 (PQC mandate)** | ✅ On track | PQC transition posture ahead of 2026 priority / 2030 deadline |
+| **NSM-10 / CNSA 2.0 (PQC mandate)** | 🟡 In progress | Signatures use ML-DSA-65 (FIPS 204); key encapsulation is pre-standard Kyber-1024. Migration to ML-KEM-1024 + ML-DSA-87 is under way. |
 
 **No certification above is claimed as issued.** Customer-facing badges are gated on
 formal issuance (see §0 disclaimer).
@@ -147,7 +147,8 @@ them into the SSP and Security Assessment Report. See `docs/AUDIT_ENCLAVE_PROPOS
   chained into a content-addressed, ML-DSA-65-signed causal DAG (`dag_write`),
   providing tamper-evident, sequence-provable audit records (CC7.2/CC7.3, AU-9).
 - **Post-quantum by default.** License validation and attestation use ML-DSA-65
-  (FIPS 204) signatures; key establishment uses ML-KEM (Kyber). See §7.
+  (FIPS 204) signatures; key establishment uses pre-standard CRYSTALS-Kyber-1024
+  (FIPS 203 ML-KEM-1024 migration in progress). See §7.
 - **Agentic / MCP hardening.** MCP attack surface (tool poisoning, `~/.claude.json`
   hijack, prompt injection) is assessed with `owasp_agent_assess` and documented in
   `docs/MCP_SECURITY_RUNBOOK.md`.
@@ -161,10 +162,10 @@ them into the SSP and Security Assessment Report. See `docs/AUDIT_ENCLAVE_PROPOS
 | Function | Algorithm | Standard |
 |---|---|---|
 | Digital signatures (licenses, attestation, DAG) | **ML-DSA-65** (Dilithium) | FIPS 204 |
-| Key encapsulation | **ML-KEM** (Kyber) | FIPS 203 |
+| Key encapsulation | **CRYSTALS-Kyber-1024** (pre-standard, NIST Round 3) | Not FIPS 203; ML-KEM-1024 migration in progress |
 | Hashing | SHA-256 / SHA3-256 | FIPS 180-4 / 202 |
 | Transport | TLS 1.3 minimum | — |
-| At rest (Iron Bank) | FIPS 140-3 validated path | FIPS 140-3 |
+| At rest (Iron Bank) | FIPS 140-3 module inheritance (in progress) | FIPS 140-3 |
 
 - **Public root keys** (auditable): `adinkhepra_master_dilithium.pub`,
   `adinkhepra_master_kyber.pub`. Only public keys are ever published or shared with

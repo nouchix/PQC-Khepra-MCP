@@ -1,6 +1,6 @@
 package stig
 
-// pqc_stig.go — World's First DoD PQC Security Technical Implementation Guide
+// pqc_stig.go — PQC-01-STIG-V1R1, a NouchiX post-quantum control set (not a DISA STIG)
 //
 // Classification: UNCLASSIFIED
 // Version: PQC-01-STIG-V1R1

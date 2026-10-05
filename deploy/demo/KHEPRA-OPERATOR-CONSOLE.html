@@ -284,7 +284,7 @@ const td=(k,v)=>tp("  "+E.gy+k.padEnd(20)+E._+v);
 function banner(){
   tp(E.bl+"================================================================"+E._);
   tp(E.bl+"  "+E.bo+E.wh+"KHEPRA Sovereign Security Platform"+E._);
-  tp(E.bl+"  "+E.cy+"Post-Quantum Certified - NouchiX / SecRed Knowledge Inc."+E._);
+  tp(E.bl+"  "+E.cy+"Post-Quantum Signed - NouchiX / SecRed Knowledge Inc."+E._);
   tp(E.bl+"  "+E.gy+"Mode: SOVEREIGN  |  PQC: ML-DSA-65 / FIPS 204"+E._);
   tp(E.bl+"  "+E.gy+"Patent Pending  |  SDVOSB  |  adinkhepra.com"+E._);
   tp(E.bl+"================================================================"+E._);
@@ -416,7 +416,7 @@ function runCmd(cmd){
   else if(cmd==="dag_audit"){tok("DAG chain: VERIFIED");td("Nodes:",nc+"");td("Signed:",sc+" / "+sc+" (100%)");td("Algo:","ML-DSA-65 / FIPS 204");addNode("dag_audit VERIFIED","cert",[{c:"k",t:"VERIFIED"},{c:"p",t:"ML-DSA-65"}])}
   else if(cmd==="godfather_report"){tok("Godfather: $"+TOTEXP.toLocaleString());td("ROI:",Math.round(TOTEXP/REMCOST)+"x");showGF(TOTEXP,REMCOST,Math.round(TOTEXP/REMCOST))}
   else if(cmd.startsWith("stig")){const ctrl=cmd.split(" ")[1]||"AC-2";tok("STIG: "+ctrl);td("Maps to:","CMMC.AC.L2-3.1.1 -> NIST 800-53 AC-2");td("Status:",E.re+"FAIL"+E._);addNode("stig_check: "+ctrl,"flight",[{c:"s",t:"STIG"},{c:"p",t:"SIGNED"}])}
-  else if(cmd==="pqc_stig"){tok("PQC-01-STIG-V1R1 - World's First DoD PQC STIG");td("Controls:","17 (CNSA 2.0 / FIPS 203/204/205)");td("ML-DSA-65:",E.gr+"PRESENT"+E._);td("ML-KEM-768:",E.re+"NOT FOUND"+E._);addNode("pqc_stig","flight",[{c:"p",t:"PQC-STIG"},{c:"g",t:"CNSA 2.0"}])}
+  else if(cmd==="pqc_stig"){tok("PQC-01-STIG-V1R1 - NouchiX PQC control set");td("Controls:","17 (CNSA 2.0 / FIPS 203/204/205)");td("ML-DSA-65:",E.gr+"PRESENT"+E._);td("ML-KEM-768:",E.re+"NOT FOUND"+E._);addNode("pqc_stig","flight",[{c:"p",t:"PQC-STIG"},{c:"g",t:"CNSA 2.0"}])}
   else if(cmd.startsWith("nist_map")){const ctrl=cmd.split(" ")[1]||"AC-2";tok("NIST: "+ctrl+" -> CMMC.AC.L2-3.1.1 -> CCI-001893");td("800-171:","3.1.1");td("CMMC:","AC.L2-3.1.1");addNode("nist_map: "+ctrl,"flight",[{c:"s",t:"NIST"},{c:"p",t:"SIGNED"}])}
   else if(cmd==="cmmc_assess"){tok("CMMC L2 - 110 controls");td("Passed:","42");td("Failed:",E.re+"12 violations ("+FX.filter(f=>f.sev==="CAT I").length+" CAT I)"+E._);td("Score:","38% - FAIL");addNode("cmmc_assess","cert",[{c:"g",t:"CMMC L2"},{c:"p",t:"ML-DSA-65"}])}
   else if(cmd==="threat_model"){tok("MITRE ATT&CK - Risk: "+E.re+"CRITICAL (9.4/10)"+E._);td("T1190:","Exploit Public-Facing App");td("T1078:","Valid Accounts");addNode("threat_model CRITICAL","cert",[{c:"r",t:"CRITICAL"},{c:"p",t:"SIGNED"}])}

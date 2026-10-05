@@ -40,7 +40,7 @@ export const TrustAnchors = () => {
     {
       icon: Lock,
       title: 'Post-Quantum Cryptography',
-      description: 'ML-DSA-65 (FIPS 204) + ML-KEM-768 (FIPS 203) via Cloudflare CIRCL — NIST-standardized PQC primitives',
+      description: 'ML-DSA-65 (FIPS 204) signatures and pre-standard CRYSTALS-Kyber-1024 key encapsulation via Cloudflare CIRCL; FIPS 203 ML-KEM-1024 migration in progress',
     },
     {
       icon: Zap,

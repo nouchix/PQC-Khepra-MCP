@@ -106,7 +106,7 @@
     },
     {
       "name": "pqc_stig",
-      "description": "World's First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence."
+      "description": "PQC-01-STIG-V1R1, a NouchiX post-quantum control set (not a DISA STIG). Assesses code against CNSA 2.0 and FIPS 203/204/205 algorithm requirements. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence."
     },
     {
       "name": "cmmc_assess",
@@ -216,10 +216,10 @@
     "patentPending": "U.S. App. No. 63/942,886",
     "pqcAlgorithms": [
       "ML-DSA-65 (NIST FIPS 204)",
-      "Kyber-1024 (NIST FIPS 203)",
+      "CRYSTALS-Kyber-1024 (pre-standard, not FIPS 203)",
       "ECDSA P-384"
     ],
-    "fips": "140-3 compatible (Linux builds with GOEXPERIMENT=boringcrypto)",
+    "fips": "FIPS-mode Linux builds; not FIPS 140-3 validated (module inheritance in progress)",
     "attestation": "CycloneDX SBOM + cosign keyless (Sigstore)",
     "codeqlAlerts": 0,
     "grpcVersion": "v1.81.0 (CVE-2025-22869 mitigated via golang.org/x/net \u2265 v0.38.0)"

@@ -208,7 +208,7 @@ func builtinKhepraFindings() []telemetry.CryptoFinding {
 			NISTMigrationPriority: 0, // Already PQC-safe
 		},
 		{
-			Algorithm:             "ML-KEM-768",
+			Algorithm:             "ML-KEM-1024",
 			LibraryName:           "CRYSTALS-Kyber",
 			LibraryVersion:        "FIPS-203",
 			UsagePattern:          "key-exchange",

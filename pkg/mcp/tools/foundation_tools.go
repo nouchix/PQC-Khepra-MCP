@@ -103,7 +103,7 @@ func HandlePQCVerify(ctx context.Context, call mcp.MCPToolCall) (any, []string, 
 	}, nil, nil
 }
 
-// HandlePQCKeygen generates a fresh ML-DSA-65 + ML-KEM-768 key pair.
+// HandlePQCKeygen generates a fresh ML-DSA-65 + CRYSTALS-Kyber-1024 key pair.
 // Returns base64-encoded public keys (private keys are NOT returned — store securely).
 func HandlePQCKeygen(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
 	dilPub, _, err := adinkra.GenerateDilithiumKey()
@@ -120,7 +120,7 @@ func HandlePQCKeygen(ctx context.Context, call mcp.MCPToolCall) (any, []string, 
 		"kyber_public_key":     base64.StdEncoding.EncodeToString(kyberPub),
 		"algorithms": map[string]string{
 			"signing":  "ML-DSA-65 (FIPS 204)",
-			"kem":      "ML-KEM-768 (FIPS 203)",
+			"kem":      "CRYSTALS-Kyber-1024 (pre-standard, NIST Round 3; not FIPS 203)",
 		},
 		"warning":    "Private keys are NOT returned. Generate and store at server startup via pkg/kms.",
 		"created_at": lorentz.StampNow(),

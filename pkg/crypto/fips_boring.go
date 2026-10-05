@@ -42,7 +42,7 @@ func CheckFIPS() FIPSStatus {
 		}
 		log.Println("SYSTEM: FIPS 140-3 Mode ENABLED (BoringCrypto active)")
 		log.Printf("SYSTEM: Transport Layer Cryptography - FIPS-Validated (BoringSSL %s)", status.BoringVersion)
-		log.Println("SYSTEM: Application Layer Cryptography - NIST PQC (ML-DSA-65, ML-KEM-1024)")
+		log.Println("SYSTEM: Application-layer PQC - ML-DSA-65 (FIPS 204), Dilithium3 and Kyber-1024 (pre-standard); not FIPS 140-3 validated")
 
 	case FIPSWarning:
 		if !status.Enabled {
@@ -89,7 +89,7 @@ func FIPSInfo() string {
 		return fmt.Sprintf(
 			"FIPS 140-3: ENABLED (BoringCrypto %s)\n"+
 				"Transport Layer: FIPS-validated BoringSSL\n"+
-				"Application Layer: NIST PQC (ML-DSA-65, ML-KEM-1024)\n"+
+				"Application Layer: ML-DSA-65 (FIPS 204), Dilithium3 and Kyber-1024 (pre-standard)\n"+
 				"Build: %s, CGO=%v",
 			status.BoringVersion,
 			status.GOVersion,

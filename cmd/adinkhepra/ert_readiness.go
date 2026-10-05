@@ -324,7 +324,7 @@ func displayPrioritizedRoadmap(summary nist80171.ComplianceSummary, score int) {
 	}
 	items = append(items, roadmapItem{
 		Priority: "STRATEGIC",
-		Action:   "Deploy Post-Quantum Cryptography Migration (ML-DSA-65 + ML-KEM-768)",
+		Action:   "Deploy Post-Quantum Cryptography Migration (ML-KEM-1024 + ML-DSA-87)",
 		Control:  "NIST 800-171 3.13.10 (Cryptographic Key Management)",
 	})
 	items = append(items, roadmapItem{

@@ -301,8 +301,8 @@ func (t *GodfatherReportTool) buildReport(_ context.Context, reportID, engagemen
 		GeneratedAt:  time.Now().UTC(),
 		PQCPosture: PQCPostureSection{
 			PrimaryScheme: "ML-DSA-65",
-			FIPS204Compliant: true,
-			FIPS203Compliant: true,
+			// FIPS203Compliant and FIPS204Compliant stay false: nothing in this
+			// report establishes them, and they must never be asserted by default.
 		},
 		EASummary: EASummarySection{
 			BestSymbol: "Eban",

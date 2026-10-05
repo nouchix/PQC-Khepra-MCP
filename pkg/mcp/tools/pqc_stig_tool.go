@@ -1,4 +1,4 @@
-// Package tools — pqc_stig_tool.go: MCP handler for the World's First DoD PQC STIG.
+// Package tools — pqc_stig_tool.go: MCP handler for PQC-01-STIG-V1R1 (NouchiX PQC control set).
 //
 // Tool: pqc_stig
 // Tier: Pharaoh (Enterprise) — TierEnterprise gate

@@ -321,7 +321,7 @@
     },
     {
       "name": "pqc_stig",
-      "description": "World's First DoD PQC STIG (PQC-01-STIG-V1R1). CNSA 2.0 / FIPS 203/204/205 compliance assessment. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
+      "description": "PQC-01-STIG-V1R1, a NouchiX post-quantum control set (not a DISA STIG). Assesses code against CNSA 2.0 and FIPS 203/204/205 algorithm requirements. Returns per-control findings, compliance score, and ML-DSA-65 signed evidence.",
       "risk_class": "read_only",
       "scope": "stig:pqc",
       "schema_version": "1.0.0",
