@@ -45,8 +45,9 @@ type LicenseTier = string
 
 const (
 	TierCommunity  = "community"  // Free
-	TierPro        = "pro"        // $19/mo
-	TierEnterprise = "enterprise" // $499/mo
+	TierPro        = "pro"        // $19/mo or $99/mo
+	TierPlatform   = "platform"   // $499/mo — KTOS Platform (AEO, Trust, Passport, STIG Live)
+	TierEnterprise = "enterprise" // $2,999/mo
 	TierSovereign  = "sovereign"  // Custom — Contact Sales. Air-gap/offline licensing lives here.
 	TierMaster     = "master"     // Cyber-only; issues/revokes all others. Not customer-facing.
 )
@@ -57,6 +58,7 @@ const (
 var AllTierCapabilities = map[string][]string{
 	TierCommunity:  {"stig", "pqc"},
 	TierPro:        {"stig", "pqc", "forensics", "fim", "autopilot"},
+	TierPlatform:   {"stig", "pqc", "forensics", "fim", "autopilot", "aeo", "passport", "trust_score"},
 	TierEnterprise: {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "autopilot"},
 	TierSovereign:  {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "autopilot", "air_gap", "offline_license", "hsm"},
 	TierMaster:     {"stig", "pqc", "forensics", "fim", "ir", "bcdr", "network", "sbom", "autopilot", "air_gap", "offline_license", "hsm", "license_issue", "license_revoke"},
