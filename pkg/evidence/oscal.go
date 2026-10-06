@@ -16,16 +16,16 @@ package evidence
 //                            control-satisfying component in the SSP.
 //
 // Design choices:
-//   - Deterministic UUIDs (RFC 4122 v5, SHA-1 over a fixed KHEPRA namespace).
+//   - Deterministic UUIDs (SHA-256 over a fixed KHEPRA namespace, v4 format).
 //     The same package state yields byte-identical OSCAL, so the audit enclave
-//     can diff two runs and the DAG/ML-DSA-65 attestation stays stable.
+//     can diff two runs and the DAG/ML-DSA-87 attestation stays stable.
 //   - Standard library only. No new module dependencies.
 //
 // IP: SOUHIMBOU DOH KONE LLC, exclusively licensed to SecRed Knowledge Inc.
 // Patent: U.S. App. No. 63/942,886 (KHEPRA Protocol)
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -221,7 +221,7 @@ func OSCALComponentDefinition(generated time.Time) ([]byte, error) {
 func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 	var doc oscalAssessmentResults
 	ar := &doc.AssessmentResults
-	ar.UUID = uuidV5("assessment-results:" + pkg.PackageID)
+	ar.UUID = stableUUID("assessment-results:" + pkg.PackageID)
 	ar.Metadata = oscalMetadata{
 		Title:        "KHEPRA ERT Assessment Results — " + pkg.Target,
 		Published:    pkg.Generated,
@@ -231,7 +231,7 @@ func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 		Props: []oscalProp{
 			{Name: "tool", Value: "KHEPRA ERT v2.0"},
 			{Name: "patent", Value: "U.S. App. No. 63/942,886"},
-			{Name: "algorithm", Value: "ML-DSA-65 / FIPS 204"},
+			{Name: "algorithm", Value: "ML-DSA-87 / FIPS 204 (manifest.json)"},
 			{Name: "framework", Value: pkg.Framework},
 			{Name: "sprs-score", Value: fmt.Sprintf("%d", pkg.SPRS.Score)},
 			{Name: "manifest-signature", Value: pkg.ManifestSignature},
@@ -240,9 +240,9 @@ func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 	ar.ImportAP = oscalHref{Href: "./khepra-assessment-plan.json"}
 
 	result := oscalARResult{
-		UUID:        uuidV5("result:" + pkg.PackageID),
+		UUID:        stableUUID("result:" + pkg.PackageID),
 		Title:       "KHEPRA Automated Assessment",
-		Description: "Automated Examine+Test assessment produced by KHEPRA ERT and sealed to the immutable KHEPRA DAG via ML-DSA-65 (FIPS 204).",
+		Description: "Automated Examine+Test assessment produced by KHEPRA ERT. File integrity: SHA-256 digests in manifest.json, signed with ML-DSA-87 (FIPS 204) when a key is configured.",
 		Start:       pkg.Generated,
 	}
 
@@ -266,8 +266,8 @@ func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 	}
 
 	for _, f := range pkg.Findings {
-		obsUUID := uuidV5("observation:" + pkg.PackageID + ":" + f.ID)
-		findUUID := uuidV5("finding:" + pkg.PackageID + ":" + f.ID)
+		obsUUID := stableUUID("observation:" + pkg.PackageID + ":" + f.ID)
+		findUUID := stableUUID("finding:" + pkg.PackageID + ":" + f.ID)
 		cid := controlID(f)
 
 		result.Observations = append(result.Observations, oscalObservation{
@@ -278,7 +278,7 @@ func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 			Types:       []string{"finding"},
 			Collected:   collectedAt(f, pkg.Generated),
 			RelevantEvidence: []oscalRelevantEvidence{
-				{Href: "./04-findings.json", Description: "KHEPRA finding record (ML-DSA-65 signed)"},
+				{Href: "./04-findings.json", Description: "KHEPRA finding record (covered by manifest.json)"},
 				{Description: "attest-hash: " + f.AttestHash},
 			},
 		})
@@ -304,7 +304,7 @@ func buildAssessmentResults(pkg *C3PAOPackage) oscalAssessmentResults {
 func buildComponentDefinition(generated time.Time) oscalComponentDefinition {
 	var doc oscalComponentDefinition
 	cd := &doc.ComponentDefinition
-	cd.UUID = uuidV5("component-definition:khepra-ert")
+	cd.UUID = stableUUID("component-definition:khepra-ert")
 	cd.Metadata = oscalMetadata{
 		Title:        "KHEPRA ERT Tool → Control Component Definition",
 		Published:    generated,
@@ -322,7 +322,7 @@ func buildComponentDefinition(generated time.Time) oscalComponentDefinition {
 		reqs := make([]oscalImplementedReq, 0, len(t.Controls))
 		for _, c := range t.Controls {
 			reqs = append(reqs, oscalImplementedReq{
-				UUID:        uuidV5("implreq:" + t.Name + ":" + c),
+				UUID:        stableUUID("implreq:" + t.Name + ":" + c),
 				ControlID:   c,
 				Description: fmt.Sprintf("KHEPRA `%s` produces %s, providing continuous technical evidence for %s.", t.Name, t.Produces, strings.ToUpper(c)),
 				Props: []oscalProp{
@@ -332,7 +332,7 @@ func buildComponentDefinition(generated time.Time) oscalComponentDefinition {
 			})
 		}
 		cd.Components = append(cd.Components, oscalComponent{
-			UUID:        uuidV5("component:" + t.Name),
+			UUID:        stableUUID("component:" + t.Name),
 			Type:        "software",
 			Title:       "KHEPRA " + t.Name,
 			Description: t.Produces,
@@ -341,7 +341,7 @@ func buildComponentDefinition(generated time.Time) oscalComponentDefinition {
 				{Name: "provider", Value: "NouchiX / SecRed Knowledge Inc."},
 			},
 			ControlImplementations: []oscalControlImpl{{
-				UUID:                    uuidV5("controlimpl:" + t.Name),
+				UUID:                    stableUUID("controlimpl:" + t.Name),
 				Source:                  srcNIST80053,
 				Description:             fmt.Sprintf("Control satisfaction claims for the %s tool.", t.Name),
 				ImplementedRequirements: reqs,
@@ -402,19 +402,18 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-// uuidV5 returns a deterministic RFC 4122 v5 UUID (SHA-1) over a fixed KHEPRA
-// namespace and the given name, so identical package state yields identical
-// OSCAL for clean audit-enclave diffs.
-func uuidV5(name string) string {
+// stableUUID returns a deterministic UUID for name: the first 16 bytes of
+// SHA-256(namespace || name) with the version-4 and RFC 9562 variant bits set,
+// so it matches OSCAL's uuid pattern (versions 4 and 5 only). Identical package
+// state yields identical OSCAL for clean audit-enclave diffs. UUIDv5 is not
+// used because it requires SHA-1, which FIPS 140-only mode rejects.
+func stableUUID(name string) string {
 	// Fixed KHEPRA evidence namespace (ASCII "khepra-evidence!").
-	ns := []byte{0x6b, 0x68, 0x65, 0x70, 0x72, 0x61, 0x2d, 0x65, 0x76, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x21}
-	h := sha1.New()
-	h.Write(ns)
-	h.Write([]byte(name))
-	s := h.Sum(nil)
+	ns := []byte("khepra-evidence!")
+	s := sha256.Sum256(append(ns, name...))
 	var u [16]byte
 	copy(u[:], s[:16])
-	u[6] = (u[6] & 0x0f) | 0x50 // version 5
-	u[8] = (u[8] & 0x3f) | 0x80 // RFC 4122 variant
+	u[6] = (u[6] & 0x0f) | 0x40 // version 4 bits
+	u[8] = (u[8] & 0x3f) | 0x80 // RFC 9562 variant
 	return fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:16])
 }

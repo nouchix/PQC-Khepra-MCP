@@ -150,7 +150,7 @@ type PracticeStatus struct {
 
 // ── BoundaryDeclaration ────────────────────────────────────────────────────────
 
-// BoundaryDeclaration is the ML-DSA-65 signed Phase 1 SCOPE output.
+// BoundaryDeclaration is the ML-DSA-87 signed Phase 1 SCOPE output.
 // This is the first node in the CMMC compliance DAG chain.
 // The C3PAO assessor reviews this at the start of every assessment.
 type BoundaryDeclaration struct {
@@ -166,7 +166,7 @@ type BoundaryDeclaration struct {
 	AssetRosterHash  string     `json:"asset_roster_hash"` // SHA-256 of sorted asset list
 	DeclaredBy       string     `json:"declared_by"`       // operator identity
 	DeclaredAt       time.Time  `json:"declared_at"`
-	Signature        []byte     `json:"signature"` // ML-DSA-65 over canonical JSON
+	Signature        []byte     `json:"signature"` // ML-DSA-87 over canonical JSON
 	PublicKeyHex     string     `json:"pub_key_hex,omitempty"`
 	DAGNodeID        string     `json:"dag_node_id"`
 }

@@ -17,6 +17,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -94,7 +95,11 @@ func generateToken(serviceName string) {
 		os.Exit(1)
 	}
 
-	secret := getServiceSecret()
+	secret, err := getServiceSecret()
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Generate timestamp (8 bytes, big-endian)
 	timestamp := time.Now().Unix()
@@ -196,7 +201,11 @@ func validateToken(token string) {
 	}
 
 	// Verify signature
-	secret := getServiceSecret()
+	secret, err := getServiceSecret()
+	if err != nil {
+		fmt.Printf("Signature:   ❌ cannot verify: %v\n", err)
+		return
+	}
 	message := "khepra-svc-" + serviceName + "-" + timestampHex
 	expectedSig := computeHMAC(message, secret)
 
@@ -237,17 +246,21 @@ func initSecret() {
 	fmt.Println("⚠️  This secret must be the SAME on all services!")
 }
 
-func getServiceSecret() []byte {
-	secret := os.Getenv("KHEPRA_SERVICE_SECRET")
-	if secret == "" {
-		fmt.Println("⚠️  Warning: KHEPRA_SERVICE_SECRET not set")
-		fmt.Println("   Using default development secret (NOT SECURE FOR PRODUCTION)")
-		fmt.Println()
-		fmt.Println("   Run 'service-token init-secret' to generate a secure secret")
-		fmt.Println()
-		secret = "khepra-service-secret-v1-development-only" // PLACEHOLDER — set KHEPRA_SERVICE_SECRET in production
+// getServiceSecret returns the hex-decoded KHEPRA_SERVICE_SECRET (at least
+// 32 bytes), the same key the API server and telemetry worker use.
+func getServiceSecret() ([]byte, error) {
+	v := strings.TrimSpace(os.Getenv("KHEPRA_SERVICE_SECRET"))
+	if v == "" {
+		return nil, errors.New("KHEPRA_SERVICE_SECRET is not set (run 'service-token init-secret')")
 	}
-	return []byte(secret)
+	key, err := hex.DecodeString(v)
+	if err != nil {
+		return nil, errors.New("KHEPRA_SERVICE_SECRET must be hex (run 'service-token init-secret')")
+	}
+	if len(key) < 32 {
+		return nil, errors.New("KHEPRA_SERVICE_SECRET must be at least 32 bytes (64 hex characters)")
+	}
+	return key, nil
 }
 
 func computeHMAC(message string, secret []byte) string {

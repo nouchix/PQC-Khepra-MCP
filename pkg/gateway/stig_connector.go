@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -321,6 +322,16 @@ func NewSTIGConnector(cfg *STIGConnectorConfig, keys KeyProvider) *STIGConnector
 		breaker:      newCircuitBreaker(cfg.CircuitBreakerThreshold, cfg.CircuitBreakerResetTime),
 		limiter:      newTokenBucket(cfg.MaxRequestsPerHour, cfg.BurstSize),
 		keyRotatedAt: time.Now(),
+	}
+
+	// The cache lives in process memory, so a random per-process key is
+	// enough when none is configured.
+	if len(cfg.IntegrityKey) == 0 {
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			panic(fmt.Sprintf("STIGConnector: integrity key: %v", err))
+		}
+		cfg.IntegrityKey = key
 	}
 
 	// Initialize cache encryption key
@@ -696,12 +707,7 @@ func (c *STIGConnector) putInCache(key string, result *STIGQueryResult) {
 }
 
 func (c *STIGConnector) computeHMAC(data []byte) []byte {
-	key := c.config.IntegrityKey
-	if len(key) == 0 {
-		// Fallback for development only - in production this must be set
-		key = []byte("khepra-default-integrity-key-change-me-in-production")
-	}
-	h := hmac.New(sha256.New, key)
+	h := hmac.New(sha256.New, c.config.IntegrityKey)
 	h.Write(data)
 	return h.Sum(nil)
 }

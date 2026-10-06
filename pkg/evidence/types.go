@@ -198,6 +198,6 @@ type BuildConfig struct {
 	Framework  string // default: "CMMC Level 2 / NIST SP 800-171 Rev2"
 
 	// Signing
-	PrivKey []byte // ML-DSA-65 private key for manifest signature
-	PubKey  []byte // ML-DSA-65 public key (hex-encoded in manifest)
+	PrivKey []byte // ML-DSA-87 private key (32-byte seed) for the manifest signature
+	PubKey  []byte // ML-DSA-87 public key
 }
