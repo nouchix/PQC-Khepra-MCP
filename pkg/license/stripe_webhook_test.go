@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nouchix/khepra-pqc/sign"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 func TestVerifyStripeSignature(t *testing.T) {
@@ -67,7 +67,8 @@ func TestProcessCheckoutSessionMultiTier(t *testing.T) {
 		}
 
 		session := &StripeCheckoutSession{
-			ID: "cs_test_platform_order",
+			ID:            "cs_test_platform_order",
+			PaymentStatus: "paid",
 			CustomerDetails: StripeCustomerDetails{
 				Email: "platform-buyer@defense-contractor.mil",
 				Name:  "Lead Architect",
@@ -111,7 +112,8 @@ func TestProcessCheckoutSessionMultiTier(t *testing.T) {
 		}
 
 		session := &StripeCheckoutSession{
-			ID: "cs_test_enterprise_order",
+			ID:            "cs_test_enterprise_order",
+			PaymentStatus: "paid",
 			CustomerDetails: StripeCustomerDetails{
 				Email: "ciso@defense-prime.com",
 				Name:  "Chief Information Security Officer",
@@ -155,7 +157,8 @@ func TestProcessCheckoutSessionMultiTier(t *testing.T) {
 		}
 
 		session := &StripeCheckoutSession{
-			ID: "cs_test_sovereign_order",
+			ID:            "cs_test_sovereign_order",
+			PaymentStatus: "paid",
 			CustomerDetails: StripeCustomerDetails{
 				Email: "classified-env@aerospace-gov.us",
 				Name:  "Special Access Program Lead",

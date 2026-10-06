@@ -13,7 +13,6 @@ package license
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -25,14 +24,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/flight"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
 )
 
@@ -163,43 +160,62 @@ func StripeWebhookGinHandler(deps *StripePipelineDeps) gin.HandlerFunc {
 	webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
 
 	return func(c *gin.Context) {
-		body, err := io.ReadAll(c.Request.Body)
+		// Without the endpoint secret nothing can be authenticated, so no
+		// event is processed (a forged checkout would otherwise mint a license).
+		if webhookSecret == "" {
+			log.Println("[STRIPE] STRIPE_WEBHOOK_SECRET is not set — refusing webhook")
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "webhook_not_configured"})
+			return
+		}
+
+		body, err := io.ReadAll(io.LimitReader(c.Request.Body, maxWebhookBody))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
 			return
 		}
 
 		// 1. Signature Verification
-		sigHeader := c.GetHeader("Stripe-Signature")
-		if webhookSecret != "" {
-			if err := VerifyStripeSignature(body, sigHeader, webhookSecret, 300*time.Second); err != nil {
-				log.Printf("[SEKHEM-WAF] Stripe signature verification failed: %v", err)
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_stripe_signature", "detail": err.Error()})
-				return
-			}
-		} else {
-			log.Println("[SEKHEM-WAF] WARNING: STRIPE_WEBHOOK_SECRET is empty — proceeding in test mode")
+		if err := VerifyStripeSignature(body, c.GetHeader("Stripe-Signature"), webhookSecret, 300*time.Second); err != nil {
+			log.Printf("[STRIPE] signature verification failed: %v", err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_stripe_signature"})
+			return
 		}
 
 		// 2. Parse Event JSON
 		var event StripeEvent
-		if err := json.Unmarshal(body, &event); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_event_json", "detail": err.Error()})
+		if err := json.Unmarshal(body, &event); err != nil || event.ID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_event_json"})
+			return
+		}
+
+		// 3. Idempotency: Stripe retries deliveries, and a captured request can
+		// be replayed inside the signature tolerance window.
+		if !processedEvents.claim(event.ID) {
+			c.JSON(http.StatusOK, gin.H{"received": true, "status": "duplicate"})
 			return
 		}
 
 		log.Printf("[STRIPE-EVENT] Received %s (ID: %s)", event.Type, event.ID)
 
 		switch event.Type {
-		case "checkout.session.completed":
+		case "checkout.session.completed", "checkout.session.async_payment_succeeded":
 			var session StripeCheckoutSession
 			if err := json.Unmarshal(event.Data.Object, &session); err != nil {
+				processedEvents.release(event.ID)
 				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_session_data"})
 				return
 			}
 			if err := processCheckoutSession(&session, deps); err != nil {
+				if errors.Is(err, ErrPaymentNotSettled) {
+					// Async payment methods complete checkout before the money
+					// arrives; fulfillment happens on async_payment_succeeded.
+					log.Printf("[STRIPE] session %s not paid yet: %v", session.ID, err)
+					c.JSON(http.StatusOK, gin.H{"received": true, "status": "awaiting_payment"})
+					return
+				}
+				processedEvents.release(event.ID) // let Stripe's retry try again
 				log.Printf("[FULFILLMENT-ERR] Error processing checkout session %s: %v", session.ID, err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "processing_failed", "detail": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "processing_failed"})
 				return
 			}
 
@@ -218,6 +234,47 @@ func StripeWebhookGinHandler(deps *StripePipelineDeps) gin.HandlerFunc {
 	}
 }
 
+// maxWebhookBody bounds the webhook request body (Stripe events are far smaller).
+const maxWebhookBody = 1 << 20
+
+// ErrPaymentNotSettled means a checkout completed without settled payment
+// (payment_status other than "paid"); nothing is fulfilled for it.
+var ErrPaymentNotSettled = errors.New("checkout payment not settled")
+
+// eventLedger records Stripe event IDs already handled by this process. It is
+// in memory, so it stops replays and duplicate deliveries within a process
+// lifetime; restarts rely on Stripe's signature tolerance window.
+type eventLedger struct {
+	mu   sync.Mutex
+	seen map[string]time.Time
+}
+
+var processedEvents = &eventLedger{seen: make(map[string]time.Time)}
+
+// claim marks id as being handled and reports whether it was new.
+func (l *eventLedger) claim(id string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	for k, t := range l.seen {
+		if now.Sub(t) > 72*time.Hour { // Stripe retries for up to 3 days
+			delete(l.seen, k)
+		}
+	}
+	if _, dup := l.seen[id]; dup {
+		return false
+	}
+	l.seen[id] = now
+	return true
+}
+
+// release forgets id so a later delivery of the same event is processed.
+func (l *eventLedger) release(id string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.seen, id)
+}
+
 // ─── Multi-Tier Order Processing ─────────────────────────────────────────────
 
 func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipelineDeps) error {
@@ -228,6 +285,9 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 	}
 	if email == "" {
 		return errors.New("checkout session missing customer email")
+	}
+	if session.PaymentStatus != "paid" {
+		return fmt.Errorf("%w: session %s payment_status=%q", ErrPaymentNotSettled, session.ID, session.PaymentStatus)
 	}
 
 	// 1. Detect if this is a STIGViewer Tokenomics Credit Top-Up Order
@@ -274,7 +334,6 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 	highestTier := TierCommunity
 	totalSeats := 0
 	nodeQuota := 1
-	prefix := "kphr_com_"
 
 	if session.LineItems != nil && len(session.LineItems.Data) > 0 {
 		for _, item := range session.LineItems.Data {
@@ -287,23 +346,19 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 			switch item.Price.UnitAmount {
 			case 299900: // $2,999/mo — Enterprise Tier (SEKHEM PQC-WAF + DataLoop + ASAF)
 				highestTier = TierEnterprise
-				prefix = "kphr_enterprise_"
 				nodeQuota += qty * 25
 			case 49900: // $499/mo — Platform Tier (AEO, Passports, STIG Live Query)
 				if highestTier != TierEnterprise && highestTier != TierSovereign {
 					highestTier = TierPlatform
-					prefix = "kphr_platform_"
 					nodeQuota += qty * 10
 				}
 			case 9900: // $99/mo — Pro Tier (Starter)
 				if highestTier == TierCommunity {
 					highestTier = TierPro
-					prefix = "kphr_pro_"
 					nodeQuota += qty * 3
 				}
 			case 500000: // $5,000/mo — Sovereign Air-Gap / Strategic Advisory Tier
 				highestTier = TierSovereign
-				prefix = "kphr_sovereign_"
 				nodeQuota = -1 // Unlimited
 			}
 		}
@@ -313,23 +368,18 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 		totalSeats = 1
 		if amt >= 500000 {
 			highestTier = TierSovereign
-			prefix = "kphr_sovereign_"
 			nodeQuota = -1
 		} else if amt >= 299900 {
 			highestTier = TierEnterprise
-			prefix = "kphr_enterprise_"
 			nodeQuota = 25
 		} else if amt >= 49900 {
 			highestTier = TierPlatform
-			prefix = "kphr_platform_"
 			nodeQuota = 10
 		} else if amt >= 9900 {
 			highestTier = TierPro
-			prefix = "kphr_pro_"
 			nodeQuota = 3
 		} else {
 			highestTier = TierCommunity
-			prefix = "kphr_com_"
 			nodeQuota = 1
 		}
 	}
@@ -342,52 +392,25 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 	expiresAt := now.Add(365 * 24 * time.Hour)
 
 	// 2. Mint FIPS 204 ML-DSA-87 License Key
-	licenseBlob := map[string]interface{}{
-		"version":     "1.0",
-		"email":       email,
-		"tier":        highestTier,
-		"seats":       totalSeats,
-		"node_quota":  nodeQuota,
-		"issued_at":   now.Unix(),
-		"expires_at":  expiresAt.Unix(),
-		"issuer":      "SECRED KNOWLEDGE INC.",
-		"signed_with": "ML-DSA-87",
+	// Mint a kphr_{slug}_{base64url} key signed under khepra/v3/apikey —
+	// the format ValidateAPIKey accepts. Seats and node quota are recorded
+	// in the DAG and the fulfillment email; they are not part of the key.
+	customerID := strings.TrimSpace(session.Customer)
+	if customerID == "" {
+		customerID = email
 	}
-	blobJSON, _ := json.Marshal(licenseBlob)
-
-	var signature []byte
-	var err error
-
-	if deps.SentrySign != nil {
-		signature, err = deps.SentrySign(blobJSON)
-	} else if len(deps.MasterPriv) > 0 {
-		// ML-DSA-87 seed under khepra/v3/license; retired ML-DSA-65 keys error.
-		signature, err = signWith(licenseContext, deps.MasterPriv, blobJSON)
-	} else {
-		return errors.New("no valid ML-DSA-87 signing mechanism available")
+	if len(deps.MasterPriv) == 0 {
+		return errors.New("no ML-DSA-87 issuing key configured")
 	}
-
+	finalLicenseKey, err := GenerateSignedAPIKey(deps.MasterPriv, highestTier, customerID, expiresAt, "")
 	if err != nil {
-		return fmt.Errorf("failed to sign license payload: %w", err)
+		return fmt.Errorf("failed to mint license key: %w", err)
 	}
 
-	fullPayload := append(blobJSON, signature...)
-	finalLicenseKey := prefix + hex.EncodeToString(fullPayload)
-
-	// 3. Generate QKD Kyber-1024 Air-Gap Capsule (for Enterprise & Sovereign)
+	// Device-bound license capsules are issued when a device enrolls with its
+	// own ML-KEM key; checkout fulfillment issues the API key only.
 	capsuleBase64 := ""
-	if highestTier == TierEnterprise || highestTier == TierSovereign {
-		capsuleBundle, err := generateAutomatedQKDCapsule(email, highestTier, deps.MasterPriv, deps.MasterPub)
-		if err == nil && capsuleBundle != nil {
-			capsuleBytes, _ := json.Marshal(capsuleBundle)
-			capsuleBase64 = base64.StdEncoding.EncodeToString(capsuleBytes)
-			log.Printf("[QKD] Generated Kyber-1024 license capsule for %s", email)
-		} else if err != nil {
-			log.Printf("[QKD-WARN] Could not generate Kyber capsule: %v", err)
-		}
-	}
 
-	// 4. Immutable DAG Attestation
 	nodeID := ""
 	if deps.DAGStore != nil {
 		dagNode := &dag.Node{
@@ -399,48 +422,25 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 				"tier":           highestTier,
 				"seats":          strconv.Itoa(totalSeats),
 				"node_quota":     strconv.Itoa(nodeQuota),
-				"prefix":         prefix,
 				"issued_at":      strconv.FormatInt(now.Unix(), 10),
 				"expires_at":     strconv.FormatInt(expiresAt.Unix(), 10),
 				"signature_algo": "ML-DSA-87",
 				"stripe_session": session.ID,
 			},
 		}
-		if deps.MasterPriv != nil {
-			_ = dagNode.Sign(deps.MasterPriv)
-		}
-		if err := deps.DAGStore.Add(dagNode, []string{}); err != nil {
+		if err := dagNode.Sign(deps.MasterPriv); err != nil {
+			log.Printf("[DAG-WARN] Could not sign DAG node: %v", err)
+		} else if err := deps.DAGStore.Add(dagNode, []string{}); err != nil {
 			log.Printf("[DAG-WARN] Could not add node to DAG: %v", err)
+		} else {
+			nodeID = dagNode.ID
 		}
-		nodeID = dagNode.ID
 	}
-	if nodeID == "" {
-		nodeID = fmt.Sprintf("flt-node-%s", uuid.New().String()[:8])
-	}
-
-	// 5. CMMC L2 Flight Recorder Frame
-	flightID := "flt-" + uuid.New().String()[:8]
-	_ = flight.FlightFrame{
-		FrameID:       flightID,
-		StartedAt:     now,
-		DurationMs:    time.Since(now).Milliseconds(),
-		ToolName:      "stripe_checkout_fulfillment",
-		ToolScope:     "license:mint",
-		RiskClass:     flight.RiskDestructive,
-		IntentSummary: fmt.Sprintf("Automated %s license provisioning for %s", highestTier, email),
-		PolicyDecisions: []flight.PolicyDecision{
-			{Step: "sekhem_waf", Permitted: true},
-			{Step: "stripe_sig_verify", Permitted: true},
-			{Step: "pqc_signing", Permitted: true},
-		},
-		Outcome:       flight.OutcomeSuccess,
-		DAGNodeID:     nodeID,
-		IsSigned:      true,
-		SignatureAlgo: "ML-DSA-87",
-		Algorithm:     "ML-DSA-87",
+	dagAnchor := nodeID
+	if dagAnchor == "" {
+		dagAnchor = "not anchored (no DAG store configured)"
 	}
 
-	// 6. Automated Transactional Email via Resend
 	portalURL := os.Getenv("STRIPE_CUSTOMER_PORTAL_URL")
 	if portalURL == "" {
 		portalURL = "https://billing.stripe.com/p/login/00w00j5nYdZwcZB73t9ws00"
@@ -454,67 +454,24 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 		Seats:         totalSeats,
 		LicenseKey:    finalLicenseKey,
 		CapsuleBase64: capsuleBase64,
-		DAGAnchor:     nodeID,
+		DAGAnchor:     dagAnchor,
 		PortalURL:     portalURL,
 		IssuedAt:      now,
 		ExpiresAt:     expiresAt,
 	}
 
-	if err := SendFulfillmentEmail(details); err != nil {
+	if err := sendFulfillment(details); err != nil {
 		log.Printf("[FULFILLMENT-WARN] Email dispatch error: %v", err)
 	}
 
-	log.Printf("[FULFILLMENT-SUCCESS] Minted %s license for %s (%d seats) | DAG Anchor: %s", highestTier, email, totalSeats, nodeID)
+	log.Printf("[FULFILLMENT-SUCCESS] Minted %s license for %s (%d seats) | DAG Anchor: %s", highestTier, email, totalSeats, dagAnchor)
 	return nil
 }
 
 // ─── QKD Capsule Helper ──────────────────────────────────────────────────────
 
-func generateAutomatedQKDCapsule(email, tier string, masterPriv, masterPub []byte) (*LicenseCapsule, error) {
-	if len(masterPriv) == 0 {
-		return nil, errors.New("master private key unavailable for QKD signing")
-	}
-
-	// 1. Generate ephemeral client Kyber keypair
-	clientKyberPK, _, err := adinkra.GenerateKEMKey()
-	if err != nil {
-		return nil, fmt.Errorf("ephemeral Kyber keygen: %w", err)
-	}
-
-	// 2. Generate ephemeral client Dilithium keypair to simulate device signature
-	devPK, devSK, err := adinkra.GenerateSigningKey()
-	if err != nil {
-		return nil, fmt.Errorf("ephemeral Dilithium keygen: %w", err)
-	}
-
-	nonce := make([]byte, 32)
-	req := &LicenseRequest{
-		RequestID:      uuid.New().String(),
-		DeviceID:       "device-" + uuid.New().String()[:12],
-		Tenant:         email,
-		RequestedTier:  tier,
-		KyberPublicKey: clientKyberPK,
-		RequestNonce:   nonce,
-		Timestamp:      time.Now().UTC(),
-		DevicePubKey:   devPK,
-	}
-
-	reqPayload, _ := req.Bytes()
-	sig, err := adinkra.Sign(devSK, reqPayload)
-	if err != nil {
-		return nil, err
-	}
-	req.DeviceSignature = sig
-
-	// 3. Issue capsule using SovereignLicenseAuthority
-	sla := &SovereignLicenseAuthority{
-		PrivateKey:   masterPriv,
-		PublicKey:    masterPub,
-		RevocationDB: newRevocationDatabase(),
-	}
-
-	return sla.IssueLicenseCapsule(req, 365*24*time.Hour)
-}
+// sendFulfillment delivers the fulfillment email; tests replace it.
+var sendFulfillment = SendFulfillmentEmail
 
 func recordRevocationInDAG(customer, subscriptionID, reason string, deps *StripePipelineDeps) {
 	if deps.DAGStore == nil {
