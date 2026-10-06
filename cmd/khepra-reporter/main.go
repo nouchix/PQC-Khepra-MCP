@@ -180,16 +180,13 @@ func aesEncrypt(key, plaintext []byte) (ciphertextHex, nonceHex string, err erro
 	if err != nil {
 		return "", "", fmt.Errorf("aes: %w", err)
 	}
-	gcm, err := cipher.NewGCM(block)
+	// The module generates the nonce; Seal returns nonce | ciphertext | tag.
+	gcm, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return "", "", fmt.Errorf("gcm: %w", err)
 	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = rand.Read(nonce); err != nil {
-		return "", "", fmt.Errorf("nonce: %w", err)
-	}
-	ct := gcm.Seal(nil, nonce, plaintext, nil)
-	return hex.EncodeToString(ct), hex.EncodeToString(nonce), nil
+	out := gcm.Seal(nil, nil, plaintext, nil)
+	return hex.EncodeToString(out[12:]), hex.EncodeToString(out[:12]), nil
 }
 
 func aesDecrypt(key []byte, ciphertextHex, nonceHex string) ([]byte, error) {
@@ -205,11 +202,14 @@ func aesDecrypt(key []byte, ciphertextHex, nonceHex string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("aes: %w", err)
 	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, fmt.Errorf("gcm: %w", err)
 	}
-	return gcm.Open(nil, nonce, ct, nil)
+	if len(nonce) != 12 {
+		return nil, fmt.Errorf("nonce: want 12 bytes, got %d", len(nonce))
+	}
+	return gcm.Open(nil, nil, append(append([]byte{}, nonce...), ct...), nil)
 }
 
 // ── Enrollment ────────────────────────────────────────────────────────────────

@@ -275,15 +275,11 @@ func (sla *SovereignLicenseAuthority) IssueLicenseCapsule(req *LicenseRequest, t
 	if err != nil {
 		return nil, fmt.Errorf("QKD: AES cipher: %w", err)
 	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, fmt.Errorf("QKD: GCM: %w", err)
 	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("QKD: nonce: %w", err)
-	}
-	encLic := gcm.Seal(nonce, nonce, licBytes, nil)
+	encLic := gcm.Seal(nil, nil, licBytes, nil) // nonce | ciphertext | tag
 
 	// ── Step 5: ML-DSA-65 sign the capsule ───────────────────────────────────
 	capsule := &LicenseCapsule{
@@ -426,16 +422,14 @@ func aesGCMDecrypt(sharedSecret, encryptedData []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("AES cipher: %w", err)
 	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, fmt.Errorf("GCM init: %w", err)
 	}
-	if len(encryptedData) < gcm.NonceSize() {
+	if len(encryptedData) < 12+gcm.Overhead() {
 		return nil, errors.New("encrypted data too short")
 	}
-	nonce := encryptedData[:gcm.NonceSize()]
-	ct := encryptedData[gcm.NonceSize():]
-	plain, err := gcm.Open(nil, nonce, ct, nil)
+	plain, err := gcm.Open(nil, nil, encryptedData, nil)
 	if err != nil {
 		return nil, fmt.Errorf("AES-GCM decryption failed (tag mismatch): %w", err)
 	}
