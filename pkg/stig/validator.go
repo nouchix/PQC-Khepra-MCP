@@ -215,6 +215,8 @@ func (v *Validator) validateFramework(framework string) error {
 			result.NotApplicable++
 		case "Manual Review Required":
 			result.ManualReview++
+		case StatusNotAssessed:
+			result.NotAssessed++
 		}
 	}
 	result.TotalControls = len(result.Findings)
