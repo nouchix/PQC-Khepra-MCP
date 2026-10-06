@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -167,7 +169,11 @@ func validateServiceToken(token string) (*ServiceAccount, error) {
 	}
 
 	// Validate HMAC signature
-	secret := getServiceSecret()
+	secret, err := getServiceSecret()
+	if err != nil {
+		log.Printf("[AUTH] service token rejected: %v", err)
+		return nil, &AuthError{Message: "Service authentication is not configured"}
+	}
 	message := ServiceTokenPrefix + serviceName + "-" + timestampHex
 	expectedSig := computeHMAC(message, secret)
 
@@ -178,16 +184,26 @@ func validateServiceToken(token string) (*ServiceAccount, error) {
 	return &account, nil
 }
 
-// getServiceSecret returns the shared secret for service token validation
-func getServiceSecret() []byte {
-	// In production, load from secure vault (AWS KMS, HashiCorp Vault, etc.)
-	secret := os.Getenv("KHEPRA_SERVICE_SECRET")
-	if secret == "" {
-		// Fallback to a deterministic secret derived from ML-DSA-65 public key hash
-		// This is NOT ideal but ensures tokens work across restarts
-		secret = "khepra-service-secret-v1-change-me-in-production" // PLACEHOLDER — set KHEPRA_SERVICE_SECRET in production
+// minServiceSecretBytes is the minimum HMAC key length (256 bits).
+const minServiceSecretBytes = 32
+
+// getServiceSecret returns the HMAC key for service tokens: the hex-decoded
+// KHEPRA_SERVICE_SECRET (as written by `service-token init-secret` and used by
+// the telemetry worker). There is no built-in default; without a valid
+// secret every service token is rejected.
+func getServiceSecret() ([]byte, error) {
+	v := strings.TrimSpace(os.Getenv("KHEPRA_SERVICE_SECRET"))
+	if v == "" {
+		return nil, errors.New("KHEPRA_SERVICE_SECRET is not set")
 	}
-	return []byte(secret)
+	key, err := hex.DecodeString(v)
+	if err != nil {
+		return nil, errors.New("KHEPRA_SERVICE_SECRET must be hex (run `service-token init-secret`)")
+	}
+	if len(key) < minServiceSecretBytes {
+		return nil, fmt.Errorf("KHEPRA_SERVICE_SECRET must be at least %d bytes", minServiceSecretBytes)
+	}
+	return key, nil
 }
 
 // computeHMAC generates HMAC-SHA256 signature
@@ -201,7 +217,9 @@ func computeHMAC(message string, secret []byte) string {
 // This should be called from a secure admin endpoint or CLI
 func GenerateServiceToken(serviceName string) (string, error) {
 	// Verify service account exists
+	serviceMu.RLock()
 	_, exists := serviceAccounts[serviceName]
+	serviceMu.RUnlock()
 	if !exists {
 		return "", &AuthError{Message: "Unknown service account: " + serviceName}
 	}
@@ -216,7 +234,10 @@ func GenerateServiceToken(serviceName string) (string, error) {
 	timestampHex := hex.EncodeToString(timestampBytes)
 
 	// Generate HMAC signature
-	secret := getServiceSecret()
+	secret, err := getServiceSecret()
+	if err != nil {
+		return "", fmt.Errorf("service token: %w", err)
+	}
 	message := ServiceTokenPrefix + serviceName + "-" + timestampHex
 	signature := computeHMAC(message, secret)
 

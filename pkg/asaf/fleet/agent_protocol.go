@@ -41,7 +41,7 @@ type AgentHeartbeat struct {
 	PAMFaillockConfigured bool      `json:"pam_faillock_configured"`
 	BitLockerActive       bool      `json:"bitlocker_active"`
 	STIGScore             int       `json:"stig_score"` // 0-100
-	Signature             string    `json:"signature"`  // ML-DSA-65 over posture digest
+	Signature             string    `json:"signature"`  // reserved: not yet produced or verified
 }
 
 // FleetTask represents an ad-hoc or scheduled query sent to the agent (FleetDM/osquery style).

@@ -5,7 +5,7 @@
 // and handles three responsibilities:
 //
 //  1. Anonymous signed beacon intake (POST /beacon)
-//     — Clients submit ML-DSA-65-signed usage telemetry; no IP stored.
+//     — Clients submit ML-DSA-87-signed usage telemetry; no IP stored.
 //
 //  2. License revocation list distribution (GET /license/crl)
 //     — Returns the current IPFS CID of the encrypted CRL so clients can
@@ -15,7 +15,7 @@
 //     — Used by clients to refresh the server timestamp and CRL epoch.
 //
 // Storage: SQLite via modernc.org/sqlite (single binary, zero external deps).
-// Auth: ML-DSA-65 signed requests only — no API keys, no JWTs, no sessions.
+// Auth: ML-DSA-87 signed requests only — no API keys, no JWTs, no sessions.
 // Privacy: No IP addresses stored; anonymous_id is a client-generated hash.
 package main
 
@@ -36,8 +36,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	_ "modernc.org/sqlite"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // ─── Configuration ────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ import (
 type serverConfig struct {
 	ListenAddr    string // e.g. ":8443"
 	DBPath        string // SQLite file path
-	MasterPubKey  []byte // ML-DSA-65 public key (verifies beacon signatures)
+	MasterPubKey  []byte // ML-DSA-87 public key (verifies beacon signatures)
 	CRLCurrentCID string // Current IPFS CID of the revocation list
 	TLSCertFile   string // TLS certificate (Let's Encrypt / ACME)
 	TLSKeyFile    string // TLS private key
@@ -164,9 +164,9 @@ type incomingBeacon struct {
 	ScanCount        int    `json:"scan_count"`
 	FindingCount     int    `json:"finding_count"`
 	Timestamp        string `json:"timestamp"`
-	// ML-DSA-65 signature over canonical JSON of the above fields
+	// ML-DSA-87 signature (context khepra/v3/telemetry) over canonicalBytes
 	Signature []byte `json:"signature"`
-	// Signer's ML-DSA-65 public key (clients use ephemeral keys per session)
+	// Signer's ML-DSA-87 public key (clients use ephemeral keys per session)
 	SignerPublicKey []byte `json:"signer_public_key"`
 }
 
@@ -180,6 +180,20 @@ func (b *incomingBeacon) canonicalBytes() ([]byte, error) {
 		"finding_count":     b.FindingCount,
 		"timestamp":         b.Timestamp,
 	})
+}
+
+// verifyBeacon checks the beacon's ML-DSA-87 signature under the telemetry
+// context, matching pkg/telemetry.SendSovereignBeacon.
+func verifyBeacon(b *incomingBeacon) error {
+	pk, err := sign.NewPublicKey(b.SignerPublicKey)
+	if err != nil {
+		return fmt.Errorf("signer public key: %w", err)
+	}
+	canonical, err := b.canonicalBytes()
+	if err != nil {
+		return fmt.Errorf("canonical bytes: %w", err)
+	}
+	return pk.Verify(sign.ContextTelemetry, canonical, b.Signature)
 }
 
 // ─── HTTP Handlers ────────────────────────────────────────────────────────────
@@ -197,7 +211,7 @@ func (s *server) routes() http.Handler {
 	return requestLogger(securityHeaders(mux))
 }
 
-// handleBeacon verifies the ML-DSA-65 signature and stores anonymised telemetry.
+// handleBeacon verifies the ML-DSA-87 signature and stores anonymised telemetry.
 // IP addresses are never stored; anonymous_id is a client-generated hash.
 func (s *server) handleBeacon(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 64*1024)) // 64 KB max
@@ -224,20 +238,15 @@ func (s *server) handleBeacon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify ML-DSA-65 signature
+	// Verify the ML-DSA-87 signature. Beacons are anonymous and each install
+	// signs with its own key, so this proves the beacon was not altered in
+	// transit; it does not authenticate the sender.
 	if len(beacon.Signature) == 0 || len(beacon.SignerPublicKey) == 0 {
 		http.Error(w, "signature and signer_public_key required", http.StatusUnauthorized)
 		return
 	}
 
-	canonical, err := beacon.canonicalBytes()
-	if err != nil {
-		http.Error(w, "canonical bytes", http.StatusInternalServerError)
-		return
-	}
-
-	valid, err := adinkra.Verify(beacon.SignerPublicKey, canonical, beacon.Signature)
-	if err != nil || !valid {
+	if err := verifyBeacon(&beacon); err != nil {
 		http.Error(w, "invalid signature", http.StatusUnauthorized)
 		return
 	}

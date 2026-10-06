@@ -34,10 +34,11 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanner"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scorpion"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/util"
-	"golang.org/x/crypto/ssh"
+	"github.com/nouchix/khepra-pqc/envelope"
 	"github.com/nouchix/khepra-pqc/kem"
 	"github.com/nouchix/khepra-pqc/keyfile"
 	"github.com/nouchix/khepra-pqc/sign"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -1292,66 +1293,44 @@ func explainCmd(args []string) {
 
 	fmt.Printf("[ADINKHEPRA] EXPLAINING ARTIFACT: %s\n", filepath.Base(path))
 	fmt.Println(separator)
-
-	// Heuristic Analysis
-	size := len(data)
-	fmt.Printf(" Size: %d bytes\n", size)
-
-	if size == 1568 {
-		fmt.Println(" Type: Kyber-1024 Public Key (pre-standard, not FIPS 203)")
-		fmt.Println(" Meaning: 'I am ready to receive secrets.'")
-		fmt.Println(" Symbol:  Kuntinkantan (Do not be arrogant)")
-	} else if size == 3168 {
-		fmt.Println(" Type: Kyber-1024 Private Key (pre-standard, not FIPS 203)")
-		fmt.Println(" Meaning: 'I hold the power to unravel.'")
-		fmt.Println(" Warning: EXTREMELY SENSITIVE MATERIAL")
-	} else if size == 2592 {
-		fmt.Println(" Type: ML-DSA-87 Public Key (NIST FIPS 204)")
-		fmt.Println(" Meaning: 'I am who I say I am.'")
-		fmt.Println(" Symbol:  Eban (The Fortress)")
-	} else if size == 4896 {
-		fmt.Println(" Type: ML-DSA-87 Private Key (NIST FIPS 204)")
-		fmt.Println(" Meaning: 'I wield the seal of authority.'")
-	} else if size == 1952 {
-		fmt.Println(" Type: Dilithium Mode 3 Public Key (Historical ML-DSA-65)")
-		fmt.Println(" Meaning: 'I am who I say I am.'")
-		fmt.Println(" Symbol:  Eban (The Fortress)")
-	} else if size == 4000 || size == 4032 { // Approx for priv key
-		fmt.Println(" Type: Dilithium Mode 3 Private Key (Historical ML-DSA-65)")
-		fmt.Println(" Meaning: 'I wield the seal of authority.'")
-	} else if size > 1592 && filepath.Ext(path) == adinkraExt {
-		fmt.Println(" Type: AdinKhepra Encrypted Artifact")
-		fmt.Println(" Components:")
-		fmt.Println("   - Capsule (Kyber): 1568 bytes")
-		fmt.Println("   - Time (Nonce):    24 bytes")
-		fmt.Printf("   - Matter (Data):   %d bytes\n", size-1592)
-		fmt.Println(" Meaning: 'Reality bent into a riddle.'")
-	}
-	// Heuristic explanation based on artifact size/extension (no live AI inference is
-	// performed here; the fake processing delay previously used to imply real-time
-	// "cognitive processing" has been removed).
-	fmt.Printf("\n[EXPLAIN] Heuristic size-based analysis:\n")
-
-	if size == 1568 {
-		fmt.Println(" \"This is a Vessel of Silence. A pure Kyber-1024 geometric lattice designed")
-		fmt.Println("  to trap entropy. It represents the concept of 'Kuntinkantan' - hidden wisdom.")
-		fmt.Println("  Mathematically, it is a module of rank 4 over ring R_q with q=3329.\"")
-	} else if size == 3168 {
-		fmt.Println(" \"This is the Key of Unraveling. It holds the secret vectors 's' required")
-		fmt.Println("  to collapse the error distribution e. Handle with extreme reverence.\"")
-	} else if size == 2592 || size == 1952 {
-		fmt.Println(" \"This is the Shield of Identity. An ML-DSA-87 public key.")
-		fmt.Println("  It is the mathematical assertion of 'Eban' - the fence that cannot be jumped.")
-		fmt.Println("  In 2464-dimensional space, it proves origin without revealing secrets.\"")
-	} else if size > 1592 && filepath.Ext(path) == adinkraExt {
-		fmt.Println(" \"I see a reality that has been bent. The 'Kuntinkantan' ritual was performed here.")
-		fmt.Println("  The original matter is gone, replaced by this riddle.")
-		fmt.Println("  Only the one who holds the corresponding 'Sankofa' staff can return it to form.\"")
-	} else {
-		fmt.Printf(" \"I sense raw bytes. %d of them. But they lack the harmonic resonance of AdinKhepra.\"\n", size)
-	}
-
+	fmt.Printf(" Size: %d bytes\n", len(data))
+	fmt.Printf(" Type: %s\n", describeArtifact(data))
 	fmt.Println(separator)
+}
+
+// describeArtifact identifies KHEPRA key and envelope formats from their PEM
+// block type or envelope header. Matches on size alone are reported as
+// guesses, since raw seeds and keys carry no type information.
+func describeArtifact(data []byte) string {
+	if block, _ := pem.Decode(data); block != nil {
+		switch block.Type {
+		case keyfile.TypeKEMPublicKey:
+			return "ML-KEM-1024 encapsulation (public) key (FIPS 203)"
+		case keyfile.TypeKEMPrivateKey:
+			return "ML-KEM-1024 decapsulation (private) key seed (FIPS 203) — sensitive"
+		case keyfile.TypeSignPublicKey:
+			return "ML-DSA-87 verifying (public) key (FIPS 204)"
+		case keyfile.TypeSignPrivateKey:
+			return "ML-DSA-87 signing (private) key seed (FIPS 204) — sensitive"
+		}
+		return fmt.Sprintf("PEM block %q (not a KHEPRA key)", block.Type)
+	}
+	if envelope.IsEnvelope(data) {
+		return "KHQ3 envelope (Kuntinkantan): ML-KEM-1024 + HKDF-SHA-384 + AES-256-GCM"
+	}
+	switch len(data) {
+	case kem.EncapsulationKeySize:
+		return "probably a raw ML-KEM-1024 encapsulation key"
+	case sign.PublicKeySize:
+		return "probably a raw ML-DSA-87 public key"
+	case 1952:
+		return "probably a historical ML-DSA-65 public key (verify-only)"
+	case kem.SeedSize:
+		return "possibly a raw ML-KEM-1024 decapsulation key seed — sensitive if so"
+	case sign.SeedSize:
+		return "possibly a raw ML-DSA-87 private key seed — sensitive if so"
+	}
+	return "unrecognized"
 }
 
 func gitRemoteCmd() {

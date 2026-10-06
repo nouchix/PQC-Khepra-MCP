@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // FleetRegistry is the in-memory + on-disk asset and enclave store.
@@ -395,9 +397,9 @@ func (r *FleetRegistry) ImportCSV(reader io.Reader, enclaveID string) (*ImportRe
 	return result, nil
 }
 
-// AttestBoundary signs the current fleet state with ML-DSA-65 and returns
+// AttestBoundary signs the current fleet state with ML-DSA-87 and returns
 // a BoundaryDeclaration. The caller provides the operator's private key.
-// privKey must be an ML-DSA-65 (Dilithium3) private key from pkg/adinkra.
+// privKey must be an ML-DSA-87 private key seed from pkg/adinkra.
 func (r *FleetRegistry) AttestBoundary(orgName, cageCode, declaredBy string, privKey, pubKey []byte) (*BoundaryDeclaration, error) {
 	r.mu.RLock()
 	assets := make([]*Asset, 0, len(r.assets))
@@ -447,11 +449,13 @@ func (r *FleetRegistry) AttestBoundary(orgName, cageCode, declaredBy string, pri
 		return nil, fmt.Errorf("fleet: marshal boundary: %w", err)
 	}
 
-	// Use adinkra signing if key is provided; otherwise leave signature empty
+	// Sign with ML-DSA-87 if a key is provided; otherwise leave it unsigned.
 	if len(privKey) > 0 {
-		// Import inline to avoid circular dep — caller passes pre-signed hash
-		h := sha256.Sum256(declJSON)
-		decl.Signature = h[:] // placeholder: caller wraps with adinkra.Sign
+		sig, err := adinkra.Sign(privKey, declJSON)
+		if err != nil {
+			return nil, fmt.Errorf("fleet: sign boundary: %w", err)
+		}
+		decl.Signature = sig
 	}
 
 	// Generate declaration ID
@@ -697,10 +701,9 @@ func (r *FleetRegistry) EnrollAgent(req AgentRegistrationRequest) (*AgentRegistr
 		AgentID:      agentID,
 		SessionToken: sessionToken,
 		DAGNodeID:    dagNodeID,
-		Signature:    "ML-DSA-65:" + hex.EncodeToString(dagHash[:16]),
 		Status:       "ENROLLED",
 		EnrolledAt:   time.Now().UTC(),
-		Message:      fmt.Sprintf("Endpoint %s successfully enrolled into enclave %s with ML-DSA-65 signature", req.Hostname, enclaveID),
+		Message:      fmt.Sprintf("Endpoint %s enrolled into enclave %s", req.Hostname, enclaveID),
 	}, nil
 }
 

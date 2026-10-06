@@ -16,7 +16,7 @@ package evidence
 //  10-personnel-training.md   AT.L2-3.2.1 + AT.L2-3.2.2 records (Interview layer)
 //  11-incident-response.md    IR plan + tabletop exercise record
 //  12-dag-viewer.html         Self-contained D3.js force graph (visual DAG)
-//  manifest.json              ML-DSA-65 signed over SHA3-256 of all 13 files
+//  manifest.json              SHA-256 of every file; ML-DSA-87 signed when a key is configured
 
 import (
 	"encoding/json"
@@ -33,7 +33,7 @@ type artifact struct {
 
 // generateAll produces all 13 artifacts from the package state.
 // Returns them in canonical order (matches CMMC CAP v2.0 evidence binder convention).
-func generateAll(pkg *C3PAOPackage, sig func() string, h func() string) []artifact {
+func generateAll(pkg *C3PAOPackage, sig func() string, h func(any) string) []artifact {
 	cat1 := filterSev(pkg.Findings, "CAT I")
 	cat2 := filterSev(pkg.Findings, "CAT II")
 	cat3 := filterSev(pkg.Findings, "CAT III")
@@ -77,7 +77,7 @@ func genREADME(pkg *C3PAOPackage, cat1, cat2, cat3 []Finding, sig func() string)
 # Package ID: %s
 # Generated: %s
 # Tool: KHEPRA ERT v2.0 — NouchiX / SecRed Knowledge Inc. | U.S. App. No. 63/942,886
-# Algorithm: ML-DSA-65 / FIPS 204 (Cloudflare CIRCL)
+# Integrity: %s
 # SDVOSB | adinkhepra.com
 
 ## Target
@@ -107,15 +107,16 @@ func genREADME(pkg *C3PAOPackage, cat1, cat2, cat3 []Finding, sig func() string)
 | 10-personnel-training.md | Training Records | Examine + Interview | HISTORY_GAP |
 | 11-incident-response.md | IR Plan + Exercise | Examine + Test | PAPER_TIGER |
 | 12-dag-viewer.html | Visual Signed DAG | Examine | HYGIENE |
-| manifest.json | ML-DSA-65 Manifest | Examine | — |
+| manifest.json | File digests + ML-DSA-87 signature | Examine | — |
 
 ## Chain of Custody
-Every artifact is chain-linked to the immutable KHEPRA DAG.
-Tampering with any artifact invalidates the manifest signature.
-The chain of custody is cryptographically provable via ML-DSA-65 / FIPS 204.
+manifest.json lists the SHA-256 digest of every file in this package. When
+the package is signed, manifest.json carries an ML-DSA-87 (FIPS 204)
+signature over those digests, so changing any file invalidates it.
 `,
 		pkg.PackageID,
 		pkg.Generated.UTC().Format(time.RFC3339),
+		sig(),
 		pkg.Target,
 		pkg.Framework,
 		len(pkg.Findings), len(cat1), len(cat2), len(cat3),
@@ -146,7 +147,7 @@ func genSSP(pkg *C3PAOPackage, cat1, cat2 []Finding, sig func() string) []byte {
 
 	return []byte(fmt.Sprintf(`# System Security Plan (SSP)
 # CMMC Level 2 | NIST SP 800-171 Rev2
-# Generated: %s | Algorithm: ML-DSA-65 / FIPS 204
+# Generated: %s | Integrity: see manifest.json
 # Organization: [ORGANIZATION NAME]
 # System Name: %s
 # Package ID: %s
@@ -228,7 +229,7 @@ func genAssetInventory(pkg *C3PAOPackage, sig func() string) []byte {
 
 // ─── 03 Traceability Matrix ────────────────────────────────────────────────────
 
-func genTraceability(pkg *C3PAOPackage, h, sig func() string) []byte {
+func genTraceability(pkg *C3PAOPackage, h func(any) string, sig func() string) []byte {
 	var sb strings.Builder
 	sb.WriteString("control_id,cmmc_practice,nist_800_171,cci,finding_id,status,severity,poam_eligible,evidence_file,dag_node_hash\n")
 
@@ -239,7 +240,7 @@ func genTraceability(pkg *C3PAOPackage, h, sig func() string) []byte {
 		}
 		sb.WriteString(fmt.Sprintf("%s,%s,%s,%s,FINDING-%03d,FAIL,%s,%s,04-findings.json,%s\n",
 			f.ID, f.CMMCPractice, f.NIST, f.CCI,
-			i+1, f.Severity, poamStr, h(),
+			i+1, f.Severity, poamStr, h(f),
 		))
 	}
 	sb.WriteString(fmt.Sprintf("DAG_signature,%s\n", sig()))
@@ -300,7 +301,7 @@ func genFindingsJSON(pkg *C3PAOPackage, sig func() string) []byte {
 			SPRSPointWeight: f.SPRSPoints,
 			Status:          "FAIL",
 			AttestHash:      f.AttestHash,
-			SignedBy:        "ML-DSA-65 / FIPS 204",
+			SignedBy:        sig(),
 			Timestamp:       pkg.Generated,
 		}
 	}
@@ -310,7 +311,7 @@ func genFindingsJSON(pkg *C3PAOPackage, sig func() string) []byte {
 		Target:    pkg.Target,
 		Timestamp: pkg.Generated,
 		Scanner:   "KHEPRA ERT v2.0",
-		Algorithm: "ML-DSA-65 / FIPS 204",
+		Algorithm: "see manifest.json",
 		Framework: pkg.Framework,
 		Findings:  findings,
 		ManifSig:  sig(),
@@ -334,7 +335,7 @@ func genDAGChain(pkg *C3PAOPackage, sig func() string) []byte {
 	result := out{
 		ChainID:   pkg.PackageID,
 		Genesis:   pkg.Generated,
-		Algorithm: "ML-DSA-65 / FIPS 204",
+		Algorithm: "see manifest.json",
 		NodeCount: len(pkg.DAGNodes),
 		Nodes:     pkg.DAGNodes,
 		ChainSig:  sig(),
@@ -345,7 +346,7 @@ func genDAGChain(pkg *C3PAOPackage, sig func() string) []byte {
 
 // ─── 06 Flight Log (NDJSON) ────────────────────────────────────────────────────
 
-func genFlightLog(pkg *C3PAOPackage, h, sig func() string) []byte {
+func genFlightLog(pkg *C3PAOPackage, h func(any) string, sig func() string) []byte {
 	if len(pkg.FlightFrames) > 0 {
 		var sb strings.Builder
 		for _, f := range pkg.FlightFrames {
@@ -355,17 +356,18 @@ func genFlightLog(pkg *C3PAOPackage, h, sig func() string) []byte {
 		}
 		return []byte(sb.String())
 	}
-	// Synthesize from DAG nodes when no explicit frames available
+	// No flight frames were recorded: list one entry per DAG node, marked as
+	// derived. FrameHash is the SHA-256 of the DAG node; nothing is signed.
 	var sb strings.Builder
 	for i, n := range pkg.DAGNodes {
 		frame := FlightFrame{
 			Index:     i,
 			Tool:      n.Label,
 			Type:      n.Type,
-			Outcome:   "OutcomeSuccess",
+			Outcome:   "unknown (derived from DAG node; no flight frame recorded)",
 			DAGNodeID: n.Hash,
-			FrameHash: h(),
-			Signature: sig(),
+			FrameHash: h(n),
+			Signature: "",
 			Timestamp: pkg.Generated,
 		}
 		b, _ := json.Marshal(frame)
@@ -535,25 +537,20 @@ Remediate all %d CAT I (NON-POA&M) findings to achieve full compliance.
 
 // ─── 10 Personnel Training ────────────────────────────────────────────────────
 
-func genPersonnelTraining(pkg *C3PAOPackage, h, sig func() string) []byte {
+func genPersonnelTraining(pkg *C3PAOPackage, h func(any) string, sig func() string) []byte {
 	var trainingRows strings.Builder
 	if len(pkg.TrainingRecords) == 0 {
-		trainingRows.WriteString(fmt.Sprintf(`| System Administrator | CMMC Level 2 Awareness | %s | %s |
-| ISSO | NIST 800-171 Implementation | %s | %s |
-| Developer | Secure Coding (OWASP Top 10) | %s | %s |
-| Executive Sponsor | CUI Handling & CMMC Overview | %s | %s |
-`,
-			pkg.Generated.UTC().Format("2006-01-02"), h(),
-			pkg.Generated.UTC().Format("2006-01-02"), h(),
-			pkg.Generated.UTC().Format("2006-01-02"), h(),
-			pkg.Generated.UTC().Format("2006-01-02"), h(),
-		))
+		trainingRows.WriteString("| — | No training records were provided to the evidence builder | — | — |\n")
 	} else {
 		for _, t := range pkg.TrainingRecords {
+			attest := t.AttestHash
+			if attest == "" {
+				attest = h(t)
+			}
 			trainingRows.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
 				t.Role, t.TrainingCompleted,
 				t.CompletedAt.UTC().Format("2006-01-02"),
-				t.AttestHash,
+				attest,
 			))
 		}
 	}
@@ -575,19 +572,20 @@ func genPersonnelTraining(pkg *C3PAOPackage, h, sig func() string) []byte {
 
 	return []byte(fmt.Sprintf(`# Personnel Training Records
 # CMMC AT Domain | AT.L2-3.2.1 + AT.L2-3.2.2
-# Addresses: HISTORY_GAP rejection pattern — proves institutionalization
-# Generated: %s | Signed: %s
+# Generated: %s | Integrity: %s
 
 ## AT.L2-3.2.1 — Security Awareness Training
-| Personnel Role | Training Completed | Date | Attestation Hash |
+| Personnel Role | Training Completed | Date | Record Hash |
 |---|---|---|---|
 %s
 ## AT.L2-3.2.2 — Role-Based Training
+Complete this table from your training records before assessment.
+
 | Role | Training Topic | Frequency | Last Completed |
 |---|---|---|---|
-| Administrator | Privileged Access Security | Annual | %s |
-| Developer | Input Validation & Injection Prevention | Annual | %s |
-| All Staff | Phishing Awareness | Quarterly | %s |
+| Administrator | Privileged Access Security | Annual | [DATE] |
+| Developer | Input Validation & Injection Prevention | Annual | [DATE] |
+| All Staff | Phishing Awareness | Quarterly | [DATE] |
 
 ## Personnel Designated for C3PAO Interview
 The following personnel can describe each control and their role in maintaining it.
@@ -595,62 +593,52 @@ The following personnel can describe each control and their role in maintaining 
 | Name | Title | Controls Responsible For |
 |---|---|---|
 %s
-## Attestation
-Training records are maintained in the KHEPRA DAG with ML-DSA-65 signatures.
-Each completion event is an immutable, timestamped attestation.
-This addresses HISTORY_GAP rejection — records exist continuously, not just at audit time.
-Signature: %s
+## Source
+Training rows above come only from records supplied to the evidence builder;
+none are generated. Record hashes are SHA-256 digests of those records.
 `,
 		pkg.Generated.UTC().Format(time.RFC3339), sig(),
 		trainingRows.String(),
-		pkg.Generated.UTC().Format("2006-01-02"),
-		pkg.Generated.UTC().Format("2006-01-02"),
-		pkg.Generated.UTC().Format("2006-01-02"),
 		personnelRows.String(),
-		sig(),
 	))
 }
 
 // ─── 11 Incident Response ─────────────────────────────────────────────────────
 
 func genIR(pkg *C3PAOPackage, sig func() string) []byte {
-	return []byte(fmt.Sprintf(`# Incident Response Plan — Exercise Record
+	return []byte(fmt.Sprintf(`# Incident Response Plan — Exercise Record (template)
 # CMMC IR Domain | IR.L2-3.6.1 + IR.L2-3.6.2 + IR.L2-3.6.3
-# Addresses: PAPER_TIGER rejection — proves plan is exercised, not just documented
-# Generated: %s | Signed: %s
+# Generated: %s | Integrity: %s
+#
+# Complete every [BRACKETED] field from your own records. KHEPRA does not
+# record tabletop exercises; nothing below is pre-filled as evidence.
 
 ## IR Plan Status
-- Plan Version: 1.2
-- Last Updated: %s
+- Plan Version: [VERSION]
+- Last Updated: [DATE]
 - Plan Owner: [ISSO NAME]
 - US-CERT Reporting Endpoint: https://www.cisa.gov/report
 
 ## Tabletop Exercise Record
 | Exercise Date | Scenario | Participants | Result | Lessons Learned |
 |---|---|---|---|---|
-| %s | Ransomware + Data Exfil | Admin, ISSO, Dev | Completed | Detection time: 12min |
+| [DATE] | [SCENARIO] | [PARTICIPANTS] | [RESULT] | [LESSONS LEARNED] |
 
-## IR Procedure — Detection to Containment
+## IR Procedure — Detection to Containment (as configured in KHEPRA)
 1. KASA anomaly score > 0.85 triggers SouHimBou AI alert
 2. SouHimBou AI opens incident ticket automatically
 3. SOAR playbook: quarantine-agent staged for human approval
 4. Human approves → production execution
-5. Incident documented in DAG (immutable, ML-DSA-65 signed)
+5. Incident documented in the DAG (ML-DSA-87 signed)
 6. US-CERT notification within 72 hours per DFARS 252.204-7012
 
-## Evidence of Continuous Monitoring
-- Flight Recorder: active since system genesis (see 06-spd-flight-log.ndjson)
-- All KASA anomaly alerts reviewed and ticketed (HISTORY_GAP evidence)
-- Continuous monitoring period: %s to present
-
-## Attestation
-%s
+## Monitoring Evidence in This Package
+- Flight recorder frames: 06-spd-flight-log.ndjson (%d recorded)
+- DAG nodes: 05-dag-chain.json (%d nodes)
+- Monitoring period: [START DATE] to present
 `,
 		pkg.Generated.UTC().Format(time.RFC3339), sig(),
-		pkg.Generated.UTC().Format("2006-01-02"),
-		pkg.Generated.UTC().Format("2006-01-02"),
-		pkg.Generated.UTC().Format("2006-01-02"),
-		sig(),
+		len(pkg.FlightFrames), len(pkg.DAGNodes),
 	))
 }
 
@@ -687,7 +675,7 @@ svg{width:100%%;height:calc(100vh - 54px)}
   <span>KHEPRA Immutable DAG</span>
   <span>Package: <span>%s</span></span>
   <span>Nodes: <span>%d</span></span>
-  <span>Algorithm: <span>ML-DSA-65 / FIPS 204</span></span>
+  <span>Integrity: <span>see manifest.json</span></span>
   <span>Signed: <span>%s</span></span>
 </div>
 <svg id="dag"></svg>

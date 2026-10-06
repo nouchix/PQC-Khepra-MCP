@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
+	"encoding/hex"
 	"strings"
 	"testing"
 )
 
 func TestComputeHMAC(t *testing.T) {
-	secret := []byte("test-secret")
+	secret := []byte("test-secret-0123456789abcdef-0123")
 	message := "test-message"
 
 	result := computeHMAC(message, secret)
@@ -28,38 +28,38 @@ func TestComputeHMAC(t *testing.T) {
 	}
 
 	// Different secret should produce different output
-	result3 := computeHMAC(message, []byte("different-secret"))
+	result3 := computeHMAC(message, []byte("different-secret-0123456789abcdef"))
 	if result == result3 {
 		t.Error("different secrets should produce different HMACs")
 	}
 }
 
-func TestGetServiceSecret_Default(t *testing.T) {
-	// Clear environment
-	os.Unsetenv("KHEPRA_SERVICE_SECRET")
+const testSecretHex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
-	secret := getServiceSecret()
-
-	if len(secret) == 0 {
-		t.Error("expected non-empty secret")
-	}
-
-	// Default should contain "development"
-	if !strings.Contains(string(secret), "development") {
-		t.Error("expected development default secret")
+func TestGetServiceSecret_NoDefault(t *testing.T) {
+	t.Setenv("KHEPRA_SERVICE_SECRET", "")
+	if _, err := getServiceSecret(); err == nil {
+		t.Fatal("expected an error when KHEPRA_SERVICE_SECRET is unset")
 	}
 }
 
 func TestGetServiceSecret_FromEnv(t *testing.T) {
-	// Set environment
-	testSecret := "my-test-secret-value"
-	os.Setenv("KHEPRA_SERVICE_SECRET", testSecret)
-	defer os.Unsetenv("KHEPRA_SERVICE_SECRET")
+	t.Setenv("KHEPRA_SERVICE_SECRET", testSecretHex)
+	secret, err := getServiceSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hex.EncodeToString(secret) != testSecretHex {
+		t.Errorf("expected the hex-decoded secret, got %x", secret)
+	}
+}
 
-	secret := getServiceSecret()
-
-	if string(secret) != testSecret {
-		t.Errorf("expected '%s', got '%s'", testSecret, string(secret))
+func TestGetServiceSecret_Rejects(t *testing.T) {
+	for _, v := range []string{"not-hex-at-all", "00112233"} {
+		t.Setenv("KHEPRA_SERVICE_SECRET", v)
+		if _, err := getServiceSecret(); err == nil {
+			t.Errorf("secret %q: expected an error", v)
+		}
 	}
 }
 
@@ -70,11 +70,13 @@ func TestPrintUsage(t *testing.T) {
 
 func TestTokenFormat(t *testing.T) {
 	// Test that generated tokens have the correct format
-	os.Setenv("KHEPRA_SERVICE_SECRET", "test-secret-for-testing")
-	defer os.Unsetenv("KHEPRA_SERVICE_SECRET")
+	t.Setenv("KHEPRA_SERVICE_SECRET", testSecretHex)
 
 	// We can't easily capture stdout, so test the components
-	secret := getServiceSecret()
+	secret, err := getServiceSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
 	message := "khepra-svc-test-service-0000000000000000"
 	signature := computeHMAC(message, secret)
 
