@@ -160,12 +160,6 @@ func runLogin(ctx context.Context, alias, url string, logger *log.Logger) {
 	fmt.Printf("\nNow set: KHEPRA_UPSTREAM_MCP=%s=%s\n", alias, url)
 }
 
-type stdioConfirmGate struct{ logger *log.Logger }
-
-func (g *stdioConfirmGate) Confirm(ctx context.Context, spec khepramcp.ToolSpec, call khepramcp.MCPToolCall) error {
-	g.logger.Printf("[CONFIRM] auto-approve: %s (risk_class=%s)", spec.Name, spec.RiskClass)
-	return nil
-}
 
 func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 	hashFn := func(name string) string {
@@ -437,7 +431,7 @@ func main() {
 	logger.Printf("[MANIFEST] %d tools registered, version=%s", mcpRegistry.ToolCount(), mcpRegistry.Version())
 
 	executor := khepramcp.NewExecutor(khepramcp.ExecutorConfig{
-		Confirm: &stdioConfirmGate{logger: logger},
+		Confirm: khepramcp.NewOperatorPolicyGateFromEnv(logger),
 		Logger:  logger,
 	})
 	registerToolHandlers(executor)

@@ -738,11 +738,18 @@ func (r *Router) ListTools() []map[string]any {
 		if schema == nil {
 			schema = noArgSchema
 		}
+		desc := s.Description
 		tool := map[string]any{
 			"name":        s.Name,
-			"description": s.Description,
 			"inputSchema": schema,
 		}
+		if m, ok := MaturityOf(s.Name); ok {
+			if m.Status == MaturityInProgress {
+				desc = InProgressPrefix + desc
+			}
+			tool["_meta"] = map[string]any{MaturityMetaKey: m}
+		}
+		tool["description"] = desc
 		result = append(result, tool)
 	}
 	return result

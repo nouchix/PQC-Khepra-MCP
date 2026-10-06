@@ -90,6 +90,12 @@ func (e *Executor) RegisterFunc(toolName string, fn func(ctx context.Context, ca
 // Execute dispatches a tool call based on its risk classification.
 // This implements the ToolExecutor interface used by the Router.
 func (e *Executor) Execute(ctx context.Context, spec ToolSpec, call MCPToolCall) (any, []string, error) {
+	// A tool listed as in_progress never runs, whether or not a handler is
+	// registered for it.
+	if inProgress(spec.Name) {
+		return nil, nil, ErrInProgress(spec.Name)
+	}
+
 	// Enforce timeout from the manifest.
 	if spec.TimeoutMs > 0 {
 		var cancel context.CancelFunc

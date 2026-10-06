@@ -555,6 +555,9 @@ func HandleKhepraQueryThreatIntel(ctx context.Context, call mcp.MCPToolCall) (an
 	query = strings.TrimSpace(query)
 
 	// Load CVE data from the known paths used by ERT Package B
+	if !cveDatabaseAvailable() {
+		return nil, nil, fmt.Errorf("khepra_query_threat_intel: the offline CVE database (data/cve-database) is not installed — no lookup was performed")
+	}
 	vulns := loadEmbeddedCVEData(query)
 
 	result := &ThreatIntelResult{
@@ -842,3 +845,20 @@ func HandleFlightExport(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 // Note: HandleAgentRecord is defined in compliance_tools.go.
 // It handles both SouHimBou AI SaaS mode (SOUHIMBOU_ENDPOINT) and
 // sovereign/air-gap mode (local PQC-signed DAG audit log).
+
+// cveDatabaseAvailable reports whether loadEmbeddedCVEData has any JSON data
+// to read in the directories it searches.
+func cveDatabaseAvailable() bool {
+	for _, dir := range []string{"data/cve-database", "../data/cve-database", filepath.Join(findProjectRoot(), "data", "cve-database")} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+				return true
+			}
+		}
+	}
+	return false
+}

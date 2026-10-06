@@ -170,7 +170,7 @@ func main() {
 	})
 	executor := khepramcp.NewExecutor(khepramcp.ExecutorConfig{
 		Sandbox: sandboxBackend,
-		Confirm: &hubConfirmGate{logger: logger},
+		Confirm: khepramcp.NewOperatorPolicyGateFromEnv(logger),
 		Logger:  logger,
 	})
 	registerToolHandlers(executor)
@@ -379,18 +379,6 @@ func main() {
 	}
 }
 
-// ── hubConfirmGate ────────────────────────────────────────────────────────────
-
-// hubConfirmGate implements mcp.ConfirmationGate.
-// In the Hub context, tool execution confirmations go through the Imhotep UI,
-// not inline. All MCP tool calls are auto-confirmed; risky operations (sysctl,
-// PAM, SELinux) must be dispatched as ChangeRequests through Imhotep.
-type hubConfirmGate struct{ logger *log.Logger }
-
-func (g *hubConfirmGate) Confirm(ctx context.Context, spec khepramcp.ToolSpec, call khepramcp.MCPToolCall) error {
-	g.logger.Printf("[CONFIRM] auto-approve: %s (risk_class=%s)", spec.Name, spec.RiskClass)
-	return nil
-}
 
 // ── Manifest Registry ──────────────────────────────────────────────────────────
 
