@@ -20,6 +20,8 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/kernelports"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/tools"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/mcp/upstream"
+	"net"
+	"strconv"
 )
 
 // ─── Upstream broker (Mitochondrial egress) ───────────────────────────────────
@@ -159,7 +161,6 @@ func runLogin(ctx context.Context, alias, url string, logger *log.Logger) {
 	}
 	fmt.Printf("\nNow set: KHEPRA_UPSTREAM_MCP=%s=%s\n", alias, url)
 }
-
 
 func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 	hashFn := func(name string) string {
@@ -325,6 +326,27 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// See pkg/mcp/tools/gateway_proxy_tools.go for the allowlist and WAF rules.
 	executor.RegisterFunc("stripe_call", tools.HandleStripeCall)
 	executor.RegisterFunc("mcp_gateway", tools.HandleMCPGateway)
+
+	// Tools listed in the manifest and served by asaf-hub; registered here so
+	// every tool this server lists can run.
+	executor.RegisterFunc("attack_graph", tools.HandleAttackGraph)
+	executor.RegisterFunc("audit_dag_integrity", tools.HandleAuditExport)
+	executor.RegisterFunc("compliance_scan", tools.HandleComplianceScan)
+	executor.RegisterFunc("container_scan", tools.HandleContainerScan)
+	executor.RegisterFunc("dag_audit", tools.HandleDAGAudit)
+	executor.RegisterFunc("dag_query", tools.HandleDAGQuery)
+	executor.RegisterFunc("dag_write", tools.HandleDAGWrite)
+	executor.RegisterFunc("drbc_backup", tools.HandleDRBCBackup)
+	executor.RegisterFunc("drbc_restore", tools.HandleDRBCRestore)
+	executor.RegisterFunc("enumerate_host", tools.HandleEnumerateHost)
+	executor.RegisterFunc("fingerprint_device", tools.HandleFingerprintDevice)
+	executor.RegisterFunc("packet_analyze", tools.HandlePacketAnalyze)
+	executor.RegisterFunc("port_scan", tools.HandlePortScan)
+	executor.RegisterFunc("pqc_keygen", tools.HandlePQCKeygen)
+	executor.RegisterFunc("pqc_sign", tools.HandlePQCSign)
+	executor.RegisterFunc("pqc_verify", tools.HandlePQCVerify)
+	executor.RegisterFunc("secret_scan", tools.HandleSecretScan)
+	executor.RegisterFunc("vuln_scan", tools.HandleVulnScan)
 }
 
 func main() {
@@ -402,7 +424,14 @@ func main() {
 			licenseClaim.ExpiresAt.Format("2006-01-02"))
 	}
 
-	demarc := &khepramcp.DefaultDemarcGateway{
+	// KHEPRA_HTTP_PORT selects the HTTP/SSE transport (for example behind a
+	// reverse proxy such as Caddy); otherwise the server speaks stdio.
+	httpAddr, httpMode, err := httpListenAddr()
+	if err != nil {
+		logger.Fatalf("FATAL: %v", err)
+	}
+
+	var demarc khepramcp.DemarcGateway = &khepramcp.DefaultDemarcGateway{
 		StdioIdentity: khepramcp.Identity{
 			Subject:   "khepra-mcp-stdio",
 			Issuer:    "demarc",
@@ -420,6 +449,16 @@ func main() {
 		PrivateKey: privKey,
 		PublicKey:  pubKey,
 		Signer:     attestenvelope.AdinkraSigner{},
+	}
+
+	if httpMode {
+		// HTTP callers must present a configured bearer token; there is no
+		// stdio identity on a network transport.
+		tokenGW, err := khepramcp.NewTokenDemarcGateway(khepramcp.HTTPTokensFromEnv(), []string{"*"})
+		if err != nil {
+			logger.Fatalf("FATAL: HTTP transport needs bearer tokens: %v", err)
+		}
+		demarc = tokenGW
 	}
 
 	mcpGateway := khepramcp.NewDefaultMCPGateway()
@@ -457,17 +496,60 @@ func main() {
 		logger.Fatalf("Router error: %v", err)
 	}
 
-	srv, err := khepramcp.NewHardenedServer(khepramcp.HardenedServerConfig{
+	srvCfg := khepramcp.HardenedServerConfig{
 		Mode:   khepramcp.TransportStdio,
 		Router: router,
 		Logger: logger,
-	})
+	}
+	if httpMode {
+		srvCfg.Mode = khepramcp.TransportHTTP
+		srvCfg.HTTPConfig = khepramcp.HTTPTransportConfig{
+			ListenAddr:          httpAddr,
+			EnableSecureHeaders: true,
+			AllowedOrigins:      splitList(os.Getenv("KHEPRA_HTTP_ALLOWED_ORIGINS")),
+		}
+	}
+	srv, err := khepramcp.NewHardenedServer(srvCfg)
 	if err != nil {
 		logger.Fatalf("Server error: %v", err)
 	}
 
-	logger.Printf("KHEPRA MCP Server listening on stdio...")
+	if httpMode {
+		logger.Printf("KHEPRA MCP Server listening on HTTP/SSE at %s (bearer tokens required)", httpAddr)
+	} else {
+		logger.Printf("KHEPRA MCP Server listening on stdio...")
+	}
 	if err := srv.Run(ctx); err != nil && err != context.Canceled {
 		logger.Fatalf("Serve error: %v", err)
 	}
+}
+
+// httpListenAddr returns the HTTP listen address when KHEPRA_HTTP_PORT is
+// set. KHEPRA_HTTP_HOST defaults to 127.0.0.1 (the reverse proxy runs on the
+// same host); set it to 0.0.0.0 when the proxy reaches a container.
+func httpListenAddr() (addr string, ok bool, err error) {
+	port := strings.TrimSpace(os.Getenv("KHEPRA_HTTP_PORT"))
+	if port == "" {
+		return "", false, nil
+	}
+	n, convErr := strconv.Atoi(port)
+	if convErr != nil || n < 1 || n > 65535 {
+		return "", false, fmt.Errorf("KHEPRA_HTTP_PORT %q is not a valid port", port)
+	}
+	host := strings.TrimSpace(os.Getenv("KHEPRA_HTTP_HOST"))
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	return net.JoinHostPort(host, port), true, nil
+}
+
+// splitList splits a comma-separated list, dropping empty entries.
+func splitList(v string) []string {
+	var out []string
+	for _, s := range strings.Split(v, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
