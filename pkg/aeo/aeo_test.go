@@ -12,7 +12,7 @@ import (
 
 func testKeys(t *testing.T) (priv, pub []byte) {
 	t.Helper()
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("keygen: %v", err)
 	}

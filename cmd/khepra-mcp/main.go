@@ -253,26 +253,16 @@ func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 	}
 }
 
-func loadManifestRegistry(ctx context.Context, privKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
+// loadManifestRegistry loads the tool registry: the release manifest at
+// KHEPRA_MANIFEST_PATH if it verifies under the pinned release key, otherwise
+// the built-in tool specs signed with this process's ML-DSA-87 key.
+func loadManifestRegistry(ctx context.Context, privKey, pubKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
 	manifestPath := os.Getenv("KHEPRA_MANIFEST_PATH")
 	if manifestPath == "" {
 		manifestPath = "manifest.json"
 	}
-	if _, err := os.Stat(manifestPath); err == nil {
-		logger.Printf("[MANIFEST] loading from %s", manifestPath)
-		store := &khepramcp.FileManifestStore{Path: manifestPath}
-		verifier := &khepramcp.BootstrapManifestVerifier{}
-		return khepramcp.LoadRegistry(ctx, store, verifier)
-	}
-	logger.Printf("[MANIFEST] generating bootstrap manifest (%s)", manifestPath)
-	toolSpecs := defaultToolSpecs(privKey)
-	manifest, err := khepramcp.GenerateSignedManifest(toolSpecs, privKey, keyID, &kernelports.NoopSigner{})
-	if err != nil {
-		return nil, fmt.Errorf("manifest: generate bootstrap: %w", err)
-	}
-	store := &khepramcp.EmbeddedManifestStore{Manifest: manifest}
-	verifier := &khepramcp.BootstrapManifestVerifier{}
-	return khepramcp.LoadRegistry(ctx, store, verifier)
+	return khepramcp.LoadTrustedRegistry(ctx, manifestPath, defaultToolSpecs(privKey), privKey, pubKey, keyID,
+		attestenvelope.AdinkraSigner{}, logger.Printf)
 }
 
 func registerToolHandlers(executor *khepramcp.Executor) {
@@ -398,7 +388,7 @@ func main() {
 		symbol = "Eban"
 	}
 
-	pubKey, privKey, err := adinkra.GenerateDilithiumKey()
+	pubKey, privKey, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		logger.Fatalf("FATAL: PQC key generation failed: %v", err)
 	}
@@ -439,7 +429,7 @@ func main() {
 
 	mcpGateway := khepramcp.NewDefaultMCPGateway()
 
-	mcpRegistry, regErr := loadManifestRegistry(ctx, privKey, keyID, logger)
+	mcpRegistry, regErr := loadManifestRegistry(ctx, privKey, pubKey, keyID, logger)
 	if regErr != nil {
 		logger.Fatalf("FATAL: manifest registry failed: %v", regErr)
 	}

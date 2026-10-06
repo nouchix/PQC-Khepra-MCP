@@ -13,23 +13,18 @@
 package upstream
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/hkdf"
-
-	khcrypto "github.com/nouchix/PQC-Khepra-MCP/pkg/crypto"
+	"github.com/nouchix/khepra-pqc/envelope"
+	"github.com/nouchix/khepra-pqc/kem"
 )
 
 // ─── Sealed state ─────────────────────────────────────────────────────────────
@@ -95,22 +90,21 @@ type ServerState struct {
 // 0700 and the store refuses to run if it finds it world-readable — the
 // AgentHound AH-001 finding was exactly this class of omission.
 //
-// This is a genuine post-quantum seal, not a marketing label: the
-// encapsulation is ML-KEM-1024 (Kyber) from cloudflare/circl via the
-// existing pkg/crypto backend, so it reuses — and is bound by — the same
-// FIPS/community backend switch as the rest of the product.
+// State is sealed with the KHQ3 envelope from github.com/nouchix/khepra-pqc:
+// ML-KEM-1024 (FIPS 203) to this machine's key, HKDF-SHA-384, AES-256-GCM.
 type Store struct {
-	dir     string
-	kemPub  []byte
-	kemPriv []byte
+	dir string
+	dk  *kem.DecapsulationKey
 }
 
 const (
-	kemKeyFile  = "kem.key"
-	kemPubFile  = "kem.pub"
-	stateSuffix = ".sealed"
-	hkdfInfo    = "khepra-mcp/upstream/v1"
-	sealedMagic = "KHEPRA-SEAL-1"
+	// kemKeyFile holds the ML-KEM-1024 decapsulation key (64-byte seed).
+	kemKeyFile    = "mlkem1024.key"
+	stateSuffix   = ".sealed"
+	envelopeLabel = "khepra-mcp/upstream/v3"
+	sealedMagic   = "KHEPRA-SEAL-3"
+	// retiredMagic marks state sealed by the pre-standard Kyber store.
+	retiredMagic = "KHEPRA-SEAL-1"
 )
 
 // DefaultDir returns the broker's state directory: $KHEPRA_DATA_DIR/upstream
@@ -138,28 +132,27 @@ func OpenStore(dir string) (*Store, error) {
 	s := &Store{dir: dir}
 
 	privPath := filepath.Join(dir, kemKeyFile)
-	pubPath := filepath.Join(dir, kemPubFile)
-	priv, privErr := os.ReadFile(privPath)
-	pub, pubErr := os.ReadFile(pubPath)
-	if privErr == nil && pubErr == nil && len(priv) > 0 && len(pub) > 0 {
-		s.kemPriv, s.kemPub = priv, pub
+	seed, err := os.ReadFile(privPath)
+	switch {
+	case err == nil:
+		dk, err := kem.NewDecapsulationKey(seed)
+		if err != nil {
+			return nil, fmt.Errorf("upstream/store: %s: %w", kemKeyFile, err)
+		}
+		s.dk = dk
 		return s, nil
-	}
-	if !errors.Is(privErr, os.ErrNotExist) && privErr != nil {
-		return nil, fmt.Errorf("upstream/store: read kem key: %w", privErr)
+	case !errors.Is(err, os.ErrNotExist):
+		return nil, fmt.Errorf("upstream/store: read kem key: %w", err)
 	}
 
-	pub, priv, err := khcrypto.GenerateKEMKeyPair()
+	dk, err := kem.GenerateKey()
 	if err != nil {
-		return nil, fmt.Errorf("upstream/store: kyber keygen: %w", err)
+		return nil, fmt.Errorf("upstream/store: ML-KEM-1024 keygen: %w", err)
 	}
-	if err := writeFile0600(privPath, priv); err != nil {
+	if err := writeFile0600(privPath, dk.Bytes()); err != nil {
 		return nil, err
 	}
-	if err := writeFile0600(pubPath, pub); err != nil {
-		return nil, err
-	}
-	s.kemPriv, s.kemPub = priv, pub
+	s.dk = dk
 	return s, nil
 }
 
@@ -228,35 +221,20 @@ func (s *Store) Forget(url string) error {
 
 // ─── Seal / unseal ────────────────────────────────────────────────────────────
 
-// sealed wire format (all fields length-prefixed, JSON for auditability):
+// sealed wire format (JSON for auditability):
 //
-//	{"magic":"KHEPRA-SEAL-1","kem_ct":<b64>,"nonce":<b64>,"ct":<b64>}
+//	{"magic":"KHEPRA-SEAL-3","envelope":<b64 KHQ3 envelope>}
 type sealedBlob struct {
-	Magic string `json:"magic"`
-	KEMCT []byte `json:"kem_ct"`
-	Nonce []byte `json:"nonce"`
-	CT    []byte `json:"ct"`
+	Magic    string `json:"magic"`
+	Envelope []byte `json:"envelope"`
 }
 
 func (s *Store) seal(plain []byte) ([]byte, error) {
-	kemCT, shared, err := khcrypto.Encapsulate(s.kemPub)
+	env, err := envelope.Seal(s.dk.EncapsulationKey(), envelopeLabel, plain)
 	if err != nil {
-		return nil, fmt.Errorf("upstream/store: kyber encapsulate: %w", err)
+		return nil, fmt.Errorf("upstream/store: seal: %w", err)
 	}
-	key, err := deriveAEADKey(shared)
-	if err != nil {
-		return nil, err
-	}
-	aead, err := newAEAD(key)
-	if err != nil {
-		return nil, err
-	}
-	nonce := make([]byte, aead.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("upstream/store: nonce: %w", err)
-	}
-	ct := aead.Seal(nil, nonce, plain, []byte(sealedMagic))
-	return json.Marshal(sealedBlob{Magic: sealedMagic, KEMCT: kemCT, Nonce: nonce, CT: ct})
+	return json.Marshal(sealedBlob{Magic: sealedMagic, Envelope: env})
 }
 
 func (s *Store) unseal(blob []byte) ([]byte, error) {
@@ -264,43 +242,18 @@ func (s *Store) unseal(blob []byte) ([]byte, error) {
 	if err := json.Unmarshal(blob, &sb); err != nil {
 		return nil, fmt.Errorf("upstream/store: sealed blob malformed: %w", err)
 	}
-	if sb.Magic != sealedMagic {
+	switch sb.Magic {
+	case sealedMagic:
+	case retiredMagic:
+		return nil, errors.New("upstream/store: state was sealed with the retired pre-standard format; run Forget and re-authorize this upstream")
+	default:
 		return nil, fmt.Errorf("upstream/store: unknown seal format %q", sb.Magic)
 	}
-	shared, err := khcrypto.Decapsulate(s.kemPriv, sb.KEMCT)
-	if err != nil {
-		return nil, fmt.Errorf("upstream/store: kyber decapsulate: %w", err)
-	}
-	key, err := deriveAEADKey(shared)
-	if err != nil {
-		return nil, err
-	}
-	aead, err := newAEAD(key)
-	if err != nil {
-		return nil, err
-	}
-	plain, err := aead.Open(nil, sb.Nonce, sb.CT, []byte(sealedMagic))
+	plain, err := envelope.Open(s.dk, envelopeLabel, sb.Envelope)
 	if err != nil {
 		return nil, errors.New("upstream/store: seal integrity check failed (tampered or wrong machine key)")
 	}
 	return plain, nil
-}
-
-func deriveAEADKey(shared []byte) ([]byte, error) {
-	r := hkdf.New(sha256.New, shared, nil, []byte(hkdfInfo))
-	key := make([]byte, 32)
-	if _, err := io.ReadFull(r, key); err != nil {
-		return nil, fmt.Errorf("upstream/store: hkdf: %w", err)
-	}
-	return key, nil
-}
-
-func newAEAD(key []byte) (cipher.AEAD, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, fmt.Errorf("upstream/store: aes: %w", err)
-	}
-	return cipher.NewGCM(block)
 }
 
 // ─── Filesystem hygiene ───────────────────────────────────────────────────────

@@ -130,7 +130,7 @@ func HandleIRIncident(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 		return nil, nil, fmt.Errorf("ir_incident: title and severity are required")
 	}
 
-	_, priv, err := adinkra.GenerateDilithiumKey()
+	_, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("ir_incident keygen: %w", err)
 	}
@@ -168,7 +168,7 @@ func HandleIRAddIOC(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 		return nil, nil, fmt.Errorf("ir_add_ioc: incident_id, ioc_type, and value are required")
 	}
 
-	_, priv, err := adinkra.GenerateDilithiumKey()
+	_, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("ir_add_ioc keygen: %w", err)
 	}
@@ -213,12 +213,12 @@ func HandleFlightRecord(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 		outcome = "ALLOWED"
 	}
 
-	_, priv, err := adinkra.GenerateDilithiumKey()
+	_, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("flight_record keygen: %w", err)
 	}
 
-	pub, _, err := adinkra.GenerateDilithiumKey()
+	pub, _, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("flight_record pubkey: %w", err)
 	}

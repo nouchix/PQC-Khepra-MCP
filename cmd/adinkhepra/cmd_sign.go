@@ -29,7 +29,7 @@ func signCmd(args []string) {
 	}
 
 	// Read private key
-	privKeyData, err := os.ReadFile(*keyPath)
+	privKeyData, err := adinkra.ReadKeyFile(*keyPath)
 	if err != nil {
 		fatal("failed to read private key", err)
 	}
@@ -103,7 +103,7 @@ func verifyCmd(args []string) {
 	}
 
 	// Read public key
-	pubKeyData, err := os.ReadFile(*keyPath + ".pub")
+	pubKeyData, err := adinkra.ReadKeyFile(*keyPath + ".pub")
 	if err != nil {
 		fatal("failed to read public key", err)
 	}

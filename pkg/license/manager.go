@@ -1,7 +1,6 @@
 package license
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // Manager handles license validation lifecycle
@@ -76,15 +75,14 @@ func loadOrGenerateKey() (string, error) {
 		return strings.TrimSpace(string(data)), nil
 	}
 
-	// 3. Generate new ML-DSA-65 key if none found
+	// 3. Generate a new ML-DSA-87 device key if none found
 	log.Println("[LICENSE] No PQC key found. Generating new identity...")
-	_, priv, err := mldsa65.GenerateKey(rand.Reader)
+	priv, err := sign.GenerateKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to generate ML-DSA-65 key: %w", err)
+		return "", fmt.Errorf("failed to generate ML-DSA-87 key: %w", err)
 	}
 
-	privBytes, _ := priv.MarshalBinary()
-	keyHex := hex.EncodeToString(privBytes)
+	keyHex := hex.EncodeToString(priv.Bytes())
 
 	// Persist the key
 	os.MkdirAll(filepath.Dir(keyPath), 0700)
@@ -196,16 +194,8 @@ func (m *Manager) tryOfflineLicense() (*ValidateResponse, error) {
 		return nil, fmt.Errorf("decode signature: %w", err)
 	}
 
-	if len(pubKeyBytes) != mldsa65.PublicKeySize {
-		return nil, fmt.Errorf("master public key wrong size: got %d want %d", len(pubKeyBytes), mldsa65.PublicKeySize)
-	}
-	var pubKey mldsa65.PublicKey
-	var keyBuf [mldsa65.PublicKeySize]byte
-	copy(keyBuf[:], pubKeyBytes)
-	pubKey.Unpack(&keyBuf)
-
-	if !mldsa65.Verify(&pubKey, blobJSON, nil, sigBytes) {
-		return nil, fmt.Errorf("ML-DSA-65 signature invalid for %s", path)
+	if err := verifyWithRoot(licenseContext, pubKeyBytes, blobJSON, sigBytes); err != nil {
+		return nil, fmt.Errorf("license signature invalid for %s: %w", path, err)
 	}
 
 	// Device binding

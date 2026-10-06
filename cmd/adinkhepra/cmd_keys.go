@@ -125,7 +125,7 @@ func cmdKeysInit() error {
 	}
 
 	printKeyBanner("ASAF KEY CEREMONY — TIER 0 ROOT KEY GENERATION")
-	fmt.Println("  This generates your quantum-resistant root key pair (Dilithium-3 / ML-DSA-65).")
+	fmt.Println("  This generates your quantum-resistant root key pair (ML-DSA-87, FIPS 204).")
 	fmt.Println("  Store the passphrase offline. It cannot be recovered if lost.")
 	fmt.Println()
 
@@ -136,28 +136,30 @@ func cmdKeysInit() error {
 	}
 
 	fmt.Println()
-	fmt.Print("  Generating Dilithium-3 key pair... ")
+	fmt.Print("  Generating ML-DSA-87 key pair... ")
 
-	// Generate root Dilithium-3 key pair
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	// Generate root ML-DSA-87 key pair (private key is the 32-byte seed)
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
-		return fmt.Errorf("dilithium key generation: %w", err)
+		return fmt.Errorf("ML-DSA-87 key generation: %w", err)
 	}
 	fmt.Println("✓")
 
-	// Derive sealing key via Argon2id
-	fmt.Print("  Deriving Argon2id sealing key (64MB, ~300ms)... ")
+	// Derive sealing key via PBKDF2-HMAC-SHA-384
+	fmt.Print("  Deriving PBKDF2-HMAC-SHA-384 sealing key... ")
 	salt, err := kms.NewSalt()
 	if err != nil {
 		return fmt.Errorf("salt generation: %w", err)
 	}
-	sealKey := kms.DeriveKey([]byte(passphrase), salt, kms.DefaultKDFParams)
+	sealKey, err := kms.DeriveKey([]byte(passphrase), salt, kms.DefaultKDFParams)
+	if err != nil {
+		return fmt.Errorf("derive sealing key: %w", err)
+	}
 	fmt.Println("✓")
 
-	// Seal private key using existing triple-AES-256-GCM Merkaba logic
-	// kms.SealWithMerkaba wraps the existing tripleEncryptAndSeal with the derived key
-	fmt.Print("  Sealing key with triple-AES-256-GCM + Adinkra Merkaba... ")
-	sealed, err := sealKeyMaterial(priv, sealKey[:32], salt)
+	// Seal the private key with AES-256-GCM
+	fmt.Print("  Sealing key with AES-256-GCM... ")
+	sealed, err := sealKeyMaterial(priv, sealKey, salt)
 	if err != nil {
 		return fmt.Errorf("seal key: %w", err)
 	}
@@ -191,8 +193,8 @@ func cmdKeysInit() error {
 	printKeyBanner("KEY CEREMONY COMPLETE")
 	fmt.Printf("  Fingerprint:    KHEPRA-ROOT-%s\n", fp)
 	fmt.Printf("  Tier 1 key:     KHEPRA-T1-%s   (%s)\n", tier1FP, tier1HKDFInfo)
-	fmt.Printf("  Algorithm:      Dilithium-3 (NIST FIPS 204 / ML-DSA-65)\n")
-	fmt.Printf("  KDF:            Argon2id (%s)\n", kms.KDFVersion)
+	fmt.Printf("  Algorithm:      ML-DSA-87 (NIST FIPS 204)\n")
+	fmt.Printf("  KDF:            PBKDF2-HMAC-SHA-384 (%s)\n", kms.KDFVersion)
 	fmt.Printf("  Storage:        %s\n", kms.StorageBackendName())
 	fmt.Printf("  Public key:     %s\n", pubPath)
 	fmt.Printf("  Created:        %s\n", time.Now().UTC().Format(time.RFC3339))
@@ -238,8 +240,8 @@ func cmdKeysStatus() error {
 	printKeyBanner("ASAF KEY STATUS")
 	fmt.Printf("  Fingerprint:  KHEPRA-ROOT-%s\n", fp)
 	fmt.Printf("  Created:      %s\n", createdAt)
-	fmt.Printf("  Algorithm:    Dilithium-3 (NIST FIPS 204)\n")
-	fmt.Printf("  KDF:          Argon2id (%s)\n", kms.KDFVersion)
+	fmt.Printf("  Algorithm:    ML-DSA-87 (NIST FIPS 204)\n")
+	fmt.Printf("  KDF:          PBKDF2-HMAC-SHA-384 (%s)\n", kms.KDFVersion)
 	fmt.Printf("  Storage:      %s\n", kms.StorageBackendName())
 	fmt.Printf("  Public key:   %s\n", pubPath)
 	fmt.Printf("  Sealed size:  %d bytes\n", len(sealed))
@@ -271,12 +273,16 @@ func cmdKeysBackup(outDir string, shares, threshold int) error {
 	}
 
 	// Decrypt the sealed key to get the raw private key
-	salt, sealedData, err := parseSealedKey(sealed)
+	salt, _, err := parseSealedKey(sealed)
 	if err != nil {
 		return fmt.Errorf("parse sealed key: %w", err)
 	}
-	sealKey := kms.DeriveKey([]byte(passphrase), salt, kms.DefaultKDFParams)
-	privKey, err := unsealKeyMaterial(sealedData, sealKey[:32])
+	sealKey, err := kms.DeriveKey([]byte(passphrase), salt, kms.DefaultKDFParams)
+	if err != nil {
+		return fmt.Errorf("derive sealing key: %w", err)
+	}
+	// unsealKeyMaterial takes the whole [salt | ciphertext] blob.
+	privKey, err := unsealKeyMaterial(sealed, sealKey)
 	if err != nil {
 		return fmt.Errorf("incorrect passphrase or corrupted key")
 	}

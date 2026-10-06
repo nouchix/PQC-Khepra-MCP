@@ -2,11 +2,9 @@ package auth
 
 import (
 	"context"
-	"crypto/subtle"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -20,7 +18,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/argon2"
 )
 
 // Common error sentinels
@@ -679,8 +676,7 @@ func (lp *LocalProvider) Authenticate(ctx context.Context, creds *Credentials) (
 		return nil, errUserNotFound
 	}
 
-	// In a real local provider, creds.Password would be compared against a stored Argon2 hash
-	// For this implementation, we simulate secure comparison
+	// password_hash holds an encoded PBKDF2-HMAC-SHA-384 hash (see HashPassword).
 	var hash string
 	if user.Attributes != nil {
 		if h, ok := user.Attributes["password_hash"].(string); ok {
@@ -700,14 +696,8 @@ func (lp *LocalProvider) Authenticate(ctx context.Context, creds *Credentials) (
 }
 
 func (lp *LocalProvider) verifyPassword(password, hash string) bool {
-	// Argon2id comparison using a fixed dev-mode salt.
-	// In production, the salt must be random and stored alongside the hash;
-	// use argon2.IDKey with the per-user salt extracted from the hash record.
-	salt := "khepra-local-salt"
-	computed := argon2.IDKey([]byte(password), []byte(salt), 1, 64*1024, 4, 32)
-	computedHex := hex.EncodeToString(computed)
-
-	return subtle.ConstantTimeCompare([]byte(computedHex), []byte(hash)) == 1
+	ok, err := VerifyPassword(password, hash)
+	return err == nil && ok
 }
 
 // RefreshToken is not used for local provider.

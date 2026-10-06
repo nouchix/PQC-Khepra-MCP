@@ -124,7 +124,7 @@ type SovereignLicenseAuthority struct {
 // NewSovereignLicenseAuthority creates an authority with freshly generated ML-DSA-65 keys.
 // Call this ONCE on an air-gapped machine and embed the public key as MasterPublicKey.
 func NewSovereignLicenseAuthority(telemetryURL, ipfsGateway string) (*SovereignLicenseAuthority, error) {
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, fmt.Errorf("sovereign authority keygen: %w", err)
 	}
@@ -175,9 +175,9 @@ func (sla *SovereignLicenseAuthority) IssueLicense(deviceID, tenant, tier string
 		return nil, fmt.Errorf("sovereign: marshal license payload: %w", err)
 	}
 
-	sig, err := adinkra.Sign(sla.PrivateKey, payload)
+	sig, err := signWith(licenseContext, sla.PrivateKey, payload)
 	if err != nil {
-		return nil, fmt.Errorf("sovereign: ML-DSA-65 sign: %w", err)
+		return nil, fmt.Errorf("sovereign: sign license: %w", err)
 	}
 
 	lic.Signature = sig
@@ -199,7 +199,7 @@ func (sla *SovereignLicenseAuthority) RevokeLicense(licenseID, reason string) er
 		return fmt.Errorf("sovereign: marshal revocation entry: %w", err)
 	}
 
-	sig, err := adinkra.Sign(sla.PrivateKey, entryBytes)
+	sig, err := signWith(revocationContext, sla.PrivateKey, entryBytes)
 	if err != nil {
 		return fmt.Errorf("sovereign: sign revocation: %w", err)
 	}
@@ -230,7 +230,7 @@ func (sla *SovereignLicenseAuthority) RevokeLicense(licenseID, reason string) er
 
 // VerifySovereignLicense performs the full 4-step offline verification chain.
 // Steps:
-//  1. Verify ML-DSA-65 signature (offline, uses embedded master public key)
+//  1. Verify the root signature (offline, uses the pinned master public key)
 //  2. Check device binding (current machine matches license DeviceID)
 //  3. Check expiry
 //  4. Check revocation via IPFS CRL (fail-open if offline: logs, does not block)
@@ -250,7 +250,7 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 		return fmt.Errorf("sovereign: %w", err)
 	}
 
-	// ── Step 1: ML-DSA-65 Signature Verification (always offline) ──────────
+	// ── Step 1: Root Signature Verification (always offline) ────────────────
 	payload, err := lic.Bytes()
 	if err != nil {
 		return fmt.Errorf("sovereign: canonical bytes: %w", err)
@@ -262,12 +262,8 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 		return errors.New("sovereign: no pinned master public key — refusing to trust the license's own signer key")
 	}
 
-	valid, err := adinkra.Verify(masterPublicKey, payload, lic.Signature)
-	if err != nil {
-		return fmt.Errorf("sovereign: signature verification error: %w", err)
-	}
-	if !valid {
-		return errors.New("sovereign: ML-DSA-65 signature INVALID — license forged or corrupted")
+	if err := verifyWithRoot(licenseContext, masterPublicKey, payload, lic.Signature); err != nil {
+		return fmt.Errorf("sovereign: signature INVALID — license forged or corrupted: %w", err)
 	}
 
 	// ── Step 2: Device Binding ───────────────────────────────────────────────

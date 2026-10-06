@@ -59,7 +59,7 @@ func TestDEMARCGatewayAuthenticate(t *testing.T) {
 	symbol := "Eban"
 	
 	// Create a private key for issuing (simulating the caller)
-	_, priv, _ := adinkra.GenerateAdinkhepraPQCKeyPair(make([]byte, 32), symbol)
+	_, priv, _ := adinkra.GenerateAdinkhepraPQCKeyPair(symbol)
 	defer priv.DestroyPrivateKey()
 
 	// Issue credential
@@ -88,7 +88,7 @@ func TestDEMARCGatewayHTTPHandler(t *testing.T) {
 
 	agentID := testAgentID
 	symbol := "Eban"
-	_, priv, _ := adinkra.GenerateAdinkhepraPQCKeyPair(make([]byte, 32), symbol)
+	_, priv, _ := adinkra.GenerateAdinkhepraPQCKeyPair(symbol)
 	cred, _ := gateway.Issue(agentID, symbol, priv)
 
 	handler := gateway.HTTPHandler()
@@ -110,5 +110,43 @@ func TestDEMARCGatewayHTTPHandler(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected status BadRequest, got %d", w.Code)
+	}
+}
+
+// TestDEMARCGatewayRejectsForeignToken checks that a credential is only
+// accepted by the gateway whose secret keyed its zero-trust token, and that a
+// credential signed by one key cannot claim another key.
+func TestDEMARCGatewayRejectsForeignToken(t *testing.T) {
+	engineA, _ := NewPolymorphicEngine("Eban", 12)
+	engineB, _ := NewPolymorphicEngine("Eban", 12)
+	gatewayA := NewDEMARCGateway(engineA)
+	gatewayB := NewDEMARCGateway(engineB)
+
+	_, priv, err := adinkra.GenerateAdinkhepraPQCKeyPair("Eban")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cred, err := gatewayA.Issue(testAgentID, "Eban", priv)
+	if err != nil {
+		t.Fatalf("issue: %v", err)
+	}
+	if err := gatewayB.Authenticate(cred); err == nil {
+		t.Fatal("gateway B accepted a credential issued by gateway A")
+	}
+
+	otherPub, _, err := adinkra.GenerateAdinkhepraPQCKeyPair("Eban")
+	if err != nil {
+		t.Fatal(err)
+	}
+	swapped := *cred
+	swapped.PublicKey, _ = otherPub.MarshalBinary()
+	if err := gatewayA.Authenticate(&swapped); err == nil {
+		t.Fatal("accepted a credential whose public key was swapped")
+	}
+
+	retargeted := *cred
+	retargeted.AgentID = "other-agent"
+	if err := gatewayA.Authenticate(&retargeted); err == nil {
+		t.Fatal("accepted a credential retargeted to another agent")
 	}
 }

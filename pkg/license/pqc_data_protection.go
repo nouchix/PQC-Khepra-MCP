@@ -9,8 +9,8 @@
 // Protection Layers:
 //   Layer 1: Adinkhepra Lattice encoding (obfuscation)
 //   Layer 2: AES-256-GCM symmetric encryption (fast bulk encryption)
-//   Layer 3: Kyber-1024 KEM (PQC key exchange)
-//   Layer 4: ML-DSA-65 signatures (integrity + authenticity)
+//   Layer 3: ML-KEM-1024 KEM, KHQ3 envelope (FIPS 203)
+//   Layer 4: ML-DSA-87 signatures (FIPS 204, integrity + authenticity)
 //
 // Security Guarantees:
 //   - Post-quantum secure key exchange
@@ -67,10 +67,10 @@ type ProtectedData struct {
 	Nonce            []byte `json:"nonce"`             // GCM nonce (12 bytes)
 	AEADTag          []byte `json:"aead_tag"`          // GCM authentication tag (16 bytes)
 
-	// Layer 3: Kyber-1024 (PQC key encapsulation)
+	// Layer 3: ML-KEM-1024 (key encapsulation, KHQ3 envelope)
 	KyberCapsule []byte `json:"kyber_capsule,omitempty"` // Kyber ciphertext (1568 bytes)
 
-	// Layer 4: ML-DSA-65 (PQC signature)
+	// Layer 4: ML-DSA-87 (signature)
 	DilithiumSignature []byte `json:"dilithium_signature"` // Signature over all metadata + ciphertext
 
 	// Protection metadata
@@ -82,11 +82,11 @@ type ProtectedData struct {
 
 // ProtectionKeys holds all cryptographic keys for data protection.
 type ProtectionKeys struct {
-	// Kyber-1024 key pair (for key encapsulation)
+	// ML-KEM-1024 key pair (for key encapsulation)
 	KyberPublicKey  []byte // 1568 bytes
 	KyberPrivateKey []byte // 3168 bytes
 
-	// ML-DSA-65 key pair (for signing)
+	// ML-DSA-87 key pair (for signing)
 	DilithiumPublicKey  []byte // 1952 bytes
 	DilithiumPrivateKey []byte // 4032 bytes
 
@@ -99,14 +99,14 @@ type ProtectionKeys struct {
 
 // GenerateProtectionKeys creates a new key set for data protection.
 func GenerateProtectionKeys(symbol string) (*ProtectionKeys, error) {
-	// Generate Kyber-1024 key pair
-	kyberPub, kyberPriv, err := adinkra.GenerateKyberKey()
+	// Generate ML-KEM-1024 key pair
+	kyberPub, kyberPriv, err := adinkra.GenerateKEMKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Kyber keys: %w", err)
 	}
 
-	// Generate ML-DSA-65 key pair
-	dilithiumPub, dilithiumPriv, err := adinkra.GenerateDilithiumKey()
+	// Generate ML-DSA-87 key pair
+	dilithiumPub, dilithiumPriv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Dilithium keys: %w", err)
 	}
@@ -135,8 +135,8 @@ func GenerateProtectionKeys(symbol string) (*ProtectionKeys, error) {
 //  1. Serialize plaintext to JSON
 //  2. Compute Adinkhepra Lattice hash
 //  3. Encrypt with AES-256-GCM
-//  4. Optionally encapsulate AES key with Kyber-1024 (for recipient)
-//  5. Sign entire protected structure with ML-DSA-65
+//  4. Optionally wrap the AES key to the recipient's ML-KEM-1024 key (KHQ3)
+//  5. Sign entire protected structure with ML-DSA-87
 //
 // Parameters:
 //   - plaintext: Raw data to protect (will be JSON-serialized)
@@ -163,10 +163,10 @@ func ProtectData(plaintext interface{}, dataType string, context DataContext, ke
 	var aesKey []byte
 	var kyberCapsule []byte
 
-	// If recipient public key provided, use Kuntinkantan (Kyber + Merkaba) to wrap AES key
+	// If recipient public key provided, use Kuntinkantan (KHQ3: ML-KEM-1024) to wrap AES key
 	if len(recipientKyberPubKey) > 0 {
 		// Encrypt the AES key using recipient's Kyber public key
-		// Kuntinkantan = Kyber-1024 + Merkaba white box
+		// Kuntinkantan = KHQ3 envelope (ML-KEM-1024 + HKDF-SHA-384 + AES-256-GCM)
 		encryptedAESKey, err := adinkra.Kuntinkantan(recipientKyberPubKey, keys.AESKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt AES key with Kuntinkantan: %w", err)
@@ -202,7 +202,7 @@ func ProtectData(plaintext interface{}, dataType string, context DataContext, ke
 		Version:          "1.0.0",
 	}
 
-	// ─── Layer 4: ML-DSA-65 Signature ─────────────────────────────────────────
+	// ─── Layer 4: ML-DSA-87 Signature ─────────────────────────────────────────
 	// Sign the entire protected structure (ensures integrity + authenticity)
 	dataToSign, _ := json.Marshal(protected)
 	signature, err := adinkra.Sign(keys.DilithiumPrivateKey, dataToSign)
@@ -220,8 +220,8 @@ func ProtectData(plaintext interface{}, dataType string, context DataContext, ke
 // UnprotectData decrypts and verifies protected data.
 //
 // Process (reverse of ProtectData):
-//  1. Verify ML-DSA-65 signature
-//  2. Optionally decapsulate AES key with Kyber-1024
+//  1. Verify ML-DSA-87 signature
+//  2. Optionally unwrap the AES key (KHQ3, ML-KEM-1024)
 //  3. Decrypt with AES-256-GCM
 //  4. Verify Adinkhepra Lattice hash
 //  5. Unmarshal plaintext
@@ -233,7 +233,7 @@ func ProtectData(plaintext interface{}, dataType string, context DataContext, ke
 //
 // Returns: Decrypted plaintext (as map[string]interface{})
 func UnprotectData(protected *ProtectedData, keys *ProtectionKeys, trustedDilithiumPubKey []byte) (map[string]interface{}, error) {
-	// ─── Layer 4: Verify ML-DSA-65 Signature ──────────────────────────────────
+	// ─── Layer 4: Verify ML-DSA-87 Signature ──────────────────────────────────
 	protectedWithoutSig := &ProtectedData{
 		DataID:           protected.DataID,
 		DataType:         protected.DataType,
@@ -274,7 +274,7 @@ func UnprotectData(protected *ProtectedData, keys *ProtectionKeys, trustedDilith
 	var aesKey []byte
 
 	if len(protected.KyberCapsule) > 0 {
-		// Decrypt AES key using Sankofa (Kyber-1024 + Merkaba)
+		// Decrypt AES key using Sankofa (KHQ3 envelope)
 		decryptedAESKey, err := adinkra.Sankofa(keys.KyberPrivateKey, protected.KyberCapsule)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt AES key with Sankofa: %w", err)

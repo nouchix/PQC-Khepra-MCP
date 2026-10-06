@@ -1,88 +1,82 @@
-// Package crypto provides a unified interface for post-quantum cryptographic operations
-// with multiple backend implementations based on build tags.
+// Package crypto provides a backend-neutral interface for the NIST
+// post-quantum primitives used across AdinKhepra: ML-DSA-87 (FIPS 204)
+// signatures and ML-KEM-1024 (FIPS 203) key encapsulation.
 //
-// Build Tags:
-//   - community: Uses Cloudflare CIRCL (NIST-standard PQC, open-source)
-//   - premium:   Uses proprietary pkg/adinkra algorithms ($45M R&D investment)
-//   - hsm:       Adds HSM integration (YubiHSM 2 or AWS CloudHSM)
+// Build tags:
+//   - default: software backend on the Go Cryptographic Module, through
+//     github.com/nouchix/khepra-pqc.
+//   - hsm: hardware backend. This build has no PKCS#11 driver yet, so every
+//     operation fails closed instead of falling back to software keys.
+//
+// Key encodings follow FIPS 203/204 seed form: ML-DSA-87 private keys are the
+// 32-byte seed ξ and ML-KEM-1024 decapsulation keys are the 64-byte seed d‖z.
 package crypto
 
-// CryptoBackend defines the interface for post-quantum cryptographic operations.
-// All editions (Community, Premium, Premium+HSM) implement this interface,
-// allowing transparent backend switching based on build tags and license validation.
-type CryptoBackend interface {
-	// Dilithium3 (ML-DSA-65) - Post-Quantum Digital Signatures
-	GenerateDilithiumKey() (publicKey, privateKey []byte, err error)
-	SignDilithium(privateKey, message []byte) (signature []byte, err error)
-	VerifyDilithium(publicKey, message, signature []byte) bool
+import "github.com/nouchix/khepra-pqc/sign"
 
-	// Kyber1024 (ML-KEM-1024) - Post-Quantum Key Encapsulation
-	GenerateKyberKey() (publicKey, privateKey []byte, err error)
-	EncapsulateKyber(publicKey []byte) (ciphertext, sharedSecret []byte, err error)
-	DecapsulateKyber(privateKey, ciphertext []byte) (sharedSecret []byte, err error)
+// CryptoBackend is implemented by each backend selected at build time.
+type CryptoBackend interface {
+	// ML-DSA-87 signatures. ctx is the FIPS 204 context string.
+	GenerateSigningKey() (publicKey, privateKey []byte, err error)
+	Sign(ctx sign.Context, privateKey, message []byte) (signature []byte, err error)
+	Verify(ctx sign.Context, publicKey, message, signature []byte) bool
+
+	// ML-KEM-1024 key encapsulation.
+	GenerateKEMKey() (encapsulationKey, decapsulationKey []byte, err error)
+	Encapsulate(encapsulationKey []byte) (ciphertext, sharedSecret []byte, err error)
+	Decapsulate(decapsulationKey, ciphertext []byte) (sharedSecret []byte, err error)
 
 	// Metadata
-	BackendName() string  // "Cloudflare CIRCL", "AdinKhepra Premium", "YubiHSM 2"
-	IsPremium() bool      // true for Premium/HSM editions
-	IsHSM() bool          // true for HSM edition
-	Version() string      // Backend version
+	BackendName() string
+	IsHSM() bool
+	Version() string
 }
 
-// Global backend instance (initialized based on build tags and license validation)
+// Backend is the active backend. InitBackend sets it.
 var Backend CryptoBackend
 
-// InitBackend initializes the appropriate crypto backend based on:
-// 1. Build tags (community/premium/hsm)
-// 2. License validation status (for premium/hsm)
-// 3. HSM availability (for hsm edition)
-//
-// Returns error if initialization fails. On failure, falls back to community backend.
-func InitBackend(licensedFeatures []string) error {
-	// Implementation varies by build tag:
-	// - community: Always uses CommunityBackend
-	// - premium:   Uses PremiumBackend if licensed, else CommunityBackend
-	// - hsm:       Uses HSMBackend if licensed + HSM available, else PremiumBackend or CommunityBackend
-	return initBackendImpl(licensedFeatures)
+// InitBackend selects the backend compiled into this binary. In hsm builds it
+// returns an error when no hardware module is available, and the installed
+// backend refuses every operation.
+func InitBackend() error {
+	return initBackendImpl()
 }
 
-// GetBackend returns the currently active crypto backend.
-// Safe to call after InitBackend().
+// GetBackend returns the active backend, initializing it on first use.
 func GetBackend() CryptoBackend {
 	if Backend == nil {
-		// Defensive fallback - should never happen if InitBackend was called
-		Backend = newCommunityBackend()
+		_ = InitBackend()
 	}
 	return Backend
 }
 
-// Helper functions for common operations
-
-// GenerateKeyPair generates a Dilithium3 key pair using the active backend
-func GenerateKeyPair() (publicKey, privateKey []byte, err error) {
-	return GetBackend().GenerateDilithiumKey()
+// GenerateSigningKeyPair generates an ML-DSA-87 key pair.
+func GenerateSigningKeyPair() (publicKey, privateKey []byte, err error) {
+	return GetBackend().GenerateSigningKey()
 }
 
-// Sign signs a message with Dilithium3 using the active backend
-func Sign(privateKey, message []byte) (signature []byte, err error) {
-	return GetBackend().SignDilithium(privateKey, message)
+// Sign signs message with ML-DSA-87 under the FIPS 204 context ctx.
+func Sign(ctx sign.Context, privateKey, message []byte) (signature []byte, err error) {
+	return GetBackend().Sign(ctx, privateKey, message)
 }
 
-// Verify verifies a Dilithium3 signature using the active backend
-func Verify(publicKey, message, signature []byte) bool {
-	return GetBackend().VerifyDilithium(publicKey, message, signature)
+// Verify reports whether signature is a valid ML-DSA-87 signature of message
+// under ctx.
+func Verify(ctx sign.Context, publicKey, message, signature []byte) bool {
+	return GetBackend().Verify(ctx, publicKey, message, signature)
 }
 
-// GenerateKEMKeyPair generates a Kyber1024 key pair using the active backend
-func GenerateKEMKeyPair() (publicKey, privateKey []byte, err error) {
-	return GetBackend().GenerateKyberKey()
+// GenerateKEMKeyPair generates an ML-KEM-1024 key pair.
+func GenerateKEMKeyPair() (encapsulationKey, decapsulationKey []byte, err error) {
+	return GetBackend().GenerateKEMKey()
 }
 
-// Encapsulate generates a shared secret and ciphertext using Kyber1024
-func Encapsulate(publicKey []byte) (ciphertext, sharedSecret []byte, err error) {
-	return GetBackend().EncapsulateKyber(publicKey)
+// Encapsulate generates a shared secret and its ML-KEM-1024 ciphertext.
+func Encapsulate(encapsulationKey []byte) (ciphertext, sharedSecret []byte, err error) {
+	return GetBackend().Encapsulate(encapsulationKey)
 }
 
-// Decapsulate recovers a shared secret from a Kyber1024 ciphertext
-func Decapsulate(privateKey, ciphertext []byte) (sharedSecret []byte, err error) {
-	return GetBackend().DecapsulateKyber(privateKey, ciphertext)
+// Decapsulate recovers the shared secret from an ML-KEM-1024 ciphertext.
+func Decapsulate(decapsulationKey, ciphertext []byte) (sharedSecret []byte, err error) {
+	return GetBackend().Decapsulate(decapsulationKey, ciphertext)
 }

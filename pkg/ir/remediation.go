@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/cloudflare/circl/sign/dilithium/mode3"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // CMMC Enhanced Practices - 24 controls requiring remediation scripts
@@ -131,7 +131,7 @@ func (s *SOCIntegration) RecordTelemetryEvent(ctx context.Context, eventType str
 	}
 
 	// Sign with PQC (Dilithium3)
-	signature, err := signWithDilithium(payloadJSON, s.privateKey)
+	signature, err := signResult(payloadJSON, s.privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign telemetry event: %w", err)
 	}
@@ -492,7 +492,7 @@ func (s *SOCIntegration) ExecuteRemediation(ctx context.Context, action Remediat
 
 	// Sign the result
 	resultJSON, _ := json.Marshal(result)
-	signature, err := signWithDilithium(resultJSON, s.privateKey)
+	signature, err := signResult(resultJSON, s.privateKey)
 	if err == nil {
 		result.Signature = hex.EncodeToString(signature)
 	}
@@ -508,17 +508,12 @@ func generateEventID() string {
 	return fmt.Sprintf("evt-%s", hex.EncodeToString(b))
 }
 
-func signWithDilithium(data []byte, privateKeyBytes []byte) ([]byte, error) {
-	if len(privateKeyBytes) != mode3.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key size")
+// signResult signs a remediation payload with ML-DSA-87 (32-byte seed) under
+// the attestation context.
+func signResult(data []byte, privateKeyBytes []byte) ([]byte, error) {
+	sk, err := sign.NewPrivateKey(privateKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %w", err)
 	}
-
-	var sk mode3.PrivateKey
-	if err := sk.UnmarshalBinary(privateKeyBytes); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal private key: %w", err)
-	}
-
-	signature := make([]byte, mode3.SignatureSize)
-	mode3.SignTo(&sk, data, signature)
-	return signature, nil
+	return sk.Sign(sign.ContextAttest, data)
 }

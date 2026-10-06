@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
 	khepramcp "github.com/nouchix/PQC-Khepra-MCP/pkg/mcp"
 )
 
@@ -73,7 +75,7 @@ func TestStoreSealRoundTrip(t *testing.T) {
 	copy(tampered, blob)
 	var sb sealedBlob
 	_ = json.Unmarshal(tampered, &sb)
-	sb.CT[len(sb.CT)/2] ^= 0xFF
+	sb.Envelope[len(sb.Envelope)/2] ^= 0xFF
 	tampered, _ = json.Marshal(sb)
 	if _, err := s.unseal(tampered); err == nil {
 		t.Fatal("tampered ciphertext accepted")
@@ -501,8 +503,12 @@ func TestRegistryRegisterBrokered(t *testing.T) {
 }
 
 func registryWith(t *testing.T, specs ...khepramcp.ToolSpec) *khepramcp.ManifestRegistry {
-	m := &khepramcp.SignedToolManifest{Version: "t", Revision: "t", GeneratedAt: time.Now(), Tools: specs}
-	reg, err := khepramcp.LoadRegistry(context.Background(), &khepramcp.EmbeddedManifestStore{Manifest: m}, &khepramcp.BootstrapManifestVerifier{})
+	pub, priv, err := adinkra.GenerateSigningKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reg, err := khepramcp.LoadTrustedRegistry(context.Background(), "", specs, priv, pub, "t",
+		attestenvelope.AdinkraSigner{}, t.Logf)
 	if err != nil {
 		t.Fatal(err)
 	}

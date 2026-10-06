@@ -14,18 +14,19 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/blake2b"
+	"github.com/nouchix/khepra-pqc/kdf"
 )
 
 // =============================================================================
 // OPEN-CORE COMPATIBILITY SUBSTRATE
-// Provides standard cryptographic implementations (AES-GCM, HMAC-SHA512, BLAKE2b)
-// for open-source MCP transport and agent observability.
-// Proprietary lattice transformations (Merkaba White Box cipher, D8 dihedral
-// permutations, dynamic chaos S-boxes) are quarantined in KTOS Enterprise.
+// Standard constructions only: HKDF-SHA-384 session keys, HMAC-SHA-512 tokens,
+// SHA-384 DAG hashes with ML-DSA-87 signatures, and AES-256-GCM.
 // =============================================================================
 
-// Merkaba provides standard AEAD sealing for license/key persistence in open-source mode.
+// Merkaba is the open-core "Sacred Runes" text encoding: AES-256-GCM under a
+// caller-supplied 32-byte seed, hex encoded. It is used only as an encoding
+// with a public seed (see pkg/license/sacred_license.go) and provides no
+// confidentiality there. Use the KHQ3 envelope (Kuntinkantan) for secrets.
 type Merkaba struct {
 	key []byte
 }
@@ -70,12 +71,14 @@ type KHEPRASessionKeys struct {
 }
 
 var (
-	domainEnc   = []byte("KHEPRA-OPEN-ENC-V1")
-	domainAuth  = []byte("KHEPRA-OPEN-AUTH-V1")
-	domainAudit = []byte("KHEPRA-OPEN-AUDIT-V1")
+	domainEnc   = []byte("KHEPRA-OPEN-ENC-V2")
+	domainAuth  = []byte("KHEPRA-OPEN-AUTH-V2")
+	domainAudit = []byte("KHEPRA-OPEN-AUDIT-V2")
 )
 
-// DeriveKHEPRASessionKeys derives session keys using BLAKE2b-512 domain separation.
+// DeriveKHEPRASessionKeys derives session keys with HKDF-SHA-384 (SP 800-56C),
+// one domain tag per key. sharedSecret must be a real secret (an ML-KEM
+// shared secret or a server-held random value), never public data.
 func DeriveKHEPRASessionKeys(sharedSecret []byte, symbolA, symbolB string, transcript []byte) (*KHEPRASessionKeys, error) {
 	if len(sharedSecret) == 0 {
 		return nil, errors.New("KDF: shared secret cannot be empty")
@@ -87,22 +90,21 @@ func DeriveKHEPRASessionKeys(sharedSecret []byte, symbolA, symbolB string, trans
 	var lenBuf [4]byte
 	binary.BigEndian.PutUint32(lenBuf[:], uint32(len(transcript)))
 
-	base := make([]byte, 0, len(sharedSecret)+64+4+len(transcript))
-	base = append(base, sharedSecret...)
+	base := make([]byte, 0, 64+4+len(transcript))
 	base = append(base, hA[:]...)
 	base = append(base, hB[:]...)
 	base = append(base, lenBuf[:]...)
 	base = append(base, transcript...)
 
-	kEnc, err := deriveBlake2b32(domainEnc, base)
+	kEnc, err := deriveSessionKey(sharedSecret, domainEnc, base)
 	if err != nil {
 		return nil, err
 	}
-	kAuth, err := deriveBlake2b32(domainAuth, base)
+	kAuth, err := deriveSessionKey(sharedSecret, domainAuth, base)
 	if err != nil {
 		return nil, err
 	}
-	kAudit, err := deriveBlake2b32(domainAudit, base)
+	kAudit, err := deriveSessionKey(sharedSecret, domainAudit, base)
 	if err != nil {
 		return nil, err
 	}
@@ -117,16 +119,13 @@ func DeriveKHEPRASessionKeys(sharedSecret []byte, symbolA, symbolB string, trans
 	}, nil
 }
 
-func deriveBlake2b32(domain, base []byte) ([]byte, error) {
-	key := make([]byte, 32)
-	copy(key, domain)
-	h, err := blake2b.New512(key)
-	if err != nil {
-		return nil, err
-	}
-	h.Write(base)
-	digest := h.Sum(nil)
-	return digest[:32], nil
+// deriveSessionKey returns a 32-byte key: HKDF-SHA-384 with sharedSecret as
+// input keying material and domain || binding as info.
+func deriveSessionKey(sharedSecret, domain, binding []byte) ([]byte, error) {
+	info := make([]byte, 0, len(domain)+len(binding))
+	info = append(info, domain...)
+	info = append(info, binding...)
+	return kdf.HKDFSHA384(sharedSecret, nil, string(info), 32)
 }
 
 // SecureDestroySessionKeys zeroes all key material.
@@ -227,8 +226,8 @@ func (tok *ZeroTrustToken) Verify(kAuth []byte) error {
 
 func (tok *ZeroTrustToken) computeMAC(kAuth []byte) []byte {
 	mac := hmac.New(sha512.New, kAuth)
-	mac.Write([]byte(tok.AgentID))
-	mac.Write([]byte(tok.Symbol))
+	writeLenPrefixed(mac, []byte(tok.AgentID))
+	writeLenPrefixed(mac, []byte(tok.Symbol))
 
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], math.Float64bits(tok.TrustScore))
@@ -297,21 +296,10 @@ func (d *DAGConsensus) AddVertex(tx []byte, symbol, agentID string, parents []st
 		Timestamp:   ts,
 	}
 
-	h := sha512.New()
-	h.Write([]byte(symbol))
-	h.Write([]byte(agentID))
-	h.Write(tx)
-	for _, pid := range parents {
-		h.Write([]byte(pid))
-	}
-	var tsBuf [8]byte
-	binary.BigEndian.PutUint64(tsBuf[:], uint64(ts))
-	h.Write(tsBuf[:])
-
-	v.Hash = h.Sum(nil)
+	v.Hash = computeVertexHash(v)
 	v.ID = hex.EncodeToString(v.Hash[:16])
 
-	sig, err := SignAdinkhepraPQC(priv, v.Hash)
+	sig, err := signWithContext(priv, dagContext, v.Hash)
 	if err != nil {
 		return nil, fmt.Errorf("DAGConsensus: signing failed: %w", err)
 	}
@@ -334,7 +322,34 @@ func (d *DAGConsensus) Verify(vertexID string, pub *AdinkhepraPQCPublicKey) erro
 		return fmt.Errorf("DAGConsensus: vertex %q not found", vertexID)
 	}
 
-	return VerifyAdinkhepraPQC(pub, v.Hash, v.Signature)
+	return verifyWithContext(pub, dagContext, v.Hash, v.Signature)
+}
+
+// computeVertexHash is SHA-384 over the vertex fields, each variable-length
+// field length-prefixed so no two different vertices share a hash input.
+func computeVertexHash(v *DAGVertex) []byte {
+	h := sha512.New384()
+	writeLenPrefixed(h, []byte(v.Symbol))
+	writeLenPrefixed(h, []byte(v.AgentID))
+	writeLenPrefixed(h, v.Transaction)
+	var count [4]byte
+	binary.BigEndian.PutUint32(count[:], uint32(len(v.Parents)))
+	h.Write(count[:])
+	for _, pid := range v.Parents {
+		writeLenPrefixed(h, []byte(pid))
+	}
+	var ts [8]byte
+	binary.BigEndian.PutUint64(ts[:], uint64(v.Timestamp))
+	h.Write(ts[:])
+	return h.Sum(nil)
+}
+
+// writeLenPrefixed writes a 4-byte big-endian length followed by b.
+func writeLenPrefixed(w io.Writer, b []byte) {
+	var n [4]byte
+	binary.BigEndian.PutUint32(n[:], uint32(len(b)))
+	w.Write(n[:])
+	w.Write(b)
 }
 
 // ResolveConflict resolves conflict using symbol precedence or earlier timestamp.
@@ -411,4 +426,9 @@ func (ac *DAGAuditChain) ChainHash() []byte {
 	out := make([]byte, len(ac.chainHash))
 	copy(out, ac.chainHash)
 	return out
+}
+
+// VerifyZeroTrustToken checks a token's MAC and expiry under kAuth.
+func VerifyZeroTrustToken(tok *ZeroTrustToken, kAuth []byte) error {
+	return tok.Verify(kAuth)
 }

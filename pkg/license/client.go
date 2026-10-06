@@ -10,8 +10,6 @@ import (
 	"os"
 	"runtime"
 	"time"
-
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 
 const MIMEApplicationJSON = "application/json"
@@ -27,7 +25,7 @@ var AgentVersion = "v1.5.0-NUCLEAR"
 type LicenseClient struct {
 	ServerURL  string
 	MachineID  string
-	PrivateKey string // Hex-encoded Dilithium3 private key
+	PrivateKey string // Hex-encoded ML-DSA-87 device key (32-byte seed)
 	HTTPClient *http.Client
 }
 
@@ -62,7 +60,8 @@ func (lc *LicenseClient) SendRequest(method, url string, payload interface{}) ([
 // ValidateRequest sent to /license/validate
 type ValidateRequest struct {
 	MachineID      string `json:"machine_id"`
-	Signature      string `json:"signature"` // Dilithium3 signature
+	Timestamp      int64  `json:"timestamp"` // Unix seconds, covered by Signature
+	Signature      string `json:"signature"` // ML-DSA-87 device signature
 	Version        string `json:"version"`
 	InstallationID string `json:"installation_id"`
 }
@@ -84,6 +83,7 @@ type ValidateResponse struct {
 // HeartbeatRequest sent to /license/heartbeat
 type HeartbeatRequest struct {
 	MachineID  string                 `json:"machine_id"`
+	Timestamp  int64                  `json:"timestamp"`
 	Signature  string                 `json:"signature"`
 	StatusData map[string]interface{} `json:"status_data"`
 }
@@ -100,6 +100,7 @@ type HeartbeatResponse struct {
 type RegisterRequest struct {
 	MachineID       string `json:"machine_id"`
 	EnrollmentToken string `json:"enrollment_token"`
+	PublicKey       string `json:"public_key"` // hex ML-DSA-87 device public key
 	Hostname        string `json:"hostname"`
 	Platform        string `json:"platform"`
 	AgentVersion    string `json:"agent_version"`
@@ -122,10 +123,15 @@ type RegisterResponse struct {
 
 // Register attempts to auto-register the agent using an enrollment token
 func (lc *LicenseClient) Register(enrollmentToken string) (*RegisterResponse, error) {
+	publicKey, err := lc.devicePublicKeyHex()
+	if err != nil {
+		return nil, fmt.Errorf("registration failed: %w", err)
+	}
 	hostname, _ := os.Hostname()
 	req := RegisterRequest{
 		MachineID:       lc.MachineID,
 		EnrollmentToken: enrollmentToken,
+		PublicKey:       publicKey,
 		Hostname:        hostname,
 		Platform:        fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH),
 		AgentVersion:    AgentVersion,
@@ -150,13 +156,15 @@ func (lc *LicenseClient) Register(enrollmentToken string) (*RegisterResponse, er
 
 // Validate sends license validation request to telemetry server
 func (lc *LicenseClient) Validate() (*ValidateResponse, error) {
-	signature, err := lc.signData([]byte(lc.MachineID))
+	ts := time.Now().Unix()
+	signature, err := lc.signData(deviceMessage("validate", lc.MachineID, ts))
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign license request: %w", err)
 	}
 
 	req := ValidateRequest{
 		MachineID:      lc.MachineID,
+		Timestamp:      ts,
 		Signature:      signature,
 		Version:        AgentVersion,
 		InstallationID: lc.MachineID,
@@ -181,13 +189,15 @@ func (lc *LicenseClient) Validate() (*ValidateResponse, error) {
 
 // SendHeartbeat sends periodic heartbeat to maintain license validity
 func (lc *LicenseClient) SendHeartbeat(statusData map[string]interface{}) (*HeartbeatResponse, error) {
-	signature, err := lc.signData([]byte(lc.MachineID))
+	ts := time.Now().Unix()
+	signature, err := lc.signData(deviceMessage("heartbeat", lc.MachineID, ts))
 	if err != nil {
 		return nil, err
 	}
 
 	req := HeartbeatRequest{
 		MachineID:  lc.MachineID,
+		Timestamp:  ts,
 		Signature:  signature,
 		StatusData: statusData,
 	}
@@ -228,7 +238,28 @@ func (lc *LicenseClient) StartHeartbeatDaemon(stopCh chan struct{}) {
 	}()
 }
 
-// signData signs data with ML-DSA-65 private key
+// deviceMessage is the byte string a device signs for a license server call:
+// "<operation>\x00<machine_id>\x00<unix seconds>". The server rebuilds it from
+// the request fields and rejects timestamps outside a short window, so a
+// captured signature cannot be replayed later or for another operation.
+func deviceMessage(operation, machineID string, unixSeconds int64) []byte {
+	return []byte(fmt.Sprintf("%s\x00%s\x00%d", operation, machineID, unixSeconds))
+}
+
+// devicePublicKeyHex returns the hex ML-DSA-87 public key for the device key.
+func (lc *LicenseClient) devicePublicKeyHex() (string, error) {
+	keyBytes, err := hex.DecodeString(lc.PrivateKey)
+	if err != nil {
+		return "", fmt.Errorf("device key: %w", err)
+	}
+	pub, err := AuthorityPublicKey(keyBytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(pub), nil
+}
+
+// signData signs data with the device's ML-DSA-87 key.
 func (lc *LicenseClient) signData(data []byte) (string, error) {
 	if lc.PrivateKey == "" {
 		return "", fmt.Errorf("no private key")
@@ -239,18 +270,9 @@ func (lc *LicenseClient) signData(data []byte) (string, error) {
 		return "", err
 	}
 
-	if len(keyBytes) != mldsa65.PrivateKeySize {
-		return "", fmt.Errorf("invalid key size")
+	signature, err := signWith(deviceContext, keyBytes, data)
+	if err != nil {
+		return "", err
 	}
-
-	var keyBuf [mldsa65.PrivateKeySize]byte
-	copy(keyBuf[:], keyBytes)
-
-	var sk mldsa65.PrivateKey
-	sk.Unpack(&keyBuf)
-
-	signature := make([]byte, mldsa65.SignatureSize)
-	mldsa65.SignTo(&sk, data, nil, false, signature)
-
 	return hex.EncodeToString(signature), nil
 }

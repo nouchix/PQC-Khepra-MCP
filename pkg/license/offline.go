@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 
 // LicenseClaims represents the data authenticated by the license
@@ -21,29 +19,22 @@ type LicenseClaims struct {
 // OfflineLicense represents the file format for offline licenses
 type OfflineLicense struct {
 	Claims    LicenseClaims `json:"claims"`
-	Signature string        `json:"signature"` // Hex encoded ML-DSA-65 signature
+	Signature string        `json:"signature"` // Hex encoded ML-DSA-87 signature
 }
 
-// Generate creates a signed offline license
+// Generate creates a signed offline license. privKeyBytes is an ML-DSA-87
+// private key in 32-byte seed form.
 func Generate(privKeyBytes []byte, claims LicenseClaims) (*OfflineLicense, error) {
-	if len(privKeyBytes) != mldsa65.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key size: expected %d, got %d",
-			mldsa65.PrivateKeySize, len(privKeyBytes))
-	}
-
-	var privateKey mldsa65.PrivateKey
-	var keyBuf [mldsa65.PrivateKeySize]byte
-	copy(keyBuf[:], privKeyBytes)
-	privateKey.Unpack(&keyBuf)
-
 	// Canonicalize claims for signing
 	claimsData, err := json.Marshal(claims)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal claims: %w", err)
 	}
 
-	signature := make([]byte, mldsa65.SignatureSize)
-	mldsa65.SignTo(&privateKey, claimsData, nil, false, signature)
+	signature, err := signWith(licenseContext, privKeyBytes, claimsData)
+	if err != nil {
+		return nil, err
+	}
 
 	return &OfflineLicense{
 		Claims:    claims,
@@ -74,19 +65,8 @@ func Verify(path string, pubKeyBytes []byte) (*LicenseClaims, error) {
 		return nil, fmt.Errorf("invalid signature hex: %w", err)
 	}
 
-	if len(pubKeyBytes) != mldsa65.PublicKeySize {
-		return nil, fmt.Errorf("invalid public key size: expected %d, got %d",
-			mldsa65.PublicKeySize, len(pubKeyBytes))
-	}
-
-	var publicKey mldsa65.PublicKey
-	var keyBuf [mldsa65.PublicKeySize]byte
-	copy(keyBuf[:], pubKeyBytes)
-	publicKey.Unpack(&keyBuf)
-
-	// Verify(pk *PublicKey, msg, ctx, sig []byte) bool
-	if !mldsa65.Verify(&publicKey, claimsData, nil, signature) {
-		return nil, fmt.Errorf("signature verification failed")
+	if err := verifyWithRoot(licenseContext, pubKeyBytes, claimsData, signature); err != nil {
+		return nil, fmt.Errorf("signature verification failed: %w", err)
 	}
 
 	// Check Expiry

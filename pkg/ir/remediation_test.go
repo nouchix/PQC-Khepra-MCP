@@ -2,35 +2,18 @@ package ir
 
 import (
 	"context"
-	"crypto/rand"
 	"testing"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/cloudflare/circl/sign/dilithium/mode3"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
-// generateTestKeysForRemediation generates real Dilithium3 keys for testing
+// generateTestKeysForRemediation generates real ML-DSA-87 keys for testing
 // TRL 10: No mocks, no stubs - real PQC cryptography
 func generateTestKeysForRemediation(t *testing.T) (pubKey []byte, privKey []byte) {
 	t.Helper()
-
-	pk, sk, err := mode3.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatalf("Failed to generate Dilithium3 key pair: %v", err)
-	}
-
-	pubKey, err = pk.MarshalBinary()
-	if err != nil {
-		t.Fatalf("Failed to marshal public key: %v", err)
-	}
-
-	privKey, err = sk.MarshalBinary()
-	if err != nil {
-		t.Fatalf("Failed to marshal private key: %v", err)
-	}
-
-	return pubKey, privKey
+	return generateTestKeys(t)
 }
 
 func TestGetRemediationScripts(t *testing.T) {
@@ -323,32 +306,38 @@ func TestGenerateEventID(t *testing.T) {
 	}
 }
 
-func TestSignWithDilithium(t *testing.T) {
-	_, privKey := generateTestKeysForRemediation(t)
+func TestSignResult(t *testing.T) {
+	pubKey, privKey := generateTestKeysForRemediation(t)
 
 	data := []byte("Test data for signing")
-	signature, err := signWithDilithium(data, privKey)
+	signature, err := signResult(data, privKey)
 
 	if err != nil {
-		t.Fatalf("signWithDilithium failed: %v", err)
+		t.Fatalf("signResult failed: %v", err)
 	}
 
 	if len(signature) == 0 {
 		t.Error("Signature should not be empty")
 	}
 
-	// Dilithium3 signature size is 3293 bytes
-	expectedSize := 3293
-	if len(signature) != expectedSize {
-		t.Errorf("Expected signature size %d, got %d", expectedSize, len(signature))
+	if len(signature) != sign.SignatureSize {
+		t.Errorf("Expected signature size %d, got %d", sign.SignatureSize, len(signature))
+	}
+
+	pk, err := sign.NewPublicKey(pubKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pk.Verify(sign.ContextAttest, data, signature); err != nil {
+		t.Errorf("remediation signature did not verify: %v", err)
 	}
 }
 
-func TestSignWithDilithium_InvalidKey(t *testing.T) {
+func TestSignResult_InvalidKey(t *testing.T) {
 	invalidKey := []byte("invalid key")
 	data := []byte("Test data")
 
-	_, err := signWithDilithium(data, invalidKey)
+	_, err := signResult(data, invalidKey)
 	if err == nil {
 		t.Fatal("Expected error with invalid key")
 	}

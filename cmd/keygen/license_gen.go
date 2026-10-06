@@ -6,9 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 )
 
 // LicenseBlob is the signed license structure (matching license-signer.go)
@@ -27,20 +28,20 @@ type LicenseBlob struct {
 // SignedLicense is the complete license file format
 type SignedLicense struct {
 	License   LicenseBlob `json:"license"`
-	Signature string      `json:"signature"` // Hex-encoded ML-DSA-65 signature
+	Signature string      `json:"signature"` // Hex-encoded ML-DSA-87 signature
 }
 
 func main() {
 	fmt.Println("╔═══════════════════════════════════════════════════════════╗")
 	fmt.Println("║       KHEPRA Protocol - Offline License Generator         ║")
-	fmt.Println("║              ML-DSA-65 Post-Quantum Signatures            ║")
+	fmt.Println("║              ML-DSA-87 Post-Quantum Signatures            ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 
 	machineID := flag.String("id", "", "Target Machine ID (required)")
 	org := flag.String("org", "Internal Command", "Organization Name")
 	tier := flag.String("tier", "osiris", "License Tier (khepri, ra, atum, osiris)")
 	days := flag.Int("days", 365, "Validity in days (0 for perpetual)")
-	privKeyPath := flag.String("key", "OFFLINE_ROOT_KEY.secret", "Path to ML-DSA-65 Private Key")
+	privKeyPath := flag.String("key", "OFFLINE_ROOT_KEY.secret", "Path to ML-DSA-87 private key (hex-encoded 32-byte seed)")
 	outFile := flag.String("out", "license.khepra", "Output filename")
 	flag.Parse()
 
@@ -57,21 +58,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	keyBytes, err := hex.DecodeString(string(privData))
+	keyBytes, err := hex.DecodeString(strings.TrimSpace(string(privData)))
 	if err != nil {
 		fmt.Printf("❌ Error decoding private key (must be hex): %v\n", err)
 		os.Exit(1)
 	}
-
-	if len(keyBytes) != mldsa65.PrivateKeySize {
-		fmt.Printf("❌ Error: Invalid key size (got %d, expected %d)\n", len(keyBytes), mldsa65.PrivateKeySize)
-		os.Exit(1)
-	}
-
-	var keyBuf [mldsa65.PrivateKeySize]byte
-	copy(keyBuf[:], keyBytes)
-	var privateKey mldsa65.PrivateKey
-	privateKey.Unpack(&keyBuf)
 
 	// 2. Prepare License Blob
 	now := time.Now().Unix()
@@ -94,13 +85,20 @@ func main() {
 		IssuedAt:     now,
 		ExpiresAt:    expiresAt,
 		Issuer:       "NouchiX SecRed Knowledge Inc.",
-		SignedWith:   "ML-DSA-65",
+		SignedWith:   "ML-DSA-87",
 	}
 
 	// 3. Sign the Blob
-	blobJSON, _ := json.Marshal(blob)
-	signature := make([]byte, mldsa65.SignatureSize)
-	mldsa65.SignTo(&privateKey, blobJSON, nil, false, signature)
+	blobJSON, err := json.Marshal(blob)
+	if err != nil {
+		fmt.Printf("❌ Error encoding license: %v\n", err)
+		os.Exit(1)
+	}
+	signature, err := license.SignLicenseBytes(keyBytes, blobJSON)
+	if err != nil {
+		fmt.Printf("❌ Error signing license: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 4. Wrap and Save
 	signed := SignedLicense{

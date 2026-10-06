@@ -7,35 +7,23 @@ import (
 )
 
 func TestAdinkhepraPQCSignVerify(t *testing.T) {
-	// 1. Setup
-	seed := make([]byte, 32)
-	for i := range seed {
-		seed[i] = byte(i)
-	}
-	symbol := "Eban"
-
-	// 2. KeyGen
-	pub, priv, err := GenerateAdinkhepraPQCKeyPair(seed, symbol)
+	pub, priv, err := GenerateAdinkhepraPQCKeyPair("Eban")
 	if err != nil {
 		t.Fatalf("KeyPair generation failed: %v", err)
 	}
+	if len(pub.Raw) != SigningPublicKeySize || len(priv.Raw) != SigningPrivateKeySize {
+		t.Fatalf("unexpected key sizes: pub=%d priv=%d", len(pub.Raw), len(priv.Raw))
+	}
 
-	// 3. Message
-	msg := []byte("The fortress protects the spirit.")
-	h := sha512.Sum512(msg)
-
-	// 4. Sign
+	h := sha512.Sum384([]byte("The fortress protects the spirit."))
 	sig, err := SignAdinkhepraPQC(priv, h[:])
 	if err != nil {
 		t.Fatalf("Signing failed: %v", err)
 	}
-
-	// 5. Verify
 	if err := VerifyAdinkhepraPQC(pub, h[:], sig); err != nil {
 		t.Errorf("Verification failed: %v", err)
 	}
 
-	// 6. Tamper test
 	h[0] ^= 0xFF
 	if err := VerifyAdinkhepraPQC(pub, h[:], sig); err == nil {
 		t.Error("Verification should have failed for tampered hash")
@@ -43,61 +31,66 @@ func TestAdinkhepraPQCSignVerify(t *testing.T) {
 }
 
 func TestAdinkhepraASAF(t *testing.T) {
-	seed := make([]byte, 32)
-	copy(seed, []byte("asaf-testing-seed-00000000000000"))
+	pub, priv, err := GenerateAdinkhepraPQCKeyPair("Fawohodie")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	pub, priv, _ := GenerateAdinkhepraPQCKeyPair(seed, "Fawohodie")
-
-	agentID := "agent-delta"
-	actionID := "action-42"
-	symbol := "Fawohodie"
-	trustScore := 88
-	context := "Admin Access"
-
-	// Sign Action
-	attestation, err := SignAgentAction(priv, agentID, actionID, symbol, trustScore, context)
+	attestation, err := SignAgentAction(priv, "agent-delta", "action-42", "Fawohodie", 88, "Admin Access")
 	if err != nil {
 		t.Fatalf("SignAgentAction failed: %v", err)
 	}
-
-	// Verify Action
 	if err := VerifyAgentAction(pub, attestation); err != nil {
 		t.Errorf("VerifyAgentAction failed: %v", err)
 	}
 
-	// Check Compliance Mapping
-	compliance := MapSymbolToCompliance(symbol)
 	found := false
-	for _, c := range compliance {
+	for _, c := range MapSymbolToCompliance("Fawohodie") {
 		if c == "CMMC" {
 			found = true
-			break
 		}
 	}
 	if !found {
-		t.Errorf("Symbol %s should map to CMMC, got %v", symbol, compliance)
+		t.Error("Fawohodie should map to CMMC")
 	}
 }
 
-func TestAdinkhepraPQCDeterminism(t *testing.T) {
-	seed := []byte("deterministic-seed-test-12345678")
-	symbol := "Nkyinkyim"
-
-	pub1, priv1, _ := GenerateAdinkhepraPQCKeyPair(seed, symbol)
-	pub2, priv2, _ := GenerateAdinkhepraPQCKeyPair(seed, symbol)
-
-	// Seeds must match
-	if !bytes.Equal(pub1.Seed[:], pub2.Seed[:]) {
-		t.Error("Public key seeds do not match")
+// Keys come from the module's random bit generator: the same symbol must
+// never produce the same key twice, and the public key must not carry any
+// private material.
+func TestAdinkhepraPQCKeysAreRandom(t *testing.T) {
+	pub1, priv1, _ := GenerateAdinkhepraPQCKeyPair("Nkyinkyim")
+	pub2, priv2, _ := GenerateAdinkhepraPQCKeyPair("Nkyinkyim")
+	if bytes.Equal(pub1.Raw, pub2.Raw) || bytes.Equal(priv1.Raw, priv2.Raw) {
+		t.Fatal("two keys generated for the same symbol are identical")
 	}
-
-	// Raw public key bytes must match (deterministic from same seed)
-	if !bytes.Equal(pub1.Raw, pub2.Raw) {
-		t.Error("Public key Raw bytes do not match for same seed")
+	if bytes.Contains(pub1.Raw, priv1.Raw) {
+		t.Fatal("public key bytes contain the private seed")
 	}
+}
 
-	// Raw private key bytes must match (deterministic from same seed)
-	if !bytes.Equal(priv1.Raw, priv2.Raw) {
-		t.Error("Private key Raw bytes do not match for same seed")
+// A signature from the agent API must not verify as a signature from the
+// generic Sign API, and vice versa (FIPS 204 context separation).
+func TestAgentAndGenericSignaturesAreSeparate(t *testing.T) {
+	pub, priv, _ := GenerateAdinkhepraPQCKeyPair("Eban")
+	msg := []byte("same message")
+	agentSig, _ := SignAdinkhepraPQC(priv, msg)
+	if ok, _ := Verify(pub.Raw, msg, agentSig); ok {
+		t.Fatal("agent signature verified through the generic Verify API")
+	}
+	genericSig, _ := Sign(priv.Raw, msg)
+	if err := VerifyAdinkhepraPQC(pub, msg, genericSig); err == nil {
+		t.Fatal("generic signature verified through the agent API")
+	}
+}
+
+func TestPrivateKeyPublic(t *testing.T) {
+	pub, priv, _ := GenerateAdinkhepraPQCKeyPair("Dwennimmen")
+	derived, err := priv.Public()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(derived.Raw, pub.Raw) || derived.Symbol != "Dwennimmen" {
+		t.Fatal("Public() does not reproduce the generated public key")
 	}
 }

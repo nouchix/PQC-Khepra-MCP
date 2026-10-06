@@ -32,7 +32,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/khepra-pqc/sign"
 	"github.com/google/uuid"
 )
 
@@ -116,8 +116,8 @@ func Validate(licensePath string) (*ParsedLicense, error) {
 	}
 
 	// 1. Verify algorithm
-	if lf.Algorithm != "ML-DSA-65" {
-		return nil, fmt.Errorf("unsupported signing algorithm: %q (expected ML-DSA-65)", lf.Algorithm)
+	if lf.Algorithm != "ML-DSA-87" && lf.Algorithm != "ML-DSA-65" {
+		return nil, fmt.Errorf("unsupported signing algorithm: %q (expected ML-DSA-87)", lf.Algorithm)
 	}
 
 	// 2. Verify signature (offline, against embedded public key)
@@ -194,8 +194,8 @@ func ValidateAPIKey(key string) (*ParsedLicense, error) {
 	}
 
 	// 1. Verify algorithm
-	if lf.Algorithm != "ML-DSA-65" {
-		return nil, fmt.Errorf("unsupported signing algorithm: %q (expected ML-DSA-65)", lf.Algorithm)
+	if lf.Algorithm != "ML-DSA-87" && lf.Algorithm != "ML-DSA-65" {
+		return nil, fmt.Errorf("unsupported signing algorithm: %q (expected ML-DSA-87)", lf.Algorithm)
 	}
 
 	// 2. Verify signature (offline, against embedded public key)
@@ -383,27 +383,22 @@ func verifySignature(lf licenseFile) error {
 			"unset KHEPRA_LICENSE_KEY to run as Community, or request a new key")
 	}
 
-	root := apiKeyTrustedRoot()
-	if len(root) != mldsa65.PublicKeySize || len(sig) != mldsa65.SignatureSize {
-		return fmt.Errorf("signature mismatch")
-	}
-	var pk mldsa65.PublicKey
-	pk.Unpack((*[mldsa65.PublicKeySize]byte)(root))
-	if !mldsa65.Verify(&pk, payloadJSON, nil, sig) {
+	// ML-DSA-87 under khepra/v3/apikey, or the historical ML-DSA-65 root.
+	if err := verifyWithRoot(sign.ContextAPIKey, apiKeyTrustedRoot(), payloadJSON, sig); err != nil {
 		return fmt.Errorf("signature mismatch")
 	}
 	return nil
 }
 
 // GenerateSignedAPIKey creates a signed API key string formatted as kphr_{tier}_{base64url}.
-// signerKey must be a packed ML-DSA-65 private key (mldsa65.PrivateKeySize bytes)
-// whose public half is the root that validators trust; anything else is an error.
+// signerKey must be an ML-DSA-87 private key (32-byte seed) whose public half
+// is the root that validators trust; anything else is an error.
 func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time.Time, machineID string) (string, error) {
 	if !isValidTier(tier) {
 		return "", fmt.Errorf("license: invalid tier %q", tier)
 	}
-	if len(signerKey) != mldsa65.PrivateKeySize {
-		return "", fmt.Errorf("license: an ML-DSA-65 private key is required to issue API keys (got %d bytes)", len(signerKey))
+	if len(signerKey) != sign.SeedSize {
+		return "", fmt.Errorf("license: an ML-DSA-87 private key (32-byte seed) is required to issue API keys (got %d bytes)", len(signerKey))
 	}
 
 	licenseKey := "KHRPA-" + strings.ToUpper(uuid.New().String()[:8]) + "-" + strings.ToUpper(uuid.New().String()[:8])
@@ -414,7 +409,7 @@ func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time
 		IssuedAt:   time.Now().UTC().Format(time.RFC3339),
 		ExpiresAt:  expiry.UTC().Format(time.RFC3339),
 		Version:    "1",
-		Algorithm:  "ML-DSA-65",
+		Algorithm:  "ML-DSA-87",
 		MachineID:  machineID,
 	}
 
@@ -436,10 +431,8 @@ func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time
 		return "", fmt.Errorf("license: marshal payload: %w", err)
 	}
 
-	var sk mldsa65.PrivateKey
-	sk.Unpack((*[mldsa65.PrivateKeySize]byte)(signerKey))
-	sig := make([]byte, mldsa65.SignatureSize)
-	if err := mldsa65.SignTo(&sk, payloadJSON, nil, true, sig); err != nil {
+	sig, err := signWith(sign.ContextAPIKey, signerKey, payloadJSON)
+	if err != nil {
 		return "", fmt.Errorf("license: sign API key: %w", err)
 	}
 	lf.Signature = base64.StdEncoding.EncodeToString(sig)

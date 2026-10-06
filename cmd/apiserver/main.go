@@ -23,7 +23,7 @@
 //
 //   ASAF_ALLOW_EVAL_WITHOUT_LICENSE - If "true", allow scan_type eval/basic when license invalid (public funnel; set on Fly with care)
 //
-//   PQC Auth (ML-DSA-65 / NIST FIPS 204):
+//   PQC Auth (ML-DSA-87 / NIST FIPS 204):
 //   SUPABASE_JWT_SECRET       - Supabase project JWT secret (enables Supabase Auth login)
 //
 //   Supabase MCP persistence:
@@ -79,7 +79,7 @@ func main() {
 	// ── ASAF Flight Recorder (security camera + DAG-backed audit trail) ─────
 	initASAFRecorder(server)
 
-	// ── PQC Auth Gateway (ML-DSA-65 / NIST FIPS 204) ─────────────────────────
+	// ── PQC Auth Gateway (ML-DSA-87 / NIST FIPS 204) ─────────────────────────
 	initPQCAuthGateway(server)
 
 	// ── Supabase MCP Persistence Layer ───────────────────────────────────────
@@ -108,7 +108,7 @@ func main() {
 	log.Println("    POST /api/v1/auth/token            - Exchange Supabase JWT → PQC token")
 	log.Println("    POST /api/v1/auth/saml/callback    - SAML 2.0 / Claude Enterprise WorkOS")
 	log.Println("    GET  /api/v1/auth/introspect       - RFC 7662 token introspection")
-	log.Println("    GET  /api/v1/auth/keys/public      - ML-DSA-65 public key")
+	log.Println("    GET  /api/v1/auth/keys/public      - ML-DSA-87 public key")
 	log.Println("")
 	log.Println("  REST Endpoints (authenticated):")
 	log.Println("    GET  /health                      - Health check")
@@ -326,7 +326,7 @@ func initASAFRecorder(server *apiserver.Server) {
 }
 
 func initPQCAuthGateway(server *apiserver.Server) {
-	pqcGateway, pqcErr := auth.NewPQCAuthGateway(nil, nil, auth.PQCAuthGatewayConfig{
+	pqcGateway, pqcErr := auth.NewPQCAuthGateway(nil, auth.PQCAuthGatewayConfig{
 		Symbol:   "Eban",
 		Issuer:   "khepra-pqc-gateway",
 		TokenTTL: time.Hour,
@@ -336,7 +336,7 @@ func initPQCAuthGateway(server *apiserver.Server) {
 		log.Println("  Falling back to legacy API key authentication")
 	} else {
 		server.WithPQCAuthGateway(pqcGateway)
-		log.Println("PQC auth gateway: ML-DSA-65 (NIST FIPS 204) — active")
+		log.Println("PQC auth gateway: ML-DSA-87 (NIST FIPS 204) — active")
 		log.Println("  Supported: Supabase JWT, SAML 2.0 (WorkOS/Claude Enterprise), PQC tokens")
 		if os.Getenv("SUPABASE_JWT_SECRET") == "" {
 			log.Println("  NOTE: SUPABASE_JWT_SECRET not set — Supabase Auth login disabled")

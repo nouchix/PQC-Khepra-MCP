@@ -95,7 +95,7 @@ func initializeAgent(token string) {
 		MachineID:          license.GenerateMachineID(),
 	})
 
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		log.Fatalf("[AGENT] Failed to generate signing identity: %v", err)
 	}

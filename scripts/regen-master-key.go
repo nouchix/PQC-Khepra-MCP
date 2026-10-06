@@ -3,40 +3,29 @@
 package main
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 func main() {
-	// Generate ML-DSA-65 key pair (FIPS 204 standardized)
-	fmt.Println("[KEYGEN] Generating ML-DSA-65 Master Key Pair...")
+	// Generate ML-DSA-87 key pair (FIPS 204)
+	fmt.Println("[KEYGEN] Generating ML-DSA-87 Master Key Pair...")
 
-	pk, sk, err := mldsa65.GenerateKey(rand.Reader)
+	sk, err := sign.GenerateKey()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to generate key: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Get key bytes
-	pubKeyBytes, err := pk.MarshalBinary()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to marshal public key: %v\n", err)
-		os.Exit(1)
-	}
-
-	privKeyBytes, err := sk.MarshalBinary()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to marshal private key: %v\n", err)
-		os.Exit(1)
-	}
+	pubKeyBytes := sk.PublicKey().Bytes()
+	privKeyBytes := sk.Bytes()
 
 	fmt.Printf("[KEYGEN] Public key size: %d bytes\n", len(pubKeyBytes))
-	fmt.Printf("[KEYGEN] Private key size: %d bytes (expected: %d)\n", len(privKeyBytes), mldsa65.PrivateKeySize)
+	fmt.Printf("[KEYGEN] Private key (seed) size: %d bytes (expected: %d)\n", len(privKeyBytes), sign.SeedSize)
 
 	// Create output directory
 	outDir := "keys/offline"
@@ -71,7 +60,7 @@ func main() {
 	}
 	fmt.Printf("[KEYGEN] ✅ Public key written to: %s\n", pubPath)
 
-	fmt.Println("\n[KEYGEN] ML-DSA-65 Master Key Pair generated successfully!")
+	fmt.Println("\n[KEYGEN] ML-DSA-87 Master Key Pair generated successfully!")
 	fmt.Println("[KEYGEN] The private key is your SOVEREIGN MASTER KEY.")
 	fmt.Println("[KEYGEN] Keep it secure and never share it.")
 }

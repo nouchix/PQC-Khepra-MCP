@@ -191,7 +191,7 @@ func NewWAFShield(cfg WAFShieldConfig) (*WAFShield, error) {
 	}
 
 	// Generate initial Kyber-1024 keypair
-	pub, priv, err := adinkra.GenerateKyberKey()
+	pub, priv, err := adinkra.GenerateKEMKey()
 	if err != nil {
 		return nil, fmt.Errorf("sekhem/waf: initial Kyber keygen: %w", err)
 	}
@@ -238,7 +238,7 @@ func (ws *WAFShield) rotateKeypairLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			pub, priv, err := adinkra.GenerateKyberKey()
+			pub, priv, err := adinkra.GenerateKEMKey()
 			if err != nil {
 				log.Printf("[SEKHEM-WAF] Kyber key rotation FAILED: %v — retaining current keypair", err)
 				continue

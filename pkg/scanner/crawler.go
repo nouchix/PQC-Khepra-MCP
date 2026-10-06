@@ -101,7 +101,7 @@ func RunCrawler(target, jsonPath string) error {
 	}
 
 	// 4. Sign the Artifact (DAG Integration)
-	if err := SignCrawlerArtifact(target, jsonPath, "keys/id_dilithium"); err != nil {
+	if err := SignCrawlerArtifact(target, jsonPath, "keys/id_mldsa87"); err != nil {
 		fmt.Printf("[DAG] WARN: Failed to sign artifact: %v\n", err)
 	} else {
 		fmt.Printf("[DAG] ARTIFACT SIGNED: %s.dag.json\n", jsonPath)
@@ -129,14 +129,14 @@ func SignCrawlerArtifact(target, jsonPath, keyPath string) error {
 		PQC: map[string]string{
 			"file_hash": contentHash,
 			"file_path": jsonPath,
-			"algorithm": "dilithium_mode3",
+			"algorithm": "ML-DSA-87",
 		},
 	}
 	// ID will be computed from content by node.ComputeHash() if empty, or we can set it to a valid content-addressable ID
 	// But dag.Add enforces ID == ComputeHash(). Let's let node.Sign() handle ID generation.
 
 	// 4. Load Private Key
-	privKey, err := os.ReadFile(keyPath)
+	privKey, err := adinkra.ReadKeyFile(keyPath)
 	if err != nil {
 		return fmt.Errorf("failed to read private key %s: %v", keyPath, err)
 	}

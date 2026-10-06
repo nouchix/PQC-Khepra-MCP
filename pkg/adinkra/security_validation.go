@@ -23,32 +23,26 @@ func ValidateKeyPairIntegrity(kp *HybridKeyPair) error {
 	if kp.AdinkhepraPQCPrivate == nil {
 		return errors.New("Adinkhepra PQC private key is nil")
 	}
-	if kp.AdinkhepraPQCPublic.SecurityLevel != AdinkhepraPQCSecurityLevel {
-		return fmt.Errorf("invalid Adinkhepra PQC security level: got %d, want %d",
-			kp.AdinkhepraPQCPublic.SecurityLevel, AdinkhepraPQCSecurityLevel)
+	if len(kp.AdinkhepraPQCPublic.Raw) != SigningPublicKeySize {
+		return fmt.Errorf("invalid ML-DSA-87 public key size: got %d, want %d",
+			len(kp.AdinkhepraPQCPublic.Raw), SigningPublicKeySize)
+	}
+	if len(kp.AdinkhepraPQCPrivate.Raw) != SigningPrivateKeySize {
+		return fmt.Errorf("invalid ML-DSA-87 private key size: got %d, want %d",
+			len(kp.AdinkhepraPQCPrivate.Raw), SigningPrivateKeySize)
 	}
 
-	// Validate Dilithium keys
-	if len(kp.DilithiumPublic) != DilithiumPublicKeySize {
-		return fmt.Errorf("invalid Dilithium public key size: got %d, want %d",
-			len(kp.DilithiumPublic), DilithiumPublicKeySize)
+	// Validate ML-KEM-1024 keys
+	if len(kp.KEMPublic) != KEMPublicKeySize {
+		return fmt.Errorf("invalid ML-KEM-1024 public key size: got %d, want %d",
+			len(kp.KEMPublic), KEMPublicKeySize)
 	}
-	if len(kp.DilithiumPrivate) != DilithiumPrivateKeySize {
-		return fmt.Errorf("invalid Dilithium private key size: got %d, want %d",
-			len(kp.DilithiumPrivate), DilithiumPrivateKeySize)
-	}
-
-	// Validate Kyber keys
-	if len(kp.KyberPublic) != KyberPublicKeySize {
-		return fmt.Errorf("invalid Kyber public key size: got %d, want %d",
-			len(kp.KyberPublic), KyberPublicKeySize)
-	}
-	if len(kp.KyberPrivate) != KyberPrivateKeySize {
-		return fmt.Errorf("invalid Kyber private key size: got %d, want %d",
-			len(kp.KyberPrivate), KyberPrivateKeySize)
+	if len(kp.KEMPrivate) != KEMPrivateKeySize {
+		return fmt.Errorf("invalid ML-KEM-1024 private key size: got %d, want %d",
+			len(kp.KEMPrivate), KEMPrivateKeySize)
 	}
 
-	// Validate ECDSA keys
+	// Validate the CSR-only ECDSA key
 	if kp.ECDSAPublic == nil {
 		return errors.New("ECDSA public key is nil")
 	}
@@ -90,20 +84,10 @@ func ValidateEnvelopeIntegrity(envelope *SecureEnvelope) error {
 		return errors.New("invalid timestamp: must be positive")
 	}
 
-	// Validate signature sizes (if present)
-	if len(envelope.SignatureKhepra) > 0 && len(envelope.SignatureKhepra) != AdinkhepraPQCSignatureSize {
-		return fmt.Errorf("invalid Adinkhepra signature size: got %d, want %d",
-			len(envelope.SignatureKhepra), AdinkhepraPQCSignatureSize)
-	}
-	if len(envelope.SignatureDilithium) > 0 && len(envelope.SignatureDilithium) != DilithiumSignatureSize {
-		return fmt.Errorf("invalid Dilithium signature size: got %d, want %d",
-			len(envelope.SignatureDilithium), DilithiumSignatureSize)
-	}
-
-	// Validate ciphertext sizes (if present)
-	if len(envelope.KyberCiphertext) > 0 && len(envelope.KyberCiphertext) < KyberCiphertextSize {
-		return fmt.Errorf("Kyber ciphertext too short: got %d, minimum %d",
-			len(envelope.KyberCiphertext), KyberCiphertextSize)
+	// Validate signature size (if present)
+	if len(envelope.Signature) > 0 && len(envelope.Signature) != SignatureSize {
+		return fmt.Errorf("invalid ML-DSA-87 signature size: got %d, want %d",
+			len(envelope.Signature), SignatureSize)
 	}
 
 	return nil
@@ -156,28 +140,16 @@ func SanitizeInputData(data []byte, maxSize int) error {
 	return nil
 }
 
-// ValidateCryptoParams validates cryptographic parameters meet security requirements
+// ValidateCryptoParams checks that the package is built on the expected NIST
+// parameter sets: ML-KEM-1024 (FIPS 203) and ML-DSA-87 (FIPS 204).
 func ValidateCryptoParams() error {
-	// Ensure constants are properly defined
-	if AdinkhepraPQCSecurityLevel < 128 {
-		return fmt.Errorf("insufficient Adinkhepra PQC security level: %d bits (minimum 128)",
-			AdinkhepraPQCSecurityLevel)
+	if KEMPublicKeySize != 1568 || KEMCiphertextSize != 1568 || KEMPrivateKeySize != 64 {
+		return fmt.Errorf("unexpected ML-KEM-1024 sizes: ek=%d ct=%d seed=%d",
+			KEMPublicKeySize, KEMCiphertextSize, KEMPrivateKeySize)
 	}
-	if AdinkhepraPQCModulus <= 0 {
-		return errors.New("invalid Adinkhepra PQC modulus")
+	if SigningPublicKeySize != 2592 || SignatureSize != 4627 || SigningPrivateKeySize != 32 {
+		return fmt.Errorf("unexpected ML-DSA-87 sizes: pk=%d sig=%d seed=%d",
+			SigningPublicKeySize, SignatureSize, SigningPrivateKeySize)
 	}
-	if AdinkhepraLatticeRank < 4 {
-		return fmt.Errorf("insufficient Adinkhepra lattice rank: %d (minimum 4)",
-			AdinkhepraLatticeRank)
-	}
-
-	// Validate key sizes
-	if DilithiumPublicKeySize == 0 || DilithiumPrivateKeySize == 0 {
-		return errors.New("invalid Dilithium key sizes")
-	}
-	if KyberPublicKeySize == 0 || KyberPrivateKeySize == 0 {
-		return errors.New("invalid Kyber key sizes")
-	}
-
 	return nil
 }

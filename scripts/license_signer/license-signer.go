@@ -1,14 +1,14 @@
-// License Signer - Local ML-DSA-65 signing daemon
+// License Signer - Local ML-DSA-87 signing daemon
 //
 // This script runs on your local machine and:
 // 1. Polls the telemetry server for pending license requests
-// 2. Signs each license with your local ML-DSA-65 private key
+// 2. Signs each license with your local ML-DSA-87 private key
 // 3. Submits the signed license back to the server
 //
 // Run with: go run scripts/license-signer.go
 //
 // Environment variables:
-//   KHEPRA_PRIVATE_KEY_PATH - Path to ML-DSA-65 private key file
+//   KHEPRA_PRIVATE_KEY_PATH - Path to ML-DSA-87 private key file
 //   KHEPRA_TELEMETRY_URL    - Telemetry server URL (default: https://telemetry.souhimbou.ai)
 //   KHEPRA_ADMIN_TOKEN      - Admin JWT token for authentication
 //   KHEPRA_POLL_INTERVAL    - Poll interval in seconds (default: 30)
@@ -20,7 +20,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -31,7 +30,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // Config holds the signer configuration
@@ -87,13 +87,13 @@ type LicenseBlob struct {
 // SignedLicense is the complete license with signature
 type SignedLicense struct {
 	License   LicenseBlob `json:"license"`
-	Signature string      `json:"signature"` // Hex-encoded ML-DSA-65 signature
+	Signature string      `json:"signature"` // Hex-encoded ML-DSA-87 signature
 }
 
 func main() {
 	fmt.Println("╔═══════════════════════════════════════════════════════════╗")
 	fmt.Println("║       KHEPRA Protocol - License Signing Daemon            ║")
-	fmt.Println("║              ML-DSA-65 Post-Quantum Signatures            ║")
+	fmt.Println("║              ML-DSA-87 Post-Quantum Signatures            ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 	fmt.Println()
 
@@ -193,34 +193,27 @@ func loadConfig() Config {
 	return config
 }
 
-func loadPrivateKey(path string) (*mldsa65.PrivateKey, error) {
+func loadPrivateKey(path string) ([]byte, error) {
 	keyData, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key file: %w", err)
 	}
 
 	// Try hex decoding first
-	keyBytes, err := hex.DecodeString(string(keyData))
+	keyBytes, err := hex.DecodeString(string(bytes.TrimSpace(keyData)))
 	if err != nil {
 		// Assume raw bytes
 		keyBytes = keyData
 	}
 
-	// ML-DSA-65 private key is 4032 bytes
-	if len(keyBytes) != mldsa65.PrivateKeySize {
-		return nil, fmt.Errorf("invalid key size: got %d, expected %d", len(keyBytes), mldsa65.PrivateKeySize)
+	// ML-DSA-87 private keys are stored as the 32-byte seed
+	if len(keyBytes) != sign.SeedSize {
+		return nil, fmt.Errorf("invalid key size: got %d, expected %d", len(keyBytes), sign.SeedSize)
 	}
-
-	var keyBuf [mldsa65.PrivateKeySize]byte
-	copy(keyBuf[:], keyBytes)
-
-	var privateKey mldsa65.PrivateKey
-	privateKey.Unpack(&keyBuf)
-
-	return &privateKey, nil
+	return keyBytes, nil
 }
 
-func processLicenses(client *http.Client, config Config, privateKey *mldsa65.PrivateKey) {
+func processLicenses(client *http.Client, config Config, privateKey []byte) {
 	// Fetch pending licenses
 	pending, err := fetchPendingLicenses(client, config)
 	if err != nil {
@@ -281,7 +274,7 @@ func fetchPendingLicenses(client *http.Client, config Config) ([]LicenseRequest,
 	return pendingResp.Pending, nil
 }
 
-func signAndSubmitLicense(client *http.Client, config Config, privateKey *mldsa65.PrivateKey, licReq LicenseRequest) error {
+func signAndSubmitLicense(client *http.Client, config Config, privateKey []byte, licReq LicenseRequest) error {
 	now := time.Now().Unix()
 
 	// Calculate expiration based on tier
@@ -310,7 +303,7 @@ func signAndSubmitLicense(client *http.Client, config Config, privateKey *mldsa6
 		IssuedAt:     now,
 		ExpiresAt:    expiresAt,
 		Issuer:       "SECRED KNOWLEDGE INC.",
-		SignedWith:   "ML-DSA-65",
+		SignedWith:   "ML-DSA-87",
 	}
 
 	// Serialize license for signing
@@ -319,9 +312,11 @@ func signAndSubmitLicense(client *http.Client, config Config, privateKey *mldsa6
 		return fmt.Errorf("failed to serialize license: %w", err)
 	}
 
-	// Sign with ML-DSA-65
-	signature := make([]byte, mldsa65.SignatureSize)
-	mldsa65.SignTo(privateKey, licenseJSON, nil, false, signature)
+	// Sign with ML-DSA-87
+	signature, err := license.SignLicenseBytes(privateKey, licenseJSON)
+	if err != nil {
+		return fmt.Errorf("failed to sign license: %w", err)
+	}
 
 	signatureHex := hex.EncodeToString(signature)
 
@@ -372,29 +367,4 @@ func signAndSubmitLicense(client *http.Client, config Config, privateKey *mldsa6
 	}
 
 	return nil
-}
-
-// Helper function for testing - generates a new keypair
-func generateTestKeypair() {
-	pub, priv, err := mldsa65.GenerateKey(rand.Reader)
-	if err != nil {
-		fmt.Printf("Failed to generate keypair: %v\n", err)
-		return
-	}
-
-	pubBytes, err := pub.MarshalBinary()
-	if err != nil {
-		fmt.Printf("Failed to marshal public key: %v\n", err)
-		return
-	}
-
-	privBytes, err := priv.MarshalBinary()
-	if err != nil {
-		fmt.Printf("Failed to marshal private key: %v\n", err)
-		return
-	}
-
-	fmt.Println("Generated ML-DSA-65 keypair:")
-	fmt.Printf("Public key (%d bytes):\n%s\n\n", len(pubBytes), hex.EncodeToString(pubBytes))
-	fmt.Printf("Private key (%d bytes):\n%s\n", len(privBytes), hex.EncodeToString(privBytes))
 }

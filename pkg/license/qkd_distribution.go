@@ -132,7 +132,7 @@ type EphemeralKyberSession struct {
 
 // newEphemeralKyberSession generates a fresh Kyber-1024 keypair.
 func newEphemeralKyberSession() (*EphemeralKyberSession, error) {
-	pk, sk, err := adinkra.GenerateKyberKey()
+	pk, sk, err := adinkra.GenerateKEMKey()
 	if err != nil {
 		return nil, fmt.Errorf("QKD: ephemeral Kyber keygen: %w", err)
 	}
@@ -167,8 +167,8 @@ func GenerateLicenseRequestBundle(tenant, tier string) (*LicenseRequest, *Epheme
 		return nil, nil, fmt.Errorf("QKD request: nonce: %w", err)
 	}
 
-	// Generate ephemeral Dilithium keypair to sign this request
-	devPK, devSK, err := adinkra.GenerateDilithiumKey()
+	// Generate an ephemeral ML-DSA-87 keypair to sign this request
+	devPK, devSK, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("QKD request: device signing key: %w", err)
 	}
@@ -189,7 +189,7 @@ func GenerateLicenseRequestBundle(tenant, tier string) (*LicenseRequest, *Epheme
 		return nil, nil, fmt.Errorf("QKD request: marshal: %w", err)
 	}
 
-	sig, err := adinkra.Sign(devSK, payload)
+	sig, err := signWith(deviceContext, devSK, payload)
 	if err != nil {
 		return nil, nil, fmt.Errorf("QKD request: sign: %w", err)
 	}
@@ -244,12 +244,8 @@ func (sla *SovereignLicenseAuthority) IssueLicenseCapsule(req *LicenseRequest, t
 	if err != nil {
 		return nil, fmt.Errorf("QKD: marshal request for verify: %w", err)
 	}
-	valid, err := adinkra.Verify(req.DevicePubKey, payload, req.DeviceSignature)
-	if err != nil {
-		return nil, fmt.Errorf("QKD: request signature error: %w", err)
-	}
-	if !valid {
-		return nil, errors.New("QKD: request signature INVALID — possible forgery")
+	if err := verifyDevice(req.DevicePubKey, payload, req.DeviceSignature); err != nil {
+		return nil, fmt.Errorf("QKD: request signature INVALID — possible forgery: %w", err)
 	}
 
 	// ── Step 2: Issue the KhepraLicense ─────────────────────────────────────
@@ -264,7 +260,7 @@ func (sla *SovereignLicenseAuthority) IssueLicenseCapsule(req *LicenseRequest, t
 	}
 
 	// ── Step 3: KEM-encapsulate with client's Kyber public key ───────────────
-	ciphertext, sharedSecret, err := adinkra.KyberEncapsulate(req.KyberPublicKey)
+	ciphertext, sharedSecret, err := adinkra.KEMEncapsulate(req.KyberPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("QKD: Kyber encapsulate: %w", err)
 	}
@@ -304,7 +300,7 @@ func (sla *SovereignLicenseAuthority) IssueLicenseCapsule(req *LicenseRequest, t
 	if err != nil {
 		return nil, fmt.Errorf("QKD: marshal capsule for signing: %w", err)
 	}
-	sig, err := adinkra.Sign(sla.PrivateKey, capsulePayload)
+	sig, err := signWith(capsuleContext, sla.PrivateKey, capsulePayload)
 	if err != nil {
 		return nil, fmt.Errorf("QKD: sign capsule: %w", err)
 	}
@@ -357,13 +353,13 @@ func InstallLicenseCapsule(capsule *LicenseCapsule, session *EphemeralKyberSessi
 		return nil, errors.New("QKD install: ephemeral session is nil — was it discarded?")
 	}
 
-	// Step 1: Verify capsule ML-DSA-65 signature.
+	// Step 1: Verify the capsule's root signature.
 	if err := verifyCapsuleSignature(capsule, masterPublicKey); err != nil {
 		return nil, err
 	}
 
 	// Step 2: Kyber decapsulate — recover shared secret.
-	sharedSecret, err := adinkra.KyberDecapsulate(session.PrivateKey, capsule.KyberCiphertext)
+	sharedSecret, err := adinkra.KEMDecapsulate(session.PrivateKey, capsule.KyberCiphertext)
 	if err != nil {
 		return nil, fmt.Errorf("QKD install: Kyber decapsulate: %w", err)
 	}
@@ -402,7 +398,7 @@ func InstallLicenseCapsule(capsule *LicenseCapsule, session *EphemeralKyberSessi
 	return &lic, nil
 }
 
-// verifyCapsuleSignature checks the ML-DSA-65 signature on a LicenseCapsule
+// verifyCapsuleSignature checks the root signature on a LicenseCapsule
 // against the pinned master public key. An empty key is an error: trusting
 // the capsule's own SignerPublicKey would accept any self-signed capsule.
 func verifyCapsuleSignature(capsule *LicenseCapsule, masterPublicKey []byte) error {
@@ -413,12 +409,8 @@ func verifyCapsuleSignature(capsule *LicenseCapsule, masterPublicKey []byte) err
 	if len(masterPublicKey) == 0 {
 		return errors.New("QKD install: no pinned master public key — refusing to trust the capsule's own signer key")
 	}
-	valid, err := adinkra.Verify(masterPublicKey, payload, capsule.Signature)
-	if err != nil {
-		return fmt.Errorf("QKD install: capsule signature error: %w", err)
-	}
-	if !valid {
-		return errors.New("QKD install: capsule signature INVALID — do not trust this capsule")
+	if err := verifyWithRoot(capsuleContext, masterPublicKey, payload, capsule.Signature); err != nil {
+		return fmt.Errorf("QKD install: capsule signature INVALID — do not trust this capsule: %w", err)
 	}
 	return nil
 }

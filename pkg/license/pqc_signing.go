@@ -1,14 +1,19 @@
-// Package license - Multi-Layer PQC License Signing
+// Package license - Shu Breath license signatures
 //
-// This implements defense-in-depth post-quantum signature verification
-// by interlacing three cryptographic layers:
+// A Shu Breath signature has three parts:
 //
-// Layer 1: Adinkhepra Lattice (Proprietary spectral fingerprint encoding)
-// Layer 2: ML-DSA-65 (NIST Dilithium3 PQC signature)
-// Layer 3: Kyber-1024 + Merkaba White Box (Encrypted transport)
+// Layer 1: Lattice hash — SHA-256 of the canonical payload, written in the
 //
-// Even if NIST PQC is broken, the proprietary Adinkhepra Lattice provides protection.
-// Even if the lattice is reverse-engineered, Dilithium signature verification still required.
+//	Adinkhepra alphabet. This is an encoding of a hash; it adds no security
+//	beyond SHA-256.
+//
+// Layer 2: ML-DSA-87 (FIPS 204) signature over the lattice hash, under the
+//
+//	context khepra/v3/license. All authenticity comes from this layer.
+//
+// Layer 3: Optional transport encryption to a recipient's ML-KEM-1024 key
+//
+//	(FIPS 203) using the KHQ3 envelope (Kuntinkantan / Sankofa).
 //
 // Reference: STIGVIEWER_STRATEGY_MITOCHONDRIA.md §4.4 (Air-Gap Dilithium Signing)
 //
@@ -48,16 +53,16 @@ type ShuBreathSignature struct {
 	// Layer 1: Adinkhepra Lattice Hash (proprietary encoding)
 	LatticeHash string `json:"lattice_hash"` // Khepra-encoded SHA-256
 
-	// Layer 2: ML-DSA-65 (Dilithium3) Signature
-	DilithiumSignature []byte `json:"dilithium_signature"` // 3309 bytes
+	// Layer 2: ML-DSA-87 signature (field name kept for the JSON format)
+	DilithiumSignature []byte `json:"dilithium_signature"` // 4627 bytes
 
-	// Layer 3: Merkaba Encryption Metadata
-	MerkabaVersion string `json:"merkaba_version"` // White box cipher version
-	IsEncrypted    bool   `json:"is_encrypted"`    // True if Kuntinkantan applied
+	// Layer 3: transport envelope metadata
+	EnvelopeVersion string `json:"envelope_version"` // "KHQ3" (ML-KEM-1024 + AES-256-GCM)
+	IsEncrypted     bool   `json:"is_encrypted"`     // True if Kuntinkantan applied
 
 	// Signature metadata
-	SignerPublicKey []byte `json:"signer_public_key"` // ML-DSA-65 public key (1952 bytes)
-	SignatureScheme string `json:"signature_scheme"`  // "ADINKHEPRA_MLDSA65_KYBER1024"
+	SignerPublicKey []byte `json:"signer_public_key"` // ML-DSA-87 public key (2592 bytes)
+	SignatureScheme string `json:"signature_scheme"`  // "ADINKHEPRA_MLDSA87_MLKEM1024"
 	Version         string `json:"version"`           // Signature format version
 }
 
@@ -66,17 +71,18 @@ type ShuBreathSignature struct {
 // SigningAuthority holds the root keys for signing licenses.
 // In production, this private key is stored in HSM or Vault.
 type SigningAuthority struct {
-	PublicKey  []byte // ML-DSA-65 public key (1952 bytes)
-	PrivateKey []byte // ML-DSA-65 private key (4032 bytes) - KEEP SECRET
+	PublicKey  []byte // ML-DSA-87 public key (2592 bytes)
+	PrivateKey []byte // ML-DSA-87 private key (32-byte seed) - KEEP SECRET
 	Symbol     string // Adinkra symbol governing this authority (e.g., "Eban", "Fawohodie")
 }
 
-// GenerateSigningAuthority creates a new signing authority with Adinkra-seeded keys.
+// GenerateSigningAuthority creates a new signing authority. The symbol is a
+// label only; the key comes from the module's random bit generator.
 func GenerateSigningAuthority(symbol string) (*SigningAuthority, error) {
-	// Generate ML-DSA-65 (Dilithium3) key pair
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	// Generate an ML-DSA-87 key pair
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate Dilithium key: %w", err)
+		return nil, fmt.Errorf("failed to generate ML-DSA-87 key: %w", err)
 	}
 
 	return &SigningAuthority{
@@ -93,15 +99,15 @@ func GenerateSigningAuthority(symbol string) (*SigningAuthority, error) {
 // Process:
 //  1. Serialize license payload to canonical JSON
 //  2. Compute Adinkhepra Lattice hash (proprietary encoding)
-//  3. Sign hash with ML-DSA-65 (Dilithium3)
-//  4. Optionally encrypt entire signature with Kyber-1024 + Merkaba
+//  3. Sign hash with ML-DSA-87
+//  4. Optionally encrypt the whole signature to an ML-KEM-1024 key (KHQ3)
 //
 // Parameters:
 //   - license: The license to sign
 //   - authority: Signing authority with private key
 //   - encryptForPublicKey: Optional Kyber public key for Layer 3 encryption
 //
-// Returns: ShuBreathSignature (can be serialized to JSON or Merkaba-encrypted artifact)
+// Returns: ShuBreathSignature (can be serialized to JSON or a KHQ3 envelope)
 func SignLicense(license *License, authority *SigningAuthority, encryptForPublicKey []byte) (*ShuBreathSignature, error) {
 	// ─── Layer 0: Canonical License Payload ─────────────────────────────────
 	payload := map[string]interface{}{
@@ -128,13 +134,13 @@ func SignLicense(license *License, authority *SigningAuthority, encryptForPublic
 	// Compute SHA-256 and encode in Khepra Lattice alphabet
 	latticeHashWithSymbol := adinkra.Hash(combinedInput)
 
-	// ─── Layer 2: ML-DSA-65 (Dilithium3) Signature ──────────────────────────
+	// ─── Layer 2: ML-DSA-87 Signature ───────────────────────────────────────
 	// Sign the lattice hash (not raw payload) - adds one layer of indirection
 	messageToSign := []byte(latticeHashWithSymbol)
 
-	dilithiumSig, err := adinkra.Sign(authority.PrivateKey, messageToSign)
+	dilithiumSig, err := signWith(licenseContext, authority.PrivateKey, messageToSign)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Dilithium signature: %w", err)
+		return nil, fmt.Errorf("failed to create ML-DSA signature: %w", err)
 	}
 
 	// ─── Construct Shu Breath Signature ──────────────────────────────────────
@@ -148,14 +154,14 @@ func SignLicense(license *License, authority *SigningAuthority, encryptForPublic
 		MaxAccessLevel:     license.MaxAccessLevel,
 		LatticeHash:        latticeHashWithSymbol,
 		DilithiumSignature: dilithiumSig,
-		MerkabaVersion:     "1.0",
+		EnvelopeVersion:    "KHQ3",
 		IsEncrypted:        false,
 		SignerPublicKey:    authority.PublicKey,
-		SignatureScheme:    "ADINKHEPRA_MLDSA65_KYBER1024",
+		SignatureScheme:    "ADINKHEPRA_MLDSA87_MLKEM1024",
 		Version:            "1.0.0",
 	}
 
-	// ─── Layer 3: Kyber-1024 + Merkaba Encryption (Optional) ────────────────
+	// ─── Layer 3: ML-KEM-1024 Envelope (Optional) ───────────────────────────
 	// If recipient's Kyber public key provided, encrypt the entire signature
 	if len(encryptForPublicKey) > 0 {
 		shuBreath.IsEncrypted = true
@@ -171,8 +177,8 @@ func SignLicense(license *License, authority *SigningAuthority, encryptForPublic
 // VerifyLicense verifies a Shu Breath signature.
 //
 // Process (reverse of signing):
-//  1. Optionally decrypt with Kyber-1024 + Merkaba (if encrypted)
-//  2. Verify ML-DSA-65 (Dilithium3) signature
+//  1. Optionally decrypt the KHQ3 envelope (if encrypted)
+//  2. Verify the ML-DSA signature against the trusted root
 //  3. Verify Adinkhepra Lattice hash matches payload
 //  4. Check expiration and tier validity
 //
@@ -181,7 +187,7 @@ func SignLicense(license *License, authority *SigningAuthority, encryptForPublic
 //   - (false, err) if verification fails or license expired
 func VerifyLicense(shuBreath *ShuBreathSignature, trustedPublicKey []byte) (bool, error) {
 	// ─── Check Signature Scheme ──────────────────────────────────────────────
-	if shuBreath.SignatureScheme != "ADINKHEPRA_MLDSA65_KYBER1024" {
+	if shuBreath.SignatureScheme != "ADINKHEPRA_MLDSA87_MLKEM1024" {
 		return false, fmt.Errorf("unsupported signature scheme: %s", shuBreath.SignatureScheme)
 	}
 
@@ -202,15 +208,11 @@ func VerifyLicense(shuBreath *ShuBreathSignature, trustedPublicKey []byte) (bool
 		return false, fmt.Errorf("signer public key does not match trusted root CA. Potential forgery detected.")
 	}
 
-	// ─── Layer 2: Verify ML-DSA-65 (Dilithium3) Signature ────────────────────
+	// ─── Layer 2: Verify the Root Signature ─────────────────────────────────
 	messageToVerify := []byte(shuBreath.LatticeHash)
 
-	valid, err := adinkra.Verify(shuBreath.SignerPublicKey, messageToVerify, shuBreath.DilithiumSignature)
-	if err != nil {
-		return false, fmt.Errorf("Dilithium signature verification failed: %w", err)
-	}
-	if !valid {
-		return false, fmt.Errorf("Dilithium signature invalid. The Shu Breath signature is forged or corrupted.")
+	if err := verifyWithRoot(licenseContext, trustedPublicKey, messageToVerify, shuBreath.DilithiumSignature); err != nil {
+		return false, fmt.Errorf("ML-DSA signature invalid. The Shu Breath signature is forged or corrupted: %w", err)
 	}
 
 	// ─── Layer 1: Verify Adinkhepra Lattice Hash ─────────────────────────────
@@ -246,11 +248,11 @@ func VerifyLicense(shuBreath *ShuBreathSignature, trustedPublicKey []byte) (bool
 	return true, nil
 }
 
-// ─── Layer 3: Kyber-1024 + Merkaba Encryption ──────────────────────────────────
+// ─── Layer 3: ML-KEM-1024 Envelope ──────────────────────────────────────────────
 
 // EncryptShuBreath encrypts a Shu Breath signature for transport to air-gapped recipient.
 //
-// Uses Kuntinkantan (Kyber-1024 + Merkaba White Box) to create an encrypted artifact
+// Uses Kuntinkantan (KHQ3: ML-KEM-1024 + HKDF-SHA-384 + AES-256-GCM) to create an encrypted artifact
 // that can only be decrypted by the recipient with the matching Kyber private key.
 //
 // Returns: Base64-encoded encrypted artifact
@@ -261,7 +263,7 @@ func EncryptShuBreath(shuBreath *ShuBreathSignature, recipientKyberPublicKey []b
 		return "", fmt.Errorf("failed to marshal Shu Breath: %w", err)
 	}
 
-	// Encrypt with Kuntinkantan (Kyber-1024 + Merkaba)
+	// Encrypt with Kuntinkantan (KHQ3 envelope)
 	encryptedArtifact, err := adinkra.Kuntinkantan(recipientKyberPublicKey, shuBreathJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt Shu Breath with Kuntinkantan: %w", err)
@@ -274,11 +276,11 @@ func EncryptShuBreath(shuBreath *ShuBreathSignature, recipientKyberPublicKey []b
 
 // DecryptShuBreath decrypts an encrypted Shu Breath artifact.
 //
-// Uses Sankofa (Kyber-1024 + Merkaba decryption) to retrieve the original signature.
+// Uses Sankofa (KHQ3 envelope) to retrieve the original signature.
 //
 // Parameters:
 //   - encryptedArtifact: Base64-encoded encrypted artifact
-//   - recipientKyberPrivateKey: Kyber-1024 private key (3168 bytes)
+//   - recipientKyberPrivateKey: ML-KEM-1024 decapsulation key (64-byte seed)
 //
 // Returns: Decrypted ShuBreathSignature
 func DecryptShuBreath(encryptedArtifact string, recipientKyberPrivateKey []byte) (*ShuBreathSignature, error) {
@@ -288,7 +290,7 @@ func DecryptShuBreath(encryptedArtifact string, recipientKyberPrivateKey []byte)
 		return nil, fmt.Errorf("failed to decode artifact: %w", err)
 	}
 
-	// Decrypt with Sankofa (Kyber-1024 + Merkaba)
+	// Decrypt with Sankofa (KHQ3 envelope)
 	decryptedJSON, err := adinkra.Sankofa(recipientKyberPrivateKey, artifactBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt Shu Breath with Sankofa: %w", err)
@@ -318,7 +320,7 @@ func bytesEqual(a, b []byte) bool {
 }
 
 // loadMasterSigningAuthority loads the root signing authority (private +
-// public ML-DSA-65 keys) used to sign Sovereign-tier offline licenses. Only
+// public ML-DSA-87 keys) used to sign Sovereign-tier offline licenses. Only
 // resolvable in the vendor's signing environment — never on a customer
 // deployment, which holds only the public key (see loadMasterPublicKey).
 func loadMasterSigningAuthority() (*SigningAuthority, error) {
@@ -333,7 +335,7 @@ func loadMasterSigningAuthority() (*SigningAuthority, error) {
 	return &SigningAuthority{PrivateKey: priv, PublicKey: pub, Symbol: "Eban"}, nil
 }
 
-// loadMasterPrivateKey returns the ML-DSA-65 master private key bytes.
+// loadMasterPrivateKey returns the ML-DSA-87 master private key (32-byte seed).
 // Sources (in priority order) — deliberately with NO repo-relative fallback
 // (unlike loadMasterPublicKey in manager.go): a private key must never be
 // read from a path that could resolve inside a checked-out repo.
@@ -464,7 +466,7 @@ func GetSignatureStats(shuBreath *ShuBreathSignature) map[string]interface{} {
 		"version":               shuBreath.Version,
 		"tier":                  shuBreath.Tier,
 		"is_encrypted":          shuBreath.IsEncrypted,
-		"merkaba_version":       shuBreath.MerkabaVersion,
+		"envelope_version":      shuBreath.EnvelopeVersion,
 		"dilithium_sig_size":    len(shuBreath.DilithiumSignature),
 		"public_key_size":       len(shuBreath.SignerPublicKey),
 		"lattice_hash_length":   len(shuBreath.LatticeHash),

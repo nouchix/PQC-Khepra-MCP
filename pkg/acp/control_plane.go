@@ -50,6 +50,10 @@ type AgentControlPlane struct {
 	masterKey  *adinkra.HybridKeyPair // Master key pair for ACP itself
 	credentials map[string]*AgentCredential
 	mu          sync.RWMutex
+
+	// authSecret is the server-held secret that zero-trust token keys are
+	// derived from. It never leaves the control plane.
+	authSecret []byte
 }
 
 // NewAgentControlPlane creates an ACP with a freshly generated master key pair.
@@ -61,12 +65,37 @@ func NewAgentControlPlane() (*AgentControlPlane, error) {
 		return nil, fmt.Errorf("ACP: master key generation failed: %w", err)
 	}
 
+	authSecret := make([]byte, 32)
+	if _, err := generateEntropy(authSecret); err != nil {
+		return nil, fmt.Errorf("ACP: auth secret generation failed: %w", err)
+	}
+
 	return &AgentControlPlane{
 		dag:         dag,
 		auditChain:  adinkra.NewDAGAuditChain(dag),
 		masterKey:   masterKP,
 		credentials: make(map[string]*AgentCredential),
+		authSecret:  authSecret,
 	}, nil
+}
+
+// tokenKeys derives the zero-trust token keys for an agent from the control
+// plane's server-held secret.
+func (acp *AgentControlPlane) tokenKeys(agentID, symbol string) (*adinkra.KHEPRASessionKeys, error) {
+	return adinkra.DeriveKHEPRASessionKeys(acp.authSecret, symbol, "Eban", []byte(agentID))
+}
+
+// VerifyToken checks a zero-trust token this control plane issued.
+func (acp *AgentControlPlane) VerifyToken(token *adinkra.ZeroTrustToken) error {
+	if token == nil {
+		return fmt.Errorf("ACP: token is nil")
+	}
+	keys, err := acp.tokenKeys(token.AgentID, token.Symbol)
+	if err != nil {
+		return err
+	}
+	defer keys.SecureDestroySessionKeys()
+	return adinkra.VerifyZeroTrustToken(token, keys.KAuth)
 }
 
 // IssueCredential provisions a new PQC credential for an AI agent.
@@ -83,12 +112,7 @@ func (acp *AgentControlPlane) IssueCredential(agentID, symbol string, scopes []s
 	}
 
 	// Generate a fresh PQC key pair for this agent.
-	entropy := make([]byte, 32)
-	if _, err := generateEntropy(entropy); err != nil {
-		return nil, fmt.Errorf("ACP: entropy generation failed: %w", err)
-	}
-
-	pub, priv, err := adinkra.GenerateAdinkhepraPQCKeyPair(entropy, symbol)
+	pub, priv, err := adinkra.GenerateAdinkhepraPQCKeyPair(symbol)
 	if err != nil {
 		return nil, fmt.Errorf("ACP: PQC key generation failed: %w", err)
 	}
@@ -98,11 +122,9 @@ func (acp *AgentControlPlane) IssueCredential(agentID, symbol string, scopes []s
 		return nil, fmt.Errorf("ACP: public key marshal failed: %w", err)
 	}
 
-	// Derive session keys for the zero-trust token.
-	// Use ACP master seed as shared secret proxy (production: use real KEM).
-	masterSeed := make([]byte, 32)
-	copy(masterSeed, pubBytes[:32])
-	sessionKeys, err := adinkra.DeriveKHEPRASessionKeys(masterSeed, symbol, "Eban", []byte(agentID))
+	// Derive the zero-trust token key from the control plane's server-held
+	// secret, never from public data such as the agent's public key.
+	sessionKeys, err := acp.tokenKeys(agentID, symbol)
 	if err != nil {
 		return nil, fmt.Errorf("ACP: session key derivation failed: %w", err)
 	}
@@ -164,7 +186,12 @@ func (acp *AgentControlPlane) ValidateCredential(cred *AgentCredential) error {
 	if !ok {
 		return fmt.Errorf("ACP: credential %s not found (revoked?)", cred.ID)
 	}
-	_ = stored
+	if stored.AgentID != cred.AgentID || cred.Token.AgentID != cred.AgentID {
+		return fmt.Errorf("ACP: credential %s does not match its agent (tampered?)", cred.ID)
+	}
+	if err := acp.VerifyToken(cred.Token); err != nil {
+		return fmt.Errorf("ACP: credential %s token invalid: %w", cred.ID, err)
+	}
 
 	adinkra.AuditSensitiveOperation(fmt.Sprintf("ACP:ValidateCredential:%s", cred.AgentID), true)
 	return nil

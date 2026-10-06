@@ -35,6 +35,9 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scorpion"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/util"
 	"golang.org/x/crypto/ssh"
+	"github.com/nouchix/khepra-pqc/kem"
+	"github.com/nouchix/khepra-pqc/keyfile"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 const (
@@ -525,7 +528,7 @@ func kuntinkantanCmd(args []string) {
 	pubKeyPath := args[0]
 	filePath := args[1]
 
-	pubKey, err := os.ReadFile(pubKeyPath)
+	pubKey, err := adinkra.ReadKeyFile(pubKeyPath)
 	if err != nil {
 		fatal("cannot read the staff", err)
 	}
@@ -557,7 +560,7 @@ func sankofaCmd(args []string) {
 	privKeyPath := args[0]
 	filePath := args[1]
 
-	privKey, err := os.ReadFile(privKeyPath)
+	privKey, err := adinkra.ReadKeyFile(privKeyPath)
 	if err != nil {
 		fatal("cannot grab the staff", err)
 	}
@@ -593,7 +596,7 @@ func ogyaCmd(args []string) {
 	}
 	pubKeyPath, targetDir := args[0], args[1]
 
-	pubKey, err := os.ReadFile(pubKeyPath)
+	pubKey, err := adinkra.ReadKeyFile(pubKeyPath)
 	if err != nil {
 		fatal("cannot read the staff", err)
 	}
@@ -649,7 +652,7 @@ func nsuoCmd(args []string) {
 	}
 	privKeyPath, targetDir := args[0], args[1]
 
-	privKey, err := os.ReadFile(privKeyPath)
+	privKey, err := adinkra.ReadKeyFile(privKeyPath)
 	if err != nil {
 		fatal("cannot grab the staff", err)
 	}
@@ -1168,20 +1171,36 @@ func keygenCmd(args []string) {
 		fatal("generate hybrid keypair", err)
 	}
 
-	// 1. Identity Keys (Dilithium / ML-DSA)
-	signPrivPath := *out + "_dilithium"
-	signPubPath := *out + "_dilithium.pub"
+	// 1. Identity keys (ML-DSA-87, FIPS 204)
+	signPrivPath := *out + "_mldsa87"
+	signPubPath := *out + "_mldsa87.pub"
 	if err := util.EnsureDir(filepath.Dir(signPrivPath), 0o700); err != nil {
 		fatal("mkdir", err)
 	}
-	os.WriteFile(signPrivPath, kp.DilithiumPrivate, 0600)
-	os.WriteFile(signPubPath, kp.DilithiumPublic, 0644)
+	signKey, err := sign.NewPrivateKey(kp.AdinkhepraPQCPrivate.Raw)
+	if err != nil {
+		fatal("load signing key", err)
+	}
+	if err := keyfile.WriteSigningKey(signPrivPath, signKey); err != nil {
+		fatal("write signing key", err)
+	}
+	if err := keyfile.WriteVerifyingKey(signPubPath, signKey.PublicKey()); err != nil {
+		fatal("write verifying key", err)
+	}
 
-	// 2. Encryption Keys (Kyber / ML-KEM)
-	encPrivPath := *out + "_kyber"
-	encPubPath := *out + "_kyber.pub"
-	os.WriteFile(encPrivPath, kp.KyberPrivate, 0600)
-	os.WriteFile(encPubPath, kp.KyberPublic, 0644)
+	// 2. Encryption keys (ML-KEM-1024, FIPS 203)
+	encPrivPath := *out + "_mlkem1024"
+	encPubPath := *out + "_mlkem1024.pub"
+	kemKey, err := kem.NewDecapsulationKey(kp.KEMPrivate)
+	if err != nil {
+		fatal("load KEM key", err)
+	}
+	if err := keyfile.WriteKEMPrivateKey(encPrivPath, kemKey); err != nil {
+		fatal("write KEM private key", err)
+	}
+	if err := keyfile.WriteKEMPublicKey(encPubPath, kemKey.EncapsulationKey()); err != nil {
+		fatal("write KEM public key", err)
+	}
 
 	// 3. Standard Compatibility Keys (Ed25519 - Maximum Portability)
 	stdPrivPath := *out + "_ed25519"
@@ -1219,7 +1238,7 @@ func keygenCmd(args []string) {
 		}
 	}
 
-	binding := util.SHA256Hex(kp.DilithiumPublic)
+	binding := util.SHA256Hex(kp.AdinkhepraPQCPublic.Raw)
 
 	ka := attest.Assertion{
 		Schema: "https://adinkhepra.dev/attest/v2-pqc",
@@ -1242,11 +1261,11 @@ func keygenCmd(args []string) {
 
 	fmt.Println("ADINKHEPRA PQC REGALIA GENERATED.")
 	fmt.Println(separator)
-	fmt.Printf(" [IDENTITY]   (Dilithium Mode 3 / ML-DSA-65)\n")
+	fmt.Printf(" [IDENTITY]   (ML-DSA-87, FIPS 204)\n")
 	fmt.Printf("   - Private: %s\n   - Public : %s\n", signPrivPath, signPubPath)
 	fmt.Println("   - Symbol : Eban (The Fence) - Unforgeable Identity")
 	fmt.Println(separator)
-	fmt.Printf(" [ENCRYPTION] (CRYSTALS-Kyber-1024, pre-standard)\n")
+	fmt.Printf(" [ENCRYPTION] (ML-KEM-1024, FIPS 203)\n")
 	fmt.Printf("   - Private: %s\n   - Public : %s\n", encPrivPath, encPubPath)
 	fmt.Println("   - Symbol : Kuntinkantan (The Riddle) - Unbreakable Privacy")
 	fmt.Println(separator)
@@ -1257,7 +1276,7 @@ func keygenCmd(args []string) {
 	fmt.Printf(" [ASSERTION]  (JSON provenance)\n")
 	fmt.Printf("   - Path   : %s\n", assertPath)
 	fmt.Println(separator)
-	fmt.Println("Quantum Resistance Achieved.")
+	fmt.Println("Key generation complete.")
 }
 
 func explainCmd(args []string) {
@@ -1379,7 +1398,7 @@ func attestCmd(args []string) {
 	attestation := intel.GenerateRiskAttestation(&snapshot)
 
 	// 2a. Seal with PQC (Godfather Standard)
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		fmt.Printf("[WARN] Failed to generate PQC key: %v. Attestation will be unsigned.\n", err)
 	} else {

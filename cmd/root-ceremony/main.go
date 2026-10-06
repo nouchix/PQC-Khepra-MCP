@@ -40,7 +40,7 @@ func main() {
 	flag.Parse()
 
 	fmt.Println("Generating dedicated license-signing root key (ML-DSA-65)...")
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		fmt.Printf("keygen failed: %v\n", err)
 		os.Exit(1)

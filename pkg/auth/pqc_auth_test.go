@@ -14,7 +14,7 @@ import (
 // newTestGateway creates a PQCAuthGateway with auto-generated keys.
 func newTestGateway(t *testing.T) *PQCAuthGateway {
 	t.Helper()
-	gw, err := NewPQCAuthGateway(nil, nil, PQCAuthGatewayConfig{
+	gw, err := NewPQCAuthGateway(nil, PQCAuthGatewayConfig{
 		Symbol:   "Eban",
 		Issuer:   "khepra-test",
 		TokenTTL: time.Hour,
@@ -44,7 +44,7 @@ func TestGatewayInitAutoKeyGeneration(t *testing.T) {
 
 // TestGatewayDefaultsApplied verifies that empty config gets sensible defaults.
 func TestGatewayDefaultsApplied(t *testing.T) {
-	gw, err := NewPQCAuthGateway(nil, nil, PQCAuthGatewayConfig{})
+	gw, err := NewPQCAuthGateway(nil, PQCAuthGatewayConfig{})
 	if err != nil {
 		t.Fatalf("NewPQCAuthGateway: %v", err)
 	}

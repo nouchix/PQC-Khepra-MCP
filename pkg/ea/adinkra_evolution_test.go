@@ -524,7 +524,7 @@ func TestAllNISTCompliant_EmptyMappings(t *testing.T) {
 // ─── AdinkraEAEngine ──────────────────────────────────────────────────────────
 
 func TestNewAdinkraEAEngine_CreatesValidEngine(t *testing.T) {
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("GenerateDilithiumKey: %v", err)
 	}
@@ -547,7 +547,7 @@ func TestNewAdinkraEAEngine_CreatesValidEngine(t *testing.T) {
 }
 
 func TestNewAdinkraEAEngine_NilDAGStore(t *testing.T) {
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("GenerateDilithiumKey: %v", err)
 	}
@@ -562,7 +562,7 @@ func TestNewAdinkraEAEngine_NilDAGStore(t *testing.T) {
 }
 
 func TestAdinkraEAEngine_Evolve(t *testing.T) {
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, err := NewAdinkraEAEngine(dag.NewMemory(), sk, pk)
 	if err != nil {
 		t.Fatalf("NewAdinkraEAEngine: %v", err)
@@ -583,7 +583,7 @@ func TestAdinkraEAEngine_Evolve(t *testing.T) {
 }
 
 func TestBestAdinkraGenome_ReturnsNISTCompliant(t *testing.T) {
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, err := NewAdinkraEAEngine(dag.NewMemory(), sk, pk)
 	if err != nil {
 		t.Fatalf("NewAdinkraEAEngine: %v", err)
@@ -611,7 +611,7 @@ func TestBestAdinkraGenome_ReturnsNISTCompliant(t *testing.T) {
 }
 
 func TestBestAdinkraGenome_MetadataPropagated(t *testing.T) {
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, err := NewAdinkraEAEngine(dag.NewMemory(), sk, pk)
 	if err != nil {
 		t.Fatalf("NewAdinkraEAEngine: %v", err)
@@ -633,7 +633,7 @@ func TestBestAdinkraGenome_MetadataPropagated(t *testing.T) {
 // ─── ExportBestAsJSON ─────────────────────────────────────────────────────────
 
 func TestExportBestAsJSON_ValidSchema(t *testing.T) {
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, err := NewAdinkraEAEngine(dag.NewMemory(), sk, pk)
 	if err != nil {
 		t.Fatalf("NewAdinkraEAEngine: %v", err)
@@ -677,7 +677,7 @@ func TestExportBestAsJSON_ValidSchema(t *testing.T) {
 }
 
 func TestExportBestAsJSON_FitnessInRange(t *testing.T) {
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, _ := NewAdinkraEAEngine(dag.NewMemory(), sk, pk)
 	eng.Evolve() //nolint:errcheck
 

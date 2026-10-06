@@ -88,7 +88,7 @@ func main() {
 	symbol := getEnv("PHANTOM_SYMBOL", "Eban")
 	_ = adinkra.GetSpectralFingerprint(symbol)
 
-	pubKey, privKey, err := adinkra.GenerateDilithiumKey()
+	pubKey, privKey, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		logger.Fatalf("FATAL: PQC key generation failed: %v", err)
 	}
@@ -156,7 +156,7 @@ func main() {
 	mcpGateway := khepramcp.NewDefaultMCPGateway()
 
 	// Manifest Registry — use existing loadManifestRegistry pattern from khepra-mcp
-	mcpRegistry, regErr := loadManifestRegistry(ctx, pubKey, keyID, logger)
+	mcpRegistry, regErr := loadManifestRegistry(ctx, privKey, pubKey, keyID, logger)
 	if regErr != nil {
 		logger.Fatalf("FATAL: manifest registry failed: %v", regErr)
 	}
@@ -394,25 +394,13 @@ func (g *hubConfirmGate) Confirm(ctx context.Context, spec khepramcp.ToolSpec, c
 
 // ── Manifest Registry ──────────────────────────────────────────────────────────
 
-// loadManifestRegistry loads the signed tool manifest from disk or generates a bootstrap.
-// Mirrors cmd/khepra-mcp/main.go loadManifestRegistry.
-func loadManifestRegistry(ctx context.Context, pubKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
+// loadManifestRegistry loads the tool registry: the release manifest at
+// KHEPRA_MANIFEST_PATH if it verifies under the pinned release key, otherwise
+// the built-in tool specs signed with this hub's ML-DSA-87 key.
+func loadManifestRegistry(ctx context.Context, privKey, pubKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
 	manifestPath := getEnv("KHEPRA_MANIFEST_PATH", "manifest.json")
-	if _, err := os.Stat(manifestPath); err == nil {
-		logger.Printf("[MANIFEST] loading from %s", manifestPath)
-		store := &khepramcp.FileManifestStore{Path: manifestPath}
-		verifier := &khepramcp.BootstrapManifestVerifier{}
-		return khepramcp.LoadRegistry(ctx, store, verifier)
-	}
-	logger.Printf("[MANIFEST] no manifest at %s — generating bootstrap", manifestPath)
-	toolSpecs := defaultToolSpecs(pubKey)
-	manifest, err := khepramcp.GenerateSignedManifest(toolSpecs, pubKey, keyID, attestenvelope.AdinkraSigner{})
-	if err != nil {
-		return nil, fmt.Errorf("manifest: generate bootstrap: %w", err)
-	}
-	store := &khepramcp.EmbeddedManifestStore{Manifest: manifest}
-	verifier := &khepramcp.BootstrapManifestVerifier{}
-	return khepramcp.LoadRegistry(ctx, store, verifier)
+	return khepramcp.LoadTrustedRegistry(ctx, manifestPath, defaultToolSpecs(pubKey), privKey, pubKey, keyID,
+		attestenvelope.AdinkraSigner{}, logger.Printf)
 }
 
 func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {

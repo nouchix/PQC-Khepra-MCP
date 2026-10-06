@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -13,11 +14,11 @@ import (
 // =============================================================================
 // MITOCHONDRIAL DEMARC API — BOUNDARY GATEWAY
 // Patent §3.2/3.5: The "cell membrane" between external and internal services.
-// Every environment crossing carries ML-DSA-65 signed DEMARCCredentials.
+// Every environment crossing carries ML-DSA-87 signed DEMARCCredentials.
 // Unrecognised or unsigned crossings are rejected and logged to the DAG.
 // =============================================================================
 
-// DEMARCCredential is an ML-DSA-65 signed boundary-crossing credential.
+// DEMARCCredential is an ML-DSA-87 signed boundary-crossing credential.
 type DEMARCCredential struct {
 	AgentID   string                `json:"agent_id"`
 	Symbol    string                `json:"symbol"`
@@ -25,7 +26,7 @@ type DEMARCCredential struct {
 	Token     *adinkra.ZeroTrustToken `json:"zt_token"`
 	IssuedAt  int64                 `json:"issued_at"`
 	ExpiresAt int64                 `json:"expires_at"`
-	Signature []byte                `json:"signature"` // ML-DSA-65 over canonical fields
+	Signature []byte                `json:"signature"` // ML-DSA-87 over canonical fields
 }
 
 // IsExpired returns true if the credential has expired.
@@ -38,14 +39,43 @@ type DEMARCGateway struct {
 	Engine       *PolymorphicEngine
 	AllowedCIDRs []*net.IPNet // Permitted source IP ranges (nil = allow all)
 	auditLog     *adinkra.DAGAuditChain
+
+	// authSecret is the server-held secret that zero-trust token keys are
+	// derived from. It never leaves the gateway, so only the gateway can
+	// mint or verify its tokens.
+	authSecret []byte
 }
 
 // NewDEMARCGateway wraps a PolymorphicEngine with boundary enforcement.
 func NewDEMARCGateway(engine *PolymorphicEngine) *DEMARCGateway {
-	return &DEMARCGateway{
-		Engine:   engine,
-		auditLog: engine.AuditChain,
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		panic(fmt.Sprintf("DEMARC: cannot generate auth secret: %v", err))
 	}
+	return &DEMARCGateway{
+		Engine:     engine,
+		auditLog:   engine.AuditChain,
+		authSecret: secret,
+	}
+}
+
+// tokenKeys derives the zero-trust token keys for an agent from the gateway's
+// server-held secret.
+func (dg *DEMARCGateway) tokenKeys(agentID, symbol string) (*adinkra.KHEPRASessionKeys, error) {
+	return adinkra.DeriveKHEPRASessionKeys(dg.authSecret, symbol, "Eban", []byte(agentID))
+}
+
+// VerifyToken checks a zero-trust token this gateway issued.
+func (dg *DEMARCGateway) VerifyToken(token *adinkra.ZeroTrustToken) error {
+	if token == nil {
+		return fmt.Errorf("DEMARC: token is nil")
+	}
+	keys, err := dg.tokenKeys(token.AgentID, token.Symbol)
+	if err != nil {
+		return err
+	}
+	defer keys.SecureDestroySessionKeys()
+	return adinkra.VerifyZeroTrustToken(token, keys.KAuth)
 }
 
 // Issue creates a new DEMARCCredential for a crossing agent.
@@ -54,17 +84,23 @@ func (dg *DEMARCGateway) Issue(agentID, symbol string, priv *adinkra.AdinkhepraP
 		symbol = "Nkyinkyim"
 	}
 
-	pub, newPriv, err := adinkra.GenerateAdinkhepraPQCKeyPair(make([]byte, 32), symbol)
-	if err != nil {
-		return nil, fmt.Errorf("DEMARC: key generation failed: %w", err)
+	if priv == nil {
+		return nil, fmt.Errorf("DEMARC: no signing key supplied")
 	}
-	defer newPriv.DestroyPrivateKey()
+	// The credential carries the caller's own public key, and the caller signs
+	// it to prove possession of the matching private key.
+	pub, err := priv.Public()
+	if err != nil {
+		return nil, fmt.Errorf("DEMARC: invalid signing key: %w", err)
+	}
+	pubBytes, err := pub.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("DEMARC: public key encoding failed: %w", err)
+	}
 
-	// Derive a k_auth for the ZT token.
-	seed := make([]byte, 32)
-	pubBytes, _ := pub.MarshalBinary()
-	copy(seed, pubBytes[:32])
-	sessionKeys, err := adinkra.DeriveKHEPRASessionKeys(seed, symbol, "Eban", []byte(agentID))
+	// The token key comes from the gateway's server-held secret, never from
+	// public data such as the agent's public key.
+	sessionKeys, err := dg.tokenKeys(agentID, symbol)
 	if err != nil {
 		return nil, fmt.Errorf("DEMARC: session key derivation failed: %w", err)
 	}
@@ -124,6 +160,17 @@ func (dg *DEMARCGateway) Authenticate(cred *DEMARCCredential) error {
 	if cred.IsExpired() {
 		adinkra.AuditSensitiveOperation(fmt.Sprintf("DEMARC:ExpiredCredential:%s", cred.AgentID), false)
 		return fmt.Errorf("DEMARC: credential expired for agent %s", cred.AgentID)
+	}
+
+	// The zero-trust token is what this gateway vouches for: it is keyed by
+	// the gateway's server-held secret and bound to the agent and symbol.
+	if cred.Token == nil || cred.Token.AgentID != cred.AgentID || cred.Token.Symbol != cred.Symbol {
+		adinkra.AuditSensitiveOperation(fmt.Sprintf("DEMARC:AuthFailed:%s", cred.AgentID), false)
+		return fmt.Errorf("DEMARC: credential token does not match agent %s", cred.AgentID)
+	}
+	if err := dg.VerifyToken(cred.Token); err != nil {
+		adinkra.AuditSensitiveOperation(fmt.Sprintf("DEMARC:AuthFailed:%s", cred.AgentID), false)
+		return fmt.Errorf("DEMARC: credential token invalid: %w", err)
 	}
 
 	// Reconstruct the signed payload and verify.

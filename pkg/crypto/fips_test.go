@@ -81,7 +81,7 @@ func TestCheckFIPS_DevMode(t *testing.T) {
 	originalDev := os.Getenv("ADINKHEPRA_DEV")
 	defer os.Setenv("ADINKHEPRA_DEV", originalDev)
 
-	// Enable dev mode (should not panic even if BoringCrypto unavailable)
+	// Enable dev mode (should not panic even if FIPS mode is off)
 	os.Setenv("ADINKHEPRA_DEV", "1")
 
 	status := CheckFIPS()
@@ -124,7 +124,7 @@ func TestValidateTLSConfig(t *testing.T) {
 		t.Errorf("ValidateTLSConfig() in dev mode failed: %v", err)
 	}
 
-	// Test with FIPS warning mode (should pass even without BoringCrypto)
+	// Test with FIPS warning mode (should pass even with FIPS mode off)
 	os.Unsetenv("ADINKHEPRA_DEV")
 	os.Setenv("ADINKHEPRA_FIPS_MODE", "warn")
 	if err := ValidateTLSConfig(); err != nil {
@@ -133,15 +133,15 @@ func TestValidateTLSConfig(t *testing.T) {
 }
 
 // TestFIPSBuild_Integration verifies that a FIPS build includes required symbols
-// This test only runs in CI with -tags=fips
+// Run in CI with GODEBUG=fips140=on as well as without
 func TestFIPSBuild_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
 	// This test verifies FIPS build succeeds without panicking
-	// In a proper FIPS build with BoringCrypto, boring.Enabled() returns true
-	// In a standard build, it returns false
+	// With GODEBUG=fips140=on, crypto/fips140.Enabled() returns true
+	// In a standard run, it returns false
 
 	// Save and restore env
 	originalDev := os.Getenv("ADINKHEPRA_DEV")
