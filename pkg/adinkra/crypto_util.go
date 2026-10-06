@@ -4,20 +4,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/binary"
+	"fmt"
 	"io"
 
-	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/hkdf"
+	"github.com/nouchix/khepra-pqc/kdf"
 )
-
-// DeriveProprietaryKey uses Argon2id to harden the passphrase into a 64-byte seed.
-// This seed allows us to deterministically regenerate the "Ghost Identity".
-func DeriveProprietaryKey(passphrase string, salt []byte) []byte {
-	// Params: time=1, memory=64MB, threads=4, keyLen=64
-	return argon2.IDKey([]byte(passphrase), salt, 1, 64*1024, 4, 64)
-}
 
 // GenerateSalt creates a random salt for KDF.
 func GenerateSalt(size int) ([]byte, error) {
@@ -28,130 +19,42 @@ func GenerateSalt(size int) ([]byte, error) {
 	return salt, nil
 }
 
-// SeededReader is a deterministic io.Reader based on HKDF-SHA3-256 via a seed.
-// This allows libraries that expect an io.Reader (like ecdsa.GenerateKey) to be deterministic.
-type SeededReader struct {
-	stream io.Reader
-}
-
-func NewSeededReader(seed []byte) *SeededReader {
-	// Expand the seed into an infinite stream using HKDF
-	hkdfStream := hkdf.New(sha256.New, seed, nil, []byte("KHEPRA-DETERMINISTIC-RNG"))
-	return &SeededReader{stream: hkdfStream}
-}
-
-func (r *SeededReader) Read(p []byte) (n int, err error) {
-	return r.stream.Read(p)
-}
-
-// ChaosEngine is an open-source deterministic PRNG implementing io.Reader via HKDF-SHA256
-type ChaosEngine struct {
-	stream io.Reader
-}
-
-func NewChaosEngine(seed uint64) *ChaosEngine {
-	var seedBytes [8]byte
-	binary.BigEndian.PutUint64(seedBytes[:], seed)
-	return &ChaosEngine{
-		stream: hkdf.New(sha256.New, seedBytes[:], nil, []byte("KHEPRA-CHAOS-DETERMINISTIC-RNG")),
-	}
-}
-
-func (c *ChaosEngine) Read(p []byte) (n int, err error) {
-	return c.stream.Read(p)
-}
-
-// EncryptAESGCM performs standard AES-256-GCM encryption.
+// EncryptAESGCM encrypts plaintext with AES-256-GCM. The 96-bit nonce is
+// generated inside the Go Cryptographic Module (SP 800-38D §8.2.2) and
+// prepended to the output: [nonce | ciphertext | tag].
 func EncryptAESGCM(key, plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+	aead, err := newRandomNonceGCM(key)
 	if err != nil {
 		return nil, err
 	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := make([]byte, aesgcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-
-	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
-
-	// Return [Nonce | Ciphertext]
-	result := make([]byte, len(nonce)+len(ciphertext))
-	copy(result, nonce)
-	copy(result[len(nonce):], ciphertext)
-
-	return result, nil
+	return aead.Seal(nil, nil, plaintext, nil), nil
 }
 
-// DecryptAESGCM performs standard AES-256-GCM decryption.
+// DecryptAESGCM decrypts data produced by EncryptAESGCM.
 func DecryptAESGCM(key, data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+	aead, err := newRandomNonceGCM(key)
 	if err != nil {
 		return nil, err
 	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonceSize := aesgcm.NonceSize()
-	if len(data) < nonceSize {
+	if len(data) < aead.Overhead() {
 		return nil, io.ErrUnexpectedEOF
 	}
-
-	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	return aesgcm.Open(nil, nonce, ciphertext, nil)
+	return aead.Open(nil, nil, data, nil)
 }
 
-// EncryptAES256GCM encrypts data with AES-256-GCM using provided nonce
-// Used by DAG persistence layer for FIPS-compliant encryption at rest
-func EncryptAES256GCM(plaintext, key, nonce []byte) ([]byte, error) {
+func newRandomNonceGCM(key []byte) (cipher.AEAD, error) {
+	if len(key) != 32 {
+		return nil, fmt.Errorf("AES-256-GCM key must be 32 bytes, got %d", len(key))
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
-	return ciphertext, nil
+	return cipher.NewGCMWithRandomNonce(block)
 }
 
-// DecryptAES256GCM decrypts data with AES-256-GCM using provided nonce
-// Used by DAG persistence layer for FIPS-compliant decryption from disk
-func DecryptAES256GCM(ciphertext, key, nonce []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return plaintext, nil
-}
-
-// DeriveKey derives a cryptographic key from a passphrase using Argon2id
-// Used for DAG encryption key derivation (FIPS/NIST compliant)
+// DeriveKey derives a key from a passphrase with PBKDF2-HMAC-SHA-384
+// (SP 800-132). Used for DAG encryption key derivation.
 func DeriveKey(passphrase, salt []byte, keyLen uint32) ([]byte, error) {
-	// Argon2id parameters (OWASP recommended for 2024)
-	// time=3, memory=64MB, threads=4
-	key := argon2.IDKey(passphrase, salt, 3, 64*1024, 4, keyLen)
-	return key, nil
+	return kdf.PassphraseKey(string(passphrase), salt, int(keyLen))
 }

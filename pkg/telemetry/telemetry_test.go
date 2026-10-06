@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
+
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // ─── GenerateAnonymousID ──────────────────────────────────────────────────────
@@ -386,10 +388,29 @@ func TestSignLegacy_InvalidHexErrors(t *testing.T) {
 }
 
 func TestSignLegacy_WrongKeySizeErrors(t *testing.T) {
-	// 32 bytes is not the right size for ML-DSA-65
-	_, err := signLegacy([]byte("payload"), strings.Repeat("aa", 32))
-	if err == nil {
-		t.Error("expected error for wrong key size, got nil")
+	// ML-DSA-87 keys are 32-byte seeds; an old 4032-byte ML-DSA-65 key is rejected.
+	for _, n := range []int{31, 4032} {
+		if _, err := signLegacy([]byte("payload"), strings.Repeat("aa", n)); err == nil {
+			t.Errorf("expected error for %d-byte key, got nil", n)
+		}
+	}
+}
+
+func TestSignLegacy_VerifiesUnderTelemetryContext(t *testing.T) {
+	sk, err := sign.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"beacon_id":"b-1"}`)
+	sig, err := signLegacy(payload, hex.EncodeToString(sk.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sk.PublicKey().Verify(sign.ContextTelemetry, payload, sig); err != nil {
+		t.Fatalf("beacon signature rejected: %v", err)
+	}
+	if err := sk.PublicKey().Verify(sign.ContextLicense, payload, sig); err == nil {
+		t.Error("beacon signature verified under the license context")
 	}
 }
 

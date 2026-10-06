@@ -244,7 +244,7 @@ func callUpstreamMCP(
 	// ML-DSA-65 sign response
 	respBytes, _ := json.Marshal(parsed)
 	sigHex, pubHex := "", ""
-	if pub, priv, keyErr := adinkra.GenerateDilithiumKey(); keyErr == nil {
+	if pub, priv, keyErr := adinkra.GenerateSigningKey(); keyErr == nil {
 		if sig, sigErr := adinkra.Sign(priv, respBytes); sigErr == nil {
 			sigHex = fmt.Sprintf("%x", sig)
 			pubHex = fmt.Sprintf("%x", pub)

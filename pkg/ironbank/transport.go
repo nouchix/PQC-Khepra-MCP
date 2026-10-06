@@ -63,7 +63,7 @@ type PQCTransport struct {
 // key material using SHA-256 KDF, ensuring the same Dilithium identity that
 // signs outbound requests can verify inbound response integrity.
 func NewPQCTransport() (*PQCTransport, error) {
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, fmt.Errorf("ironbank: PQC keygen failed: %w", err)
 	}

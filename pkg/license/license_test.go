@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // TestGenerateMachineID ensures the ID is consistent and follows format
@@ -57,13 +57,12 @@ func TestManager_Initialize(t *testing.T) {
 	}
 
 	// Generate and set valid private key for signing
-	_, priv, err := mldsa65.GenerateKey(nil)
+	priv, err := sign.GenerateKey()
 	if err != nil {
 		t.Fatalf("Failed to generate key: %v", err)
 	}
-	// We need the hex string of the PRIVATE key
-	privBytes, _ := priv.MarshalBinary()
-	manager.SetPrivateKey(hex.EncodeToString(privBytes))
+	// We need the hex string of the PRIVATE key (ML-DSA-87 seed)
+	manager.SetPrivateKey(hex.EncodeToString(priv.Bytes()))
 
 	// Note: In a real test we'd verify the signature on the server side causing issues if pub key isn't known
 	// But our mock server ignores signature validation, just returns valid json.

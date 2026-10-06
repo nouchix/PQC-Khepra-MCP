@@ -83,9 +83,12 @@ func encryptAndWriteShard(i int, shard []byte, total, threshold int, fp, outDir 
 	if err != nil {
 		return fmt.Errorf("salt generation for shard %d: %w", i+1, err)
 	}
-	shardKey := DeriveKey([]byte(passphrase), salt, DefaultKDFParams)
+	shardKey, err := DeriveKey([]byte(passphrase), salt, DefaultKDFParams)
+	if err != nil {
+		return fmt.Errorf("derive key for shard %d: %w", i+1, err)
+	}
 
-	encryptedShard, err := aesGCMEncrypt(shardKey[:32], shard)
+	encryptedShard, err := aesGCMEncrypt(shardKey, shard)
 	if err != nil {
 		return fmt.Errorf("encrypt shard %d: %w", i+1, err)
 	}
@@ -96,7 +99,7 @@ func encryptAndWriteShard(i int, shard []byte, total, threshold int, fp, outDir 
 		Threshold:       threshold,
 		EncryptedShard:  encryptedShard,
 		Salt:            salt,
-		KDFAlgorithm:    "argon2id",
+		KDFAlgorithm:    KDFVersion,
 		CreatedAt:       time.Now().UTC(),
 		RootFingerprint: fp,
 	}
@@ -138,10 +141,17 @@ func RecoverKey(shardPaths []string, promptFn func(prompt string) (string, error
 			return nil, fmt.Errorf("passphrase prompt: %w", err)
 		}
 
-		// Re-derive the shard encryption key
-		shardKey := DeriveKey([]byte(passphrase), ks.Salt, DefaultKDFParams)
+		if ks.KDFAlgorithm != KDFVersion {
+			return nil, fmt.Errorf("shard %d uses KDF %q; only %q is supported", ks.Index, ks.KDFAlgorithm, KDFVersion)
+		}
 
-		rawShard, err := aesGCMDecrypt(shardKey[:32], ks.EncryptedShard)
+		// Re-derive the shard encryption key
+		shardKey, err := DeriveKey([]byte(passphrase), ks.Salt, DefaultKDFParams)
+		if err != nil {
+			return nil, fmt.Errorf("derive key for shard %d: %w", ks.Index, err)
+		}
+
+		rawShard, err := aesGCMDecrypt(shardKey, ks.EncryptedShard)
 		if err != nil {
 			return nil, fmt.Errorf("decrypt shard %d: incorrect passphrase or corrupted shard", ks.Index)
 		}

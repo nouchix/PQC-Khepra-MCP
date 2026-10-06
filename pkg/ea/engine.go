@@ -102,7 +102,7 @@ func NewEAEngine(cfg EngineConfig) (*EAEngine, error) {
 		cfg.DAGStore = dag.NewMemory()
 	}
 
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, fmt.Errorf("ea: failed to generate session signing key: %w", err)
 	}

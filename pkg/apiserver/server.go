@@ -113,7 +113,7 @@ func NewServer(config *Config, dagStore DAGStore, licMgr LicenseManager) *Server
 	}
 
 	// Generate persistent ML-DSA-65 signing identity for this server instance
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		log.Printf("[SERVER] Warning: PQC key generation failed: %v", err)
 	} else {

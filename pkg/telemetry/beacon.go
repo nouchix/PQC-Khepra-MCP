@@ -1,10 +1,12 @@
-// Package telemetry provides ML-DSA-65-signed anonymous usage telemetry for
+// Package telemetry provides ML-DSA-87-signed anonymous usage telemetry for
 // AdinKhepra v2.0.
 //
 // Two transports are supported:
 //
 //  1. Legacy endpoint (SendBeacon): original Khepra telemetry server;
 //     signature goes in the X-Khepra-Signature HTTP header.
+//
+// Both sign with ML-DSA-87 (FIPS 204) under the context khepra/v3/telemetry.
 //
 //  2. Sovereign endpoint (SendSovereignBeacon): the self-hosted VPS server
 //     defined in cmd/telemetry-server; signature + ephemeral public key are
@@ -26,10 +28,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/license"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/types"
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -158,7 +159,7 @@ func primaryMACAddress() string {
 // SendSovereignBeacon signs and transmits a beacon to the sovereign VPS
 // telemetry server (cmd/telemetry-server).
 //
-// An ephemeral ML-DSA-65 key pair is generated per call so that beacons
+// An ephemeral ML-DSA-87 key pair is generated per call so that beacons
 // cannot be linked across sessions via the signing key.  The signature
 // covers only the non-signature fields, matching the server's verification.
 //
@@ -172,8 +173,8 @@ func SendSovereignBeacon(payload *SovereignBeaconPayload) error {
 		return fmt.Errorf("invalid anonymous_id: %w", err)
 	}
 
-	// Ephemeral ML-DSA-65 key pair — one per session, never reused.
-	epkBytes, eskBytes, err := adinkra.GenerateDilithiumKey()
+	// Ephemeral ML-DSA-87 key pair — one per session, never reused.
+	esk, err := sign.GenerateKey()
 	if err != nil {
 		return fmt.Errorf("sovereign beacon: generate ephemeral key: %w", err)
 	}
@@ -186,13 +187,13 @@ func SendSovereignBeacon(payload *SovereignBeaconPayload) error {
 		return fmt.Errorf("sovereign beacon: canonical payload: %w", err)
 	}
 
-	sig, err := adinkra.Sign(eskBytes, canonical)
+	sig, err := esk.Sign(sign.ContextTelemetry, canonical)
 	if err != nil {
 		return fmt.Errorf("sovereign beacon: sign: %w", err)
 	}
 
 	payload.Signature = sig
-	payload.SignerPublicKey = epkBytes
+	payload.SignerPublicKey = esk.PublicKey().Bytes()
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -263,7 +264,7 @@ func checkTelemetryEnabled() error {
 // ─── Legacy Beacon Transport ──────────────────────────────────────────────────
 
 // SendBeacon transmits a legacy beacon to the original Khepra telemetry server.
-// The ML-DSA-65 signature is sent in the X-Khepra-Signature HTTP header.
+// The ML-DSA-87 signature is sent in the X-Khepra-Signature HTTP header.
 // Use SendSovereignBeacon for the v2.0 sovereign server.
 func SendBeacon(beacon *Beacon, privateKeyHex string) error {
 	if err := checkTelemetryEnabled(); err != nil {
@@ -318,7 +319,8 @@ func SendBeaconWithLicense(beacon *Beacon, privateKeyHex string, licMgr *license
 	return SendBeacon(beacon, privateKeyHex)
 }
 
-// signLegacy signs payload with an ML-DSA-65 private key supplied as hex.
+// signLegacy signs payload with an ML-DSA-87 private key (32-byte seed)
+// supplied as hex.
 func signLegacy(payload []byte, privateKeyHex string) ([]byte, error) {
 	if privateKeyHex == "" {
 		return nil, fmt.Errorf("no private key provided for telemetry signing")
@@ -327,17 +329,11 @@ func signLegacy(payload []byte, privateKeyHex string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key hex: %w", err)
 	}
-	if len(keyBytes) != mldsa65.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key size: want %d, got %d",
-			mldsa65.PrivateKeySize, len(keyBytes))
+	sk, err := sign.NewPrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %w", err)
 	}
-	var keyArr [mldsa65.PrivateKeySize]byte
-	copy(keyArr[:], keyBytes)
-	var sk mldsa65.PrivateKey
-	sk.Unpack(&keyArr)
-	sig := make([]byte, mldsa65.SignatureSize)
-	mldsa65.SignTo(&sk, payload, nil, false, sig)
-	return sig, nil
+	return sk.Sign(sign.ContextTelemetry, payload)
 }
 
 func hashID(id string) string {

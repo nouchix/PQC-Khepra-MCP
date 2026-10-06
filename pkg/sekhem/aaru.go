@@ -74,7 +74,7 @@ func NewAaruRealm(kasa *agi.Engine, dagStore dag.Store) (*AaruRealm, error) {
 
 	// Generate ML-DSA-65 (Dilithium3) signing key pair for the Aaru realm chronicle
 	// This provides CNSA 2.0-aligned post-quantum signature integrity
-	_, realmPrivKey, err := adinkra.GenerateDilithiumKey()
+	_, realmPrivKey, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to generate Aaru realm signing key: %w", err)

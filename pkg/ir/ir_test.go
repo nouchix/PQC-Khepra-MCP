@@ -1,35 +1,23 @@
 package ir
 
 import (
-	"crypto/rand"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
-// generateTestKeys generates real ML-DSA-65 (FIPS 204) keys for testing
+// generateTestKeys generates real ML-DSA-87 (FIPS 204) keys for testing
 // TRL 10: No mocks, no stubs - real PQC cryptography
 func generateTestKeys(t *testing.T) (pubKey []byte, privKey []byte) {
 	t.Helper()
 
-	pk, sk, err := mldsa65.GenerateKey(rand.Reader)
+	pubKey, privKey, err := adinkra.GenerateSigningKey()
 	if err != nil {
-		t.Fatalf("Failed to generate ML-DSA-65 key pair: %v", err)
+		t.Fatalf("Failed to generate ML-DSA-87 key pair: %v", err)
 	}
-
-	pubKey, err = pk.MarshalBinary()
-	if err != nil {
-		t.Fatalf("Failed to marshal public key: %v", err)
-	}
-
-	privKey, err = sk.MarshalBinary()
-	if err != nil {
-		t.Fatalf("Failed to marshal private key: %v", err)
-	}
-
 	return pubKey, privKey
 }
 

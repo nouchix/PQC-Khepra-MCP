@@ -38,7 +38,7 @@ func HandlePQCSign(ctx context.Context, call mcp.MCPToolCall) (any, []string, er
 		symbol = "Gye_Nyame"
 	}
 
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("pqc_sign keygen: %w", err)
 	}
@@ -106,11 +106,11 @@ func HandlePQCVerify(ctx context.Context, call mcp.MCPToolCall) (any, []string, 
 // HandlePQCKeygen generates a fresh ML-DSA-65 + CRYSTALS-Kyber-1024 key pair.
 // Returns base64-encoded public keys (private keys are NOT returned — store securely).
 func HandlePQCKeygen(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	dilPub, _, err := adinkra.GenerateDilithiumKey()
+	dilPub, _, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("pqc_keygen dilithium: %w", err)
 	}
-	kyberPub, _, err := adinkra.GenerateKyberKey()
+	kyberPub, _, err := adinkra.GenerateKEMKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("pqc_keygen kyber: %w", err)
 	}

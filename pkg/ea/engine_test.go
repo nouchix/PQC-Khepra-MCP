@@ -39,7 +39,7 @@ func errorFitnessFunc() FitnessFunc {
 // and real ML-DSA-65 keys. Any test failure here is a real production blocker.
 func newTestEngine(t *testing.T, popSize int, ff FitnessFunc) *EAEngine {
 	t.Helper()
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("GenerateDilithiumKey: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestNewEAEngine_RequiresFitnessFunc(t *testing.T) {
 }
 
 func TestNewEAEngine_DefaultsApplied(t *testing.T) {
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("key gen: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestNewEAEngine_PopulationSeededAndEvaluated(t *testing.T) {
 
 func TestNewEAEngine_GenesisRecordedToDAG(t *testing.T) {
 	store := dag.NewMemory()
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("key gen: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestEvolve_BestFitnessNonDecreasing(t *testing.T) {
 func TestEvolve_FitnessErrorPropagates(t *testing.T) {
 	// NewEAEngine calls evaluateAll during construction; errorFitnessFunc causes
 	// that to return an error, which must be propagated to the caller.
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	_, err := NewEAEngine(EngineConfig{
 		PopulationSize: 5,
 		FitnessFunc:    errorFitnessFunc(),
@@ -257,7 +257,7 @@ func TestEvolve_FitnessErrorPropagates(t *testing.T) {
 
 func TestEvolve_DAGRecordsEachGeneration(t *testing.T) {
 	store := dag.NewMemory()
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, err := NewEAEngine(EngineConfig{
 		PopulationSize: 5,
 		FitnessFunc:    sumFitnessFunc(),
@@ -650,7 +650,7 @@ func TestEvolve_ConcurrentStatus(t *testing.T) {
 
 func TestNewEAEngine_CustomAgentID(t *testing.T) {
 	const want = "sentinel-agent"
-	pk, sk, _ := adinkra.GenerateDilithiumKey()
+	pk, sk, _ := adinkra.GenerateSigningKey()
 	eng, err := NewEAEngine(EngineConfig{
 		PopulationSize: 5,
 		FitnessFunc:    sumFitnessFunc(),

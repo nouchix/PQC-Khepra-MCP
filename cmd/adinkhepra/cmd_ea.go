@@ -73,7 +73,7 @@ func eaStartCmd(args []string) {
 
 	fmt.Println("[EA] Initialising AdinkraEAEngine...")
 
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		fatal("EA keygen", err)
 	}
@@ -142,7 +142,7 @@ func eaEvolveCmd(args []string) {
 		fmt.Sscanf(args[1], "%d", &n)
 	}
 
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		fatal("EA keygen", err)
 	}

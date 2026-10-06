@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
@@ -38,8 +39,10 @@ func (auth *AuthLayer) ValidateKhepraAttestation(r *http.Request, identityID str
 		return fmt.Errorf("invalid attestation encoding: %w", err)
 	}
 
-	timestamp := r.Header.Get("X-Khepra-Timestamp")
-	message := fmt.Sprintf("%s|%s|%s", r.Method, r.URL.Path, timestamp)
+	message, err := requestSignatureMessage(r, time.Now())
+	if err != nil {
+		return fmt.Errorf("ASAF attestation: %w", err)
+	}
 
 	auth.publicKeysMu.RLock()
 	pubKeyBytes, exists := auth.publicKeys[identityID]

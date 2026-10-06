@@ -40,12 +40,12 @@ type ComplianceAttestRecord struct {
 
 	// PQC proof
 	PQCMetadata struct {
-		Algorithm string `json:"algorithm"` // "Dilithium3"
+		Algorithm string `json:"algorithm"` // "ML-DSA-87"
 		PublicKey string `json:"public_key,omitempty"`
 	} `json:"pqc_metadata"`
 
 	Hash      string `json:"hash"`      // content hash of this record
-	Signature string `json:"signature"` // hex Dilithium3 signature over Hash
+	Signature string `json:"signature"` // hex ML-DSA-87 signature over Hash
 }
 
 const (
@@ -63,7 +63,7 @@ func complianceAttestCmd(args []string) {
 	controlID  := fs.String("control", "", "NIST 800-171 control ID being updated, e.g. 03.03.08 (required)")
 	symbol     := fs.String("symbol", "", "Status transition, e.g. 'planned→partial' (required)")
 	note       := fs.String("note", "", "Free-text note for the audit record")
-	keyPath    := fs.String("key", "", "Path to Dilithium3 private key (default: adinkhepra_master_dilithium)")
+	keyPath    := fs.String("key", "", "Path to ML-DSA-87 private key (default: adinkhepra_master_mldsa87)")
 	chainFile  := fs.String("chain", "", "Path to dag-chain.jsonl (default: ../asaf-compliance/attestations/dag-chain.jsonl)")
 	actor      := fs.String("actor", "souhimbou@nouchix.com", "Actor ID (signer identity)")
 	org        := fs.String("org", "secred-knowledge-inc", "Organization ID")
@@ -78,11 +78,11 @@ func complianceAttestCmd(args []string) {
 
 	// ── Resolve defaults ─────────────────────────────────────────────────────
 	if *keyPath == "" {
-		// Look for master Dilithium key in standard locations
+		// Look for the master ML-DSA-87 key in standard locations
 		candidates := []string{
-			"adinkhepra_master_dilithium",
-			filepath.Join(getExeDir(), "adinkhepra_master_dilithium"),
-			resolvePath("keys/adinkhepra_master_dilithium"),
+			"adinkhepra_master_mldsa87",
+			filepath.Join(getExeDir(), "adinkhepra_master_mldsa87"),
+			resolvePath("keys/adinkhepra_master_mldsa87"),
 		}
 		for _, c := range candidates {
 			if _, err := os.Stat(c); err == nil {
@@ -91,8 +91,8 @@ func complianceAttestCmd(args []string) {
 			}
 		}
 		if *keyPath == "" {
-			fmt.Fprintln(os.Stderr, "Error: Dilithium3 private key not found. Use --key to specify path.")
-			fmt.Fprintln(os.Stderr, "  Checked: adinkhepra_master_dilithium, keys/adinkhepra_master_dilithium")
+			fmt.Fprintln(os.Stderr, "Error: ML-DSA-87 private key not found. Use --key to specify path.")
+			fmt.Fprintln(os.Stderr, "  Checked: adinkhepra_master_mldsa87, keys/adinkhepra_master_mldsa87")
 			os.Exit(1)
 		}
 	}
@@ -112,14 +112,14 @@ func complianceAttestCmd(args []string) {
 	docHashHex := hex.EncodeToString(docHash[:])
 
 	// ── Read private key ─────────────────────────────────────────────────────
-	privKeyData, err := os.ReadFile(*keyPath)
+	privKeyData, err := adinkra.ReadKeyFile(*keyPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading private key: %v\n", err)
 		os.Exit(1)
 	}
 	privKey, err := hex.DecodeString(strings.TrimSpace(string(privKeyData)))
 	if err != nil {
-		// Not hex — use raw bytes (PEM or binary key)
+		// Not hex: PEM-decoded or raw binary key
 		privKey = privKeyData
 	}
 
@@ -154,7 +154,7 @@ func complianceAttestCmd(args []string) {
 		DocumentHash:     "sha256:" + docHashHex,
 		Note:             *note,
 	}
-	rec.PQCMetadata.Algorithm = "Dilithium3"
+	rec.PQCMetadata.Algorithm = "ML-DSA-87"
 
 	if parentHash != "" {
 		rec.Parents = []string{parentHash}
@@ -176,7 +176,7 @@ func complianceAttestCmd(args []string) {
 	rec.Hash = contentHash
 	rec.ID = contentHash
 
-	// ── Sign with Dilithium3 ─────────────────────────────────────────────────
+	// ── Sign with ML-DSA-87 ──────────────────────────────────────────────────
 	sigBytes, err := adinkra.Sign(privKey, []byte(rec.Hash))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Signing error: %v\n", err)
@@ -235,7 +235,7 @@ func complianceAttestCmd(args []string) {
 	fmt.Printf("  Doc SHA256 : %s\n", rec.DocumentHash)
 	fmt.Printf("  Node Hash  : %s\n", rec.Hash)
 	fmt.Printf("  Parent     : %s\n", parentHash)
-	fmt.Printf("  Algorithm  : Dilithium3 (NIST FIPS 204 / ML-DSA)\n")
+	fmt.Printf("  Algorithm  : ML-DSA-87 (NIST FIPS 204)\n")
 	fmt.Printf("  Sig (first 32 chars): %s...\n", rec.Signature[:32])
 	fmt.Printf("  Chain file : %s\n", *chainFile)
 	fmt.Printf("  Timestamp  : %s\n", rec.Timestamp)
@@ -246,7 +246,7 @@ func complianceAttestCmd(args []string) {
 	fmt.Println("  Verify with:")
 	fmt.Printf("    python asaf-compliance/attestations/verify.py \\\n")
 	fmt.Printf("      %s \\\n", *chainFile)
-	fmt.Printf("      adinkhepra_master_dilithium.pub\n")
+	fmt.Printf("      adinkhepra_master_mldsa87.pub\n")
 	fmt.Println()
 }
 
@@ -275,7 +275,7 @@ Usage:
     --control  <03.xx.xx> \
     --symbol   "<planned→partial>" \
     [--note    "<free text>"] \
-    [--key     <dilithium3_privkey>] \
+    [--key     <mldsa87_privkey>] \
     [--chain   <path/to/dag-chain.jsonl>] \
     [--actor   <email>] \
     [--org     <org-id>]
@@ -297,7 +297,7 @@ Examples:
 
 The attestation node is:
   - Hashed  : SHA-256 of canonical fields (action|symbol|timestamp|controlID|transition|docHash|parent)
-  - Signed  : Dilithium3 (NIST FIPS 204 / ML-DSA) using adinkhepra_master_dilithium
+  - Signed  : ML-DSA-87 (NIST FIPS 204) using adinkhepra_master_mldsa87
   - Chained : Each node references the hash of the previous node (tamper-evident)
   - Stored  : Appended to dag-chain.jsonl (one JSON object per line)
   - Verified: python asaf-compliance/attestations/verify.py <chain> <pubkey>`)

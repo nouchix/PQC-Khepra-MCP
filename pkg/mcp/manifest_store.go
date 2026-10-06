@@ -1,7 +1,7 @@
 // Package mcp — manifest store and verifier implementations.
 //
 // FileManifestStore loads the signed manifest from a JSON file.
-// AdinkraManifestVerifier verifies the manifest's ML-DSA-65 signature.
+// AdinkraManifestVerifier verifies the manifest's ML-DSA-87 signature.
 
 package mcp
 
@@ -56,7 +56,7 @@ func (s *EmbeddedManifestStore) LoadSignedManifest(_ context.Context) (*SignedTo
 
 // ─── PQC Manifest Verifier ─────────────────────────────────────────────────────
 
-// AdinkraManifestVerifier uses ML-DSA-65 (Dilithium-3) to verify manifest signatures.
+// AdinkraManifestVerifier verifies manifest signatures (ML-DSA-87) with Signer.
 type AdinkraManifestVerifier struct {
 	Signer kernelports.Signer
 	// PublicKey is the PQC verification key for manifest signing.
@@ -65,6 +65,9 @@ type AdinkraManifestVerifier struct {
 
 // Verify validates the manifest's PQC signature.
 func (v *AdinkraManifestVerifier) Verify(manifest *SignedToolManifest) error {
+	if v.Signer == nil || len(v.PublicKey) == 0 {
+		return fmt.Errorf("manifest verifier: no signer or public key configured")
+	}
 	if manifest.Signature == "" {
 		return fmt.Errorf("manifest verifier: missing signature")
 	}
@@ -91,16 +94,42 @@ func (v *AdinkraManifestVerifier) Verify(manifest *SignedToolManifest) error {
 	return nil
 }
 
-// ─── Bootstrap Verifier (Development) ──────────────────────────────────────────
+// ─── Trusted Registry Loading ──────────────────────────────────────────────────
 
-// BootstrapManifestVerifier always passes verification.
-// ONLY for initial bootstrap before PQC keys are provisioned.
-// Must be replaced with AdinkraManifestVerifier in production.
-type BootstrapManifestVerifier struct{}
+// ReleaseManifestPublicKey is the hex ML-DSA-87 public key that signs release
+// manifests (manifest.json). It is empty until the release signing key exists;
+// while it is empty, manifest files are not trusted.
+var ReleaseManifestPublicKey = ""
 
-// Verify always returns nil (development-only bypass).
-func (v *BootstrapManifestVerifier) Verify(_ *SignedToolManifest) error {
-	return nil
+// LoadTrustedRegistry returns the tool registry for a server process.
+//
+// A manifest file at path is used only if it verifies under
+// ReleaseManifestPublicKey. Otherwise the bootstrap tool specs are signed with
+// the process key (privKey) and verified against its public half (pubKey), so
+// every registry that loads has passed a real signature check.
+func LoadTrustedRegistry(ctx context.Context, path string, bootstrap []ToolSpec, privKey, pubKey []byte, keyID string, signer kernelports.Signer, logf func(format string, args ...any)) (*ManifestRegistry, error) {
+	if signer == nil {
+		return nil, fmt.Errorf("manifest: no signer configured")
+	}
+	if path != "" {
+		if _, err := os.Stat(path); err == nil {
+			if ReleaseManifestPublicKey == "" {
+				logf("[MANIFEST] not loading %s: this build has no pinned release manifest key; using built-in tool specs", path)
+			} else {
+				pub, err := hex.DecodeString(ReleaseManifestPublicKey)
+				if err != nil {
+					return nil, fmt.Errorf("manifest: pinned release key: %w", err)
+				}
+				logf("[MANIFEST] loading %s", path)
+				return LoadRegistry(ctx, &FileManifestStore{Path: path}, &AdinkraManifestVerifier{Signer: signer, PublicKey: pub})
+			}
+		}
+	}
+	manifest, err := GenerateSignedManifest(bootstrap, privKey, keyID, signer)
+	if err != nil {
+		return nil, fmt.Errorf("manifest: sign built-in specs: %w", err)
+	}
+	return LoadRegistry(ctx, &EmbeddedManifestStore{Manifest: manifest}, &AdinkraManifestVerifier{Signer: signer, PublicKey: pubKey})
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────

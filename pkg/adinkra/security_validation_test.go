@@ -34,7 +34,7 @@ func TestValidateEnvelopeIntegrity(t *testing.T) {
 	envelope := &SecureEnvelope{
 		Version:         EnvelopeVersion,
 		Timestamp:       time.Now().Unix(),
-		SignatureKhepra: make([]byte, AdinkhepraPQCSignatureSize),
+		Signature: make([]byte, SignatureSize),
 	}
 
 	// 1. Test valid envelope
@@ -51,9 +51,9 @@ func TestValidateEnvelopeIntegrity(t *testing.T) {
 
 	// 3. Test wrong signature size
 	badEnv = *envelope
-	badEnv.SignatureKhepra = []byte{1, 2, 3}
+	badEnv.Signature = []byte{1, 2, 3}
 	if err := ValidateEnvelopeIntegrity(&badEnv); err == nil {
-		t.Error("Validation should fail for wrong Khepra signature size")
+		t.Error("Validation should fail for wrong signature size")
 	}
 }
 

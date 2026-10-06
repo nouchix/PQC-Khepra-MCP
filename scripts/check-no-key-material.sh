@@ -16,7 +16,7 @@ else
 fi
 
 flagged=$(printf '%s\n' "$files" \
-  | grep -E '(_kyber|_dilithium|_ed25519|_ecdsa)$|\.(sealed|khepra|dilithium|dilithium\.bak)$|(^|/)master_seed[^/]*$|(^|/)keys/root-ceremony/|(^|/)PASSPHRASES[^/]*\.txt$|(^|/)\.env(_ascii)?$|(^|/)\.env\.[^/]+$|(^|/)id_(rsa|ecdsa|ed25519|dilithium)$' \
+  | grep -E '(_kyber|_dilithium|_mlkem1024|_mldsa87|_ed25519|_ecdsa)$|\.(sealed|khepra|dilithium|dilithium\.bak)$|(^|/)master_seed[^/]*$|(^|/)keys/root-ceremony/|(^|/)PASSPHRASES[^/]*\.txt$|(^|/)\.env(_ascii)?$|(^|/)\.env\.[^/]+$|(^|/)id_(rsa|ecdsa|ed25519|dilithium|mldsa87|mlkem1024)$' \
   | grep -vE '\.pub$|\.pub\.|\.example$|(^|/)vendor/|^go/|(^|/)node_modules/' \
   || true)
 

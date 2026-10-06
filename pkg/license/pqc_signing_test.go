@@ -67,7 +67,7 @@ func TestSignAndVerifyLicense(t *testing.T) {
 	}
 
 	// 5. Verify signature components
-	if shuBreath.SignatureScheme != "ADINKHEPRA_MLDSA65_KYBER1024" {
+	if shuBreath.SignatureScheme != "ADINKHEPRA_MLDSA87_MLKEM1024" {
 		t.Errorf("Unexpected signature scheme: %s", shuBreath.SignatureScheme)
 	}
 
@@ -161,7 +161,7 @@ func TestEncryptDecryptShuBreath(t *testing.T) {
 	}
 
 	// 2. Generate Kyber key pair for recipient
-	recipientPubKey, recipientPrivKey, err := adinkra.GenerateKyberKey()
+	recipientPubKey, recipientPrivKey, err := adinkra.GenerateKEMKey()
 	if err != nil {
 		t.Fatalf("Failed to generate Kyber key pair: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestLicenseManagerPQCIntegration(t *testing.T) {
 	}
 
 	// 4. Generate recipient Kyber keys
-	recipientPubKey, recipientPrivKey, err := adinkra.GenerateKyberKey()
+	recipientPubKey, recipientPrivKey, err := adinkra.GenerateKEMKey()
 	if err != nil {
 		t.Fatalf("Failed to generate Kyber key pair: %v", err)
 	}
@@ -297,7 +297,7 @@ func TestSignatureStats(t *testing.T) {
 	stats := GetSignatureStats(shuBreath)
 
 	// Verify stats structure
-	if stats["signature_scheme"] != "ADINKHEPRA_MLDSA65_KYBER1024" {
+	if stats["signature_scheme"] != "ADINKHEPRA_MLDSA87_MLKEM1024" {
 		t.Error("Incorrect signature scheme in stats")
 	}
 

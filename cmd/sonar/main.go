@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/attestenvelope"
 
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -19,7 +19,6 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/enumerate"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/fingerprint"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/scanners"
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 
 const VERSION = "1.5.0-NUCLEAR"
@@ -183,23 +182,16 @@ func finalizeScan(snapshot *audit.AuditSnapshot, startTime time.Time) {
 }
 
 func signSnapshotPQC(snapshot *audit.AuditSnapshot) {
-	log("Signing snapshot with ML-DSA-65 (Dilithium3)...")
-	// Generate Key Pair
-	pk, sk, err := mldsa65.GenerateKey(rand.Reader)
+	log("Signing snapshot with ML-DSA-87...")
+	// Ephemeral per-scan key pair (private key is the 32-byte seed)
+	pkBytes, skBytes, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		logWarn("Failed to generate PQC keys: %v", err)
 		return
 	}
-
-	// Marshal keys to bytes
-	skBytes, _ := sk.MarshalBinary()
-	pkBytes, _ := pk.MarshalBinary()
-
-	// Assuming SealWithPQC accepts []byte for keys as adinkra probably does.
-	// If it specifically accepted adinkra key types, we would have needed to update pkg/audit too.
-	// Since I cannot check pkg/audit right now but Iron Bank status says "Refactor to Use Standard Libraries",
-	// I assume passing standard bytes or adapting is the goal.
-	snapshot.SealWithPQC(skBytes, pkBytes, attestenvelope.AdinkraSigner{})
+	if err := snapshot.SealWithPQC(skBytes, pkBytes, attestenvelope.AdinkraSigner{}); err != nil {
+		logWarn("Failed to sign snapshot: %v", err)
+	}
 }
 
 func writeSnapshot(snapshot *audit.AuditSnapshot) {
@@ -210,11 +202,8 @@ func writeSnapshot(snapshot *audit.AuditSnapshot) {
 
 func generateTelemetryProof(snapshot *audit.AuditSnapshot) {
 	log("Generating Telemetry Proof...")
-	pk, sk, err := mldsa65.GenerateKey(rand.Reader)
+	pkBytes, skBytes, err := adinkra.GenerateSigningKey()
 	if err == nil {
-		skBytes, _ := sk.MarshalBinary()
-		pkBytes, _ := pk.MarshalBinary()
-
 		proof, err := snapshot.GenerateTelemetryProof(skBytes, pkBytes, VERSION, fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH), attestenvelope.AdinkraSigner{})
 		if err == nil {
 			proofData, _ := json.MarshalIndent(proof, "", "  ")

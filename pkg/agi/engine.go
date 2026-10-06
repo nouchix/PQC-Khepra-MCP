@@ -138,7 +138,7 @@ func NewEngine(store dag.Store) *Engine {
 	}
 
 	// Generate Ephemeral Identity (In prod, load from disk/HSM)
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		log.Fatalf("FAILED TO GENERATE AGENT IDENTITY: %v", err)
 	}

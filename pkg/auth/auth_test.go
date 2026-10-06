@@ -2,11 +2,9 @@ package auth
 
 import (
 	"context"
-	"encoding/hex"
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/argon2"
 )
 
 const (
@@ -231,10 +229,10 @@ func TestLocalProvider(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	// For local provider, we compute the hash dynamically to ensure it matches
-	salt := "khepra-local-salt"
-	computed := argon2.IDKey([]byte("password123"), []byte(salt), 1, 64*1024, 4, 32)
-	passwordHash := hex.EncodeToString(computed)
+	passwordHash, err := HashPassword("password123")
+	if err != nil {
+		t.Fatalf("HashPassword failed: %v", err)
+	}
 
 	user := &User{
 		ID:       "user-123",
@@ -245,7 +243,7 @@ func TestLocalProvider(t *testing.T) {
 		},
 	}
 
-	err := lp.CreateUser(ctx, user)
+	err = lp.CreateUser(ctx, user)
 	if err != nil {
 		t.Fatalf("CreateUser failed: %v", err)
 	}

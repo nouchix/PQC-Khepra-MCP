@@ -85,7 +85,7 @@ func validateCmd(_ []string) {
 	// ── [2] ML-DSA-65 Sign / Verify ────────────────────────────────────
 	run("PQC Sign/Verify (ML-DSA-65 / Dilithium)", func() (string, error) {
 		// GenerateDilithiumKey returns (publicKey, privateKey, error)
-		pub, priv, err := adinkra.GenerateDilithiumKey()
+		pub, priv, err := adinkra.GenerateSigningKey()
 		if err != nil {
 			return "", fmt.Errorf("GenerateDilithiumKey: %w", err)
 		}
@@ -107,7 +107,7 @@ func validateCmd(_ []string) {
 	// ── [3] Kyber-1024 KEM Encrypt/Decrypt ────────────────────────────────
 	run("PQC Encrypt/Decrypt (Kyber-1024 KEM)", func() (string, error) {
 		// GenerateKyberKey returns (publicKey, privateKey, error)
-		pub, priv, err := adinkra.GenerateKyberKey()
+		pub, priv, err := adinkra.GenerateKEMKey()
 		if err != nil {
 			return "", fmt.Errorf("GenerateKyberKey: %w", err)
 		}

@@ -7,11 +7,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os"
 
-	"golang.org/x/crypto/argon2"
+	"github.com/nouchix/khepra-pqc/kdf"
 )
 
 const (
@@ -33,37 +32,32 @@ type ScorpionHeader struct {
 	Checksum [32]byte
 }
 
+// Version is the vessel format: PBKDF2-HMAC-SHA-384 key, AES-256-GCM with a
+// module-generated nonce, and magic, version and salt as associated data.
+const Version = 2
+
 // Mpatapo binds the spirit to the vessel.
 // Only the true Name can release it.
 func Mpatapo(path string, data []byte, password string) error {
 	salt := make([]byte, SaltSize)
-	nonce := make([]byte, NonceSize)
-	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
+	if _, err := rand.Read(salt); err != nil {
 		return err
 	}
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return err
-	}
-
-	key := ngyinado(password, salt)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return err
-	}
-	ciphertext := gcm.Seal(nil, nonce, data, nil)
 
 	header := ScorpionHeader{
-		Version:  1,
+		Version:  Version,
 		Attempts: 0,
 	}
 	copy(header.Magic[:], MagicBytes)
 	copy(header.Salt[:], salt)
-	copy(header.Nonce[:], nonce)
+
+	gcm, err := vesselAEAD(password, salt)
+	if err != nil {
+		return err
+	}
+	sealed := gcm.Seal(nil, nil, data, headerAAD(&header))
+	copy(header.Nonce[:], sealed[:NonceSize])
+	ciphertext := sealed[NonceSize:]
 
 	f, err := os.Create(path)
 	if err != nil {
@@ -109,18 +103,16 @@ func Sane(path string, password string) ([]byte, error) {
 	if string(header.Magic[:]) != MagicBytes {
 		return nil, errors.New("unrecognized vessel")
 	}
+	if header.Version != Version {
+		return nil, fmt.Errorf("vessel format %d is not supported", header.Version)
+	}
 
 	if header.Attempts >= MaxAttempts {
 		_ = hye(f)
 		return nil, errors.New("VESSEL CONSUMED")
 	}
 
-	key := ngyinado(password, header.Salt[:])
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := vesselAEAD(password, header.Salt[:])
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +123,8 @@ func Sane(path string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	plaintext, err := gcm.Open(nil, header.Nonce[:], ciphertextFunc, nil)
+	sealed := append(append([]byte{}, header.Nonce[:]...), ciphertextFunc...)
+	plaintext, err := gcm.Open(nil, nil, sealed, headerAAD(&header))
 	if err != nil {
 		header.Attempts++
 
@@ -170,7 +163,27 @@ func hye(f *os.File) error {
 	return nil
 }
 
-// ngyinado establishes the foundation.
-func ngyinado(password string, salt []byte) []byte {
-	return argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
+// vesselAEAD derives the vessel key with PBKDF2-HMAC-SHA-384 (ngyinado:
+// establishing the foundation) and returns AES-256-GCM with module-generated
+// nonces.
+func vesselAEAD(password string, salt []byte) (cipher.AEAD, error) {
+	key, err := kdf.PassphraseKey(password, salt, KeySize)
+	if err != nil {
+		return nil, err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewGCMWithRandomNonce(block)
+}
+
+// headerAAD authenticates the fields of the header that never change. The
+// attempt counter is excluded because Sane rewrites it.
+func headerAAD(h *ScorpionHeader) []byte {
+	aad := make([]byte, 0, len(h.Magic)+1+len(h.Salt))
+	aad = append(aad, h.Magic[:]...)
+	aad = append(aad, h.Version)
+	aad = append(aad, h.Salt[:]...)
+	return aad
 }

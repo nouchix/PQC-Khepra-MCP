@@ -1,20 +1,20 @@
 // Package auth — PQC-enhanced OAuth2 / SAML authentication gateway.
 //
-// Layers AdinKhepra ML-DSA-65 attestation on top of standard OAuth2 PKCE
+// Layers AdinKhepra ML-DSA-87 attestation on top of standard OAuth2 PKCE
 // and SAML 2.0 flows.  Standard protocol tokens are accepted from any IdP
 // (Keycloak, Okta, Azure AD, ADFS, etc.) and immediately re-signed with
-// ML-DSA-65 before being issued to API consumers.
+// ML-DSA-87 before being issued to API consumers.
 //
 // Flow overview:
 //
 //	OAuth2 PKCE ──► IdP access_token ──► PQCAuthGateway.WrapOAuth2Token()
-//	                                      └─► ML-DSA-65 signed PQCToken
+//	                                      └─► ML-DSA-87 signed PQCToken
 //
 //	SAML 2.0 ──────► SAML assertion ───► PQCAuthGateway.IssueFromSAML()
-//	                                      └─► ML-DSA-65 signed PQCToken
+//	                                      └─► ML-DSA-87 signed PQCToken
 //
 // The resulting PQCToken is a compact JWT whose signature is produced by
-// ML-DSA-65 (NIST FIPS 204) instead of the traditional HMAC-SHA256.
+// ML-DSA-87 (NIST FIPS 204) instead of the traditional HMAC-SHA256.
 // AdinKhepra ASAF attestation metadata is embedded in every token.
 package auth
 
@@ -35,63 +35,64 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/nouchix/khepra-pqc/sign"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
 // =============================================================================
-// ML-DSA-65 JWT Signing Method  (NIST FIPS 204)
+// ML-DSA-87 JWT Signing Method  (NIST FIPS 204)
 // =============================================================================
 
-const algMLDSA65 = "ML-DSA-65"
+const algMLDSA87 = "ML-DSA-87"
 
-// SigningMethodMLDSA65 implements jwt.SigningMethod using NIST FIPS 204 ML-DSA-65.
-// Register once at startup via RegisterMLDSA65JWTMethod().
-type SigningMethodMLDSA65 struct{}
+// SigningMethodMLDSA87 implements jwt.SigningMethod using NIST FIPS 204
+// ML-DSA-87, signing under the FIPS 204 context khepra/v3/token.
+// Register once at startup via RegisterMLDSA87JWTMethod().
+type SigningMethodMLDSA87 struct{}
 
 var (
-	mldsaMethod     = &SigningMethodMLDSA65{}
+	mldsaMethod     = &SigningMethodMLDSA87{}
 	mldsaMethodOnce sync.Once
 )
 
-// RegisterMLDSA65JWTMethod registers ML-DSA-65 as a named JWT signing method.
+// RegisterMLDSA87JWTMethod registers ML-DSA-87 as a named JWT signing method.
 // Call this once before issuing or verifying PQC tokens.
-func RegisterMLDSA65JWTMethod() {
+func RegisterMLDSA87JWTMethod() {
 	mldsaMethodOnce.Do(func() {
-		jwt.RegisterSigningMethod(algMLDSA65, func() jwt.SigningMethod {
+		jwt.RegisterSigningMethod(algMLDSA87, func() jwt.SigningMethod {
 			return mldsaMethod
 		})
 	})
 }
 
 // Alg returns the algorithm identifier embedded in the JWT header.
-func (m *SigningMethodMLDSA65) Alg() string { return algMLDSA65 }
+func (m *SigningMethodMLDSA87) Alg() string { return algMLDSA87 }
 
-// Sign produces an ML-DSA-65 signature over the JWT signing string.
-// key must be *mldsa65.PrivateKey.
-func (m *SigningMethodMLDSA65) Sign(signingString string, key interface{}) ([]byte, error) {
-	priv, ok := key.(*mldsa65.PrivateKey)
+// Sign produces an ML-DSA-87 signature over the JWT signing string.
+// key must be *sign.PrivateKey.
+func (m *SigningMethodMLDSA87) Sign(signingString string, key interface{}) ([]byte, error) {
+	priv, ok := key.(*sign.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("ML-DSA-65 JWT: expected *mldsa65.PrivateKey, got %T", key)
+		return nil, fmt.Errorf("ML-DSA-87 JWT: expected *sign.PrivateKey, got %T", key)
 	}
-	sig, err := priv.Sign(rand.Reader, []byte(signingString), nil)
+	sig, err := priv.Sign(sign.ContextToken, []byte(signingString))
 	if err != nil {
-		return nil, fmt.Errorf("ML-DSA-65 JWT: sign error: %w", err)
+		return nil, fmt.Errorf("ML-DSA-87 JWT: sign error: %w", err)
 	}
 	return sig, nil
 }
 
-// Verify checks an ML-DSA-65 signature against the JWT signing string.
-// key must be *mldsa65.PublicKey.
-func (m *SigningMethodMLDSA65) Verify(signingString string, sig []byte, key interface{}) error {
-	pub, ok := key.(*mldsa65.PublicKey)
+// Verify checks an ML-DSA-87 signature against the JWT signing string.
+// key must be *sign.PublicKey.
+func (m *SigningMethodMLDSA87) Verify(signingString string, sig []byte, key interface{}) error {
+	pub, ok := key.(*sign.PublicKey)
 	if !ok {
-		return fmt.Errorf("ML-DSA-65 JWT: expected *mldsa65.PublicKey, got %T", key)
+		return fmt.Errorf("ML-DSA-87 JWT: expected *sign.PublicKey, got %T", key)
 	}
-	if !mldsa65.Verify(pub, []byte(signingString), nil, sig) {
-		return errors.New("ML-DSA-65 JWT: signature verification failed")
+	if err := pub.Verify(sign.ContextToken, []byte(signingString), sig); err != nil {
+		return errors.New("ML-DSA-87 JWT: signature verification failed")
 	}
 	return nil
 }
@@ -162,8 +163,8 @@ type pqcClaimsKey struct{}
 // PQCAuthGateway is the top-level gateway.  It accepts standard OAuth2/SAML
 // credentials from any IdP and issues PQC-signed tokens for downstream services.
 type PQCAuthGateway struct {
-	priv   *mldsa65.PrivateKey
-	pub    *mldsa65.PublicKey
+	priv   *sign.PrivateKey
+	pub    *sign.PublicKey
 	symbol string
 	issuer string
 
@@ -192,19 +193,19 @@ type PQCAuthGatewayConfig struct {
 	SAMLTrustAnchors []*x509.Certificate
 }
 
-// NewPQCAuthGateway creates a new PQCAuthGateway.  Pass nil keys to auto-generate
-// a fresh ML-DSA-65 key pair.
-func NewPQCAuthGateway(priv *mldsa65.PrivateKey, pub *mldsa65.PublicKey, cfg PQCAuthGatewayConfig) (*PQCAuthGateway, error) {
-	RegisterMLDSA65JWTMethod()
+// NewPQCAuthGateway creates a new PQCAuthGateway.  Pass a nil key to
+// auto-generate a fresh ML-DSA-87 key pair.
+func NewPQCAuthGateway(priv *sign.PrivateKey, cfg PQCAuthGatewayConfig) (*PQCAuthGateway, error) {
+	RegisterMLDSA87JWTMethod()
 
-	if priv == nil || pub == nil {
-		// GenerateKey returns (PublicKey, PrivateKey, error) in CIRCL
-		p, v, err := mldsa65.GenerateKey(rand.Reader)
+	if priv == nil {
+		k, err := sign.GenerateKey()
 		if err != nil {
 			return nil, fmt.Errorf("pqc-auth: generate key pair: %w", err)
 		}
-		pub, priv = p, v
+		priv = k
 	}
+	pub := priv.PublicKey()
 
 	symbol := cfg.Symbol
 	if symbol == "" {
@@ -234,13 +235,12 @@ func NewPQCAuthGateway(priv *mldsa65.PrivateKey, pub *mldsa65.PublicKey, cfg PQC
 	return gw, nil
 }
 
-// PublicKey returns the gateway's ML-DSA-65 public key for external verifiers.
-func (g *PQCAuthGateway) PublicKey() *mldsa65.PublicKey { return g.pub }
+// PublicKey returns the gateway's ML-DSA-87 public key for external verifiers.
+func (g *PQCAuthGateway) PublicKey() *sign.PublicKey { return g.pub }
 
 // PublicKeyBytes returns the gateway's serialized public key.
 func (g *PQCAuthGateway) PublicKeyBytes() []byte {
-	b, _ := g.pub.MarshalBinary()
-	return b
+	return g.pub.Bytes()
 }
 
 // =============================================================================
@@ -352,7 +352,7 @@ func (g *PQCAuthGateway) WrapOAuth2Token(accessToken, subject string, roles []st
 // IssueFromSAML parses a SAML 2.0 assertion (XML bytes), verifies its
 // enveloped XML-DSIG signature against the gateway's configured trust
 // anchors, extracts the subject and roles from the *validated* element only,
-// and issues an ML-DSA-65 signed PQCToken.
+// and issues an ML-DSA-87 signed PQCToken.
 //
 // This function fails closed:
 //   - If no SAML trust anchors have been configured (via
@@ -418,7 +418,7 @@ func (g *PQCAuthGateway) IssueFromSAML(assertionXML []byte) (*PQCToken, error) {
 func (g *PQCAuthGateway) VerifyPQCToken(tokenString string) (*PQCTokenClaims, error) {
 	claims := &PQCTokenClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-		if t.Method.Alg() != algMLDSA65 {
+		if t.Method.Alg() != algMLDSA87 {
 			return nil, fmt.Errorf("pqc-auth: unexpected alg %q", t.Method.Alg())
 		}
 		return g.pub, nil
@@ -481,7 +481,7 @@ func (g *PQCAuthGateway) HTTPMiddleware() func(http.Handler) http.Handler {
 // PQC Auth Provider (implements AuthProvider)
 // =============================================================================
 
-// PQCAuthProvider wraps any upstream AuthProvider and adds ML-DSA-65 signed
+// PQCAuthProvider wraps any upstream AuthProvider and adds ML-DSA-87 signed
 // PQC tokens on top of standard OAuth2/SAML authentication.  After the upstream
 // authenticates the user, a PQCToken is issued and stored in User.Attributes["pqc_token"].
 type PQCAuthProvider struct {

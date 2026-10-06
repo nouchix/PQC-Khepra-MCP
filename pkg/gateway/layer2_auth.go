@@ -3,6 +3,7 @@
 package gateway
 
 import (
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
@@ -15,9 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/argon2"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // AuthLayer implements Layer 2 zero-trust authentication
@@ -291,26 +291,67 @@ func (auth *AuthLayer) verifyPQCSignature(r *http.Request, identityID, signature
 		return errors.New("invalid signature encoding")
 	}
 
-	timestamp := r.Header.Get("X-Khepra-Timestamp")
-	message := fmt.Sprintf("%s|%s|%s", r.Method, r.URL.Path, timestamp)
+	message, err := requestSignatureMessage(r, time.Now())
+	if err != nil {
+		return err
+	}
 	return auth.runMLDSAVerify(pubKeyBytes, message, signature)
 }
 
+// requestSignatureContext is the FIPS 204 context for signed gateway requests.
+var requestSignatureContext = func() sign.Context {
+	c, err := sign.ContextToken.WithLabel("request")
+	if err != nil {
+		panic(err)
+	}
+	return c
+}()
+
+// requestSignatureMaxSkew bounds how old or how far in the future a signed
+// request's X-Khepra-Timestamp may be.
+const requestSignatureMaxSkew = 5 * time.Minute
+
+// requestSignatureMessage returns what a client signs for r:
+// "METHOD|PATH|TIMESTAMP", where TIMESTAMP is the X-Khepra-Timestamp header
+// in Unix seconds. A missing, malformed or stale timestamp is an error, so a
+// captured signature stops working after requestSignatureMaxSkew.
+func requestSignatureMessage(r *http.Request, now time.Time) (string, error) {
+	timestamp := r.Header.Get("X-Khepra-Timestamp")
+	if timestamp == "" {
+		return "", errors.New("missing X-Khepra-Timestamp")
+	}
+	var unix int64
+	if _, err := fmt.Sscanf(timestamp, "%d", &unix); err != nil || fmt.Sprint(unix) != timestamp {
+		return "", errors.New("invalid X-Khepra-Timestamp")
+	}
+	skew := now.Sub(time.Unix(unix, 0))
+	if skew > requestSignatureMaxSkew || skew < -requestSignatureMaxSkew {
+		return "", errors.New("stale X-Khepra-Timestamp")
+	}
+	return fmt.Sprintf("%s|%s|%s", r.Method, r.URL.Path, timestamp), nil
+}
+
+// SignRequest sets X-Khepra-Timestamp on r and returns the hex ML-DSA-87
+// signature a client sends in the signature or attestation header.
+func SignRequest(r *http.Request, key *sign.PrivateKey) (string, error) {
+	r.Header.Set("X-Khepra-Timestamp", fmt.Sprint(time.Now().Unix()))
+	message, err := requestSignatureMessage(r, time.Now())
+	if err != nil {
+		return "", err
+	}
+	sig, err := key.Sign(requestSignatureContext, []byte(message))
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(sig), nil
+}
+
 func (auth *AuthLayer) runMLDSAVerify(pubKeyBytes []byte, message string, signature []byte) error {
-	if len(signature) != mldsa65.SignatureSize {
-		return errors.New("invalid signature size")
+	publicKey, err := sign.NewPublicKey(pubKeyBytes)
+	if err != nil {
+		return errors.New("invalid public key")
 	}
-	if len(pubKeyBytes) != mldsa65.PublicKeySize {
-		return errors.New("invalid public key size")
-	}
-
-	var pubKeyBuf [mldsa65.PublicKeySize]byte
-	copy(pubKeyBuf[:], pubKeyBytes)
-
-	var publicKey mldsa65.PublicKey
-	publicKey.Unpack(&pubKeyBuf)
-
-	if !mldsa65.Verify(&publicKey, []byte(message), nil, signature) {
+	if err := publicKey.Verify(requestSignatureContext, []byte(message), signature); err != nil {
 		return errors.New("signature verification failed")
 	}
 	return nil
@@ -354,7 +395,7 @@ func (auth *AuthLayer) RevokeAPIKey(keyHash string) error {
 
 // RegisterPublicKey registers a public key for PQC signature verification
 func (auth *AuthLayer) RegisterPublicKey(identityID string, pubKey []byte) error {
-	if len(pubKey) != mldsa65.PublicKeySize {
+	if len(pubKey) != sign.PublicKeySize {
 		return errors.New("invalid public key size")
 	}
 
@@ -414,14 +455,12 @@ func getOrgFromCert(cert *x509.Certificate) string {
 	return cert.Subject.CommonName
 }
 
-var apiKeyDomainSalt = []byte("khepra-pqc-domain-salt-v1.0.0-argon2id")
-
-// hashAPIKey returns a secure Argon2id hash of the API key.
-// Uses OWASP-recommended parameters for key derivation.
+// hashAPIKey returns the lookup hash of an API key: SHA-384 over a
+// domain-separated encoding. API keys are high-entropy random secrets, so a
+// fast hash is enough; a slow password KDF would only add per-request cost.
 func hashAPIKey(key string) string {
-	// Argon2id parameters per OWASP guidelines: time=1, memory=64MB, threads=4, keyLen=32
-	hash := argon2.IDKey([]byte(key), apiKeyDomainSalt, 1, 64*1024, 4, 32)
-	return hex.EncodeToString(hash)
+	h := sha512.Sum384([]byte("khepra/v3/apikey-hash\x00" + key))
+	return hex.EncodeToString(h[:])
 }
 
 func min(a, b float64) float64 {

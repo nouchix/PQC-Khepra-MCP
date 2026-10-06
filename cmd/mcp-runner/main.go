@@ -21,7 +21,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -40,7 +39,6 @@ type SessionContext struct {
 	Fingerprint []byte
 	PublicKey   *adinkra.AdinkhepraPQCPublicKey
 	PrivateKey  *adinkra.AdinkhepraPQCPrivateKey
-	Merkaba     *adinkra.Merkaba
 	KeyID       string
 	StartedAt   time.Time
 }
@@ -147,30 +145,21 @@ func initSession(args map[string]any) (*SessionContext, error) {
 	// Compute Spectral Fingerprint from the symbol's adjacency matrix
 	fingerprint := adinkra.GetSpectralFingerprint(symbol)
 
-	// Generate entropy seed: fingerprint + current nanosecond timestamp
-	seed := make([]byte, 64)
-	copy(seed, fingerprint)
-	binary.BigEndian.PutUint64(seed[32:], uint64(time.Now().UnixNano()))
-	h := sha256.Sum256(seed)
-
-	// Initialize Merkaba White Box encryption engine
-	merkaba := adinkra.NewMerkaba(h[:])
-
-	// Generate Adinkhepra-PQC key pair for this session
-	pubKey, privKey, err := adinkra.GenerateAdinkhepraPQCKeyPair(h[:], symbol)
+	// Generate a fresh ML-DSA-87 key pair for this session. The fingerprint
+	// labels the session; it never seeds key material.
+	pubKey, privKey, err := adinkra.GenerateAdinkhepraPQCKeyPair(symbol)
 	if err != nil {
 		return nil, fmt.Errorf("PQC key generation failed: %w", err)
 	}
 
-	// Derive KeyID from public key seed
-	keyHash := sha256.Sum256(pubKey.Seed[:])
+	// Derive KeyID from the public key
+	keyHash := sha256.Sum256(pubKey.Raw)
 
 	return &SessionContext{
 		Symbol:      symbol,
 		Fingerprint: fingerprint,
 		PublicKey:    pubKey,
 		PrivateKey:  privKey,
-		Merkaba:     merkaba,
 		KeyID:       hex.EncodeToString(keyHash[:8]),
 		StartedAt:   time.Now().UTC(),
 	}, nil

@@ -1,150 +1,134 @@
 package adinkra
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 
-	"github.com/cloudflare/circl/kem/kyber/kyber1024"
-	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
+	"github.com/nouchix/khepra-pqc/envelope"
+	"github.com/nouchix/khepra-pqc/kem"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
-// GenerateKyberKey generates a Kyber-1024 key pair.
-func GenerateKyberKey() ([]byte, []byte, error) {
-	pk, sk, err := kyber1024.GenerateKeyPair(rand.Reader)
+// Key, ciphertext and signature sizes for the NIST algorithms behind this
+// package: ML-KEM-1024 (FIPS 203) and ML-DSA-87 (FIPS 204), both from the Go
+// Cryptographic Module via github.com/nouchix/khepra-pqc.
+const (
+	KEMPublicKeySize      = kem.EncapsulationKeySize // 1568
+	KEMPrivateKeySize     = kem.SeedSize             // 64-byte FIPS 203 seed
+	KEMCiphertextSize     = kem.CiphertextSize       // 1568
+	SigningPublicKeySize  = sign.PublicKeySize       // 2592
+	SigningPrivateKeySize = sign.SeedSize            // 32-byte FIPS 204 seed
+	SignatureSize         = sign.SignatureSize       // 4627
+
+	// legacyMLDSA65PublicKeySize identifies public keys from before the move
+	// to ML-DSA-87. Verify accepts them for historical signatures only.
+	legacyMLDSA65PublicKeySize = 1952
+)
+
+// kuntinkantanLabel binds Kuntinkantan envelopes to their purpose.
+const kuntinkantanLabel = "khepra/v3/kuntinkantan"
+
+// GenerateKEMKey generates an ML-KEM-1024 key pair: the encapsulation key and
+// the 64-byte decapsulation key seed.
+func GenerateKEMKey() (pub, priv []byte, err error) {
+	dk, err := kem.GenerateKey()
 	if err != nil {
 		return nil, nil, err
 	}
-
-	pkBytes, _ := pk.MarshalBinary()
-	skBytes, _ := sk.MarshalBinary()
-
-	return pkBytes, skBytes, nil
+	return dk.EncapsulationKey().Bytes(), dk.Bytes(), nil
 }
 
-// GenerateDilithiumKey generates a ML-DSA-65 (Dilithium3) key pair.
-func GenerateDilithiumKey() ([]byte, []byte, error) {
-	pk, sk, err := mldsa65.GenerateKey(rand.Reader)
+// KEMEncapsulate generates a fresh shared secret for the holder of an
+// ML-KEM-1024 encapsulation key. Returns (ciphertext, sharedSecret, error).
+func KEMEncapsulate(pubKeyBytes []byte) (ciphertext, sharedSecret []byte, err error) {
+	ek, err := kem.NewEncapsulationKey(pubKeyBytes)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	pkBytes := make([]byte, mldsa65.PublicKeySize)
-	skBytes := make([]byte, mldsa65.PrivateKeySize)
-	pk.Pack((*[mldsa65.PublicKeySize]byte)(pkBytes))
-	sk.Pack((*[mldsa65.PrivateKeySize]byte)(skBytes))
-
-	return pkBytes, skBytes, nil
+	sharedSecret, ciphertext = ek.Encapsulate()
+	return ciphertext, sharedSecret, nil
 }
 
-// Sign signs a message using a ML-DSA-65 private key.
+// KEMDecapsulate recovers the shared secret from an ML-KEM-1024 ciphertext.
+func KEMDecapsulate(privKeyBytes, ciphertext []byte) (sharedSecret []byte, err error) {
+	dk, err := kem.NewDecapsulationKey(privKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+	return dk.Decapsulate(ciphertext)
+}
+
+// GenerateSigningKey generates an ML-DSA-87 key pair: the public key and the
+// 32-byte private key seed.
+func GenerateSigningKey() (pub, priv []byte, err error) {
+	sk, err := sign.GenerateKey()
+	if err != nil {
+		return nil, nil, err
+	}
+	return sk.PublicKey().Bytes(), sk.Bytes(), nil
+}
+
+// Sign signs msg with an ML-DSA-87 private key seed under the
+// khepra/v3/adinkra context.
 func Sign(skBytes []byte, msg []byte) ([]byte, error) {
-	if len(skBytes) != mldsa65.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key size: expected %d, got %d", mldsa65.PrivateKeySize, len(skBytes))
+	sk, err := sign.NewPrivateKey(skBytes)
+	if err != nil {
+		return nil, err
 	}
-	var sk mldsa65.PrivateKey
-	sk.Unpack((*[mldsa65.PrivateKeySize]byte)(skBytes))
-
-	sig := make([]byte, mldsa65.SignatureSize)
-	mldsa65.SignTo(&sk, msg, nil, false, sig)
-	return sig, nil
+	return sk.Sign(sign.ContextAdinkra, msg)
 }
 
-// Verify verifies a ML-DSA-65 signature.
+// Verify checks a signature made by Sign. It also verifies historical
+// ML-DSA-65 signatures (1952-byte public keys, empty context) so that records
+// signed before the move to ML-DSA-87 remain checkable; it never creates them.
+// An invalid signature returns (false, nil); malformed keys return an error.
 func Verify(pkBytes []byte, msg []byte, sig []byte) (bool, error) {
-	if len(pkBytes) != mldsa65.PublicKeySize {
-		return false, fmt.Errorf("invalid public key size: expected %d, got %d", mldsa65.PublicKeySize, len(pkBytes))
+	var err error
+	switch len(pkBytes) {
+	case SigningPublicKeySize:
+		var pk *sign.PublicKey
+		pk, err = sign.NewPublicKey(pkBytes)
+		if err != nil {
+			return false, err
+		}
+		err = pk.Verify(sign.ContextAdinkra, msg, sig)
+	case legacyMLDSA65PublicKeySize:
+		err = sign.VerifyMLDSA65(pkBytes, "", msg, sig)
+	default:
+		return false, fmt.Errorf("invalid public key size: %d bytes (want %d for ML-DSA-87)", len(pkBytes), SigningPublicKeySize)
 	}
-	var pk mldsa65.PublicKey
-	pk.Unpack((*[mldsa65.PublicKeySize]byte)(pkBytes))
-	return mldsa65.Verify(&pk, msg, nil, sig), nil
+	if errors.Is(err, sign.ErrInvalidSignature) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
-// KyberEncapsulate generates a fresh shared secret and encapsulates it with the given
-// Kyber-1024 public key. Returns (ciphertext, sharedSecret, error).
-func KyberEncapsulate(pubKeyBytes []byte) (ciphertext, sharedSecret []byte, err error) {
-	if len(pubKeyBytes) != kyber1024.PublicKeySize {
-		return nil, nil, fmt.Errorf("invalid Kyber public key size: expected %d, got %d",
-			kyber1024.PublicKeySize, len(pubKeyBytes))
-	}
-	pk, err := kyber1024.Scheme().UnmarshalBinaryPublicKey(pubKeyBytes)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse Kyber public key: %w", err)
-	}
-	ct, ss, err := kyber1024.Scheme().Encapsulate(pk)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Kyber encapsulation failed: %w", err)
-	}
-	return ct, ss, nil
-}
-
-// KyberDecapsulate recovers the shared secret from a Kyber-1024 ciphertext using the private key.
-func KyberDecapsulate(privKeyBytes, ciphertext []byte) (sharedSecret []byte, err error) {
-	if len(privKeyBytes) != kyber1024.PrivateKeySize {
-		return nil, fmt.Errorf("invalid Kyber private key size: expected %d, got %d",
-			kyber1024.PrivateKeySize, len(privKeyBytes))
-	}
-	sk, err := kyber1024.Scheme().UnmarshalBinaryPrivateKey(privKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse Kyber private key: %w", err)
-	}
-	ss, err := kyber1024.Scheme().Decapsulate(sk, ciphertext)
-	if err != nil {
-		return nil, fmt.Errorf("Kyber decapsulation failed: %w", err)
-	}
-	return ss, nil
-}
-
-// Kuntinkantan encapsulates a message using Kyber-1024 and AES-256-GCM.
+// Kuntinkantan (Do not be arrogant) seals a message so that only the holder
+// of the Okyeame (linguist) decapsulation key can read it. It produces a KHQ3
+// envelope: ML-KEM-1024, HKDF-SHA-384 and AES-256-GCM with the header
+// authenticated.
 func Kuntinkantan(okyeamePub []byte, message []byte) ([]byte, error) {
-	pk, err := kyber1024.Scheme().UnmarshalBinaryPublicKey(okyeamePub)
+	ek, err := kem.NewEncapsulationKey(okyeamePub)
 	if err != nil {
-		return nil, fmt.Errorf("the staff is broken: %v", err)
+		return nil, fmt.Errorf("kuntinkantan: %w", err)
 	}
-
-	cypher, sharedSpirit, err := kyber1024.Scheme().Encapsulate(pk)
-	if err != nil {
-		return nil, fmt.Errorf("failed to bottle the spirit: %v", err)
-	}
-
-	// Encrypt using standard authenticated AES-256-GCM
-	ciphertext, err := EncryptAESGCM(sharedSpirit[:32], message)
-	if err != nil {
-		return nil, fmt.Errorf("the weaver refused the thread: %v", err)
-	}
-
-	artifact := make([]byte, 0, len(cypher)+len(ciphertext))
-	artifact = append(artifact, cypher...)
-	artifact = append(artifact, ciphertext...)
-
-	return artifact, nil
+	return envelope.Seal(ek, kuntinkantanLabel, message)
 }
 
-// Sankofa recovers the plaintext from an artifact using the private Kyber key and AES-256-GCM.
+// Sankofa (Go back and get it) opens an envelope produced by Kuntinkantan.
 func Sankofa(okyeamePriv []byte, artifact []byte) ([]byte, error) {
-	capsuleSize := kyber1024.Scheme().CiphertextSize()
-	if len(artifact) < capsuleSize {
-		return nil, fmt.Errorf("artifact is dust")
-	}
-
-	clay := artifact[:capsuleSize]
-	ciphertext := artifact[capsuleSize:]
-
-	sk, err := kyber1024.Scheme().UnmarshalBinaryPrivateKey(okyeamePriv)
+	dk, err := kem.NewDecapsulationKey(okyeamePriv)
 	if err != nil {
-		return nil, fmt.Errorf("the hand does not fit the glove: %v", err)
+		return nil, fmt.Errorf("sankofa: %w", err)
 	}
-
-	sharedSpirit, err := kyber1024.Scheme().Decapsulate(sk, clay)
+	plaintext, err := envelope.Open(dk, kuntinkantanLabel, artifact)
 	if err != nil {
-		return nil, fmt.Errorf("the spirit has fled: %v", err)
+		return nil, fmt.Errorf("sankofa: %w", err)
 	}
-
-	plaintext, err := DecryptAESGCM(sharedSpirit[:32], ciphertext)
-	if err != nil {
-		return nil, fmt.Errorf("the weave is tangled (auth failed): %v", err)
-	}
-
 	return plaintext, nil
 }
 
@@ -215,8 +199,9 @@ var SymbolMatrices = map[string]AdjacencyMatrix{
 	},
 }
 
-// GetSpectralFingerprint computes a deterministic hash of the symbol's adjacency matrix
-// to seed the DRBG for key generation.
+// GetSpectralFingerprint computes a deterministic hash of the symbol's adjacency
+// matrix. It is public data: it labels and binds symbols (for example in
+// KHEPRA-KDF info strings) but must never be used as key material.
 func GetSpectralFingerprint(symbol string) []byte {
 	matrix, ok := SymbolMatrices[symbol]
 	if !ok {
@@ -241,12 +226,8 @@ func ResolveConflict(symbolA, symbolB string) string {
 // Hash generates a Khepra-standard hash, encoded in the Khepra Lattice.
 // This creates the immutable "DNA" of any artifact.
 // It wraps SHA-256 but encodes it using the poetic alphabet to obfuscate the structure.
-// #nosec G401 — SHA-256 (crypto/sha256) is FIPS-140-2 approved; not a weak hash.
-// This is purely cosmetic encoding over a secure hash; there is no integrity requirement
-// for the lattice encoding itself.
-// lgtm[go/weak-cryptographic-algorithm]
 func Hash(data []byte) string {
-	h := sha256.Sum256(data) // SHA-256 is NIST-approved; not weak (#421)
+	h := sha256.Sum256(data)
 	hexStr := fmt.Sprintf("%x", h)
 
 	// Transmute standard hex (0-9, a-f) to Khepra Lattice (G-O)

@@ -75,7 +75,7 @@ func NewAtenRealm(kasa *agi.Engine, dagStore dag.Store, airGapped bool) (*AtenRe
 
 	// Generate ML-DSA-65 (Dilithium3) signing key pair for the Aten realm chronicle
 	// This provides CNSA 2.0-aligned post-quantum signature integrity
-	_, realmPrivKey, err := adinkra.GenerateDilithiumKey()
+	_, realmPrivKey, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to generate Aten realm signing key: %w", err)

@@ -18,7 +18,7 @@ import (
 func TestAutopilotCycle(t *testing.T) {
 	// Create a minimal server with signing keys
 	srv := &Server{}
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("Failed to generate keys: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestSeatManagement(t *testing.T) {
 // TestCertifyFlow validates the end-to-end Certify attestation flow:
 // create attestation with persistent key → verify with real crypto
 func TestCertifyFlow(t *testing.T) {
-	pub, priv, err := adinkra.GenerateDilithiumKey()
+	pub, priv, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		t.Fatalf("Key gen failed: %v", err)
 	}

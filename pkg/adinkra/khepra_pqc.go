@@ -2,33 +2,41 @@ package adinkra
 
 import (
 	"crypto/sha512"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/cloudflare/circl/sign/dilithium/mode3"
+	"github.com/nouchix/khepra-pqc/sign"
 )
 
 // =============================================================================
-// ADINKHEPRA-PQC: LATTICE-BASED POST-QUANTUM SIGNATURE SCHEME
-// Real Implementation using CRYSTALS-Dilithium3 (mode3) via Cloudflare CIRCL
-// Security Level: 256-bit (NIST Level 3 equivalent)
+// ADINKHEPRA-PQC: SYMBOL-BOUND ML-DSA-87 SIGNING IDENTITY
+//
+// An AdinkhepraPQC key is an ML-DSA-87 (FIPS 204) key pair tagged with the
+// Adinkra symbol it acts under. Keys come only from the Go Cryptographic
+// Module's approved random bit generator: the symbol labels a key, it never
+// seeds one. Signatures use the khepra/v3/adinkra/agent context so they can
+// never verify as signatures made for another purpose.
 // =============================================================================
 
-// AdinkhepraPQC Signature Scheme Architecture (Unified with ML-DSA Standards)
+// agentContext is the FIPS 204 context for AdinkhepraPQC signatures.
+var agentContext = mustContext(sign.ContextAdinkra.WithLabel("agent"))
 
-const (
-	// AdinkhepraPQC Constants mapped to Dilithium3 parameters
-	AdinkhepraN = 256     // Degree of polynomial ring (Dilithium standard)
-	AdinkhepraQ = 8380417 // Dilithium prime modulus
-)
+// dagContext is the FIPS 204 context for DAG vertex signatures.
+var dagContext = sign.ContextDAG
 
-// AdinkhepraPQCPublicKey represents a NIST-aligned PQC public key
+func mustContext(c sign.Context, err error) sign.Context {
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+// AdinkhepraPQCPublicKey is an ML-DSA-87 public key bound to a symbol.
 type AdinkhepraPQCPublicKey struct {
-	Raw           []byte
-	Seed          [32]byte
-	SecurityLevel int
+	Raw           []byte // ML-DSA-87 public key (2592 bytes)
+	Symbol        string
+	SecurityLevel int // NIST security category (5 for ML-DSA-87)
 }
 
 func (k *AdinkhepraPQCPublicKey) MarshalBinary() ([]byte, error) {
@@ -36,18 +44,19 @@ func (k *AdinkhepraPQCPublicKey) MarshalBinary() ([]byte, error) {
 }
 
 func (k *AdinkhepraPQCPublicKey) UnmarshalBinary(data []byte) error {
-	if len(data) != mode3.PublicKeySize {
-		return fmt.Errorf("invalid public key size: expected %d, got %d", mode3.PublicKeySize, len(data))
+	if len(data) != SigningPublicKeySize {
+		return fmt.Errorf("invalid public key size: expected %d, got %d", SigningPublicKeySize, len(data))
 	}
-	k.Raw = make([]byte, len(data))
-	copy(k.Raw, data)
+	k.Raw = append([]byte(nil), data...)
+	k.SecurityLevel = 5
 	return nil
 }
 
-// AdinkhepraPQCPrivateKey represents a NIST-aligned PQC private key
+// AdinkhepraPQCPrivateKey is an ML-DSA-87 private key in its 32-byte FIPS 204
+// seed form, bound to a symbol.
 type AdinkhepraPQCPrivateKey struct {
-	Raw  []byte
-	Seed [32]byte
+	Raw    []byte
+	Symbol string
 }
 
 func (k *AdinkhepraPQCPrivateKey) MarshalBinary() ([]byte, error) {
@@ -55,79 +64,64 @@ func (k *AdinkhepraPQCPrivateKey) MarshalBinary() ([]byte, error) {
 }
 
 func (k *AdinkhepraPQCPrivateKey) UnmarshalBinary(data []byte) error {
-	if len(data) != mode3.PrivateKeySize {
-		return fmt.Errorf("invalid private key size: expected %d, got %d", mode3.PrivateKeySize, len(data))
+	if len(data) != SigningPrivateKeySize {
+		return fmt.Errorf("invalid private key size: expected %d, got %d", SigningPrivateKeySize, len(data))
 	}
-	k.Raw = make([]byte, len(data))
-	copy(k.Raw, data)
+	k.Raw = append([]byte(nil), data...)
 	return nil
 }
 
-// GenerateAdinkhepraPQCKeyPair generates a real PQC key pair from a seed and symbol entropy.
-func GenerateAdinkhepraPQCKeyPair(seed []byte, symbol string) (*AdinkhepraPQCPublicKey, *AdinkhepraPQCPrivateKey, error) {
-	// Spectral Derivation: Mix raw seed with symbol fingerprint
-	spectral := GetSpectralFingerprint(symbol)
-	unifiedSeed := make([]byte, len(seed)+len(spectral))
-	copy(unifiedSeed, seed)
-	copy(unifiedSeed[len(seed):], spectral)
-
-	h := sha512.Sum512(unifiedSeed)
-	entropy := h[:32]
-
-	// Use Dilithium3 (mode3) for key generation
-	// Note: Dilithium keygen is randomized or deterministic depending on RNG
-	// We use the ChaosEngine derived from entropy for TRL10 determinism if needed.
-	chaos := NewChaosEngine(binary.BigEndian.Uint64(entropy[:8]))
-	pk, sk, err := mode3.GenerateKey(chaos)
+// Public returns the public key that pairs with k.
+func (k *AdinkhepraPQCPrivateKey) Public() (*AdinkhepraPQCPublicKey, error) {
+	sk, err := sign.NewPrivateKey(k.Raw)
 	if err != nil {
-		return nil, nil, fmt.Errorf("dilithium keygen failed: %w", err)
+		return nil, err
 	}
+	return &AdinkhepraPQCPublicKey{Raw: sk.PublicKey().Bytes(), Symbol: k.Symbol, SecurityLevel: 5}, nil
+}
 
-	pub := &AdinkhepraPQCPublicKey{
-		Raw:           pk.Bytes(),
-		SecurityLevel: 256,
+// GenerateAdinkhepraPQCKeyPair generates a new ML-DSA-87 signing identity
+// bound to symbol.
+func GenerateAdinkhepraPQCKeyPair(symbol string) (*AdinkhepraPQCPublicKey, *AdinkhepraPQCPrivateKey, error) {
+	sk, err := sign.GenerateKey()
+	if err != nil {
+		return nil, nil, fmt.Errorf("adinkhepra-pqc keygen failed: %w", err)
 	}
-	copy(pub.Seed[:], entropy)
-
-	priv := &AdinkhepraPQCPrivateKey{
-		Raw: sk.Bytes(),
-	}
-	copy(priv.Seed[:], entropy)
-
+	pub := &AdinkhepraPQCPublicKey{Raw: sk.PublicKey().Bytes(), Symbol: symbol, SecurityLevel: 5}
+	priv := &AdinkhepraPQCPrivateKey{Raw: sk.Bytes(), Symbol: symbol}
 	return pub, priv, nil
 }
 
-// SignAdinkhepraPQC signs a message hash using Dilithium3
-func SignAdinkhepraPQC(priv *AdinkhepraPQCPrivateKey, messageHash []byte) ([]byte, error) {
-	if len(priv.Raw) != mode3.PrivateKeySize {
-		return nil, errors.New("invalid private key state")
-	}
-
-	var buf [mode3.PrivateKeySize]byte
-	copy(buf[:], priv.Raw)
-	sk := &mode3.PrivateKey{}
-	sk.Unpack(&buf)
-
-	sig := make([]byte, mode3.SignatureSize)
-	mode3.SignTo(sk, messageHash, sig)
-	return sig, nil
+// SignAdinkhepraPQC signs a message with an AdinkhepraPQC identity.
+func SignAdinkhepraPQC(priv *AdinkhepraPQCPrivateKey, message []byte) ([]byte, error) {
+	return signWithContext(priv, agentContext, message)
 }
 
-// VerifyAdinkhepraPQC verifies a signature using Dilithium3
-func VerifyAdinkhepraPQC(pub *AdinkhepraPQCPublicKey, messageHash []byte, signature []byte) error {
-	if len(pub.Raw) != mode3.PublicKeySize {
-		return errors.New("invalid public key state")
-	}
+// VerifyAdinkhepraPQC verifies a signature made by SignAdinkhepraPQC.
+func VerifyAdinkhepraPQC(pub *AdinkhepraPQCPublicKey, message []byte, signature []byte) error {
+	return verifyWithContext(pub, agentContext, message, signature)
+}
 
-	var buf [mode3.PublicKeySize]byte
-	copy(buf[:], pub.Raw)
-	pk := &mode3.PublicKey{}
-	pk.Unpack(&buf)
-
-	if !mode3.Verify(pk, messageHash, signature) {
-		return errors.New("dilithium signature verification failed")
+func signWithContext(priv *AdinkhepraPQCPrivateKey, ctx sign.Context, message []byte) ([]byte, error) {
+	if priv == nil {
+		return nil, errors.New("adinkhepra-pqc: nil private key")
 	}
-	return nil
+	sk, err := sign.NewPrivateKey(priv.Raw)
+	if err != nil {
+		return nil, fmt.Errorf("adinkhepra-pqc: %w", err)
+	}
+	return sk.Sign(ctx, message)
+}
+
+func verifyWithContext(pub *AdinkhepraPQCPublicKey, ctx sign.Context, message, signature []byte) error {
+	if pub == nil {
+		return errors.New("adinkhepra-pqc: nil public key")
+	}
+	pk, err := sign.NewPublicKey(pub.Raw)
+	if err != nil {
+		return fmt.Errorf("adinkhepra-pqc: %w", err)
+	}
+	return pk.Verify(ctx, message, signature)
 }
 
 // =============================================================================
@@ -147,7 +141,7 @@ type AdinkhepraAttestation struct {
 func SignAgentAction(priv *AdinkhepraPQCPrivateKey, agentID, actionID, symbol string, trustScore int, context string) (*AdinkhepraAttestation, error) {
 	timestamp := time.Now().Unix()
 	payload := fmt.Sprintf("%s:%s:%s:%d:%s:%d", agentID, actionID, symbol, trustScore, context, timestamp)
-	h := sha512.Sum512([]byte(payload))
+	h := sha512.Sum384([]byte(payload))
 
 	sig, err := SignAdinkhepraPQC(priv, h[:])
 	if err != nil {
@@ -169,7 +163,7 @@ func VerifyAgentAction(pub *AdinkhepraPQCPublicKey, attestation *AdinkhepraAttes
 	payload := fmt.Sprintf("%s:%s:%s:%d:%s:%d",
 		attestation.AgentID, attestation.ActionID, attestation.Symbol,
 		attestation.TrustScore, attestation.Context, attestation.Timestamp)
-	h := sha512.Sum512([]byte(payload))
+	h := sha512.Sum384([]byte(payload))
 
 	return VerifyAdinkhepraPQC(pub, h[:], attestation.Signature)
 }
@@ -189,7 +183,7 @@ func MapSymbolToCompliance(symbol string) []string {
 	}
 }
 
-// DestroyPrivateKey securely zeroizes key material
+// DestroyPrivateKey zeroizes the key seed held by priv.
 func (priv *AdinkhepraPQCPrivateKey) DestroyPrivateKey() {
 	if priv != nil && priv.Raw != nil {
 		for i := range priv.Raw {

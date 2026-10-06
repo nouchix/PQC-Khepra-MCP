@@ -11,7 +11,7 @@ import (
 func main() {
 	fmt.Println("Generating Dilithium3 Offline Root Key Pair...")
 
-	pk, sk, err := adinkra.GenerateDilithiumKey()
+	pk, sk, err := adinkra.GenerateSigningKey()
 	if err != nil {
 		fmt.Printf("Error generating key: %v\n", err)
 		os.Exit(1)
