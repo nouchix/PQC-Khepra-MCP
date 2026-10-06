@@ -17,11 +17,6 @@
 package license
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -209,7 +204,7 @@ func (sla *SovereignLicenseAuthority) RevokeLicense(licenseID, reason string) er
 	sla.RevocationDB.Add(entry)
 
 	// Publish updated CRL to IPFS (permissionless, no central server required)
-	crlBytes, err := sla.RevocationDB.Export()
+	crlBytes, err := sla.RevocationDB.Export(sla.PrivateKey)
 	if err != nil {
 		return fmt.Errorf("sovereign: export CRL: %w", err)
 	}
@@ -311,7 +306,10 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 	// The compiled-in denylist in revoked.go is the backstop that makes an
 	// already-issued escalating license revocable without any network.
 	if lic.RevCRLHash != "" {
-		if err := checkRevocationList(lic.LicenseID, lic.RevCRLHash); err != nil {
+		if err := checkRevocationList(lic.LicenseID, lic.RevCRLHash, masterPublicKey); err != nil {
+			if errors.Is(err, ErrLicenseRevoked) {
+				return fmt.Errorf("sovereign: %w", err)
+			}
 			if licenseCanEscalate(lic) {
 				return fmt.Errorf("sovereign: CRL unreachable and license tier %q can issue/revoke "+
 					"licenses — refusing to grant on unverified revocation status: %w", lic.Tier, err)
@@ -407,10 +405,23 @@ func (rdb *RevocationDatabase) SetCurrentCID(cid string) {
 	rdb.mu.Unlock()
 }
 
-// Export serialises the CRL as AES-256-GCM encrypted JSON.
-// The encryption key is derived from the HMAC-SHA256 of the entries themselves,
-// so the CRL is tamper-evident even when stored on IPFS.
-func (rdb *RevocationDatabase) Export() ([]byte, error) {
+// crlContext is the FIPS 204 context for signed revocation lists.
+var crlContext = mustLabel(licenseContext, "crl")
+
+// ErrLicenseRevoked is returned when a verified CRL lists the license.
+var ErrLicenseRevoked = errors.New("license is revoked")
+
+// signedCRL is the published revocation list. CRL is the JSON document
+// {schema, exported_at, entries}; Signature is the authority's ML-DSA-87
+// signature over exactly those bytes (context khepra/v3/license/crl).
+// Revocations are public information, so the list is not encrypted.
+type signedCRL struct {
+	CRL       json.RawMessage `json:"crl"`
+	Signature []byte          `json:"signature"`
+}
+
+// Export serialises the CRL and signs it with the authority's ML-DSA-87 key.
+func (rdb *RevocationDatabase) Export(signingKey []byte) ([]byte, error) {
 	rdb.mu.RLock()
 	entries := make([]RevocationEntry, 0, len(rdb.entries))
 	for _, e := range rdb.entries {
@@ -418,36 +429,47 @@ func (rdb *RevocationDatabase) Export() ([]byte, error) {
 	}
 	rdb.mu.RUnlock()
 
-	plaintext, err := json.Marshal(map[string]interface{}{
-		"schema":      "https://adinkhepra.dev/crl/v1",
+	doc, err := json.Marshal(map[string]interface{}{
+		"schema":      "https://adinkhepra.dev/crl/v2",
 		"exported_at": time.Now().UTC().Format(time.RFC3339),
 		"entries":     entries,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("export CRL marshal: %w", err)
 	}
-
-	// Derive AES key: HMAC-SHA256(plaintext, constant domain separator)
-	mac := hmac.New(sha256.New, []byte("KHEPRA-CRL-EXPORT-KEY-V1"))
-	mac.Write(plaintext)
-	aesKey := mac.Sum(nil) // 32 bytes → AES-256
-
-	block, err := aes.NewCipher(aesKey)
+	sig, err := signWith(crlContext, signingKey, doc)
 	if err != nil {
-		return nil, fmt.Errorf("export CRL cipher: %w", err)
+		return nil, fmt.Errorf("export CRL sign: %w", err)
 	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("export CRL GCM: %w", err)
-	}
+	return json.Marshal(signedCRL{CRL: doc, Signature: sig})
+}
 
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("export CRL nonce: %w", err)
+// crlRevokes verifies a published CRL against the pinned root and returns
+// ErrLicenseRevoked (wrapped) when it lists licenseID. Any other error means
+// the CRL could not be trusted or read.
+func crlRevokes(data []byte, licenseID string, masterPublicKey []byte) error {
+	var sc signedCRL
+	if err := json.Unmarshal(data, &sc); err != nil || len(sc.CRL) == 0 {
+		return errors.New("CRL is not a signed revocation list")
 	}
-
-	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
-	return ciphertext, nil
+	if len(masterPublicKey) == 0 {
+		return errors.New("no pinned master public key to verify the CRL")
+	}
+	if err := verifyWithRoot(crlContext, masterPublicKey, sc.CRL, sc.Signature); err != nil {
+		return fmt.Errorf("CRL signature invalid: %w", err)
+	}
+	var crl struct {
+		Entries []RevocationEntry `json:"entries"`
+	}
+	if err := json.Unmarshal(sc.CRL, &crl); err != nil {
+		return fmt.Errorf("CRL parse: %w", err)
+	}
+	for _, entry := range crl.Entries {
+		if entry.LicenseID == licenseID {
+			return fmt.Errorf("%w: %s (%s)", ErrLicenseRevoked, licenseID, entry.Reason)
+		}
+	}
+	return nil
 }
 
 // ─── IPFS Publication ─────────────────────────────────────────────────────────
@@ -484,9 +506,10 @@ func publishToIPFS(gatewayURL string, data []byte) (string, error) {
 
 // ─── CRL Revocation Check ─────────────────────────────────────────────────────
 
-// checkRevocationList fetches the CRL from IPFS and checks if licenseID is revoked.
-// Uses the public IPFS gateway for censorship-resistant access.
-func checkRevocationList(licenseID, crlCID string) error {
+// checkRevocationList fetches the CRL from IPFS, verifies it against the pinned
+// root and reports ErrLicenseRevoked when it lists licenseID. Fetch, parse and
+// signature failures are returned as ordinary errors.
+func checkRevocationList(licenseID, crlCID string, masterPublicKey []byte) error {
 	if crlCID == "" {
 		return nil // No CRL hash: skip check
 	}
@@ -504,33 +527,11 @@ func checkRevocationList(licenseID, crlCID string) error {
 		return fmt.Errorf("CRL gateway returned HTTP %d", resp.StatusCode)
 	}
 
-	// Read encrypted CRL
 	crlData, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1 MB limit
 	if err != nil {
 		return fmt.Errorf("CRL read: %w", err)
 	}
-
-	// Derive decryption key (same derivation as Export)
-	mac := hmac.New(sha256.New, []byte("KHEPRA-CRL-EXPORT-KEY-V1"))
-	mac.Write(crlData[12:]) // Approximate: production would use a proper envelope
-	_ = mac.Sum(nil)
-
-	// Parse the CRL JSON
-	var crl struct {
-		Entries []RevocationEntry `json:"entries"`
-	}
-	if err := json.Unmarshal(crlData, &crl); err != nil {
-		// Encrypted CRL — skip detailed parse (client cannot decrypt without authority key)
-		return nil
-	}
-
-	for _, entry := range crl.Entries {
-		if entry.LicenseID == licenseID {
-			return fmt.Errorf("sovereign: license %s is REVOKED: %s", licenseID, entry.Reason)
-		}
-	}
-
-	return nil
+	return crlRevokes(crlData, licenseID, masterPublicKey)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

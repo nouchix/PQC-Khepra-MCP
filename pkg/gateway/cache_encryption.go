@@ -39,22 +39,16 @@ func (c *STIGConnector) encryptCacheData(plaintext []byte) ([]byte, []byte, erro
 		return nil, nil, fmt.Errorf("failed to create AES cipher: %w", err)
 	}
 
-	// Create GCM mode
-	aesGCM, err := cipher.NewGCM(block)
+	// Create GCM mode; the module generates the 12-byte nonce.
+	aesGCM, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
 
-	// Generate random nonce (12 bytes for GCM)
-	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, nil, fmt.Errorf("failed to generate nonce: %w", err)
-	}
+	// Encrypt and authenticate: out = nonce | ciphertext | tag
+	out := aesGCM.Seal(nil, nil, plaintext, nil)
 
-	// Encrypt and authenticate
-	ciphertext := aesGCM.Seal(nil, nonce, plaintext, nil)
-
-	return ciphertext, nonce, nil
+	return out[12:], out[:12], nil
 }
 
 // decryptCacheData decrypts ciphertext using AES-256-GCM.
@@ -77,13 +71,13 @@ func (c *STIGConnector) decryptCacheData(ciphertext []byte, nonce []byte) ([]byt
 	}
 
 	// Create GCM mode
-	aesGCM, err := cipher.NewGCM(block)
+	aesGCM, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
 
 	// Decrypt and verify authentication tag
-	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := aesGCM.Open(nil, nil, append(append([]byte{}, nonce...), ciphertext...), nil)
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed (authentication tag mismatch): %w", err)
 	}

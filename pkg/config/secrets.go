@@ -30,18 +30,17 @@ func LoadEncryptedSecrets(bundlePath string, khepraKey []byte) (*SecretBundle, e
 		return nil, fmt.Errorf("cipher init failed: %v", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	// Bundle layout: nonce(12) | ciphertext | tag(16).
+	gcm, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
-		return nil, fmt.Errorf("gcm init failed: %v", err)
+		return nil, fmt.Errorf("gcm init failed: %w", err)
 	}
 
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
+	if len(ciphertext) < 12+gcm.Overhead() {
 		return nil, fmt.Errorf("ciphertext too short")
 	}
 
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := gcm.Open(nil, nil, ciphertext, nil)
 	if err != nil {
 		// Audit Log: This is a high-severity integrity failure
 		return nil, fmt.Errorf("decryption failed (potential tampering): %v", err)

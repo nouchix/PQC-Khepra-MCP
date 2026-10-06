@@ -323,27 +323,21 @@ func encryptAESGCM(plaintext []byte, key []byte, additionalData []byte) ([]byte,
 		return nil, nil, nil, err
 	}
 
-	aesGCM, err := cipher.NewGCM(block)
+	// The module generates the nonce; Seal returns nonce | ciphertext | tag.
+	aesGCM, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	// Generate random nonce
-	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, nil, nil, err
-	}
-
 	// Encrypt + authenticate
-	ciphertext := aesGCM.Seal(nil, nonce, plaintext, additionalData)
-
-	// Extract authentication tag (last 16 bytes)
-	if len(ciphertext) < 16 {
+	out := aesGCM.Seal(nil, nil, plaintext, additionalData)
+	if len(out) < 12+16 {
 		return nil, nil, nil, fmt.Errorf("ciphertext too short")
 	}
 
-	tag := ciphertext[len(ciphertext)-16:]
-	payload := ciphertext[:len(ciphertext)-16]
+	nonce := out[:12]
+	tag := out[len(out)-16:]
+	payload := out[12 : len(out)-16]
 
 	return payload, nonce, tag, nil
 }
@@ -359,16 +353,22 @@ func decryptAESGCM(ciphertext []byte, key []byte, nonce []byte, tag []byte, addi
 		return nil, err
 	}
 
-	aesGCM, err := cipher.NewGCM(block)
+	aesGCM, err := cipher.NewGCMWithRandomNonce(block)
 	if err != nil {
 		return nil, err
 	}
+	if len(nonce) != 12 {
+		return nil, fmt.Errorf("AES-GCM nonce must be 12 bytes, got %d", len(nonce))
+	}
 
-	// Reconstruct ciphertext with tag
-	fullCiphertext := append(ciphertext, tag...)
+	// Reconstruct nonce | ciphertext | tag
+	full := make([]byte, 0, len(nonce)+len(ciphertext)+len(tag))
+	full = append(full, nonce...)
+	full = append(full, ciphertext...)
+	full = append(full, tag...)
 
 	// Decrypt + verify authentication
-	plaintext, err := aesGCM.Open(nil, nonce, fullCiphertext, additionalData)
+	plaintext, err := aesGCM.Open(nil, nil, full, additionalData)
 	if err != nil {
 		return nil, fmt.Errorf("AES-GCM authentication failed: %w", err)
 	}
