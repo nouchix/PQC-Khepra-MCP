@@ -26,8 +26,19 @@ func quietLogger() *log.Logger { return log.New(io.Discard, "", 0) }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-func TestStoreSealRoundTrip(t *testing.T) {
+// storeDir returns a fresh 0700 directory. t.TempDir is 0755 on Linux, which
+// OpenStore correctly refuses for credential storage.
+func storeDir(t *testing.T) string {
+	t.Helper()
 	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+func TestStoreSealRoundTrip(t *testing.T) {
+	dir := storeDir(t)
 	s, err := OpenStore(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +75,7 @@ func TestStoreSealRoundTrip(t *testing.T) {
 	}
 
 	// A different machine key cannot.
-	other, _ := OpenStore(t.TempDir())
+	other, _ := OpenStore(storeDir(t))
 	blob, _ := os.ReadFile(s.statePath(want.URL))
 	if _, err := other.unseal(blob); err == nil {
 		t.Fatal("unseal succeeded with a foreign KEM key")
@@ -106,7 +117,7 @@ func TestStoreFilePerms(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("mode bits are not the ACL boundary on Windows")
 	}
-	s, _ := OpenStore(t.TempDir())
+	s, _ := OpenStore(storeDir(t))
 	fi, _ := os.Stat(filepath.Join(s.Dir(), kemKeyFile))
 	if fi.Mode().Perm() != 0o600 {
 		t.Fatalf("kem.key mode %04o, want 0600", fi.Mode().Perm())
@@ -291,7 +302,7 @@ func newFake(t *testing.T) (*fakeUpstream, *httptest.Server) {
 }
 
 func newTestBroker(t *testing.T, url string) *Broker {
-	store, err := OpenStore(t.TempDir())
+	store, err := OpenStore(storeDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +444,7 @@ func TestBrokerHandlerForwardsAndStripsConfirm(t *testing.T) {
 }
 
 func TestBrokerRejectsPlainHTTPRemote(t *testing.T) {
-	store, _ := OpenStore(t.TempDir())
+	store, _ := OpenStore(storeDir(t))
 	if _, err := New(Config{URL: "http://mcp.example.com/mcp", Alias: "x", Store: store}); err == nil {
 		t.Fatal("plain http remote accepted — bearer would leak")
 	}
@@ -455,7 +466,7 @@ func TestBrokerNonInteractiveFailsActionably(t *testing.T) {
 func TestBrokerUsesStoredTokenAndRetriesOn401(t *testing.T) {
 	f, srv := newFake(t)
 	f.requireTok = "good"
-	store, _ := OpenStore(t.TempDir())
+	store, _ := OpenStore(storeDir(t))
 	// Seed a stale token with no refresh path — should surface as re-auth.
 	_ = store.Save(&ServerState{URL: srv.URL, Tokens: &TokenSet{AccessToken: "stale"}, Pins: map[string]PinnedTool{}})
 	b, _ := New(Config{URL: srv.URL, Alias: "u", Store: store, Logger: quietLogger()})
