@@ -217,7 +217,7 @@ func generateExecutiveReport(snapshot *audit.AuditSnapshot, kb *intel.KnowledgeB
 
 ## Executive Summary
 
-This report presents the findings from the Khepra Protocol security assessment conducted on your infrastructure. The assessment leverages post-quantum cryptography (Dilithium3) to provide cryptographically verifiable security attestations.
+This report presents the findings from the Khepra Protocol security assessment conducted on your infrastructure. The assessment leverages post-quantum cryptography (ML-DSA-87 / FIPS 204) to provide cryptographically verifiable security attestations.
 
 ### Key Findings
 
@@ -330,7 +330,7 @@ Internet → Port 22 (SSH) → CVE-2021-41617 → Root Access → Database Compr
 
 This assessment was conducted using the Khepra Protocol platform, which leverages:
 
-- **Post-Quantum Cryptography:** Dilithium3 (ML-DSA-65) for unforgeable attestations
+- **Post-Quantum Cryptography:** ML-DSA-87 (NIST FIPS 204) for unforgeable attestations
 - **Causal Risk Graphs:** DAG-based attack path modeling
 - **Continuous Intelligence:** CISA KEV, Shodan, MITRE ATT&CK correlation
 
@@ -463,7 +463,7 @@ All 14 control families evaluated. Findings map to the following families:
 
 ## Evidence Collection
 
-Cryptographic attestations generated via ML-DSA-65 (FIPS 204).
+Cryptographic attestations generated via ML-DSA-87 (NIST FIPS 204).
 All automated findings include signed evidence blocks verifiable offline.
 
 ---

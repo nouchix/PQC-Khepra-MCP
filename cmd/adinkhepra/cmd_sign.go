@@ -12,7 +12,7 @@ import (
 
 func signCmd(args []string) {
 	fs := flag.NewFlagSet("sign", flag.ExitOnError)
-	keyPath := fs.String("key", "", "Path to Dilithium3 private key (required)")
+	keyPath := fs.String("key", "", "Path to ML-DSA-87 private key (required)")
 	inputFile := fs.String("input", "", "File to sign (required)")
 	outputFile := fs.String("output", "", "Signature output file (default: <input>.sig)")
 	fs.Parse(args)
@@ -44,22 +44,22 @@ func signCmd(args []string) {
 	hash := sha256.Sum256(inputData)
 	hashHex := hex.EncodeToString(hash[:])
 
-	// Sign the hash using Dilithium3
+	// Sign the hash using ML-DSA-87 (FIPS 204)
 	signature, err := adinkra.Sign(privKeyData, hash[:])
 	if err != nil {
 		fatal("failed to sign", err)
 	}
 
 	// Create Git-style signature format
-	gitSig := fmt.Sprintf(`-----BEGIN DILITHIUM3 SIGNATURE-----
+	gitSig := fmt.Sprintf(`-----BEGIN ML-DSA-87 SIGNATURE-----
 Hash: SHA256
-Algorithm: Dilithium3 (NIST FIPS 204)
+Algorithm: ML-DSA-87 (NIST FIPS 204)
 
 %s
 
 -----BEGIN SIGNATURE-----
 %s
------END DILITHIUM3 SIGNATURE-----
+-----END ML-DSA-87 SIGNATURE-----
 `, hashHex, hex.EncodeToString(signature))
 
 	// Write signature to output
@@ -71,7 +71,7 @@ Algorithm: Dilithium3 (NIST FIPS 204)
 }
 
 func printSignUsage() {
-	fmt.Println(`adinkhepra sign - Sign files with Dilithium3
+	fmt.Println(`adinkhepra sign - Sign files with ML-DSA-87 (FIPS 204)
 
 Usage:
   adinkhepra sign --key <private-key> --input <file> [--output <signature-file>]
@@ -86,7 +86,7 @@ Examples:
 
 func verifyCmd(args []string) {
 	fs := flag.NewFlagSet("verify", flag.ExitOnError)
-	keyPath := fs.String("key", "", "Path to Dilithium3 public key (required)")
+	keyPath := fs.String("key", "", "Path to ML-DSA-87 public key (required)")
 	inputFile := fs.String("input", "", "File to verify (required)")
 	sigFile := fs.String("signature", "", "Signature file (default: <input>.sig)")
 	fs.Parse(args)
@@ -142,13 +142,13 @@ func verifyCmd(args []string) {
 	}
 
 	fmt.Println("[VERIFY] ✅ VALID SIGNATURE")
-	fmt.Printf("   - Algorithm: Dilithium3 (NIST FIPS 204)\n")
+	fmt.Printf("   - Algorithm: ML-DSA-87 (NIST FIPS 204)\n")
 	fmt.Printf("   - File Hash: %x\n", hash)
 	fmt.Println("   - Status: Post-quantum secure")
 }
 
 func printVerifyUsage() {
-	fmt.Println(`adinkhepra verify - Verify Dilithium3 signatures
+	fmt.Println(`adinkhepra verify - Verify ML-DSA-87 signatures
 
 Usage:
   adinkhepra verify --key <public-key> --input <file> [--signature <sig-file>]
@@ -171,7 +171,7 @@ func extractSignatureHex(sigText string) string {
 			inSigBlock = true
 			continue
 		}
-		if line == "-----END DILITHIUM3 SIGNATURE-----" {
+		if line == "-----END DILITHIUM3 SIGNATURE-----" || line == "-----END ML-DSA-87 SIGNATURE-----" {
 			break
 		}
 		if inSigBlock && line != "" {

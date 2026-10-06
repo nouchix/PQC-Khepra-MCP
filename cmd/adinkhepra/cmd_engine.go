@@ -54,7 +54,7 @@ Examples:
   # Export to GraphML for Gephi/Cytoscape
   adinkhepra engine export demo-snapshot.json.sealed --format graphml
 
-  # Export and publish to Git with Dilithium3 signature
+  # Export and publish to Git with ML-DSA-87 signature
   adinkhepra engine export demo-snapshot.json --publish-git`)
 }
 
@@ -164,7 +164,7 @@ func engineExportCmd(args []string) {
 	fs := flag.NewFlagSet("engine export", flag.ExitOnError)
 	format := fs.String("format", "graphml", "Export format (graphml, dot, json)")
 	output := fs.String("output", "dag-export", "Output file (extension added automatically)")
-	publishGit := fs.Bool("publish-git", false, "Publish snapshot to Git repository with Dilithium3 signature")
+	publishGit := fs.Bool("publish-git", false, "Publish snapshot to Git repository with ML-DSA-87 signature")
 	fs.Parse(args)
 
 	if len(fs.Args()) < 1 {
@@ -222,7 +222,7 @@ func engineExportCmd(args []string) {
 			fmt.Printf("[WARN] Failed to publish to Git: %v\n", err)
 			fmt.Println("       Snapshot exported successfully, but Git publishing failed.")
 		} else {
-			fmt.Println("[SUCCESS] Snapshot published to Git with Dilithium3 signature ✓")
+			fmt.Println("[SUCCESS] Snapshot published to Git with ML-DSA-87 signature ✓")
 		}
 	}
 }
@@ -323,7 +323,7 @@ func publishSnapshotToGit(snapshotPath string) error {
 This snapshot represents the cryptographic state of the Khepra
 Protocol Trust Constellation as of %s.
 
-Signature Algorithm: Dilithium3 (NIST FIPS 204)
+Signature Algorithm: ML-DSA-87 (NIST FIPS 204)
 Timestamp: %s
 File: %s
 
@@ -333,8 +333,8 @@ File: %s
 		time.Now().Format(time.RFC3339),
 		targetFile)
 
-	// Commit with Dilithium3 signature (via dilithium-sign.bat if configured)
-	fmt.Printf("   - Creating commit with Dilithium3 signature...\n")
+	// Commit with ML-DSA-87 signature (via dilithium-sign.bat if configured)
+	fmt.Printf("   - Creating commit with ML-DSA-87 signature...\n")
 	if err := runGitCmd("commit", "-m", commitMsg); err != nil {
 		return fmt.Errorf("git commit failed: %w", err)
 	}
@@ -438,7 +438,7 @@ func generateDAGVisualization(_ map[string]interface{}) string {
         <h1>⚡ Trust Constellation</h1>
         <div class="metric">Nodes: <span id="node-count">0</span></div>
         <div class="metric">Edges: <span id="edge-count">0</span></div>
-        <div class="metric">Post-Quantum Signature: <span>✓ Dilithium3 (pre-standard)</span></div>
+        <div class="metric">Post-Quantum Signature: <span>✓ ML-DSA-87 (NIST FIPS 204)</span></div>
         <div class="legend">
             <div class="legend-item critical">● CRITICAL (CVE Exploited)</div>
             <div class="legend-item high">● HIGH (Public Exploit)</div>
