@@ -14,7 +14,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: "1.23"
+  GO_VERSION: "1.27.1"
   BINARY_NAME: khepra-mcp
 
 jobs:
