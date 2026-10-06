@@ -255,13 +255,14 @@ func defaultToolSpecs(pubKey []byte) []khepramcp.ToolSpec {
 
 // loadManifestRegistry loads the tool registry: the release manifest at
 // KHEPRA_MANIFEST_PATH if it verifies under the pinned release key, otherwise
-// the built-in tool specs signed with this process's ML-DSA-87 key.
+// the tool specs compiled into the binary, signed with this process's ML-DSA-87
+// key and verified.
 func loadManifestRegistry(ctx context.Context, privKey, pubKey []byte, keyID string, logger *log.Logger) (*khepramcp.ManifestRegistry, error) {
 	manifestPath := os.Getenv("KHEPRA_MANIFEST_PATH")
 	if manifestPath == "" {
 		manifestPath = "manifest.json"
 	}
-	return khepramcp.LoadTrustedRegistry(ctx, manifestPath, defaultToolSpecs(privKey), privKey, pubKey, keyID,
+	return khepramcp.LoadTrustedRegistry(ctx, manifestPath, builtInToolSpecs(), privKey, pubKey, keyID,
 		attestenvelope.AdinkraSigner{}, logger.Printf)
 }
 
