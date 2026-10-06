@@ -80,17 +80,9 @@ func (r *Recorder) ExportEvidencePackage(cfg ExportConfig) (*evidence.C3PAOPacka
 	// Merge with extra findings from KASA or external scanner
 	allFindings := append(synthesized, cfg.ExtraFindings...)
 	if len(allFindings) == 0 {
-		// Ensure we always have at least one finding to satisfy evidence.Build()
-		allFindings = []evidence.Finding{{
-			ID: "AU-3", Title: "Flight Recorder Continuous Monitoring",
-			Severity: "CAT III", POAMEligible: true, SPRSPoints: 1,
-			RejectPattern: evidence.RejectHistoryGap, ExposureUSD: 50000,
-			CMMCPractice: "CMMC.AU.L2-3.3.1", NIST: "3.3.1", CCI: "CCI-000131",
-			MITRETechnique: "T1562.002",
-			Detail:         fmt.Sprintf("Flight Recorder active. %d frames recorded.", len(frames)),
-			Remediation:    "No action required — continuous monitoring is active.",
-			SignedBy:       "ML-DSA-65 / FIPS 204",
-		}}
+		// Nothing was derived from the recorded frames and no extra findings
+		// were supplied: there is nothing to package as evidence.
+		return nil, fmt.Errorf("flight/export: no findings derived from %d recorded frame(s); nothing to package", len(frames))
 	}
 
 	pkg, err := evidence.Build(evidence.BuildConfig{

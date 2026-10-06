@@ -117,7 +117,7 @@ func routerWithLicense(t *testing.T, lic *licpkg.KhepraLicense) *Router {
 	// Use a slice-based loop (not map range) to avoid Go closure variable capture bugs.
 	allTools := []string{
 		"ert_scan", "nist_map",
-		"godfather_report", "godfather_approve", "khepra_watch",
+		"godfather_approve", "khepra_watch",
 		"acp_status", "acp_issue", "acp_revoke",
 		"nhi_inventory", "nhi_orphans", "nhi_excessive", "nhi_expired", "nhi_revoke",
 	}
@@ -285,12 +285,12 @@ func TestLicense_Nil_TreatedAsCommunity(t *testing.T) {
 
 func TestLicense_Pilot_GodfatherReport_Allowed(t *testing.T) {
 	r := routerWithLicense(t, pilotLicense())
-	resp, err := r.HandleToolCall(context.Background(), toolCall("godfather_report"), nil, "local")
+	resp, err := r.HandleToolCall(context.Background(), toolCall("godfather_approve"), nil, "local")
 	if err != nil {
-		t.Fatalf("godfather_report pilot: %v", err)
+		t.Fatalf("godfather_approve pilot: %v", err)
 	}
 	if resp.IsError {
-		t.Fatalf("godfather_report pilot: expected success, got: %s", resp.ErrorMessage)
+		t.Fatalf("godfather_approve pilot: expected success, got: %s", resp.ErrorMessage)
 	}
 }
 
@@ -329,7 +329,7 @@ func TestLicense_Enterprise_All13Tools_Allowed(t *testing.T) {
 	// Read-only tools: use standard toolCall
 	readOnlyTools := []string{
 		"ert_scan", "nist_map",
-		"godfather_report", "godfather_approve", "khepra_watch",
+		"godfather_approve", "khepra_watch",
 		"acp_status",
 		"nhi_inventory", "nhi_orphans", "nhi_excessive", "nhi_expired",
 	}

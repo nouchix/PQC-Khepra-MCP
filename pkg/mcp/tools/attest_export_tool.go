@@ -14,7 +14,7 @@ package tools
 // Finding sources (priority order):
 //  1. findings_json parameter
 //  2. ~/.khepra/last_scan.json (written by ert_scan)
-//  3. Synthetic demo findings (fallback)
+//  No findings is an error: a package is never built from example data.
 //
 // Returns AttestExportResponse with zip_path, sprs_score, manifest_signature.
 //
@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/evidence"
@@ -85,9 +86,10 @@ func HandleAttestExport(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 		}
 	}
 
-	// Source 3: synthetic demo findings (ensures package is always non-empty)
+	// No real findings: there is nothing to attest. (A package must never be
+	// built from example findings and labelled with the caller's target.)
 	if len(findings) == 0 {
-		findings = attestDemoFindings()
+		return nil, nil, fmt.Errorf("attest_export: no findings — supply findings or run a scan first (~/.khepra/last_scan.json)")
 	}
 
 	// Build the 13-artifact C3PAO evidence ZIP
@@ -115,53 +117,15 @@ func HandleAttestExport(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 	return resp, []string{
 		fmt.Sprintf("C3PAO evidence package: %s", pkg.ZipPath),
 		fmt.Sprintf("SPRS Score: %d / 110 (%s) — -%d points", pkg.SPRS.Score, pkg.SPRS.PassFail, pkg.SPRS.Deduction),
-		fmt.Sprintf("%d artifacts | %d findings | $%.0f exposure | ML-DSA-65 signed", pkg.ArtifactCount, len(pkg.Findings), pkg.TotalExposure),
+		fmt.Sprintf("%d artifacts | %d findings | $%.0f exposure | manifest: %s", pkg.ArtifactCount, len(pkg.Findings), pkg.TotalExposure, manifestSigLabel(pkg.ManifestSignature)),
 		"Unzip and open 12-dag-viewer.html for visual DAG evidence",
 	}, nil
 }
 
-// attestDemoFindings returns canonical demo findings matching the DVWA surface.
-func attestDemoFindings() []evidence.Finding {
-	return []evidence.Finding{
-		{
-			ID: "SC-13", Title: "Legacy / Non-FIPS Cryptography",
-			Severity: "CAT I", POAMEligible: false, SPRSPoints: 3,
-			RejectPattern: evidence.RejectPaperTiger, ExposureUSD: 1800000,
-			CMMCPractice: "CMMC.SC.L2-3.13.10", NIST: "3.13.10",
-			CCI: "CCI-002450", MITRETechnique: "T1600",
-			Detail:      "Non-FIPS cryptographic algorithms detected. FIPS 140-2/3 compliance required.",
-			Remediation: "Migrate to ML-KEM-1024 (FIPS 203) and ML-DSA-87 (FIPS 204).",
-			SignedBy:    "ML-DSA-65 / FIPS 204",
-		},
-		{
-			ID: "SI-10", Title: "Input Validation — Injection Vectors",
-			Severity: "CAT I", POAMEligible: false, SPRSPoints: 5,
-			RejectPattern: evidence.RejectPaperTiger, ExposureUSD: 2400000,
-			CMMCPractice: "CMMC.SI.L2-3.14.2", NIST: "3.14.2",
-			CCI: "CCI-002754", MITRETechnique: "T1190",
-			Detail:      "Input validation controls absent. SQL, command, and script injection viable.",
-			Remediation: "Parameterized queries + input allowlisting + WAF rules.",
-			SignedBy:    "ML-DSA-65 / FIPS 204",
-		},
-		{
-			ID: "IA-5", Title: "Hardcoded / Exposed Credentials",
-			Severity: "CAT I", POAMEligible: false, SPRSPoints: 3,
-			RejectPattern: evidence.RejectHygiene, ExposureUSD: 890000,
-			CMMCPractice: "CMMC.IA.L2-3.5.3", NIST: "3.5.3",
-			CCI: "CCI-000186", MITRETechnique: "T1552.001",
-			Detail:      "Credentials found in plaintext. Violates IA-5 credential management.",
-			Remediation: "Move secrets to env vars + Vault. Rotate all exposed credentials immediately.",
-			SignedBy:    "ML-DSA-65 / FIPS 204",
-		},
-		{
-			ID: "AC-3", Title: "Missing Access Control — IDOR",
-			Severity: "CAT II", POAMEligible: true, SPRSPoints: 5,
-			RejectPattern: evidence.RejectScopeGap, ExposureUSD: 480000,
-			CMMCPractice: "CMMC.AC.L2-3.1.3", NIST: "3.1.3",
-			CCI: "CCI-001873", MITRETechnique: "T1078",
-			Detail:      "Object-level authorization absent. Insecure Direct Object Reference confirmed.",
-			Remediation: "Server-side authorization check on every object access. RBAC enforcement.",
-			SignedBy:    "ML-DSA-65 / FIPS 204",
-		},
+// manifestSigLabel states whether the package manifest is signed.
+func manifestSigLabel(sig string) string {
+	if strings.HasPrefix(sig, "ML-DSA-87:") {
+		return "ML-DSA-87 signed"
 	}
+	return "UNSIGNED (no signing key configured)"
 }
