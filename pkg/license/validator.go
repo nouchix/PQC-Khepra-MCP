@@ -294,6 +294,8 @@ func slugForTier(tier string) string {
 		return "com"
 	case TierPro:
 		return "pro"
+	case TierPlatform:
+		return "pla"
 	case TierEnterprise:
 		return "ent"
 	case TierSovereign:
@@ -310,19 +312,21 @@ func slugForTier(tier string) string {
 // isValidTierSlug reports whether s is a known tier slug.
 func isValidTierSlug(s string) bool {
 	switch strings.ToLower(s) {
-	case "com", "pro", "ent", "sov", "mas", "pha":
+	case "com", "pro", "pla", "ent", "sov", "mas", "pha":
 		return true
 	}
 	return false
 }
 
-// TierFromSlug maps a slug ("com", "pro", "ent", "sov", "mas", "pha") to its canonical tier constant.
+// TierFromSlug maps a slug ("com", "pro", "pla", "ent", "sov", "mas", "pha") to its canonical tier constant.
 func TierFromSlug(slug string) string {
 	switch strings.ToLower(slug) {
 	case "com":
 		return TierCommunity
 	case "pro":
 		return TierPro
+	case "pla":
+		return TierPlatform
 	case "ent":
 		return TierEnterprise
 	case "sov":
@@ -442,7 +446,7 @@ func GenerateSignedAPIKey(signerKey []byte, tier, customerID string, expiry time
 
 func isValidTier(tier string) bool {
 	switch strings.ToLower(tier) {
-	case TierCommunity, TierPro, TierEnterprise, TierSovereign, TierMaster, TierPharaoh:
+	case TierCommunity, TierPro, TierPlatform, TierEnterprise, TierSovereign, TierMaster, TierPharaoh:
 		return true
 	}
 	return false
