@@ -51,6 +51,7 @@ type ValidationResult struct {
 	Failed        int           // Number of controls failed
 	NotApplicable int           // Number of controls not applicable
 	ManualReview  int           // Number of controls requiring manual review
+	NotAssessed   int           // Number of controls with no evidence either way
 	Findings      []Finding     // Detailed findings
 	StartTime     time.Time     // Validation start time
 	EndTime       time.Time     // Validation end time

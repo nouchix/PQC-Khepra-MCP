@@ -6,8 +6,24 @@ import (
 	"time"
 )
 
-// validateCMMC validates against CMMC 3.0 Level 3 (110 L2 controls + 24 L3 enhanced controls)
-// This is a dynamic, data-driven engine that maps real-time STIG scan findings to CMMC.
+// StatusNotAssessed marks a practice for which this validation holds no
+// evidence either way. It is the default: a practice is "Pass" only when
+// every NIST 800-53 control it maps to has passing automated checks and no
+// rule is still waiting for manual review.
+const StatusNotAssessed = "Not Assessed"
+
+// controlEvidence is what the other frameworks in this validation say about
+// one NIST 800-53 control.
+type controlEvidence struct {
+	passed     int    // passing automated rules mapped to the control
+	failed     int    // failing rules mapped to the control
+	pending    int    // rules mapped to the control that await manual review
+	failReason string // title of the first failing rule
+}
+
+// validateCMMC derives CMMC Level 2 (NIST 800-171) and Level 3 (800-172)
+// practice status from the findings of the other frameworks that ran in this
+// validation, through the STIG → CCI → NIST 800-53 crosswalk.
 func (v *Validator) validateCMMC(result *ValidationResult) error {
 	result.Version = "3.0 Level 3"
 
@@ -16,22 +32,36 @@ func (v *Validator) validateCMMC(result *ValidationResult) error {
 		return err
 	}
 
-	// Track failed NIST 800-53 controls from ALL other frameworks
-	failedNIST53 := make(map[string]string) // ControlID -> Finding Summary
+	evidence := make(map[string]*controlEvidence)
 	for name, res := range v.report.Results {
-		if name == "CMMC-3.0-L3" {
-			continue
-		} // Avoid recursion
+		if name == FrameworkCMMC || res == nil {
+			continue // Avoid recursion
+		}
 		for _, f := range res.Findings {
-			if f.Status == "Fail" {
-				// Translate finding ID to NIST 800-53 refs
-				// If finding is already a STIG ID:
-				refs, _ := db.GetCrossReferences(f.ID)
-				for _, ref := range refs {
-					if strings.HasPrefix(ref, "NIST-800-53:") {
-						ctrlID := strings.TrimPrefix(ref, "NIST-800-53:")
-						failedNIST53[ctrlID] = f.Title
+			if f.Status == "Not Applicable" {
+				continue
+			}
+			refs, _ := db.GetCrossReferences(f.ID)
+			for _, ref := range refs {
+				if !strings.HasPrefix(ref, "NIST-800-53:") {
+					continue
+				}
+				ctrl := strings.TrimPrefix(ref, "NIST-800-53:")
+				e := evidence[ctrl]
+				if e == nil {
+					e = &controlEvidence{}
+					evidence[ctrl] = e
+				}
+				switch f.Status {
+				case "Fail":
+					e.failed++
+					if e.failReason == "" {
+						e.failReason = f.Title
 					}
+				case "Pass":
+					e.passed++
+				default:
+					e.pending++
 				}
 			}
 		}
@@ -39,12 +69,12 @@ func (v *Validator) validateCMMC(result *ValidationResult) error {
 
 	// 1. Process Level 2 Controls (NIST 800-171)
 	for nist171, nist53Refs := range db.NIST171to53 {
-		v.processCMMCControl(result, db, "L2", nist171, nist53Refs, failedNIST53)
+		v.processCMMCControl(result, db, "L2", nist171, nist53Refs, evidence)
 	}
 
-	// 2. Process Level 3 Controls (NIST 800-171)
+	// 2. Process Level 3 Controls (NIST 800-172)
 	for nist172, nist53Refs := range db.NIST172to53 {
-		v.processCMMCControl(result, db, "L3", nist172, nist53Refs, failedNIST53)
+		v.processCMMCControl(result, db, "L3", nist172, nist53Refs, evidence)
 	}
 
 	v.addPQCAdvancedL3(result)
@@ -52,7 +82,7 @@ func (v *Validator) validateCMMC(result *ValidationResult) error {
 	return nil
 }
 
-func (v *Validator) processCMMCControl(result *ValidationResult, db *ComplianceDatabase, level string, nistRef string, nist53Refs []string, failedNIST53 map[string]string) {
+func (v *Validator) processCMMCControl(result *ValidationResult, db *ComplianceDatabase, level string, nistRef string, nist53Refs []string, evidence map[string]*controlEvidence) {
 	// Identify family
 	family := "General"
 	if len(nist53Refs) > 0 {
@@ -74,19 +104,7 @@ func (v *Validator) processCMMCControl(result *ValidationResult, db *ComplianceD
 		}
 	}
 
-	status := "Pass"
-	actual := "Successfully verified via cross-framework automated audit."
-	failurePoint := ""
-
-	// Audit check: If any underlying 800-53 control failed, this CMMC practice fails
-	for _, ref53 := range nist53Refs {
-		if reason, failed := failedNIST53[ref53]; failed {
-			status = "Fail"
-			failurePoint = reason
-			actual = fmt.Sprintf("Non-compliance detected in underlying security control %s: %s", ref53, failurePoint)
-			break
-		}
-	}
+	status, actual := cmmcPracticeStatus(nist53Refs, evidence)
 
 	finding := Finding{
 		ID:          fmt.Sprintf("CMMC:%s.%s-%s", strings.ReplaceAll(family, " ", ""), level, nistRef),
@@ -102,6 +120,37 @@ func (v *Validator) processCMMCControl(result *ValidationResult, db *ComplianceD
 	}
 
 	result.Findings = append(result.Findings, finding)
+}
+
+// cmmcPracticeStatus decides a practice's status from the evidence for the
+// NIST 800-53 controls it maps to.
+func cmmcPracticeStatus(nist53Refs []string, evidence map[string]*controlEvidence) (status, actual string) {
+	var failures []string
+	covered, passedRules, pending := 0, 0, 0
+	for _, ref := range nist53Refs {
+		e := evidence[ref]
+		if e == nil {
+			continue
+		}
+		if e.failed > 0 {
+			failures = append(failures, fmt.Sprintf("%s (%s)", ref, e.failReason))
+		}
+		if e.passed > 0 {
+			covered++
+			passedRules += e.passed
+		}
+		pending += e.pending
+	}
+	switch {
+	case len(failures) > 0:
+		return "Fail", "Non-compliance detected in underlying security control(s): " + strings.Join(failures, "; ")
+	case len(nist53Refs) > 0 && covered == len(nist53Refs) && pending == 0:
+		return "Pass", fmt.Sprintf("All %d mapped NIST 800-53 control(s) have passing automated checks (%d rule results) and no rule awaits manual review. Technical checks only; confirm the practice's NIST SP 800-171A objectives with evidence.", len(nist53Refs), passedRules)
+	case covered > 0 || pending > 0:
+		return StatusNotAssessed, fmt.Sprintf("Not assessed: %d of %d mapped NIST 800-53 control(s) have passing automated checks; %d rule result(s) await manual review.", covered, len(nist53Refs), pending)
+	default:
+		return StatusNotAssessed, "Not assessed: no check in this validation covers the NIST 800-53 controls this practice maps to. Provide evidence against the NIST SP 800-171A assessment objectives."
+	}
 }
 
 func (v *Validator) getSourceDoc(level string) string {
@@ -127,6 +176,12 @@ func (v *Validator) getRemediation(status string, nist53 []string) string {
 	if status == "Pass" {
 		return "N/A"
 	}
+	if status == StatusNotAssessed {
+		if len(nist53) > 0 {
+			return fmt.Sprintf("Run the STIG benchmarks that cover %s, or attach assessment evidence for this practice.", strings.Join(nist53, ", "))
+		}
+		return "Attach assessment evidence for this practice."
+	}
 	if len(nist53) > 0 {
 		return fmt.Sprintf("Apply STIG configuration settings associated with %s controls.", strings.Join(nist53, ", "))
 	}
@@ -134,15 +189,26 @@ func (v *Validator) getRemediation(status string, nist53 []string) string {
 }
 
 func (v *Validator) addPQCAdvancedL3(result *ValidationResult) {
+	status := StatusNotAssessed
+	actual := "Not assessed: the PQC-01-STIG framework did not run in this validation."
+	if res, ok := v.report.Results[FrameworkPQCStig]; ok && res != nil && res.Passed+res.Failed > 0 {
+		if res.Failed > 0 {
+			status = "Fail"
+			actual = fmt.Sprintf("%d of %d executed PQC-01-STIG checks failed.", res.Failed, res.Passed+res.Failed)
+		} else {
+			status = "Pass"
+			actual = fmt.Sprintf("All %d executed PQC-01-STIG checks passed.", res.Passed)
+		}
+	}
 	result.Findings = append(result.Findings, Finding{
 		ID:          "CMMC:SC.L3-PQC-001",
-		Title:       "Post-Quantum Cryptographic Anomaly Detection",
-		Description: "Advanced practice: Monitor cross-domain flows for quantum-vulnerable cryptography.",
+		Title:       "Post-Quantum Cryptography Readiness (NouchiX extension, not a CMMC practice)",
+		Description: "NouchiX extension reported alongside CMMC: quantum-vulnerable cryptography, from the PQC-01-STIG results.",
 		Severity:    SeverityCritical,
-		Status:      "Pass",
-		Expected:    "Active monitoring of cryptographic OIDs for legacy RSA/ECC fallback.",
-		Actual:      "Khepra DAG sentinel verified cryptographically active.",
-		References:  []string{"CMMC-L3-Enhanced", "NIST-800-53:SI-4"},
+		Status:      status,
+		Expected:    "No failing PQC-01-STIG checks.",
+		Actual:      actual,
+		References:  []string{"NouchiX-PQC-01-STIG", "NIST-800-53:SC-13"},
 		CheckedAt:   time.Now(),
 	})
 }

@@ -170,6 +170,7 @@ type CMMCAssessResponse struct {
 	TotalPractices int        `json:"total_practices"`
 	Satisfied      int        `json:"satisfied"`
 	NotSatisfied   int        `json:"not_satisfied"`
+	NotAssessed    int        `json:"not_assessed"`
 	Score          float64    `json:"score"`
 	ReadyForC3PAO  bool       `json:"ready_for_c3pao"`
 	Gaps           []CMMCGap  `json:"gaps"`
@@ -180,6 +181,7 @@ type CMMCAssessResponse struct {
 // CMMCGap is a failing CMMC practice with remediation guidance.
 type CMMCGap struct {
 	ID          string `json:"id"`
+	Status      string `json:"status"` // "Fail" or "Not Assessed"
 	Title       string `json:"title"`
 	Domain      string `json:"domain"`
 	Level       string `json:"level"`
@@ -236,16 +238,17 @@ func HandleCMMCAssess(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 	}
 
 	var gaps []CMMCGap
-	pqcPass := false
+	pqcStatus := "Not assessed: the PQC-01-STIG framework did not run in this validation."
 
 	for _, f := range result.Findings {
-		if strings.Contains(f.ID, "PQC") && f.Status == "Pass" {
-			pqcPass = true
+		if strings.Contains(f.ID, "PQC") {
+			pqcStatus = f.Status + ": " + f.Actual
 		}
 		if f.Status != "Pass" {
 			domain := extractCMMCDomain(f.ID)
 			gaps = append(gaps, CMMCGap{
 				ID:          f.ID,
+				Status:      f.Status,
 				Title:       f.Title,
 				Domain:      domain,
 				Level:       fmt.Sprintf("Level %d", levelNum),
@@ -256,19 +259,19 @@ func HandleCMMCAssess(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 	}
 
 	score := result.ComplianceScore()
-	readyForC3PAO := score >= 90 && result.Failed == 0
-
-	pqcStatus := "Not assessed (no PQC-specific practices in this framework level)"
-	if pqcPass {
-		pqcStatus = "PQC advanced practices satisfied — ML-DSA-65 + Kyber-1024 attestation verified"
-	}
+	// Ready only when every practice is assessed and none fails. Practices
+	// without evidence are "Not Assessed", never counted as satisfied.
+	readyForC3PAO := result.TotalControls > 0 && result.Failed == 0 && result.NotAssessed == 0 && score >= 90
 
 	var warnings []string
 	if result.Failed > 0 {
 		warnings = append(warnings, fmt.Sprintf("%d CMMC Level %d practices not satisfied — not eligible for C3PAO assessment", result.Failed, levelNum))
 	}
+	if result.NotAssessed > 0 {
+		warnings = append(warnings, fmt.Sprintf("%d CMMC Level %d practices not assessed — no evidence either way; provide evidence or run the STIG benchmarks that cover them", result.NotAssessed, levelNum))
+	}
 	if !readyForC3PAO {
-		warnings = append(warnings, fmt.Sprintf("Organization is NOT ready for CMMC Level %d certification — remediate %d gap(s) first", levelNum, result.Failed))
+		warnings = append(warnings, fmt.Sprintf("Organization is NOT ready for CMMC Level %d certification — %d failing and %d unassessed practice(s)", levelNum, result.Failed, result.NotAssessed))
 	} else {
 		warnings = append(warnings, fmt.Sprintf("Organization appears ready for CMMC Level %d C3PAO assessment — verify with a qualified C3PAO", levelNum))
 	}
@@ -279,6 +282,7 @@ func HandleCMMCAssess(ctx context.Context, call mcp.MCPToolCall) (any, []string,
 		TotalPractices: result.TotalControls,
 		Satisfied:      result.Passed,
 		NotSatisfied:   result.Failed,
+		NotAssessed:    result.NotAssessed,
 		Score:          score,
 		ReadyForC3PAO:  readyForC3PAO,
 		Gaps:           gaps,
