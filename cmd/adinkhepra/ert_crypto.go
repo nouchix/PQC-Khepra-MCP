@@ -364,7 +364,7 @@ func displayQuantumRiskContext(usage CryptoUsage, sbomLibs []SBOMCryptoLib) {
 		printRed("    [QUANTUM-VULN] ECDSA/ECDH detected:")
 		fmt.Println("    • Same Shor's vulnerability as RSA — elliptic curve discrete log is broken")
 		fmt.Println("    • CNSA 2.0 requires ML-DSA-87 for signatures (LMS/XMSS for firmware signing)")
-		fmt.Println("    • Migration path: ECDSA → ML-DSA-65 (NIST FIPS 204)")
+		fmt.Println("    • Migration path: ECDSA → ML-DSA-87 (NIST FIPS 204)")
 	}
 
 	if usage.HasPQC {

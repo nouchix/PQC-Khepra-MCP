@@ -57,7 +57,7 @@ https://nouchix.com | https://adinkhepra.com
 
 Core Compliance Commands:
   adinkhepra compliance <subcmd>    CMMC/STIG/NIST 800-171 full scan suite
-  adinkhepra compliance-attest      PQC-sign a CMMC narrative/POAM change → DAG chain (Dilithium3)
+  adinkhepra compliance-attest      PQC-sign a CMMC narrative/POAM change → DAG chain (ML-DSA-87)
   adinkhepra ssp        <subcmd>    System Security Plan (NIST SP 800-18) — generate|update|export|diff|status
   adinkhepra poam       <subcmd>    Plan of Action & Milestones — generate|status|export|update
   adinkhepra blast-radius <subcmd> Quantum-Readiness Blast Radius (NTI Score) — report|roadmap
@@ -74,7 +74,7 @@ Agent & Scan:
   adinkhepra certify    --target <host|ip>    Full audit + ADINKHEPRA certificate
 
 Key Management (PQC):
-  adinkhepra keygen                 Generate Dilithium3/Kyber-1024 keypair
+  adinkhepra keygen                 Generate ML-DSA-87/ML-KEM-1024 keypair
   adinkhepra keys init              Tier 0 key ceremony
   adinkhepra keys status            Key storage status
 
@@ -172,7 +172,7 @@ func handleSecondaryCmds(cmd string, args []string) bool {
 
 	// Compliance attestation — PQC-signed DAG audit trail for CMMC documentation
 	// "adinkhepra compliance-attest" signs every SSP narrative and POAM change
-	// with Dilithium3, creating a tamper-evident chain in asaf-compliance/attestations/
+	// with ML-DSA-87, creating a tamper-evident chain in asaf-compliance/attestations/
 	case "compliance-attest":
 		complianceAttestCmd(args)
 
@@ -1305,12 +1305,19 @@ func explainCmd(args []string) {
 		fmt.Println(" Type: Kyber-1024 Private Key (pre-standard, not FIPS 203)")
 		fmt.Println(" Meaning: 'I hold the power to unravel.'")
 		fmt.Println(" Warning: EXTREMELY SENSITIVE MATERIAL")
-	} else if size == 1952 {
-		fmt.Println(" Type: Dilithium Mode 3 Public Key (ML-DSA)")
+	} else if size == 2592 {
+		fmt.Println(" Type: ML-DSA-87 Public Key (NIST FIPS 204)")
 		fmt.Println(" Meaning: 'I am who I say I am.'")
 		fmt.Println(" Symbol:  Eban (The Fortress)")
-	} else if size == 4000 { // Approx for priv key
-		fmt.Println(" Type: Dilithium Mode 3 Private Key (ML-DSA)")
+	} else if size == 4896 {
+		fmt.Println(" Type: ML-DSA-87 Private Key (NIST FIPS 204)")
+		fmt.Println(" Meaning: 'I wield the seal of authority.'")
+	} else if size == 1952 {
+		fmt.Println(" Type: Dilithium Mode 3 Public Key (Historical ML-DSA-65)")
+		fmt.Println(" Meaning: 'I am who I say I am.'")
+		fmt.Println(" Symbol:  Eban (The Fortress)")
+	} else if size == 4000 || size == 4032 { // Approx for priv key
+		fmt.Println(" Type: Dilithium Mode 3 Private Key (Historical ML-DSA-65)")
 		fmt.Println(" Meaning: 'I wield the seal of authority.'")
 	} else if size > 1592 && filepath.Ext(path) == adinkraExt {
 		fmt.Println(" Type: AdinKhepra Encrypted Artifact")
@@ -1332,8 +1339,8 @@ func explainCmd(args []string) {
 	} else if size == 3168 {
 		fmt.Println(" \"This is the Key of Unraveling. It holds the secret vectors 's' required")
 		fmt.Println("  to collapse the error distribution e. Handle with extreme reverence.\"")
-	} else if size == 1952 {
-		fmt.Println(" \"This is the Shield of Identity. A Dilithium-Mode-3 public key.")
+	} else if size == 2592 || size == 1952 {
+		fmt.Println(" \"This is the Shield of Identity. An ML-DSA-87 public key.")
 		fmt.Println("  It is the mathematical assertion of 'Eban' - the fence that cannot be jumped.")
 		fmt.Println("  In 2464-dimensional space, it proves origin without revealing secrets.\"")
 	} else if size > 1592 && filepath.Ext(path) == adinkraExt {
@@ -1405,7 +1412,7 @@ func attestCmd(args []string) {
 		if err := attestation.SealWithPQC(sk, pk); err != nil {
 			fmt.Printf("[WARN] Failed to seal attestation: %v\n", err)
 		} else {
-			fmt.Printf("[SEC] Attestation Signed with Dilithium3 (Ephemeral Session Key)\n")
+			fmt.Printf("[SEC] Attestation Signed with ML-DSA-87 (Ephemeral Session Key)\n")
 		}
 	}
 

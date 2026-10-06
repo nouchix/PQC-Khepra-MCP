@@ -282,7 +282,7 @@ func exportDemoBlastRadius(company, outputPath string) {
 			a[0], a[1], a[2], a[3], a[4], a[5]))
 	}
 	sb.WriteString("\n## Migration Roadmap\n\n")
-	sb.WriteString("**Target:** ML-DSA-65 (NIST FIPS 204) + ML-KEM-1024 (NIST FIPS 203)  \n")
+	sb.WriteString("**Target:** ML-DSA-87 (NIST FIPS 204) + ML-KEM-1024 (NIST FIPS 203)  \n")
 	sb.WriteString("**Estimated effort:** 24 days / $60,000  \n\n")
 	sb.WriteString("### Phase 1 (< 6 months): TLS + VPN + X.509\n")
 	sb.WriteString("### Phase 2 (6–12 months): SSH + Code Signing\n")

@@ -82,12 +82,12 @@ func validateCmd(_ []string) {
 		return fmt.Sprintf("%s boringcrypto — 32B entropy OK", goVer), nil
 	})
 
-	// ── [2] ML-DSA-65 Sign / Verify ────────────────────────────────────
-	run("PQC Sign/Verify (ML-DSA-65 / Dilithium)", func() (string, error) {
-		// GenerateDilithiumKey returns (publicKey, privateKey, error)
+	// ── [2] ML-DSA-87 Sign / Verify ────────────────────────────────────
+	run("PQC Sign/Verify (ML-DSA-87 / FIPS 204)", func() (string, error) {
+		// GenerateSigningKey returns (publicKey, privateKey, error)
 		pub, priv, err := adinkra.GenerateSigningKey()
 		if err != nil {
-			return "", fmt.Errorf("GenerateDilithiumKey: %w", err)
+			return "", fmt.Errorf("GenerateSigningKey: %w", err)
 		}
 		msg := []byte("ADINKHEPRA sovereign validation " + time.Now().UTC().Format(time.RFC3339))
 		sig, err := adinkra.Sign(priv, msg)
@@ -187,7 +187,7 @@ func validateCmd(_ []string) {
 			return "", fmt.Errorf("RecordAction: %w", err)
 		}
 		// node.ID is the SHA-256 content hash — its presence proves the DAG anchored the action.
-		// node.Signature is a Dilithium signature and only present after `keygen` sets up a signing key.
+		// node.Signature is a ML-DSA-87 signature and only present after `keygen` sets up a signing key.
 		// For a fresh sovereign install, the hash-linked DAG node is the tamper-evidence mechanism.
 		if node.ID == "" {
 			return "", fmt.Errorf("DAG node has no ID — RecordAction failed to anchor")
@@ -218,8 +218,8 @@ func validateCmd(_ []string) {
 	fmt.Println()
 	fmt.Println("  Verified:")
 	fmt.Println("    ✅ FIPS 140-3 BoringCrypto RNG active")
-	fmt.Println("    ✅ ML-DSA-65 sign/verify round-trip clean")
-	fmt.Println("    ✅ Kyber-1024 KEM API operational")
+	fmt.Println("    ✅ ML-DSA-87 sign/verify round-trip clean")
+	fmt.Println("    ✅ ML-KEM-1024 KEM API operational")
 	fmt.Printf("    ✅ %d compliance controls loaded\n", dbMappings)
 	fmt.Println("    ✅ DAG tamper-evident write verified")
 	fmt.Println("    ✅ ASAF session anchored in DAG")

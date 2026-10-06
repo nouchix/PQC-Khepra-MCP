@@ -178,7 +178,7 @@ func buildBlastRadiusReport(report *stig.ComprehensiveReport) *BlastRadiusReport
 		System:           report.Hostname,
 		Environment:      report.OSVersion,
 		QDayHorizon:      "2030–2035 (NIST SP 800-208 / NSA CNSA 2.0)",
-		TargetSignature:  "ML-DSA-65 (NIST FIPS 204 / Dilithium)",
+		TargetSignature:  "ML-DSA-87 (NIST FIPS 204)",
 		TargetKEM:        "ML-KEM-1024 (NIST FIPS 203)",
 		TargetTLS:        "TLS 1.3 with X25519Kyber768 hybrid key exchange",
 		TargetSSH:        "sntrup761x25519-sha512@openssh.com (OpenSSH 9.0+)",

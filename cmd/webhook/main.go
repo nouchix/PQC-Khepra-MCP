@@ -561,7 +561,8 @@ type CertificateResponse struct {
 	Framework     string `json:"framework"`
 	Score         int    `json:"score"`
 	PDFBase64     string `json:"pdf_base64"`
-	DilithiumSig  string `json:"dilithium_signature"`
+	MLDSASig      string `json:"mldsa_signature,omitempty"`
+	DilithiumSig  string `json:"dilithium_signature,omitempty"`
 	DAGNode       string `json:"dag_node"`
 }
 
@@ -639,7 +640,7 @@ Certificate Details:
   DAG Anchor: %s
 
 This certificate is:
-  • Cryptographically signed with ML-DSA-65 (NIST FIPS 204 / Dilithium-3)
+  • Cryptographically signed with ML-DSA-87 (NIST FIPS 204)
   • Timestamped and immutable in the ADINKHEPRA DAG chain
   • Verifiable by any assessor using: asaf verify --cert <cert-id>
   • Suitable for C3PAO intake, cyber insurance, and RFP submissions

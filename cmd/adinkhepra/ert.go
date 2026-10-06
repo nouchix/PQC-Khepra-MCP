@@ -167,7 +167,7 @@ func ertFullCmd(targetDir string) {
 	fmt.Printf("  ECDSA:                   %d uses\n", intel.Crypto.CryptoUsage.ECDSA)
 	fmt.Printf("  AES:                     %d uses\n", intel.Crypto.CryptoUsage.AES)
 	fmt.Printf("  Kyber (PQC):             %d uses\n", intel.Crypto.CryptoUsage.Kyber)
-	fmt.Printf("  Dilithium (PQC):         %d uses\n", intel.Crypto.CryptoUsage.Dilithium)
+	fmt.Printf("  ML-DSA (PQC):            %d uses\n", intel.Crypto.CryptoUsage.Dilithium)
 
 	fmt.Println("\nIntellectual Property Lineage:")
 	fmt.Printf("  Proprietary:             %.1f%%\n", intel.Crypto.IPLineage.Proprietary)
