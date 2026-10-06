@@ -395,7 +395,7 @@ func main() {
 	}
 	keyHash := sha256.Sum256(pubKey)
 	keyID := hex.EncodeToString(keyHash[:8])
-	logger.Printf("[PQC] ML-DSA-65 | symbol=%s | key_id=%s", symbol, keyID)
+	logger.Printf("[PQC] ML-DSA-87 | symbol=%s | key_id=%s", symbol, keyID)
 
 	licenseClaim, licErr := license.ParseMCPLicense()
 	if errors.Is(licErr, license.ErrNoLicenseKey) {
