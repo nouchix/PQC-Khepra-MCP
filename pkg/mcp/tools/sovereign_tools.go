@@ -15,7 +15,6 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -562,13 +561,16 @@ func HandleKhepraQueryThreatIntel(ctx context.Context, call mcp.MCPToolCall) (an
 
 	result := &ThreatIntelResult{
 		Query:     query,
-		Source:    "CISA KEV + NVD (embedded, offline)",
+		Source:    loadCVEIndex().describe(),
 		Matches:   len(vulns),
 		Vulns:     vulns,
 		QueriedAt: time.Now().UTC().Format(time.RFC3339),
 	}
 
 	var warnings []string
+	if idx := loadCVEIndex(); idx.maxYear > 0 && idx.maxYear < time.Now().Year()-1 {
+		warnings = append(warnings, fmt.Sprintf("the offline CVE data only covers CVE years %d–%d; newer vulnerabilities will not match", idx.minYear, idx.maxYear))
+	}
 	if len(vulns) == 0 {
 		warnings = append(warnings, fmt.Sprintf("No CVE records match %q in offline database. For live lookups use: https://nvd.nist.gov/vuln/search?query=%s", query, query))
 	}
@@ -588,91 +590,7 @@ func HandleKhepraQueryThreatIntel(ctx context.Context, call mcp.MCPToolCall) (an
 // loadEmbeddedCVEData reads CVE JSON files from the data/cve-database directory.
 // Matches by CVE ID or keyword in description/vendor/product.
 func loadEmbeddedCVEData(query string) []VulnRecord {
-	var results []VulnRecord
-	lowerQ := strings.ToLower(query)
-	isExactCVE := strings.HasPrefix(strings.ToUpper(query), "CVE-")
-
-	cveDirs := []string{
-		"data/cve-database",
-		"../data/cve-database",
-		filepath.Join(findProjectRoot(), "data", "cve-database"),
-	}
-
-	type kevEntry struct {
-		CVEID           string `json:"cveID"`
-		VendorProject   string `json:"vendorProject"`
-		Product         string `json:"product"`
-		DateAdded       string `json:"dateAdded"`
-		ShortDesc       string `json:"shortDescription"`
-		RequiredAction  string `json:"requiredAction"`
-	}
-	type kevFile struct {
-		Vulnerabilities []kevEntry `json:"vulnerabilities"`
-	}
-
-	for _, dir := range cveDirs {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			continue
-		}
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-				continue
-			}
-			data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
-			if err != nil {
-				continue
-			}
-			// Try KEV format
-			var kev kevFile
-			if json.Unmarshal(data, &kev) == nil && len(kev.Vulnerabilities) > 0 {
-				for _, v := range kev.Vulnerabilities {
-					match := false
-					if isExactCVE {
-						match = strings.EqualFold(v.CVEID, query)
-					} else {
-						match = strings.Contains(strings.ToLower(v.VendorProject), lowerQ) ||
-							strings.Contains(strings.ToLower(v.Product), lowerQ) ||
-							strings.Contains(strings.ToLower(v.ShortDesc), lowerQ) ||
-							strings.Contains(strings.ToLower(v.CVEID), lowerQ)
-					}
-					if match {
-						results = append(results, VulnRecord{
-							CVEID:           v.CVEID,
-							Description:     v.ShortDesc,
-							Severity:        "HIGH", // KEV entries are always high priority
-							IsKEV:           true,
-							KEVDateAdded:    v.DateAdded,
-							AffectedVendor:  v.VendorProject,
-							AffectedProduct: v.Product,
-							Remediation:     v.RequiredAction,
-							References:      []string{fmt.Sprintf("https://www.cisa.gov/known-exploited-vulnerabilities-catalog#%s", v.CVEID)},
-						})
-					}
-				}
-				continue
-			}
-		}
-		if len(results) > 0 {
-			break
-		}
-	}
-
-	// Sort KEV first, then by CVE ID descending (newest first)
-	sort.Slice(results, func(i, j int) bool {
-		if results[i].IsKEV != results[j].IsKEV {
-			return results[i].IsKEV
-		}
-		return results[i].CVEID > results[j].CVEID
-	})
-
-	if len(results) > 50 {
-		results = results[:50]
-	}
-	return results
+	return loadCVEIndex().search(query, 50)
 }
 
 func findProjectRoot() string {
@@ -846,19 +764,7 @@ func HandleFlightExport(ctx context.Context, call mcp.MCPToolCall) (any, []strin
 // It handles both SouHimBou AI SaaS mode (SOUHIMBOU_ENDPOINT) and
 // sovereign/air-gap mode (local PQC-signed DAG audit log).
 
-// cveDatabaseAvailable reports whether loadEmbeddedCVEData has any JSON data
-// to read in the directories it searches.
+// cveDatabaseAvailable reports whether the offline CVE index holds any records.
 func cveDatabaseAvailable() bool {
-	for _, dir := range []string{"data/cve-database", "../data/cve-database", filepath.Join(findProjectRoot(), "data", "cve-database")} {
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-		for _, e := range entries {
-			if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
-				return true
-			}
-		}
-	}
-	return false
+	return len(loadCVEIndex().records) > 0
 }
