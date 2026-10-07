@@ -18,7 +18,7 @@
 
 ### B. For Changes to API / HTTP Handlers
 
-*Applies to: `pkg/api/`, `pkg/gateway/`, `cmd/webhook/`, `pkg/mcp/router.go`*
+*Applies to: `pkg/api/`, `pkg/gateway/`, `pkg/license/stripe_webhook.go`, `pkg/mcp/router.go`*
 
 - [ ] `middleware.SecureHeaders()` is applied at the handler entry point
 - [ ] All state-changing endpoints (POST/PUT/DELETE) have CSRF protection or are token-authenticated

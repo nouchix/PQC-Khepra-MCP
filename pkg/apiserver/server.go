@@ -184,13 +184,6 @@ func (s *Server) setupRoutes() {
 	// no sensitive data. Authenticated routes (tools, audit, sessions) stay on v1.
 	pubV1.POST("/mcp/ask", s.handleMCPNaturalLanguageQuery)
 
-	// Stripe webhook — public, no API-key auth. Security is HMAC via STRIPE_WEBHOOK_SECRET.
-	pubV1.POST("/stripe/webhook", s.handleStripeWebhook)
-
-	// Internal license revocation — called by the webhook service on subscription cancellation.
-	// No Bearer auth (webhook has no credentials); protected by localhost-only guard in handler.
-	pubV1.POST("/license/revoke", s.handleRevokeLicense)
-
 	// Fleet endpoints (public for local discovery / UI compatibility)
 	pubFleet := pubV1.Group("/fleet")
 	{
@@ -290,7 +283,6 @@ func (s *Server) setupRoutes() {
 		{
 			billing.POST("/checkout", s.handleCreateCheckout)
 			billing.POST("/simulate-complete", s.handleSimulateComplete)
-			billing.POST("/webhook", s.handleStripeWebhook)
 			billing.GET("/subscription", s.handleGetSubscriptionStatus)
 		}
 

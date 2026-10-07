@@ -206,7 +206,7 @@ func (s *Server) handleCreateCheckout(c *gin.Context) {
 		"status":            "pending",
 		"stripe_session_id": stripeSessionID,
 		"checkout_url":      checkoutURL,
-		"message":           "Redirect the user to checkout_url to complete payment via Stripe. Completion is confirmed only via the verified /api/v1/stripe/webhook — there is no client-side completion path.",
+		"message":           "Redirect the user to checkout_url to complete payment via Stripe. Fulfilment runs in the account's Stripe webhook (ktos-mint); there is no client-side completion path.",
 	})
 }
 
@@ -272,10 +272,10 @@ func createStripeCheckoutSession(secretKey, priceID, internalSessionID, successU
 
 // completeCheckoutSession marks a org/seat CheckoutSession completed and
 // activates the corresponding organization/tier/autopilot state. This is the
-// ONLY place that transitions a session to "completed", and it must only ever
-// be called after Stripe's webhook signature has been verified (see
-// handleStripeWebhook / handleCheckoutCompleted in licensing_handlers.go), or
-// from handleSimulateComplete which is itself gated to KHEPRA_DEV_MODE only.
+// ONLY place that transitions a session to "completed". Its only caller is
+// handleSimulateComplete, gated to KHEPRA_DEV_MODE. Stripe events go to the
+// account's webhook (ktos-mint in khepra-trust-os), which does not update this
+// server's in-memory session state.
 func (s *Server) completeCheckoutSession(sessionID string) (*CheckoutSession, error) {
 	stripeState.mu.Lock()
 	session, exists := stripeState.sessions[sessionID]
@@ -329,15 +329,15 @@ func (s *Server) completeCheckoutSession(sessionID string) (*CheckoutSession, er
 // endpoint does not verify any payment and must never be reachable in
 // production — it is gated behind KHEPRA_DEV_MODE=true, mirroring the pattern
 // already established for the dev-only auth bypass in pkg/apiserver/integration.go.
-// Every use is logged at CRITICAL level. Real completion happens only via the
-// signature-verified Stripe webhook (see completeCheckoutSession).
+// Every use is logged at CRITICAL level. Real fulfilment happens only in the
+// account's signature-verified Stripe webhook (see completeCheckoutSession).
 func (s *Server) handleSimulateComplete(c *gin.Context) {
 	sessionID := c.Query("session_id")
 	if os.Getenv("KHEPRA_DEV_MODE") != "true" {
 		fmt.Printf("[CRITICAL] Blocked attempt to use /api/v1/billing/simulate-complete outside KHEPRA_DEV_MODE (session_id=%q)\n", sessionID)
 		c.JSON(http.StatusForbidden, gin.H{
 			"error":   "disabled_in_production",
-			"message": "simulate-complete is disabled. Set KHEPRA_DEV_MODE=true for local testing only. Production completion happens exclusively via the verified Stripe webhook.",
+			"message": "simulate-complete is disabled. Set KHEPRA_DEV_MODE=true for local testing only. Production fulfilment happens only in the verified Stripe webhook.",
 		})
 		return
 	}

@@ -10,10 +10,9 @@
 # Data classifications: NONE | LICENSE-METADATA | SYNTHETIC | DEMO
 
 telemetry.souhimbou.ai   control-plane   LICENSE-METADATA   platform   License validation + heartbeat only. No customer CUI. Offline verification path must remain available (air-gap capability).
-agent.souhimbou.ai       control-plane   LICENSE-METADATA   platform   cloudflared tunnel to telemetry/licensing. Control plane only.
+agent.souhimbou.ai       control-plane   LICENSE-METADATA   platform   cloudflared tunnel to telemetry/licensing, and the Stripe webhook (ktos-mint, /api/v1/stripe/webhook). Control plane only.
 agent.souhimbou.org      demo-discovery  DEMO               platform   NEXT_PUBLIC_ASAF_API_URL in root .env. NOTE: .org/.ai TLD inconsistency vs agent.souhimbou.ai — consolidate to one TLD. Demo dashboard API only, no customer CUI.
 get.nouchix.com          control-plane   NONE               platform   Installer + checksums + docs mirror (static). No customer data.
-webhook.nouchix.com      control-plane   NONE               platform   Stripe webhook receiver (stateless, idempotent). No CUI.
 
 # DEMO / DISCOVERY — public, marketed endpoints. MUST carry only synthetic/prospect-supplied
 # public data, MUST be visibly marked "DEMO — do not submit CUI", and MUST keep their DAG/
