@@ -23,7 +23,7 @@ func paidPlatformSession(id string) *StripeCheckoutSession {
 		CustomerDetails: StripeCustomerDetails{Email: "buyer@example.com", Name: "Buyer"},
 		LineItems: &StripeLineItemList{Data: []StripeLineItem{{
 			Description: "KTOS Platform ($499/mo)", Quantity: 1,
-			Price: StripePrice{UnitAmount: 49900},
+			Price: StripePrice{ID: "price_1ULpbqDqGyad2D3VKcN4xHM3", UnitAmount: 49900},
 		}}},
 	}
 }

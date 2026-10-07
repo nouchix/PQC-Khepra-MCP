@@ -50,6 +50,8 @@ func TestVerifyStripeSignature(t *testing.T) {
 }
 
 func TestProcessCheckoutSessionMultiTier(t *testing.T) {
+	// Enterprise and sovereign are not sold through Stripe; map test prices.
+	t.Setenv(StripePriceTiersEnv, "price_test_enterprise=enterprise,price_test_sovereign=sovereign")
 	// Generate ephemeral ML-DSA-87 keypair for testing
 	priv, err := sign.GenerateKey()
 	if err != nil {
@@ -78,9 +80,7 @@ func TestProcessCheckoutSessionMultiTier(t *testing.T) {
 					{
 						Description: "KTOS Platform ($499/mo)",
 						Quantity:    2,
-						Price: StripePrice{
-							UnitAmount: 49900,
-						},
+						Price:       StripePrice{ID: "price_1ULpbqDqGyad2D3VKcN4xHM3", UnitAmount: 49900},
 					},
 				},
 			},
@@ -123,9 +123,7 @@ func TestProcessCheckoutSessionMultiTier(t *testing.T) {
 					{
 						Description: "KTOS Enterprise Agentic SOC ($2,999/mo)",
 						Quantity:    1,
-						Price: StripePrice{
-							UnitAmount: 299900,
-						},
+						Price:       StripePrice{ID: "price_test_enterprise", UnitAmount: 299900},
 					},
 				},
 			},
@@ -168,9 +166,7 @@ func TestProcessCheckoutSessionMultiTier(t *testing.T) {
 					{
 						Description: "KTOS Sovereign Air-Gap ($5,000/mo)",
 						Quantity:    1,
-						Price: StripePrice{
-							UnitAmount: 500000,
-						},
+						Price:       StripePrice{ID: "price_test_sovereign", UnitAmount: 500000},
 					},
 				},
 			},
