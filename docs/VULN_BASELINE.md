@@ -75,6 +75,7 @@
 | **MITRE ATT&CK** | T1566.001 (Phishing: Spearphishing Attachment) |
 | **Blast Radius** | Attacker-controlled email content via webhook → phishing from trusted domain |
 | **KHEPRA Tools** | `ert_readiness` → map to SI-10, `owasp_agent_assess` → ASI-03 |
+| **Status** | ✅ **RESOLVED by removal** — `cmd/webhook` was retired on 2026-10-07. Stripe fulfilment runs in khepra-trust-os `ktos-mint`. |
 
 **Remediation:**
 ```go
@@ -287,7 +288,7 @@ if !isLoopback(target) {
 | **Alerts** | #661, #660, #659, #646, #645, #644, #643, #642, #641, #640, #639, #589, #473, #448-440 |
 | **Count** | 20+ alerts |
 | **Scanner** | CodeQL |
-| **Files** | `pkg/mcp/transport_http.go`, `pkg/mcp/router.go`, `pkg/ouroboros/`, `pkg/gateway/`, `cmd/webhook/main.go` |
+| **Files** | `pkg/mcp/transport_http.go`, `pkg/mcp/router.go`, `pkg/ouroboros/`, `pkg/gateway/`, `cmd/webhook/main.go` (retired 2026-10-07) |
 | **CWE** | CWE-117 (Improper Output Neutralization for Logs) |
 | **NIST 800-53** | AU-3, AU-8, SI-10 |
 | **NIST 800-171** | 3.3.1 |
