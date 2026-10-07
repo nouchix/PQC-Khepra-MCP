@@ -231,9 +231,9 @@ func TestExecuteSkipsUnregisteredLane(t *testing.T) {
 
 func TestAllLanes(t *testing.T) {
 	lanes := AllLanes()
-	// LaneHorusVuln, LaneHorusSecret, LaneHorusCompliance, LaneHorusContainer, LaneSCA, LaneSonar
-	if len(lanes) != 6 {
-		t.Errorf("expected 6 lanes, got %d", len(lanes))
+	// LaneHorusVuln, LaneHorusSecret, LaneHorusCompliance, LaneHorusContainer, LaneSCA, LaneSonar, LaneDNSPKI
+	if len(lanes) != 7 {
+		t.Errorf("expected 7 lanes, got %d", len(lanes))
 	}
 }
 

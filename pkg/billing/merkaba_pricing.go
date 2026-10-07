@@ -283,6 +283,10 @@ func GetTierBaseCost(tier string) float64 {
 		"pro":        19,
 		"enterprise": 499,
 		"sovereign":  0, // Custom pricing — contact sales
+		"khepri":     50,
+		"ra":         500,
+		"atum":       2000,
+		"osiris":     0,
 	}
 	return costs[tier]
 }
