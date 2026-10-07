@@ -807,7 +807,7 @@
                   },
                   {
                       "name":  "audit_dag_integrity",
-                      "description":  "Full integrity audit of the KASA DAG. Verifies: node count, parent linkage, PQC metadata completeness, and signature chain.",
+                      "description":  "Deprecated alias of dag_audit — use dag_audit. Checks that every KASA DAG node has its required fields and reports malformed nodes; hashes, parent links and signatures are not verified yet.",
                       "inputSchema":  {
                                           "type":  "object",
                                           "properties":  {
@@ -1036,7 +1036,7 @@
                   },
                   {
                       "name":  "dag_audit",
-                      "description":  "Perform a full integrity audit of the KASA DAG. Verifies node count, parent linkage, PQC metadata completeness.",
+                      "description":  "Checks that every KASA DAG node has its required fields (ID, action, time) and reports malformed nodes. Hashes, parent links and signatures are not verified yet.",
                       "inputSchema":  {
                                           "type":  "object",
                                           "properties":  {

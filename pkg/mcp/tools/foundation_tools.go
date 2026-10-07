@@ -199,7 +199,13 @@ func HandleDAGQuery(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 // HandleDAGAudit performs a full integrity audit of the KASA DAG.
 // Verifies: node count, parent linkage, PQC metadata completeness.
 func HandleDAGAudit(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	if gate := GateForTool("dag_audit"); gate != nil {
+	// Gate on the name called, so the deprecated alias audit_dag_integrity
+	// keeps its own tier.
+	name := call.ToolName
+	if name == "" {
+		name = "dag_audit"
+	}
+	if gate := GateForTool(name); gate != nil {
 		return gate, nil, nil
 	}
 	store := getKASAStore()

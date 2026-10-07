@@ -82,7 +82,7 @@ var toolMaturity = map[string]ToolMaturity{
 	"dag_write":            mPartial(auditPending),
 	"dag_query":            mReal(""),
 	"dag_audit":            mPartial("checks required fields only; hashes, parent links and signatures are not verified"),
-	"audit_dag_integrity":  mPartial(auditPending),
+	"audit_dag_integrity":  mPartial("deprecated alias of dag_audit; checks required fields only"),
 	"agent_record":         mPartial("local capture depends on the configured attestor; remote forwarding is optional"),
 	"flight_record":        mPartial(auditPending),
 	"flight_export":        mPartial("packages only findings derived from recorded frames"),
@@ -145,8 +145,10 @@ var toolMaturity = map[string]ToolMaturity{
 
 // MaturityOf returns the maturity of a public tool and whether it is listed.
 func MaturityOf(name string) (ToolMaturity, bool) {
-	m, ok := toolMaturity[name]
-	return m, ok
+	if m, ok := toolMaturity[name]; ok {
+		return m, true
+	}
+	return providedMaturityOf(name)
 }
 
 // ErrInProgress is returned for a tool with no implementation in this build.
@@ -156,6 +158,6 @@ func ErrInProgress(name string) error {
 
 // inProgress reports whether name is listed as in_progress.
 func inProgress(name string) bool {
-	m, ok := toolMaturity[name]
+	m, ok := MaturityOf(name)
 	return ok && m.Status == MaturityInProgress
 }

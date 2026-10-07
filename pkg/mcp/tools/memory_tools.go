@@ -6,7 +6,6 @@
 //   - HandleForensicsCollect : Full digital forensic snapshot
 //   - HandleFIMBaseline      : Create file integrity baseline
 //   - HandleFIMCheck         : Check a file's hash
-//   - HandleAuditExport      : Export audit trail to CSV
 package tools
 
 import (
@@ -116,35 +115,3 @@ func HandleFIMCheck(ctx context.Context, call mcp.MCPToolCall) (any, []string, e
 	}, nil, nil
 }
 
-// HandleAuditExport exports an audit report to CSV format for compliance submission.
-func HandleAuditExport(ctx context.Context, call mcp.MCPToolCall) (any, []string, error) {
-	if gate := GateForTool("audit_dag_integrity"); gate != nil {
-		return gate, nil, nil
-	}
-	// Export the current DAG as a lightweight audit summary
-	store := getKASAStore()
-	nodes := store.All()
-
-	type auditRow struct {
-		ID     string `json:"id"`
-		Action string `json:"action"`
-		Symbol string `json:"symbol"`
-		Time   string `json:"time"`
-	}
-
-	rows := make([]auditRow, 0, len(nodes))
-	for _, n := range nodes {
-		rows = append(rows, auditRow{
-			ID:     n.ID,
-			Action: n.Action,
-			Symbol: n.Symbol,
-			Time:   n.Time,
-		})
-	}
-
-	return map[string]any{
-		"rows":        rows,
-		"count":       len(rows),
-		"exported_at": lorentz.StampNow(),
-	}, nil, nil
-}
