@@ -31,6 +31,7 @@ import (
 
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/dag"
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/lorentz"
+	"net/url"
 )
 
 // ─── Stripe Webhook JSON Types ───────────────────────────────────────────────
@@ -331,57 +332,50 @@ func processCheckoutSession(session *StripeCheckoutSession, deps *StripePipeline
 	}
 
 	// 2. Analyze Line Items / Prices for Subscription Tiers
+	// What was bought is decided by Stripe Price ID, never by amount: amounts
+	// change with discounts, coupons and currencies.
+	items, err := checkoutLineItems(session)
+	if err != nil {
+		return fmt.Errorf("checkout %s: %w", session.ID, err)
+	}
+	catalog := priceCatalog()
 	highestTier := TierCommunity
 	totalSeats := 0
 	nodeQuota := 1
-
-	if session.LineItems != nil && len(session.LineItems.Data) > 0 {
-		for _, item := range session.LineItems.Data {
-			qty := int(item.Quantity)
-			if qty <= 0 {
-				qty = 1
-			}
-			totalSeats += qty
-
-			switch item.Price.UnitAmount {
-			case 299900: // $2,999/mo — Enterprise Tier (SEKHEM PQC-WAF + DataLoop + ASAF)
-				highestTier = TierEnterprise
+	licensed := false
+	for _, item := range items {
+		qty := int(item.Quantity)
+		if qty <= 0 {
+			qty = 1
+		}
+		product, ok := catalog[item.Price.ID]
+		if !ok {
+			return fmt.Errorf("checkout %s: Stripe price %q is not mapped to a product (set %s)", session.ID, item.Price.ID, StripePriceTiersEnv)
+		}
+		if product == productAdvisory {
+			log.Printf("[FULFILLMENT] %s purchased Remediation Advisory (%s); a service engagement, no license is issued", email, item.Price.ID)
+			continue
+		}
+		licensed = true
+		totalSeats += qty
+		if checkoutTierRank(product) > checkoutTierRank(highestTier) {
+			highestTier = product
+		}
+		if nodeQuota >= 0 {
+			switch product {
+			case TierPro:
+				nodeQuota += qty * 3
+			case TierPlatform:
+				nodeQuota += qty * 10
+			case TierEnterprise:
 				nodeQuota += qty * 25
-			case 49900: // $499/mo — Platform Tier (AEO, Passports, STIG Live Query)
-				if highestTier != TierEnterprise && highestTier != TierSovereign {
-					highestTier = TierPlatform
-					nodeQuota += qty * 10
-				}
-			case 9900: // $99/mo — Pro Tier (Starter)
-				if highestTier == TierCommunity {
-					highestTier = TierPro
-					nodeQuota += qty * 3
-				}
-			case 500000: // $5,000/mo — Sovereign Air-Gap / Strategic Advisory Tier
-				highestTier = TierSovereign
-				nodeQuota = -1 // Unlimited
+			case TierSovereign:
+				nodeQuota = -1 // unlimited
 			}
 		}
-	} else {
-		// Fallback: detect from amount total if line items unexpanded
-		amt := session.AmountTotal
-		totalSeats = 1
-		if amt >= 500000 {
-			highestTier = TierSovereign
-			nodeQuota = -1
-		} else if amt >= 299900 {
-			highestTier = TierEnterprise
-			nodeQuota = 25
-		} else if amt >= 49900 {
-			highestTier = TierPlatform
-			nodeQuota = 10
-		} else if amt >= 9900 {
-			highestTier = TierPro
-			nodeQuota = 3
-		} else {
-			highestTier = TierCommunity
-			nodeQuota = 1
-		}
+	}
+	if !licensed {
+		return nil // service-only purchase: nothing to mint
 	}
 
 	if totalSeats == 0 {
@@ -590,4 +584,112 @@ func processSTIGViewerTopup(session *StripeCheckoutSession, credits int, deps *S
 	_ = SendTopupConfirmationEmail(email, name, credits, totalQuota, portalURL)
 	log.Printf("[FULFILLMENT-SUCCESS] Successfully topped up +%d STIGViewer credits for %s (Quota: %d)", credits, email, totalQuota)
 	return nil
+}
+
+// ─── Price catalog ────────────────────────────────────────────────────────────
+
+// StripePriceTiersEnv adds to or overrides the price → product map, as
+// "price_A=platform,price_B=advisory". Products are license tiers or "advisory".
+const StripePriceTiersEnv = "STRIPE_PRICE_TIERS"
+
+// productAdvisory is a service purchase; it never mints a license.
+const productAdvisory = "advisory"
+
+// defaultPriceCatalog maps the live Stripe prices (2026-10-06) to products.
+// Sovereign and pilot contracts are invoiced outside Stripe.
+var defaultPriceCatalog = map[string]string{
+	"price_1ULpblDqGyad2D3VPfXeNMUP": TierCommunity,   // KTOS Community ($0/mo)
+	"price_1TsCsGDqGyad2D3Vg0T1hrus": TierPro,         // PQC-Khepra-MCP Pro ($19/mo)
+	"price_1ULpbqDqGyad2D3VKcN4xHM3": TierPlatform,    // KTOS Platform ($499/mo)
+	"price_1ULpbvDqGyad2D3VkJ8yyrnP": productAdvisory, // KTOS Remediation Advisory ($5,000 one-time)
+}
+
+// priceCatalog returns the default catalog merged with StripePriceTiersEnv.
+// Malformed entries and unknown products are ignored and logged.
+func priceCatalog() map[string]string {
+	out := make(map[string]string, len(defaultPriceCatalog))
+	for k, v := range defaultPriceCatalog {
+		out[k] = v
+	}
+	for _, entry := range strings.Split(os.Getenv(StripePriceTiersEnv), ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		price, product, ok := strings.Cut(entry, "=")
+		price, product = strings.TrimSpace(price), strings.ToLower(strings.TrimSpace(product))
+		if !ok || !strings.HasPrefix(price, "price_") || (product != productAdvisory && checkoutTierRank(product) < 0) {
+			log.Printf("[STRIPE] ignoring %s entry %q", StripePriceTiersEnv, entry)
+			continue
+		}
+		out[price] = product
+	}
+	return out
+}
+
+// checkoutTierRank orders the tiers a checkout can grant; -1 for anything else.
+func checkoutTierRank(tier string) int {
+	switch tier {
+	case TierCommunity:
+		return 0
+	case TierPro:
+		return 1
+	case TierPlatform:
+		return 2
+	case TierEnterprise:
+		return 3
+	case TierSovereign:
+		return 4
+	}
+	return -1
+}
+
+// stripeAPIBase and stripeHTTP are variables so tests can point them at a
+// local server.
+var (
+	stripeAPIBase = "https://api.stripe.com"
+	stripeHTTP    = &http.Client{Timeout: 10 * time.Second}
+)
+
+// checkoutLineItems returns the purchased line items: from the event when
+// Stripe included them, otherwise from the Stripe API (checkout events omit
+// line items unless expanded).
+func checkoutLineItems(session *StripeCheckoutSession) ([]StripeLineItem, error) {
+	if session.LineItems != nil && len(session.LineItems.Data) > 0 {
+		return session.LineItems.Data, nil
+	}
+	key := strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
+	if key == "" {
+		return nil, errors.New("the event has no line items and STRIPE_SECRET_KEY is unset, so the purchase cannot be identified")
+	}
+	if session.ID == "" {
+		return nil, errors.New("the checkout session has no ID")
+	}
+	req, err := http.NewRequest(http.MethodGet, stripeAPIBase+"/v1/checkout/sessions/"+url.PathEscape(session.ID)+"/line_items?limit=100", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+key)
+	resp, err := stripeHTTP.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch line items: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetch line items: Stripe returned HTTP %d", resp.StatusCode)
+	}
+	var list struct {
+		Data    []StripeLineItem `json:"data"`
+		HasMore bool             `json:"has_more"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&list); err != nil {
+		return nil, fmt.Errorf("decode line items: %w", err)
+	}
+	if list.HasMore {
+		return nil, errors.New("more than 100 line items; refusing to fulfil a partial list")
+	}
+	if len(list.Data) == 0 {
+		return nil, errors.New("the checkout session has no line items")
+	}
+	return list.Data, nil
 }

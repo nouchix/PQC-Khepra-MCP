@@ -388,7 +388,7 @@ func verifySignature(lf licenseFile) error {
 	}
 
 	// ML-DSA-87 under khepra/v3/apikey, or the historical ML-DSA-65 root.
-	if err := verifyWithRoot(sign.ContextAPIKey, apiKeyTrustedRoot(), payloadJSON, sig); err != nil {
+	if err := verifyTrusted(sign.ContextAPIKey, PurposeAPIKey, apiKeyTrustedRoot(), payloadJSON, sig); err != nil {
 		return fmt.Errorf("signature mismatch")
 	}
 	return nil

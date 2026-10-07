@@ -259,7 +259,7 @@ func VerifySovereignLicense(lic *KhepraLicense, masterPublicKey []byte) error {
 		return errors.New("sovereign: no pinned master public key — refusing to trust the license's own signer key")
 	}
 
-	if err := verifyWithRoot(licenseContext, masterPublicKey, payload, lic.Signature); err != nil {
+	if err := verifyTrusted(licenseContext, PurposeLicense, masterPublicKey, payload, lic.Signature); err != nil {
 		return fmt.Errorf("sovereign: signature INVALID — license forged or corrupted: %w", err)
 	}
 
