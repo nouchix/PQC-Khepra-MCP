@@ -174,6 +174,13 @@ func main() {
 		Logger:  logger,
 	})
 	registerToolHandlers(executor)
+	// Open-core: tools added by providers compiled into this build (none in
+	// the public build).
+	if n, err := khepramcp.InstallProviders(mcpRegistry, executor, logger); err != nil {
+		logger.Fatalf("FATAL: tool providers: %v", err)
+	} else if n > 0 {
+		logger.Printf("[PROVIDER] %d provided tools installed", n)
+	}
 
 	attestor := kernelports.Defaults().Attestor
 
@@ -481,7 +488,7 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	executor.RegisterFunc("ouroboros_fim_eye", tools.HandleOuroborosFIMEye)
 	executor.RegisterFunc("forensic_snapshot", tools.HandleForensicsCollect)
 	executor.RegisterFunc("fim_baseline", tools.HandleFIMBaseline)
-	executor.RegisterFunc("audit_dag_integrity", tools.HandleAuditExport)
+	executor.RegisterFunc("audit_dag_integrity", tools.HandleDAGAudit) // deprecated alias of dag_audit
 	executor.RegisterFunc("enumerate_host", tools.HandleEnumerateHost)
 	executor.RegisterFunc("fingerprint_device", tools.HandleFingerprintDevice)
 	executor.RegisterFunc("port_scan", tools.HandlePortScan)

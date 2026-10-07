@@ -330,7 +330,7 @@ func registerToolHandlers(executor *khepramcp.Executor) {
 	// Tools listed in the manifest and served by asaf-hub; registered here so
 	// every tool this server lists can run.
 	executor.RegisterFunc("attack_graph", tools.HandleAttackGraph)
-	executor.RegisterFunc("audit_dag_integrity", tools.HandleAuditExport)
+	executor.RegisterFunc("audit_dag_integrity", tools.HandleDAGAudit) // deprecated alias of dag_audit
 	executor.RegisterFunc("compliance_scan", tools.HandleComplianceScan)
 	executor.RegisterFunc("container_scan", tools.HandleContainerScan)
 	executor.RegisterFunc("dag_audit", tools.HandleDAGAudit)
@@ -474,6 +474,13 @@ func main() {
 		Logger:  logger,
 	})
 	registerToolHandlers(executor)
+	// Open-core: tools added by providers compiled into this build (none in
+	// the public build).
+	if n, err := khepramcp.InstallProviders(mcpRegistry, executor, logger); err != nil {
+		logger.Fatalf("FATAL: tool providers: %v", err)
+	} else if n > 0 {
+		logger.Printf("[PROVIDER] %d provided tools installed", n)
+	}
 	wireUpstreams(ctx, mcpRegistry, executor, logger)
 	logger.Printf("[MANIFEST] %d tools after upstream brokering", mcpRegistry.ToolCount())
 
