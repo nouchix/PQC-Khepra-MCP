@@ -12,7 +12,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -72,7 +71,6 @@ Reporting:
 Agent & Scan:
   adinkhepra scan       --target <host|ip>   Full scan: STIG + AI agent audit + PQC inventory
   adinkhepra watch      [-port 45444]         Start ASAF wrapper + live dashboard
-  adinkhepra certify    --target <host|ip>    Full audit + ADINKHEPRA certificate
 
 Key Management (PQC):
   adinkhepra keygen                 Generate ML-DSA-87/ML-KEM-1024 keypair
@@ -147,8 +145,6 @@ func handlePrimaryCmds(cmd string, args []string) bool {
 		auditCmd(args)
 	case "scan":
 		scanCmd(args, "full")
-	case "certify":
-		scanCmd(args, "certify")
 	case "watch":
 		watchCmd(args)
 	default:
@@ -789,24 +785,6 @@ func asafAPIURL() string {
 	return "http://127.0.0.1:45444"
 }
 
-// stripePriceID returns the Stripe price ID to charge for certification.
-func stripePriceID() string {
-	if v := os.Getenv("ASAF_STRIPE_PRICE_ID"); v != "" {
-		return v
-	}
-	return "price_REDACTED" // ADINKHEPRA Certification Badge $99/mo
-}
-
-// stripeSecretKey returns the Stripe secret key from env; exits if absent.
-func stripeSecretKey() string {
-	v := os.Getenv("STRIPE_SECRET_KEY")
-	if v == "" {
-		fmt.Fprintln(os.Stderr, "[certify] STRIPE_SECRET_KEY is not set. Export it before running asaf certify.")
-		os.Exit(1)
-	}
-	return v
-}
-
 // scanQueued is the initial response from POST /api/v1/onboarding/scan (async — status="queued").
 type scanQueued struct {
 	ScanID string `json:"scan_id"`
@@ -824,21 +802,7 @@ type scanStatusResp struct {
 	} `json:"results"`
 }
 
-// licenseStatus is the minimal shape of GET /api/v1/license/status.
-type licenseStatus struct {
-	Valid       bool   `json:"valid"`
-	LicenseTier string `json:"license_tier"`
-	LicenseID   string `json:"license_id"`
-	ExpiresAt   string `json:"expires_at"`
-}
-
-// stripeCheckoutSession is what Stripe returns on session creation.
-type stripeCheckoutSession struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
-}
-
-// scanCmd runs a scan (mode="full") or a full certify flow (mode="certify").
+// scanCmd runs a compliance scan against the ASAF gateway or the local agent.
 func scanCmd(args []string, mode string) {
 	fs := flag.NewFlagSet(mode, flag.ExitOnError)
 	target := fs.String("target", "", "Target host or IP to scan")
@@ -884,28 +848,6 @@ func scanCmd(args []string, mode string) {
 	// ── Step 2: Poll until scan completes ────────────────────────────────────
 	scanStatus := pollScanCompletion(client, apiURL, queued.ScanID, *apiKey)
 	printScanResults(queued.ScanID, scanStatus)
-
-	// For plain scan, stop here.
-	if mode != "certify" {
-		fmt.Println("  Run 'asaf certify --target', to issue your ADINKHEPRA badge.")
-		return
-	}
-
-	// ── Step 3: Create Stripe Checkout Session ────────────────────────────────
-	fmt.Printf("  [3/4] Creating secure payment session...\n")
-
-	machineID := getMachineID()
-	sessionURL, sessionID, err := createStripeCheckoutSession(machineID, queued.ScanID)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "  [ERROR] Stripe session creation failed: %v\n", err)
-		os.Exit(1)
-	}
-
-	printPaymentBox(sessionURL, sessionID, machineID)
-	openBrowser(sessionURL)
-
-	// ── Step 4: Poll for license activation ──────────────────────────────────
-	pollLicenseActivation(client, apiURL, *apiKey, *target)
 }
 
 // printScanBanner outputs the initial scan header.
@@ -915,7 +857,7 @@ func printScanBanner(target, profile, mode string) {
 	fmt.Printf("  Target  : %s\n", target)
 	fmt.Printf("  Profile : %s\n", coalesce(profile, "default"))
 	fmt.Printf("  Mode    : %s\n\n", mode)
-	fmt.Printf("  [1/4] Initiating compliance scan...\n")
+	fmt.Printf("  [1/2] Initiating compliance scan...\n")
 }
 
 // initiateScan POSTs the scan request and returns the queued scan metadata.
@@ -959,7 +901,7 @@ func initiateScan(client *http.Client, apiURL, target, profile, apiKey, mode str
 // pollScanCompletion polls GET /api/v1/onboarding/scan/:id until the scan
 // finishes or the 90-second deadline expires.
 func pollScanCompletion(client *http.Client, apiURL, scanID, apiKey string) scanStatusResp {
-	fmt.Printf("  [2/4] Waiting for scan to complete")
+	fmt.Printf("  [2/2] Waiting for scan to complete")
 	var scanStatus scanStatusResp
 	pollDeadline := time.Now().Add(90 * time.Second)
 	for time.Now().Before(pollDeadline) {
@@ -998,133 +940,6 @@ func printScanResults(scanID string, s scanStatusResp) {
 	fmt.Printf("  │  Failed   : %-3d controls                           │\n", s.Results.FailedChecks)
 	fmt.Printf("  │  Status   : %-37s│\n", s.Status)
 	fmt.Printf("  └───────────────────────────────────────────────────┘\n\n")
-}
-
-// printPaymentBox displays the Stripe checkout session info.
-func printPaymentBox(sessionURL, sessionID, machineID string) {
-	const boxBlank = "  │                                                   │\n"
-	fmt.Printf("\n  ┌─ Payment Required ────────────────────────────────┐\n")
-	fmt.Printf("  │  ADINKHEPRA Certification Badge — $99/month       │\n")
-	fmt.Print(boxBlank)
-	fmt.Printf("  │  Open this URL to complete payment:               │\n")
-	fmt.Print(boxBlank)
-	fmt.Printf("  │  %s\n", sessionURL)
-	fmt.Print(boxBlank)
-	fmt.Printf("  │  Session : %-37s│\n", sessionID)
-	fmt.Printf("  │  Token   : %-37s│\n", machineID)
-	fmt.Printf("  └───────────────────────────────────────────────────┘\n\n")
-}
-
-// pollLicenseActivation polls the license status endpoint for up to 30 minutes
-// waiting for Stripe webhook activation.
-func pollLicenseActivation(client *http.Client, apiURL, apiKey, target string) {
-	fmt.Printf("  [4/4] Waiting for payment confirmation")
-	fmt.Printf(" (press Ctrl+C to exit and re-run later)...\n\n")
-
-	deadline := time.Now().Add(30 * time.Minute)
-	for time.Now().Before(deadline) {
-		time.Sleep(8 * time.Second)
-		fmt.Printf("  .")
-
-		licReq, _ := http.NewRequest(http.MethodGet, apiURL+"/api/v1/license/status", nil)
-		if apiKey != "" {
-			licReq.Header.Set(headerAPIKey, apiKey)
-		}
-		licResp, err := client.Do(licReq)
-		if err != nil {
-			continue
-		}
-		var lic licenseStatus
-		json.NewDecoder(licResp.Body).Decode(&lic) //nolint:errcheck
-		licResp.Body.Close()
-
-		if lic.Valid {
-			printCertBadge(lic)
-			return
-		}
-	}
-
-	fmt.Printf("\n\n  Payment not confirmed within 30 minutes.\n")
-	fmt.Printf("  Your session URL remains active — complete payment and re-run:\n")
-	fmt.Printf("    asaf certify --target %s\n\n", target)
-}
-
-// printCertBadge outputs the certification badge box after successful payment.
-func printCertBadge(lic licenseStatus) {
-	fmt.Printf("\n\n  ╔══════════════════════════════════════════════════╗\n")
-	fmt.Printf("  ║        ADINKHEPRA BADGE ISSUED                  ║\n")
-	fmt.Printf("  ╠══════════════════════════════════════════════════╣\n")
-	fmt.Printf("  ║  License   : %-35s║\n", lic.LicenseID)
-	fmt.Printf("  ║  Tier      : %-35s║\n", lic.LicenseTier)
-	fmt.Printf("  ║  Expires   : %-35s║\n", lic.ExpiresAt)
-	fmt.Printf("  ╠══════════════════════════════════════════════════╣\n")
-	fmt.Printf("  ║  Certificate delivered to your email.           ║\n")
-	fmt.Printf("  ║  Verify:  asaf verify --cert %s\n", lic.LicenseID)
-	fmt.Printf("  ╚══════════════════════════════════════════════════╝\n\n")
-}
-
-// createStripeCheckoutSession creates a Stripe Checkout Session via the API.
-// machineID is embedded as client_reference_id so the webhook can activate
-// the correct machine's license after payment.
-func createStripeCheckoutSession(machineID, scanID string) (url, id string, err error) {
-	sk := stripeSecretKey()
-	priceID := stripePriceID()
-
-	// Stripe API uses application/x-www-form-urlencoded
-	form := strings.NewReader(strings.Join([]string{
-		"mode=subscription",
-		"line_items[0][price]=" + priceID,
-		"line_items[0][quantity]=1",
-		"client_reference_id=" + machineID,
-		"metadata[machine_id]=" + machineID,
-		"metadata[scan_id]=" + scanID,
-		"metadata[framework]=CMMC_L2",
-		"success_url=https://app.nouchix.com/certified?session_id={CHECKOUT_SESSION_ID}",
-		"cancel_url=https://app.nouchix.com/pricing",
-	}, "&"))
-
-	req, err := http.NewRequest(http.MethodPost, "https://api.stripe.com/v1/checkout/sessions", form)
-	if err != nil {
-		return "", "", fmt.Errorf("build request: %w", err)
-	}
-	req.SetBasicAuth(sk, "")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", "", fmt.Errorf("stripe API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", "", fmt.Errorf("stripe returned HTTP %d: %s", resp.StatusCode, string(body))
-	}
-
-	var session stripeCheckoutSession
-	if err := json.NewDecoder(resp.Body).Decode(&session); err != nil {
-		return "", "", fmt.Errorf("decode session: %w", err)
-	}
-	return session.URL, session.ID, nil
-}
-
-// getMachineID returns the machine ID used as the Stripe client_reference_id.
-// Prefers ASAF_MACHINE_ID env var, falls back to /etc/machine-id, then hostname.
-func getMachineID() string {
-	if v := os.Getenv("ASAF_MACHINE_ID"); v != "" {
-		return v
-	}
-	if data, err := os.ReadFile("/etc/machine-id"); err == nil {
-		id := strings.TrimSpace(string(data))
-		if id != "" {
-			return id
-		}
-	}
-	if h, err := os.Hostname(); err == nil {
-		return h
-	}
-	return "unknown-machine"
 }
 
 // openBrowser attempts to open url in the system default browser.
