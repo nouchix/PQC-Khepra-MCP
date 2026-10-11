@@ -278,14 +278,6 @@ func (s *Server) setupRoutes() {
 			org.POST("/:org_id/upgrade", s.handleUpgradeTier)
 		}
 
-		// Billing & Stripe
-		billing := v1.Group("/billing")
-		{
-			billing.POST("/checkout", s.handleCreateCheckout)
-			billing.POST("/simulate-complete", s.handleSimulateComplete)
-			billing.GET("/subscription", s.handleGetSubscriptionStatus)
-		}
-
 		// ERT (Evidence Recording Token) endpoints
 		ert := v1.Group("/ert")
 		{
