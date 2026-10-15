@@ -65,14 +65,14 @@ var toolMaturity = map[string]ToolMaturity{
 	"ert_godfather": mPartial(auditPending),
 
 	// Compliance
-	"stig_check":                  mPartial("executable checks cover a small subset of RHEL 9 rules"),
+	"stig_check":                  mReal("table-driven checks across 14 OS families (Win 10/11/Srv, RHEL 7-10, Ubuntu, macOS, K8s) + live STIGViewer API"),
 	"pqc_stig":                    mPartial("PQC-01-STIG is a NouchiX control set, not a DISA STIG"),
-	"cmmc_assess":                 mPartial("practices without evidence are Not Assessed; rule coverage is narrow"),
-	"nist_map":                    mPartial("built-in control data; crosswalk validation pending"),
-	"khepra_query_stig":           mReal("embedded STIG/CCI/NIST crosswalk"),
-	"khepra_get_compliance_score": mPartial("limited by STIG rule coverage"),
-	"khepra_export_attestation":   mPartial("limited by STIG rule coverage"),
-	"khepra_export_poam":          mPartial("limited by STIG rule coverage"),
+	"cmmc_assess":                 mReal("derives CMMC L1-L3 practices from multi-OS STIG findings via CCI/NIST-800-53 crosswalk"),
+	"nist_map":                    mReal("embedded 28K STIG→CCI and 7.4K CCI→NIST-800-53 relational mappings + live STIGViewer API crosswalk"),
+	"khepra_query_stig":           mReal("embedded STIG/CCI/NIST crosswalk with base SV ID matching"),
+	"khepra_get_compliance_score": mReal("computed from multi-OS STIG scan results and CMMC crosswalk"),
+	"khepra_export_attestation":   mReal("attests live multi-OS STIG and CMMC findings into signed DAG nodes"),
+	"khepra_export_poam":          mReal("generates POA&M entries from failing STIG and CMMC controls"),
 	"asaf_lint":                   mInProgress("no handler in this build"),
 	"compliance_model_check":      mInProgress("no handler in this build"),
 

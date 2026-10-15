@@ -6,7 +6,7 @@
 // An AEO turns every autonomous agent action into a forensic artifact:
 //
 //	Agent identity (did:khepra:...) + declared intent + tools used +
-//	observations + behavioral fingerprint + ML-DSA-65 attestation +
+//	observations + behavioral fingerprint + ML-DSA-87 attestation +
 //	parent-event hash chain
 //
 // Where pkg/forensics (Imhotep's Eye) documents the HOST, pkg/aeo documents
@@ -15,7 +15,7 @@
 // verifiable operational history — its Proof of Work History.
 //
 // Every AEO is content-addressed (Khepra lattice hash), signed with
-// ML-DSA-65 (Dilithium3), and anchored into the immutable KHEPRA DAG so the
+// ML-DSA-87 (FIPS 204), and anchored into the immutable KHEPRA DAG so the
 // state transition S(t0) -> Action -> S(t1) can be reconstructed from
 // evidence alone (forensic replay, the "anti-action").
 //
@@ -37,7 +37,7 @@ import (
 const SpecVersion = "khepra-aeo/1.0"
 
 // AttestAlgorithm is the PQC signature scheme sealing every AEO.
-const AttestAlgorithm = "ML-DSA-65"
+const AttestAlgorithm = "ML-DSA-87" // FIPS 204 parameter set produced by github.com/nouchix/khepra-pqc/sign
 
 // DIDMethod is the prefix for KHEPRA agent decentralized identifiers.
 const DIDMethod = "did:khepra:"
@@ -71,7 +71,7 @@ type BehaviorSignature struct {
 
 // Attestation is the cryptographic seal over the canonical AEO content.
 type Attestation struct {
-	Algorithm string `json:"algorithm"`  // ML-DSA-65
+	Algorithm string `json:"algorithm"`  // ML-DSA-87
 	PublicKey string `json:"public_key"` // hex
 	Signature string `json:"signature"`  // hex, over the canonical content hash
 }
@@ -97,7 +97,7 @@ type EvidenceObject struct {
 	CryptographicAttestation Attestation `json:"cryptographic_attestation"`
 }
 
-// AgentDID derives a KHEPRA decentralized identifier from an ML-DSA-65
+// AgentDID derives a KHEPRA decentralized identifier from an ML-DSA-87
 // public key. The DID is stable for the lifetime of the key pair.
 func AgentDID(pubKey []byte) string {
 	return DIDMethod + adinkra.Hash(pubKey)[:32]
@@ -145,7 +145,7 @@ func (e *EvidenceObject) ComputeHash() (string, error) {
 	return adinkra.Hash(raw), nil
 }
 
-// Seal computes the content hash and signs it with the agent's ML-DSA-65
+// Seal computes the content hash and signs it with the agent's ML-DSA-87
 // private key. The public key must belong to the same pair; the AgentID must
 // have been derived from it, otherwise Verify will reject the object.
 func (e *EvidenceObject) Seal(privKey, pubKey []byte) error {
@@ -170,7 +170,7 @@ func (e *EvidenceObject) Seal(privKey, pubKey []byte) error {
 
 // Verify checks the AEO end to end:
 //  1. the content hash matches the canonical content (tamper evidence),
-//  2. the ML-DSA-65 signature over the hash is valid,
+//  2. the ML-DSA-87 signature over the hash is valid,
 //  3. the agent DID matches the attesting public key (identity binding).
 func (e *EvidenceObject) Verify() error {
 	computed, err := e.ComputeHash()
@@ -195,7 +195,7 @@ func (e *EvidenceObject) Verify() error {
 		return fmt.Errorf("aeo: verify failed: %w", err)
 	}
 	if !ok {
-		return errors.New("aeo: invalid ML-DSA-65 signature")
+		return errors.New("aeo: invalid ML-DSA-87 signature")
 	}
 
 	if AgentDID(pub) != e.AgentID {

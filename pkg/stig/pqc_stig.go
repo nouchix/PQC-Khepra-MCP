@@ -1,6 +1,6 @@
 package stig
 
-// pqc_stig.go — PQC-01-STIG-V1R1, a NouchiX post-quantum control set (not a DISA STIG)
+// pqc_stig.go — World's First DoD PQC Security Technical Implementation Guide
 //
 // Classification: UNCLASSIFIED
 // Version: PQC-01-STIG-V1R1
@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 )
+
 
 // validatePQCStig runs the PQC-01-STIG-V1R1 control set.
 // Called by Validator.validateFramework when framework == FrameworkPQCStig.
@@ -61,9 +62,6 @@ func (v *Validator) validatePQCStig(result *ValidationResult) error {
 
 	// PQC-020040: Certificate chains SHALL include PQC signatures
 	v.checkPQC_020040(result, checker)
-
-	// PQC-020050: CNSA 2.0 migration plan + POA&M SHALL be documented
-	v.checkPQC_020050(result)
 
 	// ── Category III (Medium) — Audit + Documentation + Coverage ────────────
 
@@ -136,7 +134,6 @@ func (v *Validator) checkPQC_010010(result *ValidationResult, checker *SystemChe
 
 // PQC-010020 — ML-DSA Key Strength
 func (v *Validator) checkPQC_010020(result *ValidationResult, checker *SystemChecker) {
-	_ = checker
 	finding := Finding{
 		ID:          "PQC-010020",
 		Title:       "ML-DSA signing keys SHALL meet security category 3 minimum (ML-DSA-65, 1,952-byte public key)",
@@ -301,7 +298,6 @@ func (v *Validator) checkPQC_020010(result *ValidationResult, checker *SystemChe
 
 // PQC-020020 — PQC Key Storage Protection
 func (v *Validator) checkPQC_020020(result *ValidationResult, checker *SystemChecker) {
-	_ = checker
 	finding := Finding{
 		ID:          "PQC-020020",
 		Title:       "PQC private keys MUST be protected at rest with equivalent classical protections",
@@ -388,7 +384,6 @@ func (v *Validator) checkPQC_020030(result *ValidationResult, checker *SystemChe
 
 // PQC-020040 — Certificate Chain PQC Signatures
 func (v *Validator) checkPQC_020040(result *ValidationResult, checker *SystemChecker) {
-	_ = checker
 	finding := Finding{
 		ID:          "PQC-020040",
 		Title:       "Certificate chains SHALL include PQC signatures alongside or in place of classical signatures",
@@ -501,12 +496,10 @@ func (v *Validator) checkPQC_030020(result *ValidationResult) {
 		"rotation", "Rotation", "rotate_key", "key_lifetime",
 		"expiry", "Expiry", "TTL", "max_age",
 	}
-	docsDir, err := safeJoinPath(v.targetPath, "docs")
+	docsDir := filepath.Join(v.targetPath, "docs")
 	hasRotationDocs := false
-	if err == nil {
-		if _, err := os.Stat(docsDir); err == nil {
-			hasRotationDocs = scanDirForPatterns(docsDir, docPatterns)
-		}
+	if _, err := os.Stat(docsDir); err == nil {
+		hasRotationDocs = scanDirForPatterns(docsDir, docPatterns)
 	}
 	hasRotationCode := scanSourceContainsAny(v.targetPath, docPatterns)
 
@@ -569,88 +562,6 @@ func (v *Validator) checkPQC_030030(result *ValidationResult, checker *SystemChe
 	result.Findings = append(result.Findings, finding)
 }
 
-// PQC-020050 — CNSA 2.0 Migration Timeline and POA&M
-// CAT II: deadline-tracking control. Verifies that a CNSA 2.0 migration plan
-// and/or POA&M is documented in the target project (policy, README, or migration file).
-func (v *Validator) checkPQC_020050(result *ValidationResult) {
-	finding := Finding{
-		ID:    "PQC-020050",
-		Title: "A CNSA 2.0 quantum migration plan with POA&M SHALL be documented",
-		Description: "NSM-10 / CNSA 2.0 requires NSS operators to document a migration roadmap. " +
-			"Key deadlines: FY2025 — inventory complete; FY2030 — NSS migrations done; " +
-			"FY2033 — all certificates PQC. Without a tracked POA&M, auditors cannot verify " +
-			"progress and CMMC C3PAOs cannot issue a Conditional certification.",
-		Severity:   SeverityCAT2,
-		References: []string{"NSM-10", "CNSA 2.0", "CISA PQC Roadmap", "DFARS 252.204-7012"},
-		CheckedAt:  time.Now(),
-	}
-
-	// Check for documented migration planning artifacts
-	migrationPatterns := []string{
-		"cnsa 2.0", "cnsa2", "quantum migration", "pqc migration", "post-quantum migration",
-		"migration plan", "migration roadmap", "pqc roadmap",
-		"2030 deadline", "2033 deadline", "nsm-10", "nsm10",
-		"poam", "poa&m", "plan of action",
-		"cnsa_migration", "pqc_timeline",
-	}
-	docFiles := []string{
-		"SECURITY.md", "security.md", "MIGRATION.md", "migration.md",
-		"README.md", "readme.md", "QUANTUM.md", "quantum.md",
-		"ROADMAP.md", "roadmap.md", "poam.md", "POAM.md",
-		"docs/pqc-migration.md", "docs/quantum-migration.md", "docs/cnsa-migration.md",
-	}
-
-	hasMigrationDoc := false
-	for _, docFile := range docFiles {
-		path, err := safeJoinPath(v.targetPath, docFile)
-		if err != nil {
-			continue
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		lower := strings.ToLower(string(data))
-		for _, pattern := range migrationPatterns {
-			if strings.Contains(lower, pattern) {
-				hasMigrationDoc = true
-				break
-			}
-		}
-		if hasMigrationDoc {
-			break
-		}
-	}
-
-	// Also check code comments for migration TODOs
-	hasCodeMigrationNote := scanSourceContainsAny(v.targetPath, []string{
-		"CNSA 2.0", "cnsa2.0", "PQC migration", "quantum migration deadline",
-		"TODO: PQC", "TODO(pqc)", "TODO: migrate",
-	})
-
-	if hasMigrationDoc {
-		finding.Status = "Pass"
-		finding.Actual = "CNSA 2.0 migration plan / POA&M documentation detected"
-		finding.Expected = "Documented quantum migration roadmap with CNSA 2.0 deadlines"
-		finding.Remediation = "N/A — ensure deadlines (FY2030 NSS, FY2033 certs) are tracked in POA&M."
-	} else if hasCodeMigrationNote {
-		finding.Status = "Manual Review Required"
-		finding.Actual = "PQC migration notes found in source but no formal plan document detected"
-		finding.Expected = "SECURITY.md or dedicated migration plan with CNSA 2.0 deadlines"
-		finding.Remediation = "Formalize migration notes into SECURITY.md with explicit FY2030/2033 deadline tracking. " +
-			"Use khepra_export_poam to generate a DFARS-compliant POA&M."
-	} else {
-		finding.Status = "Fail"
-		finding.Actual = "No CNSA 2.0 migration plan or POA&M documentation found"
-		finding.Expected = "Documented quantum-safe migration roadmap"
-		finding.Remediation = "Create SECURITY.md documenting: (1) current crypto inventory, " +
-			"(2) CNSA 2.0 migration milestones (FY2025 inventory → FY2030 NSS → FY2033 certs), " +
-			"(3) POA&M items for each gap. Run khepra_export_poam to auto-generate DFARS-compliant POA&M."
-	}
-
-	result.Findings = append(result.Findings, finding)
-}
-
 // ── Source Scanning Helpers ───────────────────────────────────────────────────
 //
 // PERFORMANCE: Each PQC-01-STIG-V1R1 check historically called scanSourceContainsAny
@@ -686,7 +597,14 @@ func buildPQCDirEntry(dir string) *pqcDirEntry {
 	var rawBuf strings.Builder
 	var certFiles []string
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error { //nolint:errcheck
-		if err != nil || info == nil || info.IsDir() {
+		if err != nil || info == nil {
+			return nil
+		}
+		if info.IsDir() {
+			name := info.Name()
+			if name == ".git" || name == "node_modules" || name == ".venv" || name == ".next" || name == "dist" || name == "vendor" || name == ".cache" {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		ext := strings.ToLower(filepath.Ext(path))
@@ -761,21 +679,10 @@ func scanSourceForPresence(dir string, patterns []string) []string {
 	return found
 }
 
-// safeJoinPath confines subPath strictly within baseDir to prevent path traversal (CWE-22).
-func safeJoinPath(baseDir, subPath string) (string, error) {
-	cleanBase := filepath.Clean(baseDir)
-	cleanPath := filepath.Clean(filepath.Join(cleanBase, subPath))
-	rel, err := filepath.Rel(cleanBase, cleanPath)
-	if err != nil || strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
-		return "", fmt.Errorf("path traversal: %q escapes base %q", subPath, baseDir)
-	}
-	return cleanPath, nil
-}
 
 // scanDirForPatterns searches a directory (non-recursively, just docs) for patterns.
 func scanDirForPatterns(dir string, patterns []string) bool {
-	cleanDir := filepath.Clean(dir)
-	entries, err := os.ReadDir(cleanDir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return false
 	}
@@ -783,11 +690,7 @@ func scanDirForPatterns(dir string, patterns []string) bool {
 		if e.IsDir() {
 			continue
 		}
-		path, err := safeJoinPath(cleanDir, e.Name())
-		if err != nil {
-			continue
-		}
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
 		if err != nil {
 			continue
 		}
@@ -852,3 +755,5 @@ func certFileHasPQC(path string) bool {
 		strings.Contains(strings.ToLower(oidStr), "ml-dsa") ||
 		strings.Contains(strings.ToLower(oidStr), "mldsa")
 }
+
+

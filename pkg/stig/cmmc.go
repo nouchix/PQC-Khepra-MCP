@@ -47,21 +47,28 @@ func (v *Validator) validateCMMC(result *ValidationResult) error {
 					continue
 				}
 				ctrl := strings.TrimPrefix(ref, "NIST-800-53:")
-				e := evidence[ctrl]
-				if e == nil {
-					e = &controlEvidence{}
-					evidence[ctrl] = e
+				ctrlsToUpdate := []string{ctrl}
+				baseCtrl := normalizeNIST53(ctrl)
+				if baseCtrl != ctrl && baseCtrl != "" {
+					ctrlsToUpdate = append(ctrlsToUpdate, baseCtrl)
 				}
-				switch f.Status {
-				case "Fail":
-					e.failed++
-					if e.failReason == "" {
-						e.failReason = f.Title
+				for _, c := range ctrlsToUpdate {
+					e := evidence[c]
+					if e == nil {
+						e = &controlEvidence{}
+						evidence[c] = e
 					}
-				case "Pass":
-					e.passed++
-				default:
-					e.pending++
+					switch f.Status {
+					case "Fail":
+						e.failed++
+						if e.failReason == "" {
+							e.failReason = f.Title
+						}
+					case "Pass":
+						e.passed++
+					default:
+						e.pending++
+					}
 				}
 			}
 		}
@@ -212,3 +219,20 @@ func (v *Validator) addPQCAdvancedL3(result *ValidationResult) {
 		CheckedAt:   time.Now(),
 	})
 }
+
+// normalizeNIST53 normalizes complex NIST control references like "CM-6 b", "CM-6.1 (iv)", or "AC-2(1)"
+// to their base control identifier "CM-6" or "AC-2".
+func normalizeNIST53(ctrl string) string {
+	ctrl = strings.TrimSpace(ctrl)
+	if idx := strings.Index(ctrl, " "); idx > 0 {
+		ctrl = ctrl[:idx]
+	}
+	if idx := strings.Index(ctrl, "("); idx > 0 {
+		ctrl = ctrl[:idx]
+	}
+	if idx := strings.Index(ctrl, "."); idx > 0 {
+		ctrl = ctrl[:idx]
+	}
+	return strings.TrimSpace(ctrl)
+}
+

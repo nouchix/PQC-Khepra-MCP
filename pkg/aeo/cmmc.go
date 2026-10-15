@@ -30,13 +30,13 @@ func CMMCEvidence(obj *EvidenceObject) []PracticeEvidence {
 		{
 			CMMCPractice: "CMMC.AU.L2-3.3.2",
 			NIST:         "3.3.2",
-			Rationale:    "Actions are traceable to a unique agent (did:khepra DID bound to an ML-DSA-65 key), supporting individual accountability.",
+			Rationale:    "Actions are traceable to a unique agent (did:khepra DID bound to an ML-DSA-87 key), supporting individual accountability.",
 			AEOHash:      obj.Hash,
 		},
 		{
 			CMMCPractice: "CMMC.AU.L2-3.3.8",
 			NIST:         "3.3.8",
-			Rationale:    "Audit information is protected from unauthorized modification: content-addressed, ML-DSA-65 signed, and DAG-anchored.",
+			Rationale:    "Audit information is protected from unauthorized modification: content-addressed, ML-DSA-87 signed, and DAG-anchored.",
 			AEOHash:      obj.Hash,
 		},
 	}

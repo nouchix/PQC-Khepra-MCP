@@ -1,0 +1,6 @@
+# SHA-256 of the embedded CSVs (LF, byte-for-byte as committed).
+sha256:ae0490c5029361ed6da8c9da5aabbe00c13f50fb6661d41f7e76ca186e670b31  STIG_CCI_Map.csv
+sha256:38da6f67d5cd5ff72fb1b31de9456b5b91daf8f76134a5fd5326c319b6f3d5dd  CCI_STIG_NIST_CMMC_Complete.csv
+sha256:73097d2bc6cef208caa9376fc8de884d9132f086cc8f521724bb5843f0a11b69  CCI_to_NIST53.csv
+sha256:d40e5baa98fabdcc445e644b16e12cec91a38d7e42a9a7845767846e2d61652f  NIST53_to_171.csv
+sha256:ac6d47e0a14b99166bea6f39ff99d69c2c8c740461ad9234a80945ffb5cb6dc2  NIST53_to_172.csv

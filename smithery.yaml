@@ -1,0 +1,49 @@
+# Smithery configuration for PQC-Khepra-MCP
+# Official Documentation: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      khepraMode:
+        type: string
+        title: "KHEPRA Mode"
+        description: "Deployment mode: community (free) | sovereign (air-gapped) | ironbank (FedRAMP)"
+        default: "community"
+        enum:
+          - "community"
+          - "sovereign"
+          - "ironbank"
+      khepraLicenseKey:
+        type: string
+        title: "KHEPRA License Key"
+        description: "License key for AdinKhepra ASAF paid tiers. Leave empty for free community mode."
+      supabaseUrl:
+        type: string
+        title: "Supabase URL"
+        description: "Supabase project URL for SouHimBou AI Flight Recorder integration"
+      supabaseAnonKey:
+        type: string
+        title: "Supabase Anon Key"
+        description: "Supabase anon key for Flight Recorder integration"
+  commandFunction: |-
+    (config) => ({
+      command: "khepra-mcp",
+      args: [],
+      env: {
+        KHEPRA_MODE: config.khepraMode || "community",
+        KHEPRA_LICENSE_KEY: config.khepraLicenseKey || "",
+        SUPABASE_URL: config.supabaseUrl || "",
+        SUPABASE_ANON_KEY: config.supabaseAnonKey || ""
+      }
+    })
+  exampleConfig:
+    khepraMode: "community"
+    khepraLicenseKey: ""
+    supabaseUrl: "https://your-supabase-project.supabase.co"
+    supabaseAnonKey: "eyJhbGciOi..."
+
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .

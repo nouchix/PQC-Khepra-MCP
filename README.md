@@ -1,6 +1,6 @@
 # PQC-Khepra-MCP
 
-[![smithery badge](https://smithery.ai/badge/skone/pqc-khepra-mcp)](https://smithery.ai/servers/skone/pqc-khepra-mcp)
+[![smithery badge](https://smithery.ai/badge/nouchix/ktos-mcp)](https://smithery.ai/servers/nouchix/ktos-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.nouchix%2Fpqc--khepra--mcp-blue?style=for-the-badge)](https://registry.modelcontextprotocol.io/?q=khepra)
 [![mcpservers.org](https://img.shields.io/badge/mcpservers.org-nouchix%2Fpqc--khepra--mcp-orange?style=for-the-badge)](https://mcpservers.org/servers/nouchix/pqc-khepra-mcp)
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
@@ -499,50 +499,53 @@ Expected output: a JSON-RPC response listing all available tools. If you see `"t
 
 ## MCP Tools
 
-### Community Tier (Free — No License Key)
+### Community Tier (Free Lead Magnet — 14 Open-Core Tools, Zero STIG DBs)
 
-#### `pqc_stig` — World's First DoD PQC STIG ⭐
-Assesses a source code directory against **PQC-01-STIG-V1R1**: 12 controls covering CNSA 2.0 algorithm approval, ML-DSA key strength, ML-KEM encapsulation strength, hybrid cryptography, key storage, constant-time implementation, and certificate chain requirements.
+The free open-core kernel provides immediate utility for individual developers, AI coding agents (Claude Code, Cursor, Antigravity, Cline), and security researchers:
 
-```
-pqc_stig(scan_path?: string, profile?: "quick" | "full" | "executive")
-```
+- **`pqc_keygen`**: Generate ML-DSA-65 (FIPS 204) post-quantum keypairs.
+- **`pqc_sign`**: Sign arbitrary payloads with post-quantum digital signatures.
+- **`pqc_verify`**: Cryptographically verify ML-DSA-65 signatures.
+- **`flight_record`**: Tamper-evident client-side recording of agent tool invocations to NDJSON hash chains.
+- **`flight_export`**: Export local flight records with DAG anchor proof.
+- **`agent_record`**: Attest agent tool execution to local SQLite ledger.
+- **`dag_attestation`**: Export cryptographic audit trail of the active session.
+- **`khepra_get_dag_chain`**: Retrieve chain-linked DAG node history.
+- **`enumerate_host`**: Local system environment, interfaces, and architecture discovery.
+- **`fingerprint_device`**: Generate tamper-evident device identity hash.
+- **`discover_assets`**: Enumerate reachable network endpoints and runtime services locally.
+- **`kasa_status`**: Autonomous agent runtime status and health metrics.
+- **`threat_lookup`**: Local offline threat IOC lookup.
+- **`nist_map`** *(Community Teaser)*: Offline semantic lookup across base NIST controls (limited to 25 items).
 
-> **Example:** *"Run pqc_stig on my project and tell me what stands between it and the CNSA 2.0 algorithm suite"*
-
-#### `nist_map`
-Map CCI identifiers or STIG findings to NIST 800-53 Rev 5 controls.
-
-#### `khepra_query_stig`
-Query the 36,195-row STIG/CCI/NIST/CMMC compliance database by control ID.
-
-#### `dark_crypto_contribute` *(opt-in)*
-Contribute anonymized cryptographic algorithm telemetry to the SouHimBou AI Dark Crypto Intelligence Network. No PII. Opt-in only — never fires without explicit invocation.
+> **Note:** The Free Community Kernel contains **zero STIG or compliance databases**. All automated DISA STIG benchmarks, CMMC L2/L3 engines, and executive risk syntheses are exclusively part of the commercial **KTOS Master Kernel**.
 
 ---
 
-### Pro / Enterprise / Sovereign Tier
+### KTOS Master Kernel (Paid Upgrade — 100+ Enterprise & Sovereign Tools)
 
-#### `ert_scan`
-Enterprise Risk & Threat scan across STIG, NIST 800-53, NIST 800-171, CMMC, and FedRAMP. Returns Godfather Report with dollar-denominated business impact.
+Upgrade to **KTOS Platform ($499/mo)**, **Enterprise ($2,999/mo)**, or **Sovereign ($45K–$250K/yr)** to unlock the full 100-tool Master Kernel:
 
-```
-ert_scan(target: string, frameworks?: string[], output_format?: "godfather" | "json" | "csv")
-```
+#### `pqc_stig` — World's First DoD PQC STIG ⭐ *(Enterprise / Sovereign)*
+Assesses source code and infrastructure against **PQC-01-STIG-V1R1**: 17 controls covering CNSA 2.0 algorithm suite (FIPS 203 ML-KEM-1024, FIPS 204 ML-DSA-87), hybrid cryptographic encapsulation, constant-time validation, and NSA MCP Security Advisory guidelines.
 
-> **Example:** *"Run ert_scan on /etc and generate a Godfather Report"*
+#### `ert_scan` — Enterprise Risk & Threat Engine *(Enterprise / Sovereign)*
+Multi-package security scanner (Packages A, B, C, D) generating executive **Godfather Reports** with dollar-denominated FAIR risk exposure and C3PAO-ready attestation.
 
-#### `stig_check`
-Automated RHEL-09-STIG-V1R3 compliance scan against a live system or configuration path.
+#### `stig_check` — Automated STIG Validation *(Enterprise / Sovereign)*
+Validates live systems and config files against DISA RHEL-09-STIG and Windows benchmarks.
 
-#### `cmmc_assess`
-Full CMMC Level 1, 2, or 3 assessment with gap analysis and POA&M generation.
+#### `cmmc_assess` — CMMC Level 2/3 Autopilot *(Enterprise / Sovereign)*
+Full maturity assessment across all 110 CMMC Level 2 practices with automated POA&M generation.
 
-#### `godfather_report`
-Generate an executive Godfather Report from prior scan results: top 10 findings ranked by dollar exposure, remediation ROI, and FAIR model business impact.
+#### `khepra_query_stig` — Relational Compliance Database *(Enterprise / Sovereign)*
+Full access to the 36,195-row relational compliance database (DISA STIG → CCI → NIST SP 800-53 Rev 5 → NIST SP 800-171 Rev 2 → CMMC 2.0).
 
-#### + 20 additional tools
-`agent_record`, `dag_attestation`, `flight_export`, `khepra_get_dag_chain`, `nhi_inventory`, `acp_status`, `owasp_agent_assess`, `khepra_export_attestation`, `khepra_export_poam`, `khepra_get_compliance_score`, `ert_crypto`, `ert_readiness`, `stig_benchmark`, `ir_analysis`, `vuln_hunter`, `sbom_generate`, `threat_model`, `khepra_query_threat_intel`, `discover_assets`, and more.
+#### `godfather_report` & `godfather_approve` *(Platform / Enterprise)*
+Synthesize raw vulnerabilities into board-ready executive briefs with remediation ROI.
+
+#### + 80+ Additional Advanced Tools
+Includes `scan_shadow_ai`, `attest_ai_policy`, `linux_hardening_check`, `stig_live_query` (live DISA STIGViewer API v2), `nhi_inventory`, `nhi_revoke`, `acp_issue`, `sekhem_gateway`, `ouroboros_waf_eye`, `sbom_generate`, `forensic_snapshot`, and autonomous host remediation playbooks.
 
 ---
 

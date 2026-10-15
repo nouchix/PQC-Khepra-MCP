@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PQC-Khepra MCP Configuration",
+  "description": "Configuration schema for PQC-Khepra-MCP server deployment and execution",
+  "type": "object",
+  "properties": {
+    "khepraMode": {
+      "type": "string",
+      "title": "KHEPRA Mode",
+      "description": "Deployment mode: community (free) | sovereign (air-gapped) | ironbank (FedRAMP)",
+      "default": "community",
+      "enum": ["community", "sovereign", "ironbank"]
+    },
+    "khepraLicenseKey": {
+      "type": "string",
+      "title": "KHEPRA License Key",
+      "description": "License key for AdinKhepra ASAF paid tiers. Leave empty for free community mode."
+    },
+    "supabaseUrl": {
+      "type": "string",
+      "title": "Supabase URL",
+      "description": "Supabase project URL for SouHimBou AI Flight Recorder integration"
+    },
+    "supabaseAnonKey": {
+      "type": "string",
+      "title": "Supabase Anon Key",
+      "description": "Supabase anon key for Flight Recorder integration"
+    }
+  }
+}

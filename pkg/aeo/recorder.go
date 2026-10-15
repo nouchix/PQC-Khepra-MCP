@@ -9,7 +9,7 @@ import (
 	"github.com/nouchix/PQC-Khepra-MCP/pkg/adinkra"
 )
 
-// Recorder binds an agent identity (ML-DSA-65 key pair) to a stream of task
+// Recorder binds an agent identity (ML-DSA-87 key pair) to a stream of task
 // recordings. Each sealed task becomes one EvidenceObject whose ParentEvent
 // is the hash of the previous one — the agent's operational history chain.
 type Recorder struct {
@@ -20,7 +20,7 @@ type Recorder struct {
 	lastHash string // parent for the next AEO ("" until the genesis event)
 }
 
-// NewRecorder creates a recorder for the given ML-DSA-65 key pair.
+// NewRecorder creates a recorder for the given ML-DSA-87 key pair.
 func NewRecorder(privKey, pubKey []byte) *Recorder {
 	return &Recorder{
 		agentID: AgentDID(pubKey),
@@ -80,7 +80,7 @@ func (t *TaskRecording) RecordObservation(target, finding string, confidence flo
 }
 
 // Seal closes the recording: computes the behavioral fingerprint, chains the
-// AEO to the agent's previous event, and signs it with ML-DSA-65.
+// AEO to the agent's previous event, and signs it with ML-DSA-87.
 func (t *TaskRecording) Seal() (*EvidenceObject, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

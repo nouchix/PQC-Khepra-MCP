@@ -20,7 +20,7 @@ RUN GONOSUMCHECK="*" go mod download && go mod verify
 COPY pkg/ ./pkg/
 COPY cmd/ ./cmd/
 
-ARG VERSION=1.0.0
+ARG VERSION=2.2.0
 ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
 
@@ -60,7 +60,7 @@ LABEL org.opencontainers.image.title="KHEPRA MCP Server" \
       org.opencontainers.image.description="Sovereign compliance engine with 36,195 STIG/CCI/NIST/CMMC mappings. Air-gappable. Zero token costs." \
       org.opencontainers.image.url="https://nouchix.com" \
       org.opencontainers.image.source="https://github.com/nouchix/PQC-Khepra-MCP" \
-      org.opencontainers.image.licenses="Proprietary" \
+      org.opencontainers.image.licenses="KSCL-1.0" \
       org.opencontainers.image.vendor="NouchiX / SecRed Knowledge Inc." \
       io.modelcontextprotocol.server.name="io.github.nouchix/pqc-khepra-mcp"
 

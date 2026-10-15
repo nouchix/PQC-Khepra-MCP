@@ -19,7 +19,7 @@ const DAGSymbol = "AKOMA_NTOSO"
 // Ledger stores an agent population's AEOs and anchors each one into the
 // immutable KHEPRA DAG. It answers the Catch-22 question — "who verifies the
 // verifier?" — with a cryptographically anchored evidence fabric: every
-// object is self-verifying (ML-DSA-65 + content address) and cross-anchored
+// object is self-verifying (ML-DSA-87 + content address) and cross-anchored
 // (DAG parentage), so no single trusted observer is required.
 type Ledger struct {
 	mu      sync.RWMutex
@@ -27,12 +27,12 @@ type Ledger struct {
 	byAgent map[string][]*EvidenceObject // insertion order per agent
 
 	store       dag.Store
-	signKey     []byte            // ledger's own ML-DSA-65 key for DAG anchor nodes
+	signKey     []byte            // ledger's own ML-DSA-87 key for DAG anchor nodes
 	lastAnchors map[string]string // agentID -> last DAG anchor node ID
 }
 
 // NewLedger creates a ledger anchoring into the given DAG store. signKey is
-// the ledger's ML-DSA-65 private key used to sign anchor nodes; pass nil to
+// the ledger's ML-DSA-87 private key used to sign anchor nodes; pass nil to
 // record unanchored (verification still works, anchoring is skipped).
 func NewLedger(store dag.Store, signKey []byte) *Ledger {
 	return &Ledger{
