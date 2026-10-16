@@ -6,17 +6,17 @@
 [![Cline Marketplace](https://img.shields.io/badge/Cline_Marketplace-Issue_%231824-blueviolet?style=for-the-badge)](https://github.com/cline/mcp-marketplace/issues/1824)
 [![License](https://img.shields.io/badge/License-KSCL--1.0_(source--available)-blue?style=for-the-badge)](LICENSE)
 [![Container](https://img.shields.io/badge/Container-ghcr.io-green?style=for-the-badge&logo=docker)](https://ghcr.io/nouchix/pqc-khepra-mcp)
-[![PQC](https://img.shields.io/badge/PQC-ML--DSA--65%20%2F%20FIPS%20204-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
+[![PQC](https://img.shields.io/badge/PQC-ML--DSA--87_%2F_FIPS_204_%2B_ML--KEM--1024-purple?style=for-the-badge)](https://csrc.nist.gov/pubs/fips/204/final)
 [![Live](https://img.shields.io/badge/Live-mcp.souhimbou.ai-brightgreen?style=for-the-badge)](https://mcp.souhimbou.ai/mcp/v1/health)
 [![TriPentest Certified 92/92](https://img.shields.io/badge/TRIPENTEST-92%2F92_NEUTRALIZED-brightgreen?style=for-the-badge)](https://nouchix.com)
 
 **Post-Quantum Cryptographic & Autonomous Flight Recording Kernel for AI Agents.**
 
 Air-gappable. Zero cloud telemetry. Zero token overhead.  
-Provides ML-DSA-65 (FIPS 204) post-quantum signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Source-available under the KHEPRA Sovereign Public & Commercial License (KSCL-1.0): free for community and evaluation use; commercial production use requires a subscription. See [LICENSE](LICENSE).
+Provides ML-DSA-87 (FIPS 204) and ML-KEM-1024 (FIPS 203) post-quantum signatures on every tool call, autonomous client-side NDJSON flight recording, and local host/asset discovery. Source-available under the KHEPRA Sovereign Public & Commercial License (KSCL-1.0): free for community and evaluation use; commercial production use requires a subscription. See [LICENSE](LICENSE).
 
-> **Patent Reference:** U.S. Prov. App. No. 63/942,886 (KHEPRA Protocol & Post-Quantum Evidence Weave)  
-> **Corporate Identity:** SecRed Knowledge Inc. (operating as NouchiX) — Delaware C-Corp (EIN 99-0529252), SDVOSB (Active Self-Certified / SBA VetCert in review), Active Secret Clearance.  
+> **Patent Reference:** Patent Pending · U.S. Provisional Application No. 63/942,886 (EFS ID: 73565085)  
+> **Corporate Identity:** SecRed Knowledge Inc. (operating as NouchiX) — Delaware C-Corp (EIN 99-0529252), SDVOSB-eligible (SBA VetCert application pending), Active Secret Clearance.  
 > **Live hosted endpoint:** `https://mcp.souhimbou.ai/sse` — zero install, connect in 30 seconds.  
 > **Self-host for sovereign/air-gap:** [Docker](#option-a-docker-recommended) or [binary](#option-b-compiled-binary).
 

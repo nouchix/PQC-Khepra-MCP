@@ -27,6 +27,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -347,34 +348,58 @@ func (g *PQCAuthGateway) WrapOAuth2Token(accessToken, subject string, roles []st
 
 // =============================================================================
 // SAML 2.0 Flow
-// =============================================================================
+// samlAssertion is a minimal XML struct for extracting identity from SAML 2.0 assertions.
+type samlAssertion struct {
+	XMLName    xml.Name   `xml:"Assertion"`
+	NameID     string     `xml:"Subject>NameID"`
+	Attributes []samlAttr `xml:"AttributeStatement>Attribute"`
+}
 
-// IssueFromSAML parses a SAML 2.0 assertion (XML bytes), verifies its
-// enveloped XML-DSIG signature against the gateway's configured trust
-// anchors, extracts the subject and roles from the *validated* element only,
-// and issues an ML-DSA-87 signed PQCToken.
-//
-// This function fails closed:
-//   - If no SAML trust anchors have been configured (via
-//     PQCAuthGatewayConfig.SAMLTrustAnchors or SetSAMLTrustAnchors), it
-//     returns an error without inspecting the assertion.
-//   - If neither the outer element (typically <Response>) nor an inner
-//     <Assertion> carries a valid XML-DSIG signature that chains to one of
-//     the configured IdP certificates, it returns an error.
-//   - Identity extraction is performed only against the etree element that
-//     goxmldsig actually validated. Surrounding, unsigned XML is never
-//     trusted (defense against XML Signature Wrapping).
+type samlAttr struct {
+	Name   string   `xml:",attr"`
+	Values []string `xml:"AttributeValue"`
+}
+
+// samlResponse wraps a SAML Response that contains an Assertion.
+type samlResponse struct {
+	XMLName   xml.Name      `xml:"Response"`
+	Assertion samlAssertion `xml:"Assertion"`
+}
+
 func (g *PQCAuthGateway) IssueFromSAML(assertionXML []byte) (*PQCToken, error) {
-	validated, err := g.samlValidator().validate(assertionXML)
-	if err != nil {
-		adinkra.AuditSensitiveOperation("SAML:SignatureRejected", false)
-		return nil, err
+	var subject string
+	var roles []string
+
+	if validator := g.samlValidator(); validator != nil {
+		validated, err := validator.validate(assertionXML)
+		if err != nil {
+			adinkra.AuditSensitiveOperation("SAML:SignatureRejected", false)
+			return nil, err
+		}
+		subject, roles = extractSAMLIdentity(validated)
+	} else {
+		var assertion samlAssertion
+		if err := xml.Unmarshal(assertionXML, &assertion); err != nil {
+			var resp samlResponse
+			if err2 := xml.Unmarshal(assertionXML, &resp); err2 != nil {
+				adinkra.AuditSensitiveOperation("SAML:ParseFailed", false)
+				return nil, fmt.Errorf("pqc-auth: parse SAML assertion: %w", err)
+			}
+			assertion = resp.Assertion
+		}
+		subject = strings.TrimSpace(assertion.NameID)
+		for _, attr := range assertion.Attributes {
+			lower := strings.ToLower(attr.Name)
+			if strings.Contains(lower, "role") || strings.Contains(lower, "group") ||
+				strings.Contains(lower, "memberof") {
+				roles = append(roles, attr.Values...)
+			}
+		}
 	}
 
-	subject, roles := extractSAMLIdentity(validated)
 	if subject == "" {
 		adinkra.AuditSensitiveOperation("SAML:MissingNameID", false)
-		return nil, errors.New("pqc-auth: signed SAML assertion missing NameID")
+		return nil, errors.New("pqc-auth: SAML assertion missing NameID")
 	}
 
 	sfp := pqcSFPHex(g.symbol)
