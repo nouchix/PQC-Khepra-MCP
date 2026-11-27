@@ -46,6 +46,7 @@ jobs:
           output: "trivy-image.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"          # Fail CI on CRITICAL/HIGH CVEs
+          limit-severities-for-sarif: true   # else SARIF output ignores `severity` and any MEDIUM fails the gate
           ignore-unfixed: true    # Only block on patched vulns
 
       - name: Upload Trivy SARIF to GitHub Security
@@ -135,6 +136,7 @@ jobs:
           output: "trivy-fs.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"
+          limit-severities-for-sarif: true
           ignore-unfixed: true
 
       - name: Upload filesystem SARIF
