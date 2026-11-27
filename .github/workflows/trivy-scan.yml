@@ -46,6 +46,7 @@ jobs:
           output: "trivy-image.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"          # Fail CI on CRITICAL/HIGH CVEs
+          limit-severities-for-sarif: true   # else SARIF output ignores `severity` and any MEDIUM fails the gate
           ignore-unfixed: true    # Only block on patched vulns
 
       - name: Upload Trivy SARIF to GitHub Security
@@ -66,13 +67,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # registry1.dso.mil needs a Platform One / Iron Bank account. Without
+      # IRONBANK_USER and IRONBANK_PAT repo secrets the base images cannot be
+      # pulled (401), so say so and skip instead of failing every run.
+      - name: Check Iron Bank registry credentials
+        id: ib
+        env:
+          IB_USER: ${{ secrets.IRONBANK_USER }}
+          IB_PAT: ${{ secrets.IRONBANK_PAT }}
+        run: |
+          if [ -n "$IB_USER" ] && [ -n "$IB_PAT" ]; then
+            echo "have_creds=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_creds=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::IRONBANK_USER/IRONBANK_PAT not set; Iron Bank image scan SKIPPED (not passed)."
+          fi
+
+      - name: Log in to Iron Bank registry
+        if: steps.ib.outputs.have_creds == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: registry1.dso.mil
+          username: ${{ secrets.IRONBANK_USER }}
+          password: ${{ secrets.IRONBANK_PAT }}
+
       - name: Build IronBank image
+        if: steps.ib.outputs.have_creds == 'true'
         run: |
           docker build -t khepra-ironbank-scan:${{ github.sha }} \
             --no-cache \
             -f Dockerfile.ironbank .
 
       - name: Trivy — IronBank scan (all severities, report only)
+        if: steps.ib.outputs.have_creds == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: "khepra-ironbank-scan:${{ github.sha }}"
@@ -84,7 +111,7 @@ jobs:
 
       - name: Upload IronBank SARIF
         uses: github/codeql-action/upload-sarif@v4.38.1
-        if: always()
+        if: always() && steps.ib.outputs.have_creds == 'true'
         with:
           sarif_file: "trivy-ironbank.sarif"
           category: "trivy-ironbank"
@@ -109,6 +136,7 @@ jobs:
           output: "trivy-fs.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"
+          limit-severities-for-sarif: true
           ignore-unfixed: true
 
       - name: Upload filesystem SARIF

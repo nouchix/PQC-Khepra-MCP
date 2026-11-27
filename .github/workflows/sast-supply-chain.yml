@@ -71,8 +71,11 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          # A diff scan only makes sense on a PR. On push/schedule the base would
+          # equal HEAD (the action then exits 1 without scanning), so scan the
+          # full history instead by leaving base empty.
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
           extra_args: --only-verified
 
   # ── 3. govulncheck — Go module CVE scan ──────────────────────────────────────
@@ -95,19 +98,37 @@ jobs:
 
       - name: Scan Go modules for known CVEs
         run: |
-          govulncheck ./... 2>&1 | tee govulncheck-report.txt
-          if grep -q "^Vulnerability #" govulncheck-report.txt; then
-            echo "❌ FAIL: govulncheck found exploitable vulnerabilities"
+          # Gate: the binary we ship. Any reachable vulnerability fails the
+          # build, except the accepted IDs below.
+          #
+          # Accepted: GO-2026-6905 (github.com/blakesmith/ar, Fixed in: N/A).
+          # govulncheck's trace is license.checkRevocationList -> io.ReadAll ->
+          # ar.Reader.Read, which is interface-dispatch imprecision: that code
+          # reads an HTTP response body, and ar is only used by syft's .deb
+          # cataloger in pkg/sca. Remove this exception when upstream fixes it.
+          ACCEPTED="GO-2026-6905"
+
+          govulncheck ./cmd/khepra-mcp 2>&1 | tee govulncheck-report.txt || true
+          govulncheck -format json ./cmd/khepra-mcp > govulncheck.json
+          CALLED=$(jq -r 'select(.finding) | select(.finding.trace[0].function != null) | .finding.osv' govulncheck.json | sort -u)
+          UNACCEPTED=$(echo "$CALLED" | grep -v '^$' | grep -vxE "$ACCEPTED" || true)
+          if [ -n "$UNACCEPTED" ]; then
+            echo "::error::govulncheck: reachable vulnerabilities in the shipped binary: $UNACCEPTED"
             exit 1
           fi
-          echo "✅ PASS: No known Go module vulnerabilities"
+          echo "PASS: no unaccepted reachable Go vulnerabilities (accepted: $ACCEPTED)"
+
+          # Report only: the whole repo, including packages we do not ship.
+          govulncheck ./... 2>&1 | tee govulncheck-full-report.txt || true
 
       - name: Upload report (90-day C3PAO evidence)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: govulncheck-report-${{ github.sha }}
-          path: govulncheck-report.txt
+          path: |
+            govulncheck-report.txt
+            govulncheck-full-report.txt
           retention-days: 90
 
   # ── 4. SLSA Provenance + Cosign (on tags only) ────────────────────────────────
