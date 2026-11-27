@@ -14,7 +14,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: "1.27.1"
+  GO_VERSION: "1.27.4"
   BINARY_NAME: khepra-mcp
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
           cache: true
@@ -124,7 +124,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
           cache: true

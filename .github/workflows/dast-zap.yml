@@ -51,7 +51,7 @@ jobs:
           allow_issue_writing: true
 
       - name: Upload ZAP report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: zap-baseline-report-${{ github.run_id }}
@@ -85,7 +85,7 @@ jobs:
           allow_issue_writing: true
 
       - name: Upload API scan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: zap-api-report-${{ github.run_id }}
