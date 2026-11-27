@@ -98,17 +98,27 @@ jobs:
 
       - name: Scan Go modules for known CVEs
         run: |
-          # Gate: the binary we ship. Any vulnerability here fails the build.
-          govulncheck ./cmd/khepra-mcp 2>&1 | tee govulncheck-report.txt
-          if grep -q "^Vulnerability #" govulncheck-report.txt; then
-            echo "❌ FAIL: govulncheck found a vulnerability reachable from the shipped binary"
+          # Gate: the binary we ship. Any reachable vulnerability fails the
+          # build, except the accepted IDs below.
+          #
+          # Accepted: GO-2026-6905 (github.com/blakesmith/ar, Fixed in: N/A).
+          # govulncheck's trace is license.checkRevocationList -> io.ReadAll ->
+          # ar.Reader.Read, which is interface-dispatch imprecision: that code
+          # reads an HTTP response body, and ar is only used by syft's .deb
+          # cataloger in pkg/sca. Remove this exception when upstream fixes it.
+          ACCEPTED="GO-2026-6905"
+
+          govulncheck ./cmd/khepra-mcp 2>&1 | tee govulncheck-report.txt || true
+          govulncheck -format json ./cmd/khepra-mcp > govulncheck.json
+          CALLED=$(jq -r 'select(.finding) | select(.finding.trace[0].function != null) | .finding.osv' govulncheck.json | sort -u)
+          UNACCEPTED=$(echo "$CALLED" | grep -v '^$' | grep -vxE "$ACCEPTED" || true)
+          if [ -n "$UNACCEPTED" ]; then
+            echo "::error::govulncheck: reachable vulnerabilities in the shipped binary: $UNACCEPTED"
             exit 1
           fi
-          echo "✅ PASS: shipped binary has no reachable Go vulnerabilities"
+          echo "PASS: no unaccepted reachable Go vulnerabilities (accepted: $ACCEPTED)"
 
-          # Report only: the whole repo. GO-2026-6905 (blakesmith/ar, via
-          # anchore/syft in pkg/sca) has no upstream fix, and only shows up
-          # here, not in cmd/khepra-mcp. Recheck when upstream ships a fix.
+          # Report only: the whole repo, including packages we do not ship.
           govulncheck ./... 2>&1 | tee govulncheck-full-report.txt || true
 
       - name: Upload report (90-day C3PAO evidence)
